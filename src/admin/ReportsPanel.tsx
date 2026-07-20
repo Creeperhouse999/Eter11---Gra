@@ -38,7 +38,7 @@ function formatDate(iso: string): string {
  *
  * Zespół merytoryczny wpisuje tu, co nie działa albo co warto dodać, zamiast
  * przekazywać uwagi mailem. Zgłoszenia trafiają do osobnej kolekcji, którą
- * odczytuje osoba prowadząca projekt.
+ * odczytuje programista.
  */
 export function ReportsPanel() {
   const toast = useToast();
@@ -126,8 +126,8 @@ export function ReportsPanel() {
         </Button>
       </div>
       <p className="mt-1 max-w-prose text-sm text-ink-dim">
-        Napisz, co nie działa albo co warto dodać. Zgłoszenia trafiają do osoby
-        prowadzącej projekt.
+        Napisz, co nie działa albo co warto dodać. Zgłoszenia trafiają do
+        programisty.
       </p>
 
       {/* Formularz */}

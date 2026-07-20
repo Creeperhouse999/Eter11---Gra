@@ -11,6 +11,8 @@ interface GuideBubbleProps {
   /** Czy krok został wykonany — wtedy bąbel chwali i pozwala iść dalej. */
   done: boolean;
   onNext: () => void;
+  /** Powrót do poprzedniego wyjaśnienia. Null ukrywa przycisk. */
+  onBack: (() => void) | null;
   onSkip: () => void;
   /** Selektor podświetlonego elementu — bąbel ustawia się obok niego. */
   anchor: string | null;
@@ -41,6 +43,7 @@ export function GuideBubble({
   total,
   done,
   onNext,
+  onBack,
   onSkip,
   anchor,
 }: GuideBubbleProps) {
@@ -209,9 +212,16 @@ export function GuideBubble({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-edge px-3 py-2">
-          <Button variant="ghost" size="sm" onClick={onSkip}>
-            Pomiń samouczek
-          </Button>
+          <div className="flex items-center gap-1">
+            {onBack && (
+              <Button variant="ghost" size="sm" onClick={onBack} aria-label="Wstecz">
+                Wstecz
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={onSkip}>
+              Pomiń
+            </Button>
+          </div>
 
           {done && (
             <Button variant="primary" size="sm" onClick={onNext}>

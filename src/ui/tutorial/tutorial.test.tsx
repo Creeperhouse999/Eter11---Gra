@@ -106,31 +106,57 @@ describe('useTutorial — kroki', () => {
       initialProps: { ctx: context },
     });
 
-  it('zaczyna od pierwszego kroku', () => {
+  it('zaczyna od wyjaśnienia, nie od zadania', () => {
     const { result } = setup();
     expect(result.current.active).toBe(true);
     if (!result.current.active) return;
-    expect(result.current.stepNumber).toBe(1);
-    expect(result.current.done).toBe(false);
-  });
 
-  it('kliknięcie karty zalicza pierwszy krok', () => {
-    const { result, rerender } = setup();
-    rerender({ ctx: { ...idle, cardSelected: true } });
-    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.stepNumber).toBe(1);
+    // Krok czytany jest zaliczony od razu — gracz tylko naciska „Dalej".
+    expect(result.current.step.readOnly).toBe(true);
     expect(result.current.done).toBe(true);
   });
 
-  it('na pierwszym kroku blokuje wszystkie ruchy', () => {
+  it('na pierwszym kroku nie ma czego cofać', () => {
     const { result } = setup();
     if (!result.current.active) throw new Error('samouczek nieaktywny');
-    expect(result.current.allows('play')).toBe(false);
-    expect(result.current.allows('swap')).toBe(false);
-    expect(result.current.allows('pass')).toBe(false);
+    expect(result.current.back).toBeNull();
+  });
+
+  it('można wrócić do poprzedniego wyjaśnienia', () => {
+    const { result } = setup();
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+
+    act(() => result.current.active && result.current.next());
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.stepNumber).toBe(2);
+    expect(result.current.back).not.toBeNull();
+
+    act(() => result.current.active && result.current.back?.());
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.stepNumber).toBe(1);
+  });
+
+  it('samouczek zaczyna od wyjaśnień, dopiero potem prosi o ruch', () => {
+    const readOnlyPrefix = TUTORIAL_STEPS.slice(0, 2).every((s) => s.readOnly);
+    expect(readOnlyPrefix).toBe(true);
+
+    const firstTask = TUTORIAL_STEPS.find((s) => !s.readOnly);
+    expect(firstTask?.goal).toBe('selectCard');
+  });
+
+  it('krok z zadaniem blokuje ruchy spoza scenariusza', () => {
+    const playStep = TUTORIAL_STEPS.find((s) => s.goal === 'playFirst');
+    expect(playStep?.allow).toEqual(['play']);
   });
 
   it('po wykonaniu kroku przestaje blokować', () => {
     const { result, rerender } = setup();
+
+    // Przechodzimy przez wyjaśnienia do pierwszego zadania.
+    act(() => result.current.active && result.current.next());
+    act(() => result.current.active && result.current.next());
+
     rerender({ ctx: { ...idle, cardSelected: true } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.allows('play')).toBe(true);
@@ -215,7 +241,7 @@ describe('TutorialLayer', () => {
 
     // Tekst pisze się literami — kliknięcie pokazuje całość.
     fireEvent.click(dialog.querySelector('p')!);
-    expect(dialog.textContent).toMatch(/Kliknij dowolną kartę/);
+    expect(dialog.textContent).toMatch(/jestem ETER11/);
   });
 
   it('pokazuje numer kroku', () => {
@@ -223,16 +249,13 @@ describe('TutorialLayer', () => {
     expect(screen.getByText(`1 / ${TUTORIAL_STEPS.length}`)).toBeDefined();
   });
 
-  it('przycisk „Dalej" pojawia się dopiero po wykonaniu kroku', () => {
-    const { rerender } = render(<Harness context={idle} />);
-    expect(screen.queryByRole('button', { name: /Dalej/ })).toBeNull();
-
-    rerender(<Harness context={{ ...idle, cardSelected: true }} />);
+  it('krok czytany od razu pozwala iść dalej', () => {
+    render(<Harness context={idle} />);
     expect(screen.getByRole('button', { name: /Dalej/ })).toBeDefined();
   });
 
   it('przejście dalej pokazuje kolejny krok', () => {
-    render(<Harness context={{ ...idle, cardSelected: true }} />);
+    render(<Harness context={idle} />);
 
     act(() => {
       screen.getByRole('button', { name: /Dalej/ }).click();
@@ -259,7 +282,7 @@ describe('hasSeenTutorial', () => {
     }
 
     render(<Harness />);
-    fireEvent.click(screen.getByRole('button', { name: 'Pomiń samouczek' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pomiń' }));
 
     expect(hasSeenTutorial()).toBe(true);
   });

@@ -11,6 +11,7 @@ import type { Card, Problem } from '../engine/types';
  */
 
 export type TutorialGoal =
+  | 'intro'
   | 'selectCard'
   | 'playFirst'
   | 'playSecond'
@@ -22,6 +23,8 @@ export type TutorialGoal =
 export interface TutorialStep {
   id: string;
   goal: TutorialGoal;
+  /** Krok bez zadania — gracz tylko czyta i naciska „Dalej". */
+  readOnly?: boolean;
   /** Co ETER11 mówi przed wykonaniem kroku. */
   say: string;
   /** Pochwała po wykonaniu. */
@@ -37,11 +40,27 @@ export interface TutorialStep {
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
+    id: 'welcome',
+    goal: 'intro',
+    readOnly: true,
+    allow: [],
+    say: 'Cześć, jestem ETER11. W trzy minuty nauczę Cię grać. Na środku stołu leży problem — to on jest Waszym przeciwnikiem. Żeby go pokonać, trzeba zamknąć pięć ścianek wokół jego karty.',
+    praise: 'Idziemy dalej.',
+  },
+  {
+    id: 'slots',
+    goal: 'intro',
+    readOnly: true,
+    allow: [],
+    say: 'Każda ścianka ma kategorię i kolor. Kolor jest najważniejszy — tylko karta w tym samym kolorze ją zamknie. Kolor do koloru, to cała zasada.',
+    praise: 'Idziemy dalej.',
+  },
+  {
     id: 'look',
     goal: 'selectCard',
     allow: [],
-    say: 'Cześć, jestem ETER11. Nauczę Cię grać. Na środku leży problem, a wokół niego pięć ścianek — każda czeka na kartę w swoim kolorze. Kliknij dowolną kartę z ręki.',
-    praise: 'Widzisz? Ścianka, do której ta karta pasuje, zaświeciła.',
+    say: 'To Twoje karty. Każda ma kolor w górnym pasku. Kliknij dowolną, a pokażę Ci, gdzie pasuje.',
+    praise: 'Widzisz? Ścianka w tym samym kolorze zaświeciła.',
     nudge: 'Kliknij którąkolwiek kartę na dole ekranu.',
   },
   {

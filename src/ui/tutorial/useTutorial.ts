@@ -29,6 +29,7 @@ function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null 
   }
 
   const anchors: Record<Exclude<TutorialGoal, 'swapCards'>, string> = {
+    intro: '[data-tour="problem"]',
     selectCard: '[data-tour="hand"]',
     playFirst: '[data-tour="problem"]',
     playSecond: '[data-tour="problem"]',
@@ -54,6 +55,9 @@ function isGoalMet(
   const swapped = state.mission?.swappedThisRound.length ?? 0;
 
   switch (goal) {
+    // Krok czytany, bez zadania — zaliczony od razu.
+    case 'intro':
+      return true;
     case 'selectCard':
       return context.cardSelected || played > 0;
     case 'playFirst':
@@ -118,6 +122,8 @@ export interface TutorialControl {
   /** Czy dany ruch jest teraz dozwolony. Poza scenariuszem wszystko blokujemy. */
   allows: (action: 'play' | 'swap' | 'pass') => boolean;
   next: () => void;
+  /** Powrót do poprzedniego wyjaśnienia. Null na pierwszym kroku. */
+  back: (() => void) | null;
   skip: () => void;
 }
 
@@ -166,6 +172,17 @@ export function useTutorial(
     setIndex((current) => current + 1);
   };
 
+  // Cofnięcie działa tylko na krokach czytanych — przy zadaniach karta jest
+  // już zagrana i nie da się jej wziąć z powrotem.
+  const canGoBack = index > 0 && TUTORIAL_STEPS[index - 1].readOnly === true;
+
+  const back = () => {
+    doneRef.current = false;
+    setDone(false);
+    setStuck(false);
+    setIndex((current) => Math.max(0, current - 1));
+  };
+
   const skip = () => {
     markSeen();
     onFinish();
@@ -177,16 +194,20 @@ export function useTutorial(
     stepNumber: index + 1,
     total: TUTORIAL_STEPS.length,
     done,
-    message: done
-      ? step.praise
-      : swapStageMessage(step.goal, context) ??
-        (stuck && step.nudge ? step.nudge : step.say),
+    // Krok czytany nie ma czego chwalić — gracz jeszcze nic nie zrobił,
+    // więc pokazujemy treść wyjaśnienia aż do naciśnięcia „Dalej".
+    message:
+      done && !step.readOnly
+        ? step.praise
+        : swapStageMessage(step.goal, context) ??
+          (stuck && step.nudge ? step.nudge : step.say),
     // Podświetlenie zostaje także przy pochwale: ETER11 mówi „ścianka
     // zaświeciła", więc musi być co pokazać, gdy to mówi.
     anchor: anchorFor(step.goal, context),
     // Po wykonaniu kroku nie blokujemy niczego — gracz czeka na „Dalej".
     allows: (action) => done || step.allow.includes(action),
     next,
+    back: canGoBack ? back : null,
     skip,
   };
 }

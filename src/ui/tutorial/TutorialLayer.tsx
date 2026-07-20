@@ -25,6 +25,7 @@ export function TutorialLayer({ tutorial }: TutorialLayerProps) {
         done={tutorial.done}
         anchor={tutorial.anchor}
         onNext={tutorial.next}
+        onBack={tutorial.back}
         onSkip={tutorial.skip}
       />
     </>
