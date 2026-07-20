@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert } from './Alert';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
+import { ColorPicker } from './ColorPicker';
 import { Chip } from './Chip';
 import { NumberField, TextField } from './Field';
 import { Modal } from './Modal';
@@ -312,5 +313,67 @@ describe('Button', () => {
   it('domyślnie ma typ button, żeby nie wysyłał formularza', () => {
     render(<Button>Akcja</Button>);
     expect(screen.getByRole('button').getAttribute('type')).toBe('button');
+  });
+});
+
+describe('ColorPicker', () => {
+  it('pokazuje aktualny kolor w przycisku', () => {
+    render(<ColorPicker value="#3ddbd0" label="Akcent" onChange={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /#3ddbd0/ })).toBeDefined();
+  });
+
+  it('otwiera panel po kliknięciu', async () => {
+    render(<ColorPicker value="#3ddbd0" label="Akcent" onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Akcent/ }));
+    expect(await screen.findByLabelText('Barwa')).toBeDefined();
+  });
+
+  it('wpisanie poprawnego kodu zgłasza zmianę', async () => {
+    const onChange = vi.fn();
+    render(<ColorPicker value="#3ddbd0" label="Akcent" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Akcent/ }));
+
+    fireEvent.change(await screen.findByLabelText('Kod koloru'), {
+      target: { value: '#ff0000' },
+    });
+
+    expect(onChange).toHaveBeenCalledWith('#ff0000');
+  });
+
+  it('niepoprawny kod nie zgłasza zmiany', async () => {
+    const onChange = vi.fn();
+    render(<ColorPicker value="#3ddbd0" label="Akcent" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Akcent/ }));
+
+    fireEvent.change(await screen.findByLabelText('Kod koloru'), {
+      target: { value: 'czerwony' },
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('paleta ustawia kolor jednym kliknięciem', async () => {
+    const onChange = vi.fn();
+    render(
+      <ColorPicker
+        value="#3ddbd0"
+        label="Akcent"
+        presets={['#ff6b6b', '#5b9dff']}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Akcent/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ustaw #ff6b6b' }));
+
+    expect(onChange).toHaveBeenCalledWith('#ff6b6b');
+  });
+
+  it('Escape zamyka panel', async () => {
+    render(<ColorPicker value="#3ddbd0" label="Akcent" onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Akcent/ }));
+    await screen.findByLabelText('Barwa');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByLabelText('Barwa')).toBeNull());
   });
 });

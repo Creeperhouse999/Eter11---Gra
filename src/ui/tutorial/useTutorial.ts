@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { TUTORIAL_STEPS, type TutorialGoal } from '../../data/tutorial';
+import { TUTORIAL_STEPS, type TutorialGoal, type TutorialStep } from '../../data/tutorial';
 import type { GameState } from '../../engine/types';
 
-/** Co dzieje się na ekranie — samouczek czyta to obok stanu gry. */
+/** Co widać na ekranie — samouczek czyta to obok stanu gry. */
 export interface TutorialContext {
   handRevealed: boolean;
   cardSelected: boolean;
@@ -13,10 +13,11 @@ export interface TutorialContext {
 const ANCHORS: Record<TutorialGoal, string | null> = {
   revealHand: '[data-tour="reveal"]',
   selectCard: '[data-tour="hand"]',
-  playAnyCard: '[data-tour="problem"]',
-  playSecondCard: '[data-tour="problem"]',
+  playFirst: '[data-tour="problem"]',
+  playSecond: '[data-tour="problem"]',
   swapCards: '[data-tour="swap"]',
-  finishMission: '[data-tour="problem"]',
+  playAfterSwap: '[data-tour="hand"]',
+  finish: '[data-tour="problem"]',
 };
 
 /**
@@ -31,19 +32,24 @@ function isGoalMet(
   context: TutorialContext,
 ): boolean {
   const played = state.mission?.played.length ?? 0;
+  const swapped = state.mission?.swappedThisRound.length ?? 0;
 
   switch (goal) {
     case 'revealHand':
       return context.handRevealed;
     case 'selectCard':
       return context.cardSelected || played > 0;
-    case 'playAnyCard':
+    case 'playFirst':
       return played >= 1;
-    case 'playSecondCard':
+    case 'playSecond':
       return played >= 2;
     case 'swapCards':
-      return (state.mission?.swappedThisRound.length ?? 0) > 0;
-    case 'finishMission':
+      // Wymiana czyści się na nowej rundzie, więc liczy się też to,
+      // że gracz zdążył już zagrać kartę po wymianie.
+      return swapped > 0 || played >= 3;
+    case 'playAfterSwap':
+      return played >= 3;
+    case 'finish':
       return state.mission?.phase === 'won' || state.phase === 'missionSummary';
   }
 }
@@ -55,7 +61,7 @@ export function hasSeenTutorial(): boolean {
   try {
     return window.localStorage.getItem(STORAGE_KEY) === '1';
   } catch {
-    // Tryb prywatny blokuje zapis. Samouczek po prostu pokaże się znowu.
+    // Tryb prywatny blokuje odczyt. Samouczek po prostu pokaże się znowu.
     return false;
   }
 }
@@ -68,23 +74,36 @@ function markSeen() {
   }
 }
 
+export interface TutorialControl {
+  active: true;
+  step: TutorialStep;
+  stepNumber: number;
+  total: number;
+  done: boolean;
+  message: string;
+  anchor: string | null;
+  /** Czy dany ruch jest teraz dozwolony. Poza scenariuszem wszystko blokujemy. */
+  allows: (action: 'play' | 'swap' | 'pass') => boolean;
+  next: () => void;
+  skip: () => void;
+}
+
 export function useTutorial(
   active: boolean,
   state: GameState,
   context: TutorialContext,
   onFinish: () => void,
-) {
+): TutorialControl | { active: false } {
   const [index, setIndex] = useState(0);
-  /** Krok wykonany — bąbel chwali i czeka na „Dalej". */
   const [done, setDone] = useState(false);
-  /** Gracz utknął — po chwili bezruchu dochodzi podpowiedź. */
   const [stuck, setStuck] = useState(false);
 
   const step = TUTORIAL_STEPS[index];
 
-  // Wykrycie wykonania kroku. Raz oznaczony jako zrobiony, zostaje zrobiony —
-  // inaczej cofnięcie stanu (np. odznaczenie karty) odbierałoby pochwałę.
+  // Raz oznaczony jako zrobiony, zostaje zrobiony — inaczej cofnięcie stanu
+  // (np. odznaczenie karty) odbierałoby pochwałę.
   const doneRef = useRef(false);
+
   useEffect(() => {
     if (!active || !step || doneRef.current) return;
     if (isGoalMet(step.goal, state, context)) {
@@ -94,12 +113,13 @@ export function useTutorial(
     }
   }, [active, step, state, context]);
 
-  // Podpowiedź po dziesięciu sekundach bez postępu.
   useEffect(() => {
     if (!active || done || !step?.nudge) return;
-    const timer = window.setTimeout(() => setStuck(true), 10000);
+    const timer = window.setTimeout(() => setStuck(true), 9000);
     return () => window.clearTimeout(timer);
   }, [active, done, step]);
+
+  if (!active || !step) return { active: false };
 
   const next = () => {
     if (index + 1 >= TUTORIAL_STEPS.length) {
@@ -118,19 +138,16 @@ export function useTutorial(
     onFinish();
   };
 
-  if (!active || !step) {
-    return { active: false as const };
-  }
-
   return {
-    active: true as const,
+    active: true,
     step,
     stepNumber: index + 1,
     total: TUTORIAL_STEPS.length,
     done,
-    // Po wykonaniu ETER11 chwali; przy zacięciu podrzuca wskazówkę.
     message: done ? step.praise : stuck && step.nudge ? step.nudge : step.say,
     anchor: done ? null : ANCHORS[step.goal],
+    // Po wykonaniu kroku nie blokujemy niczego — gracz czeka na „Dalej".
+    allows: (action) => done || step.allow.includes(action),
     next,
     skip,
   };

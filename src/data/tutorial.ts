@@ -1,81 +1,104 @@
-import type { Problem } from '../engine/types';
+import type { Card, Problem } from '../engine/types';
 
 /**
- * Samouczek prowadzony przez ETER11.
+ * Samouczek: osobny tryb dla jednej osoby, prowadzony krok po kroku.
  *
- * Kroki opisują, co gracz ma zrobić, i jak ETER11 to skomentuje. Warunek
- * przejścia dalej sprawdzany jest na stanie gry, nie na kliknięciach — dzięki
- * temu samouczek nie da się oszukać ani zablokować, gdy gracz zrobi coś
- * w innej kolejności.
+ * To nie jest zwykła gra z podpowiedziami. Talia, ręka i problem są ustawione
+ * tak, żeby każdy krok dało się wykonać — inaczej ETER11 kazałby położyć
+ * kartę, której gracz nie ma. Scenariusz prowadzi przez cztery rzeczy:
+ * dopasowanie koloru, zagranie karty, wymianę przy braku ruchu i domknięcie
+ * problemu.
  */
+
 export type TutorialGoal =
   | 'revealHand'
   | 'selectCard'
-  | 'playAnyCard'
-  | 'playSecondCard'
+  | 'playFirst'
+  | 'playSecond'
   | 'swapCards'
-  | 'finishMission';
+  | 'playAfterSwap'
+  | 'finish';
 
 export interface TutorialStep {
   id: string;
   goal: TutorialGoal;
-  /** Co ETER11 mówi, zanim gracz wykona krok. */
+  /** Co ETER11 mówi przed wykonaniem kroku. */
   say: string;
   /** Pochwała po wykonaniu. */
   praise: string;
-  /** Podpowiedź, gdy gracz utknie — pokazywana po chwili bezruchu. */
+  /** Wskazówka po chwili bezruchu. */
   nudge?: string;
+  /**
+   * Ruchy dozwolone na tym kroku. Reszta jest zablokowana, żeby gracz nie
+   * wyprzedził scenariusza i nie zobaczył podpowiedzi bez sensu.
+   */
+  allow: Array<'play' | 'swap' | 'pass'>;
 }
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'reveal',
     goal: 'revealHand',
-    say: 'Cześć! Jestem ETER11. Nauczę Cię grać w kilka minut. Zacznijmy od Twoich kart — naciśnij „Pokaż moje karty".',
-    praise: 'Świetnie. To Twoja ręka: pięć kart, którymi możesz zagrać.',
+    allow: [],
+    say: 'Cześć, jestem ETER11. W kilka minut nauczę Cię grać. Zacznijmy od Twoich kart — naciśnij „Pokaż moje karty".',
+    praise: 'Świetnie. To Twoja ręka. Każda karta ma kolor — zapamiętaj to, zaraz się przyda.',
     nudge: 'Przycisk jest po prawej stronie, nad kartami.',
   },
   {
-    id: 'problem',
+    id: 'look',
     goal: 'selectCard',
-    say: 'Na środku stołu leży problem. Wokół niego jest pięć ścianek — każda czeka na kartę w konkretnym kolorze. Kliknij dowolną swoją kartę, a pokażę Ci, gdzie pasuje.',
-    praise: 'Widzisz? Ścianki, do których ta karta pasuje, świecą.',
+    allow: [],
+    say: 'Na środku leży problem, a wokół niego pięć ścianek. Każda czeka na kartę w swoim kolorze. Kliknij dowolną swoją kartę.',
+    praise: 'Widzisz? Ścianka, do której ta karta pasuje, zaświeciła.',
     nudge: 'Kliknij którąkolwiek kartę na dole ekranu.',
   },
   {
     id: 'play',
-    goal: 'playAnyCard',
-    say: 'Teraz najważniejsze: przeciągnij tę kartę na podświetloną ściankę. Możesz też po prostu kliknąć ściankę.',
+    goal: 'playFirst',
+    allow: ['play'],
+    say: 'Teraz przeciągnij tę kartę na świecącą ściankę. Możesz też po prostu kliknąć ściankę.',
     praise: 'Brawo! Ścianka zamknięta. Tak właśnie rozwiązuje się problemy — po kawałku.',
     nudge: 'Chwyć kartę i przeciągnij ją na świecącą ściankę.',
   },
   {
-    id: 'colors',
-    goal: 'playSecondCard',
-    say: 'Kolor karty musi zgadzać się z kolorem ścianki. Kolejna tura — połóż następną kartę tam, gdzie pasuje.',
+    id: 'second',
+    goal: 'playSecond',
+    allow: ['play'],
+    say: 'Zasada jest prosta: kolor karty musi zgadzać się z kolorem ścianki. Połóż następną kartę.',
     praise: 'Dokładnie tak. Kolor do koloru.',
-    nudge: 'Szukaj karty w tym samym kolorze co któraś z pustych ścianek.',
+    nudge: 'Kliknij kartę, a zobaczysz, która ścianka się zapali.',
   },
   {
     id: 'swap',
     goal: 'swapCards',
-    say: 'A co, jeśli nic Ci nie pasuje? Możesz wymienić karty. Naciśnij „Wymieniam karty", zaznacz te, których nie chcesz, i potwierdź.',
-    praise: 'Właśnie tak. Wymiana kosztuje Twój ruch w tej rundzie, ale czasem warto.',
-    nudge: 'Przycisk „Wymieniam karty" jest obok „Pasuję".',
+    allow: ['swap'],
+    say: 'Uwaga — teraz żadna Twoja karta nie pasuje do wolnych ścianek. Tak też bywa. Wtedy wymieniasz karty: naciśnij „Wymieniam karty", zaznacz te nieprzydatne i potwierdź.',
+    praise: 'Właśnie tak. Wymiana kosztuje Twój ruch w tej rundzie, ale daje nowe karty.',
+    nudge: 'Przycisk „Wymieniam karty" jest na dole, obok „Pasuję".',
+  },
+  {
+    id: 'after-swap',
+    goal: 'playAfterSwap',
+    allow: ['play'],
+    say: 'Masz świeże karty. Sprawdź, czy któraś pasuje, i połóż ją.',
+    praise: 'Coraz lepiej. Widzisz, jak wymiana odblokowała ruch?',
+    nudge: 'Klikaj kolejne karty — któraś zapali ściankę.',
   },
   {
     id: 'finish',
-    goal: 'finishMission',
-    say: 'Zostało zamknąć resztę ścianek. Gracie razem — każdy dokłada, co ma. Dokończcie ten problem.',
-    praise: 'Problem rozwiązany! Umiesz już wszystko, czego trzeba. Powodzenia w prawdziwej misji.',
+    goal: 'finish',
+    allow: ['play', 'swap'],
+    say: 'Zostały dwie ścianki. Dokończ problem — masz w ręku wszystko, czego trzeba.',
+    praise: 'Problem rozwiązany! Umiesz już wszystko. W prawdziwej grze gracie razem: każdy dokłada, co ma, i dzielicie się kartami.',
   },
 ];
 
 /**
- * Problem na samouczek.
+ * Problem samouczka.
  *
- * Wszystkie ścianki wymagają rodziny czerwonej, więc gracz nie natrafi
- * na sytuację bez wyjścia, zanim pozna zasadę dopasowania kolorów.
+ * Pięć ścianek w trzech rodzinach: czerwona uczy dopasowania, niebieskie
+ * pojawiają się dopiero po wymianie. Dzięki temu krok „nie masz czym zagrać"
+ * jest prawdziwy, a nie udawany.
  */
 export const TUTORIAL_PROBLEM: Problem = {
   id: 'tutorial-1',
@@ -83,15 +106,61 @@ export const TUTORIAL_PROBLEM: Problem = {
   icon: 'spark',
   type: 'cooperation',
   story:
-    'To ćwiczenie. Nikomu nic nie grozi — możesz spokojnie sprawdzić, jak działa gra.',
-  antagonist: 'Nikt. To tylko trening.',
+    'To ćwiczenie. Nic nikomu nie grozi — możesz spokojnie sprawdzić, jak działa gra.',
+  antagonist: 'Nikt. To trening.',
   consequence: 'Nic. Spróbujesz jeszcze raz.',
   goal: 'Poznać zasady gry.',
   slots: [
     { key: 'mentor', family: 'red', hint: 'Ktoś, kto weźmie odpowiedzialność', bonusCardIds: [] },
     { key: 'talent', family: 'red', hint: 'Odwaga albo wytrwałość', bonusCardIds: [] },
     { key: 'psychological', family: 'red', hint: 'Siła, żeby się nie poddać', bonusCardIds: [] },
-    { key: 'social', family: 'red', hint: 'Ktoś, kto stanie w obronie', bonusCardIds: [] },
-    { key: 'digital', family: 'red', hint: 'Ktoś, kto zadba o bezpieczeństwo', bonusCardIds: [] },
+    { key: 'social', family: 'blue', hint: 'Ktoś, kto zapyta „skąd to wiesz?"', bonusCardIds: [] },
+    { key: 'digital', family: 'blue', hint: 'Ktoś, kto przeanalizuje dane', bonusCardIds: [] },
   ],
+};
+
+const card = (
+  id: string,
+  name: string,
+  category: Card['category'],
+  family: Card['family'],
+  icon: string,
+  description: string,
+): Card => ({ id, name, category, family, icon, description });
+
+/**
+ * Ręka startowa: trzy karty czerwone pasujące do trzech ścianek, dwie
+ * zielone, które nie pasują nigdzie.
+ *
+ * Po zagraniu trzech czerwonych zostają dwie zielone — i wtedy krok wymiany
+ * ma sens, bo gracz naprawdę nie ma czym zagrać.
+ */
+export const TUTORIAL_HAND: Card[] = [
+  card('tut-men-red', 'Lider', 'mentor', 'red', 'flag', 'Bierze odpowiedzialność, gdy inni się wahają.'),
+  card('tut-tal-red', 'Odwaga', 'talent', 'red', 'lion', 'Działa mimo strachu.'),
+  card('tut-psy-red', 'Odporność psychiczna', 'psychological', 'red', 'shield', 'Pozwala nie poddać się, gdy coś idzie źle.'),
+  card('tut-soc-green', 'Współpraca', 'social', 'green', 'handshake', 'Łączy siły zamiast ciągnąć w swoją stronę.'),
+  card('tut-dig-green', 'Umiejętności analogowe', 'digital', 'green', 'radio', 'Radzi sobie bez internetu.'),
+];
+
+/**
+ * Talia samouczka: same karty niebieskie pasujące do dwóch ostatnich ścianek.
+ *
+ * Po wymianie gracz dostanie dokładnie to, czego potrzebuje — samouczek nie
+ * może zależeć od szczęścia w losowaniu.
+ */
+export const TUTORIAL_DECK: Card[] = [
+  card('tut-soc-blue-1', 'Krytyczne myślenie', 'social', 'blue', 'puzzle', 'Pyta „skąd to wiesz?" zanim uwierzy.'),
+  card('tut-dig-blue-1', 'Analiza danych', 'digital', 'blue', 'chart', 'Znajduje wzory tam, gdzie inni widzą chaos.'),
+  card('tut-soc-blue-2', 'Myślenie przyszłościowe', 'social', 'blue', 'telescope', 'Przewiduje skutki decyzji.'),
+  card('tut-dig-blue-2', 'Projektant AI', 'digital', 'blue', 'network', 'Tworzy systemy, które pomagają ludziom.'),
+  card('tut-soc-blue-3', 'Rozwiązywanie problemów', 'social', 'blue', 'wrench', 'Rozkłada wielki problem na małe kroki.'),
+  card('tut-dig-blue-3', 'Mistrz Planowania', 'digital', 'blue', 'map', 'Wyznacza najlepszą trasę.'),
+];
+
+/** Gracz samouczka. Jedna osoba — nikt nie czeka na swoją kolej. */
+export const TUTORIAL_PLAYER = {
+  id: 'tutorial-player',
+  name: 'Ty',
+  characterId: 'ch-odkrywca',
 };

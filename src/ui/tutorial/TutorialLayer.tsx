@@ -1,13 +1,10 @@
-import type { GameState } from '../../engine/types';
 import { GuideBubble } from './GuideBubble';
 import { Spotlight } from './Spotlight';
-import { useTutorial, type TutorialContext } from './useTutorial';
+import type { TutorialControl } from './useTutorial';
 
 interface TutorialLayerProps {
-  active: boolean;
-  state: GameState;
-  context: TutorialContext;
-  onFinish: () => void;
+  /** Stan samouczka z useTutorial. */
+  tutorial: TutorialControl | { active: false };
 }
 
 /**
@@ -15,9 +12,7 @@ interface TutorialLayerProps {
  * co zrobić. Renderowana nad grą, ale nie blokuje jej — gracz klika to,
  * co jest podświetlone.
  */
-export function TutorialLayer({ active, state, context, onFinish }: TutorialLayerProps) {
-  const tutorial = useTutorial(active, state, context, onFinish);
-
+export function TutorialLayer({ tutorial }: TutorialLayerProps) {
   if (!tutorial.active) return null;
 
   return (

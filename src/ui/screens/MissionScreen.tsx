@@ -25,6 +25,11 @@ interface MissionScreenProps {
     cardSelected: boolean;
     swapMode: boolean;
   }) => void;
+  /**
+   * Samouczek blokuje ruchy spoza bieżącego kroku, żeby gracz nie wyprzedził
+   * scenariusza. Brak funkcji = wszystko dozwolone.
+   */
+  allows?: (action: 'play' | 'swap' | 'pass') => boolean;
 }
 
 /**
@@ -40,6 +45,7 @@ export function MissionScreen({
   text = DEFAULT_UI_TEXT,
   characters = ALL_CHARACTERS,
   onContext,
+  allows,
 }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
@@ -119,8 +125,10 @@ export function MissionScreen({
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
     );
 
+  const allowed = (action: 'play' | 'swap' | 'pass') => allows?.(action) ?? true;
+
   const canPlay = (card: Card, slotKey: SlotKey, family: FamilyId) =>
-    cardFitsSlot(card, slotKey, family);
+    allowed('play') && cardFitsSlot(card, slotKey, family);
 
   // Miejsca przy stole: aktywny gracz na dole, pozostali wokół karty problemu.
   const others = state.players.filter((p) => p.id !== activePlayer.id);
@@ -312,11 +320,13 @@ export function MissionScreen({
                 </>
               ) : (
                 <>
-                  <Button onClick={pass}>Pasuję</Button>
+                  <Button onClick={pass} disabled={!allowed('pass')}>
+                    Pasuję
+                  </Button>
                   <Button
                     icon="undo"
                     data-tour="swap"
-                    disabled={!handRevealed}
+                    disabled={!handRevealed || !allowed('swap')}
                     title={handRevealed ? undefined : 'Najpierw odkryj karty'}
                     onClick={() => {
                       setSwapMode(true);

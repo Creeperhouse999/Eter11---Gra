@@ -7,9 +7,14 @@ import { FinaleScreen } from './screens/FinaleScreen';
 import { MissionScreen } from './screens/MissionScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import { TUTORIAL_PROBLEM } from '../data/tutorial';
+import {
+  TUTORIAL_DECK,
+  TUTORIAL_HAND,
+  TUTORIAL_PLAYER,
+  TUTORIAL_PROBLEM,
+} from '../data/tutorial';
 import { TutorialLayer } from './tutorial/TutorialLayer';
-import type { TutorialContext } from './tutorial/useTutorial';
+import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
 import { useGame, type PlayerSetup } from './useGame';
 
 export interface GameAppContent {
@@ -43,18 +48,28 @@ function RunningGame({
   onTutorialFinish: () => void;
 }) {
   const text = content.text ?? DEFAULT_UI_TEXT;
-  const game = useGame(players, seed, content.rules ?? DEFAULT_CONFIG, {
-    cards: content.cards,
-    // Samouczek gra na własnym problemie: wszystkie ścianki w jednym kolorze,
-    // więc początkujący nie utknie, zanim pozna zasadę dopasowania.
-    problems: tutorial ? [TUTORIAL_PROBLEM] : content.problems,
-  });
+  // Samouczek gra na własnym scenariuszu: jeden gracz, ustawiona ręka
+  // i talia, więc przebieg jest identyczny za każdym razem.
+  const game = useGame(
+    tutorial ? [TUTORIAL_PLAYER] : players,
+    seed,
+    content.rules ?? DEFAULT_CONFIG,
+    tutorial
+      ? {
+          problems: [TUTORIAL_PROBLEM],
+          fixedHand: TUTORIAL_HAND,
+          orderedDeck: TUTORIAL_DECK,
+        }
+      : { cards: content.cards, problems: content.problems },
+  );
   const { state, dispatch } = game;
   const [tourContext, setTourContext] = useState<TutorialContext>({
     handRevealed: false,
     cardSelected: false,
     swapMode: false,
   });
+
+  const tour = useTutorial(tutorial, state, tourContext, onTutorialFinish);
 
   if (state.phase === 'finale') {
     return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
@@ -68,13 +83,9 @@ function RunningGame({
           text={text}
           characters={content.characters ?? ALL_CHARACTERS}
           onContext={setTourContext}
+          allows={tour.active ? tour.allows : undefined}
         />
-        <TutorialLayer
-          active={tutorial}
-          state={state}
-          context={tourContext}
-          onFinish={onTutorialFinish}
-        />
+        <TutorialLayer tutorial={tour} />
       </>
     );
   }

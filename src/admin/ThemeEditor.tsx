@@ -1,5 +1,6 @@
 import { applyTheme, DEFAULT_THEME, THEME_GROUPS, type ThemeColors } from '../data/theme';
 import { Button } from '../ui/controls/Button';
+import { ColorPicker } from '../ui/controls/ColorPicker';
 import { Icon } from '../ui/icons/Icon';
 
 interface ThemeEditorProps {
@@ -39,6 +40,9 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
     // Podgląd na żywo: same zmienne CSS, bez zapisu do bazy.
     applyTheme(next);
   };
+
+  // Kolory już użyte w grze — najczęściej chce się trafić w istniejący ton.
+  const palette = Array.from(new Set(Object.values(theme).filter(isHex)));
 
   const inkContrast = contrastRatio(theme.ink, theme.surface);
   const dimContrast = contrastRatio(theme.inkDim, theme.surface);
@@ -86,36 +90,19 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
           <div key={group.title}>
             <h3 className="eter-label">{group.title}</h3>
             <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {group.fields.map((field) => {
-                const value = theme[field.key];
-                const valid = isHex(value);
-                return (
-                  <div
-                    key={field.key}
-                    className="eter-rise rounded-lg border border-edge bg-surface p-2 transition hover:border-ink-dim"
-                  >
-                    <span className="block text-xs">{field.label}</span>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={valid ? value : '#000000'}
-                        onChange={(e) => update({ [field.key]: e.target.value })}
-                        aria-label={`Kolor: ${field.label}`}
-                        className="h-8 w-8 cursor-pointer rounded border border-edge bg-bg"
-                      />
-                      <input
-                        value={value}
-                        onChange={(e) => update({ [field.key]: e.target.value })}
-                        aria-label={`Kod koloru: ${field.label}`}
-                        className={[
-                          'w-full rounded border bg-bg px-2 py-1 font-mono text-xs',
-                          valid ? 'border-edge' : 'border-danger',
-                        ].join(' ')}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+              {group.fields.map((field) => (
+                <div
+                  key={field.key}
+                  className="eter-rise rounded-lg border border-edge bg-surface p-2 transition hover:border-ink-dim"
+                >
+                  <ColorPicker
+                    label={field.label}
+                    value={theme[field.key]}
+                    presets={palette}
+                    onChange={(color) => update({ [field.key]: color })}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         ))}

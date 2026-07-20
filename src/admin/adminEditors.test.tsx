@@ -182,12 +182,15 @@ describe('ThemeEditor', () => {
     expect(screen.getByText(/Kontrast tekstu głównego/)).toBeDefined();
   });
 
-  it('zmiana koloru wywołuje onChange', () => {
+  it('zmiana koloru wywołuje onChange', async () => {
     const onChange = vi.fn();
     render(<ThemeEditor theme={DEFAULT_THEME} onChange={onChange} />);
-    fireEvent.change(screen.getByLabelText('Kod koloru: Akcent główny'), {
+
+    fireEvent.click(screen.getByRole('button', { name: /Akcent główny/ }));
+    fireEvent.change(await screen.findByLabelText('Kod koloru'), {
       target: { value: '#ff0000' },
     });
+
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ accent: '#ff0000' }));
   });
 

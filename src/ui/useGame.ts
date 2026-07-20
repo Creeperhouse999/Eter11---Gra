@@ -13,6 +13,13 @@ export interface PlayerSetup {
 export interface GameContentInput {
   cards?: Card[];
   problems?: Problem[];
+  /**
+   * Gotowa ręka dla każdego gracza. Używa jej samouczek, żeby scenariusz
+   * wyglądał tak samo za każdym razem, niezależnie od losowania.
+   */
+  fixedHand?: Card[];
+  /** Talia bez tasowania — kolejność dobierania ustalona z góry. */
+  orderedDeck?: Card[];
 }
 
 /**
@@ -31,15 +38,29 @@ export function useGame(
   config: RulesConfig = DEFAULT_CONFIG,
   content: GameContentInput = {},
 ) {
-  const [state, setState] = useState<GameState>(() =>
-    createGame({
+  const [state, setState] = useState<GameState>(() => {
+    const base = createGame({
       players,
-      deck: buildDeck(content.cards),
+      deck: content.orderedDeck ?? buildDeck(content.cards),
       problems: content.problems ?? ALL_PROBLEMS,
       seed,
       config,
-    }),
-  );
+    });
+
+    if (!content.fixedHand && !content.orderedDeck) return base;
+
+    // Samouczek: ustawiona ręka i talia w zadanej kolejności. Tasowanie
+    // z createGame zostaje pominięte, żeby scenariusz był powtarzalny.
+    return {
+      ...base,
+      players: base.players.map((player) => ({
+        ...player,
+        hand: content.fixedHand ? [...content.fixedHand] : player.hand,
+      })),
+      drawPile: content.orderedDeck ? [...content.orderedDeck] : base.drawPile,
+      discardPile: [],
+    };
+  });
   const [history, setHistory] = useState<GameState[]>([]);
   const [rejection, setRejection] = useState<string | null>(null);
 
