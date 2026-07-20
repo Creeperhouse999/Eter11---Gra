@@ -4,12 +4,12 @@ import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
 
-/** Uchwyty przeciągania z `useCardDrag` — przekazywane bez zmian. */
+/**
+ * Uchwyt rozpoczynający przeciąganie. Dalsze śledzenie gestu odbywa się
+ * na oknie — patrz useCardDrag.
+ */
 export interface CardDragHandlers {
   onPointerDown: PointerEventHandler<HTMLElement>;
-  onPointerMove: PointerEventHandler<HTMLElement>;
-  onPointerUp: PointerEventHandler<HTMLElement>;
-  onPointerCancel: PointerEventHandler<HTMLElement>;
 }
 
 interface CardViewProps {
@@ -67,9 +67,9 @@ export function CardView({
         beingDragged ? 'opacity-30' : '',
       ].join(' ')}
       style={{
-        borderColor: selected ? color : 'var(--eter-edge)',
+        borderColor: selected ? (familyColor ?? color) : 'var(--eter-edge)',
         borderWidth: selected ? 2 : 1,
-        boxShadow: selected ? `0 0 22px -6px ${color}` : undefined,
+        boxShadow: selected ? `0 0 22px -6px ${familyColor ?? color}` : undefined,
         // Bez tego przeciąganie palcem przewija stronę zamiast podnosić kartę.
         touchAction: draggable ? 'none' : undefined,
         ...(dealIndex === undefined
@@ -77,29 +77,24 @@ export function CardView({
           : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),
       }}
     >
-      {/* Pasek kategorii — czytelny nawet gdy karta jest zasłonięta */}
+      {/*
+        Pasek niesie kolor rodziny — to on decyduje, do której ścianki karta
+        pasuje, więc musi być widoczny nawet gdy karty leżą na sobie w wachlarzu.
+        Kategoria schodzi do kropki: jest już zapisana w ikonie i podpisie.
+      */}
       <span
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-1 rounded-t-lg"
-        style={{ background: color }}
+        className="absolute inset-x-0 top-0 h-1.5 rounded-t-lg"
+        style={{ background: familyColor ?? color }}
       />
 
-      {/* Kropka rodziny — kolor, którego szukają ścianki */}
-      {familyColor && (
-        <span
-          aria-hidden="true"
-          className="absolute right-1.5 top-2 h-2.5 w-2.5 rounded-full border"
-          style={{ background: familyColor, borderColor: 'var(--eter-bg)' }}
-        />
-      )}
-
-      <span className="mt-1.5" style={{ color }}>
+      <span className="mt-2" style={{ color: familyColor ?? color }}>
         <Icon name={card.icon as IconName} size={compact ? 22 : 32} />
       </span>
 
       <span
         className={`font-display font-bold leading-tight ${compact ? 'text-xs' : 'text-sm'}`}
-        style={{ color }}
+        style={{ color: familyColor ?? color }}
       >
         {card.name}
       </span>
@@ -108,11 +103,13 @@ export function CardView({
         <span className="text-xs leading-snug text-ink-dim">{card.description}</span>
       )}
 
-      <span className="eter-label mt-auto pt-2">
+      {/*
+        Podpis w kolorze rodziny — ten sam kolor co pasek u góry, więc nawet
+        gdy karta jest częściowo zasłonięta, widać, do której ścianki pasuje.
+      */}
+      <span className="eter-label mt-auto pt-2" style={{ color: familyColor ?? color }}>
         {categoryLabel(card.category)}
-        {card.family && (
-          <span style={{ color: familyColor }}> · {FAMILY_LABELS[card.family]}</span>
-        )}
+        {card.family && <> · {FAMILY_LABELS[card.family]}</>}
       </span>
     </button>
   );

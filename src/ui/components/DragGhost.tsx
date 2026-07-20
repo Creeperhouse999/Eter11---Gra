@@ -18,7 +18,8 @@ interface DragGhostProps {
  * strefy pod kursorem działa poprawnie.
  */
 export function DragGhost({ card, x, y, overValidTarget }: DragGhostProps) {
-  const color = categoryColorVar(card.category);
+  // Duch świeci kolorem rodziny — to on decyduje, gdzie karta pasuje.
+  const color = card.family ? `var(--eter-family-${card.family})` : categoryColorVar(card.category);
 
   return (
     <div

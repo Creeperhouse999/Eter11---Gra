@@ -20,9 +20,14 @@ interface DragState<T> {
 /**
  * Przeciąganie kart — mysz, rysik i dotyk jednym kodem.
  *
- * Pointer Events obsługują wszystkie te wejścia bez rozgałęzień, a
- * `setPointerCapture` sprawia, że karta nie gubi gestu, gdy kursor wyjdzie
- * poza jej obszar.
+ * Karta **rozpoczyna** gest, ale dalsze śledzenie odbywa się na oknie.
+ * To rozróżnienie jest kluczowe: zagrana karta znika z ręki, więc jej element
+ * wypada z drzewa w trakcie gestu. Gdyby `pointerup` wisiał na karcie,
+ * zdarzenie nie miałoby gdzie trafić i duch zostawałby na ekranie na zawsze.
+ * Okno jest zawsze na miejscu, więc gest zawsze da się domknąć.
+ *
+ * Z tego samego powodu obsługujemy `pointercancel` (system przejął gest,
+ * np. gestem cofania na krawędzi ekranu) i utratę fokusu okna.
  *
  * Przeciąganie zaczyna się dopiero po przesunięciu o `DRAG_THRESHOLD` —
  * bez tego progu przewijanie listy kart palcem podnosiłoby kartę
@@ -30,10 +35,13 @@ interface DragState<T> {
  *
  * Cel upuszczenia wyszukiwany jest przez `elementFromPoint`, a nie przez
  * zdarzenia `pointerenter` na strefach: przy dotyku zdarzenia trafiają
- * wyłącznie do elementu, który przechwycił wskaźnik.
+ * wyłącznie do elementu, w którym gest się zaczął.
  */
 export function useCardDrag<T>() {
   const [drag, setDrag] = useState<DragState<T> | null>(null);
+  /** Wskaźnik wciśnięty — nasłuch na oknie ma być aktywny. */
+  const [tracking, setTracking] = useState(false);
+
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const pending = useRef<DragPayload<T> | null>(null);
   /** Czy próg został przekroczony. W ref, bo czytamy go w tym samym zdarzeniu. */
@@ -49,7 +57,68 @@ export function useCardDrag<T>() {
     return element?.closest<HTMLElement>('[data-drop-target]')?.dataset.dropTarget ?? null;
   };
 
-  /** Podpinane do karty: rozpoczyna śledzenie wskaźnika. */
+  /** Sprząta stan gestu. Wywoływane przy każdym zakończeniu, także awaryjnym. */
+  const reset = useCallback(() => {
+    startPoint.current = null;
+    pending.current = null;
+    active.current = false;
+    setDrag(null);
+    setTracking(false);
+  }, []);
+
+  /**
+   * Nasłuch na oknie żyje tylko w trakcie gestu.
+   * Rejestrowany dopiero po wciśnięciu, więc poza przeciąganiem nie
+   * kosztuje nic.
+   */
+  useEffect(() => {
+    if (!tracking) return;
+
+    const onMove = (event: PointerEvent) => {
+      if (!startPoint.current || !pending.current) return;
+
+      const dx = event.clientX - startPoint.current.x;
+      const dy = event.clientY - startPoint.current.y;
+
+      if (!active.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      active.current = true;
+
+      setDrag({
+        payload: pending.current,
+        x: event.clientX,
+        y: event.clientY,
+        overId: findTarget(event.clientX, event.clientY),
+      });
+    };
+
+    const onUp = (event: PointerEvent) => {
+      const wasDragging = active.current;
+      const payloadData = pending.current?.data;
+      reset();
+
+      if (!wasDragging || payloadData === undefined) return;
+
+      // Upuszczenie liczy się tylko nad strefą; poza nią karta wraca na rękę.
+      const targetId = findTarget(event.clientX, event.clientY);
+      if (targetId) dropHandler.current?.(targetId, payloadData);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', reset);
+    // Utrata fokusu okna kończy gest: przeglądarka przestanie wtedy
+    // wysyłać zdarzenia wskaźnika, a duch zostałby wiszący.
+    window.addEventListener('blur', reset);
+
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', reset);
+      window.removeEventListener('blur', reset);
+    };
+  }, [tracking, reset]);
+
+  /** Podpinane do karty: rozpoczyna gest. Resztą zajmuje się okno. */
   const dragHandlers = useCallback(
     (payload: DragPayload<T>) => ({
       onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
@@ -57,53 +126,12 @@ export function useCardDrag<T>() {
         // Sprawdzamy przez `> 0`, bo część środowisk nie ustawia tego pola
         // wcale — brak wartości traktujemy jak główny przycisk.
         if (event.button > 0) return;
+
         startPoint.current = { x: event.clientX, y: event.clientY };
         pending.current = payload;
         active.current = false;
-        event.currentTarget.setPointerCapture(event.pointerId);
-      },
 
-      onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
-        if (!startPoint.current || !pending.current) return;
-
-        const dx = event.clientX - startPoint.current.x;
-        const dy = event.clientY - startPoint.current.y;
-
-        // Próg liczony przez ref, nie przez stan: `drag` w domknięciu jest
-        // nieaktualny do czasu ponownego renderu, więc pierwszy drobny ruch
-        // podnosiłby kartę mimo progu.
-        if (!active.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-        active.current = true;
-
-        setDrag({
-          payload: pending.current,
-          x: event.clientX,
-          y: event.clientY,
-          overId: findTarget(event.clientX, event.clientY),
-        });
-      },
-
-      onPointerUp: (event: React.PointerEvent<HTMLElement>) => {
-        const wasDragging = active.current;
-        const payloadData = pending.current?.data;
-
-        startPoint.current = null;
-        pending.current = null;
-        active.current = false;
-        setDrag(null);
-
-        if (!wasDragging || payloadData === undefined) return;
-
-        // Upuszczenie liczy się tylko nad strefą; poza nią karta wraca na rękę.
-        const targetId = findTarget(event.clientX, event.clientY);
-        if (targetId) dropHandler.current?.(targetId, payloadData);
-      },
-
-      onPointerCancel: () => {
-        startPoint.current = null;
-        pending.current = null;
-        active.current = false;
-        setDrag(null);
+        setTracking(true);
       },
     }),
     [],

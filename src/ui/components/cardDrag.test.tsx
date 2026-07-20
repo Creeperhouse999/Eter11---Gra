@@ -60,12 +60,12 @@ function Harness({ onDrop }: { onDrop: (targetId: string, data: { id: string }) 
 }
 
 const fire = (
-  element: HTMLElement,
+  target: EventTarget,
   type: string,
   init: PointerEventInit & { clientX?: number; clientY?: number },
 ) =>
   act(() => {
-    element.dispatchEvent(
+    target.dispatchEvent(
       new TestPointerEvent(type, { bubbles: true, pointerId: 1, ...init }),
     );
   });
@@ -73,11 +73,12 @@ const fire = (
 const grab = (element: HTMLElement, x = 0, y = 0, extra: PointerEventInit = {}) =>
   fire(element, 'pointerdown', { clientX: x, clientY: y, button: 0, ...extra });
 
-const move = (element: HTMLElement, x: number, y: number) =>
-  fire(element, 'pointermove', { clientX: x, clientY: y });
+/** Ruch i puszczenie idą do okna — tam żyje nasłuch po rozpoczęciu gestu. */
+const move = (_element: HTMLElement, x: number, y: number) =>
+  fire(window, 'pointermove', { clientX: x, clientY: y });
 
-const release = (element: HTMLElement, x: number, y: number) =>
-  fire(element, 'pointerup', { clientX: x, clientY: y });
+const release = (_element: HTMLElement, x: number, y: number) =>
+  fire(window, 'pointerup', { clientX: x, clientY: y });
 
 describe('useCardDrag', () => {
   it('krótki ruch nie zaczyna przeciągania', () => {
@@ -155,7 +156,7 @@ describe('useCardDrag', () => {
 
     grab(cardEl, 100, 100);
     move(cardEl, 200, 200);
-    fire(cardEl, 'pointercancel', {});
+    fire(window, 'pointercancel', {});
 
     expect(screen.getByTestId('stan').textContent).toBe('spoczywa');
   });
@@ -186,12 +187,7 @@ describe('CardView z przeciąganiem', () => {
     render(
       <CardView
         card={card}
-        dragHandlers={{
-          onPointerDown: vi.fn(),
-          onPointerMove: vi.fn(),
-          onPointerUp: vi.fn(),
-          onPointerCancel: vi.fn(),
-        }}
+        dragHandlers={{ onPointerDown: vi.fn() }}
       />,
     );
     const cardEl = screen.getByRole('button', { name: /Odwaga/ });
