@@ -1,3 +1,5 @@
+import { GameApp } from './ui/GameApp';
+
 export default function App() {
-  return <div>ETER11</div>;
+  return <GameApp />;
 }

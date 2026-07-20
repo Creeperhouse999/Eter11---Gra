@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Zawartość gry: karty, problemy, postacie, parametry zasad.
+    // Odczyt publiczny — gra ładuje dane bez logowania.
+    // Zapis wyłącznie z konta administracyjnego.
+    //
+    // UWAGA: przed wdrożeniem panelu wstaw poniżej UID konta utworzonego
+    // w Firebase Console (Authentication → Users → kolumna User UID).
+    // Dopóki placeholder pozostaje niezmieniony, zapis jest zablokowany
+    // dla wszystkich — łącznie z panelem administracyjnym.
+    match /content/{document} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == 'WSTAW_TUTAJ_UID_KONTA_ADMIN';
+    }
+
+    // Wszystkie pozostałe ścieżki zamknięte.
+    // Bez tej reguły kolekcje dodane w przyszłości (pokoje gier w fazie 2)
+    // mogłyby zostać otwarte przez przeoczenie.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
