@@ -1,7 +1,8 @@
 import { draw, shuffle } from './deck';
-import { cardFitsSlot, isMissionSolved, isSlotFilled } from './rules';
+import { cardFitsSlot, isMissionSolved, isSlotFilled, slotId } from './rules';
 import type {
   Action,
+  BlackSwanKind,
   Card,
   GameState,
   MissionState,
@@ -291,6 +292,65 @@ function swapHand(state: GameState, playerId: string): ReducerResult {
       rng: result.seed,
       log: [...state.log, `${player.name} wymienia karty.`],
     }),
+  };
+}
+
+/**
+ * Efekt Czarnego Łabędzia. Wywoływany, gdy gracz dobierze taką kartę
+ * (w fazie 1 również ręcznie z panelu testowego).
+ *
+ * - extraProblem: dokłada drugi problem; oba muszą paść, by misja się udała
+ * - doubleRequirements: puste sloty wymagają 2 kart; zapełnione zostają zaliczone
+ * - swapHands: ręce wędrują zgodnie z ruchem wskazówek zegara, maty bez zmian
+ */
+export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState {
+  const mission = state.mission;
+  if (!mission || mission.phase !== 'playing') return state;
+
+  if (kind === 'extraProblem') {
+    if (state.problemPile.length === 0) return state;
+    const [extra, ...rest] = state.problemPile;
+    return {
+      ...state,
+      problemPile: rest,
+      mission: { ...mission, problems: [...mission.problems, extra] },
+      log: [...state.log, `Czarny Łabędź: dodatkowy problem — ${extra.name}!`],
+    };
+  }
+
+  if (kind === 'doubleRequirements') {
+    if (mission.activeBlackSwans.includes('doubleRequirements')) return state;
+    const alreadyFilled = mission.problems.flatMap((problem) =>
+      problem.slots
+        .filter((slot) => isSlotFilled(mission, problem.id, slot.key))
+        .map((slot) => slotId(problem.id, slot.key)),
+    );
+    return {
+      ...state,
+      mission: {
+        ...mission,
+        activeBlackSwans: [...mission.activeBlackSwans, 'doubleRequirements'],
+        slotsFilledBeforeDoubling: [
+          ...mission.slotsFilledBeforeDoubling,
+          ...alreadyFilled,
+        ],
+      },
+      log: [...state.log, 'Czarny Łabędź: puste sloty wymagają teraz 2 kart!'],
+    };
+  }
+
+  // swapHands — ręka gracza i trafia do gracza i+1 (ostatni oddaje pierwszemu)
+  const hands = state.players.map((p) => p.hand);
+  const players = state.players.map((player, index) => ({
+    ...player,
+    hand: hands[(index - 1 + hands.length) % hands.length],
+  }));
+
+  return {
+    ...state,
+    players,
+    mission: { ...mission, activeBlackSwans: [...mission.activeBlackSwans, 'swapHands'] },
+    log: [...state.log, 'Czarny Łabędź: wymiana kart między graczami!'],
   };
 }
 
