@@ -294,6 +294,225 @@ function swapHand(state: GameState, playerId: string): ReducerResult {
   };
 }
 
+/** Kompetencje — tylko nimi można dzielić się z innymi graczami. */
+const COMPETENCE_CATEGORIES: Card['category'][] = ['psychological', 'digital', 'social'];
+
+/**
+ * Zabranie karty na matę postaci.
+ * Dostępne po zakończeniu misji — także po porażce, zgodnie z zasadą
+ * "nawet przegrana uczy". Gracz może zabrać jedną ze swoich zagranych kart.
+ */
+function takeCardToMat(
+  state: GameState,
+  action: Extract<Action, { type: 'TAKE_CARD_TO_MAT' }>,
+): ReducerResult {
+  const mission = state.mission;
+  if (!mission || state.phase !== 'missionSummary') {
+    return reject(state, 'Karty można zabrać dopiero po zakończeniu misji.');
+  }
+  if (mission.takenToMat.includes(action.playerId)) {
+    return reject(state, 'W tej misji zabrałeś już kartę.');
+  }
+
+  const play = mission.played.find(
+    (p) => p.card.id === action.cardId && p.playerId === action.playerId,
+  );
+  if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
+  if (mission.sharedCardIds.includes(action.cardId)) {
+    return reject(state, 'Ta karta została już przekazana innemu graczowi.');
+  }
+
+  return {
+    state: {
+      ...state,
+      players: updatePlayer(state, action.playerId, (p) => ({
+        ...p,
+        mat: [...p.mat, play.card],
+      })),
+      mission: { ...mission, takenToMat: [...mission.takenToMat, action.playerId] },
+    },
+  };
+}
+
+/**
+ * Przekazanie zagranej kompetencji innemu graczowi.
+ * Przekazujący dostaje kartę doświadczenia typu 'share' — to jedyny sposób
+ * na jej zdobycie i warunek konieczny spełnienia.
+ */
+function shareCard(
+  state: GameState,
+  action: Extract<Action, { type: 'SHARE_CARD' }>,
+): ReducerResult {
+  const mission = state.mission;
+  if (!mission || state.phase !== 'missionSummary') {
+    return reject(state, 'Karty można przekazać dopiero po zakończeniu misji.');
+  }
+  if (action.fromPlayerId === action.toPlayerId) {
+    return reject(state, 'Nie możesz przekazać karty samemu sobie.');
+  }
+  if (mission.sharedCardIds.includes(action.cardId)) {
+    return reject(state, 'Ta karta została już przekazana.');
+  }
+
+  const play = mission.played.find(
+    (p) => p.card.id === action.cardId && p.playerId === action.fromPlayerId,
+  );
+  if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
+
+  if (!COMPETENCE_CATEGORIES.includes(play.card.category)) {
+    return reject(state, 'Przekazywać można tylko karty kompetencji.');
+  }
+
+  const receiver = state.players.find((p) => p.id === action.toPlayerId);
+  if (!receiver) return reject(state, 'Nieznany gracz docelowy.');
+
+  const giver = state.players.find((p) => p.id === action.fromPlayerId);
+  if (!giver) return reject(state, 'Nieznany gracz przekazujący.');
+
+  const players = state.players.map((p) => {
+    if (p.id === action.fromPlayerId) {
+      return {
+        ...p,
+        sharedCount: p.sharedCount + 1,
+        experience: [
+          ...p.experience,
+          {
+            id: `exp-share-${state.missionNumber}-${p.id}-${action.cardId}`,
+            kind: 'share' as const,
+          },
+        ],
+      };
+    }
+    if (p.id === action.toPlayerId) {
+      return {
+        ...p,
+        mat: [...p.mat, play.card],
+        receivedCardIds: [...p.receivedCardIds, action.cardId],
+      };
+    }
+    return p;
+  });
+
+  return {
+    state: {
+      ...state,
+      players,
+      mission: { ...mission, sharedCardIds: [...mission.sharedCardIds, action.cardId] },
+      log: [...state.log, `${giver.name} uczy gracza ${receiver.name}: ${play.card.name}`],
+    },
+  };
+}
+
+/**
+ * Zamknięcie podsumowania misji.
+ * Przy sukcesie: karta doświadczenia dla każdego + bonus za karty wymienione
+ * w opisie problemu. Niezabrane karty trafiają na stos odrzuconych.
+ * Ręce uzupełniane do pełnego rozmiaru.
+ */
+function endMissionSummary(state: GameState): ReducerResult {
+  const mission = state.mission;
+  if (!mission || state.phase !== 'missionSummary') {
+    return reject(state, 'Brak podsumowania do zamknięcia.');
+  }
+
+  const won = mission.phase === 'won';
+  const bonusCardIds = new Set(
+    mission.problems.flatMap((p) => p.slots.flatMap((s) => s.bonusCardIds)),
+  );
+
+  let players = state.players;
+
+  if (won) {
+    players = players.map((player) => {
+      const extra = mission.played.filter(
+        (p) => p.playerId === player.id && bonusCardIds.has(p.card.id),
+      ).length;
+      const awards = [
+        { id: `exp-solve-${state.missionNumber}-${player.id}`, kind: 'solve' as const },
+        ...Array.from({ length: extra }, (_, i) => ({
+          id: `exp-bonus-${state.missionNumber}-${player.id}-${i}`,
+          kind: 'solve' as const,
+        })),
+      ];
+      return { ...player, experience: [...player.experience, ...awards] };
+    });
+  }
+
+  // Karty niezabrane i nieprzekazane idą na stos odrzuconych.
+  const keptCardIds = new Set(players.flatMap((p) => p.mat.map((c) => c.id)));
+  const discarded = mission.played
+    .filter((p) => !keptCardIds.has(p.card.id))
+    .map((p) => p.card);
+
+  // Wyrównanie rąk do rozmiaru startowego — zasada "dobierają, żeby wrócić
+  // do początkowego układu". Działa w obie strony: brakujące karty są
+  // dobierane, nadmiarowe (np. po Czarnym Łabędziu) trafiają na odrzucone.
+  let pile = state.drawPile;
+  let discard = [...state.discardPile, ...discarded];
+  let seed = state.rng;
+  players = players.map((player) => {
+    const difference = state.config.handSize - player.hand.length;
+
+    if (difference === 0) return player;
+
+    if (difference < 0) {
+      const kept = player.hand.slice(0, state.config.handSize);
+      discard = [...discard, ...player.hand.slice(state.config.handSize)];
+      return { ...player, hand: kept };
+    }
+
+    const result = draw(pile, discard, difference, seed);
+    pile = result.pile;
+    discard = result.discard;
+    seed = result.seed;
+    return { ...player, hand: [...player.hand, ...result.drawn] };
+  });
+
+  const solvedProblems = won
+    ? [...state.solvedProblems, ...mission.problems]
+    : state.solvedProblems;
+
+  // Problemy przegrane w tej misji trafiają na stos nierozwiązanych.
+  let unsolvedProblems = won
+    ? state.unsolvedProblems
+    : [...state.unsolvedProblems, ...mission.problems];
+
+  const unsolvedSince = { ...state.unsolvedSince };
+  if (!won) {
+    for (const problem of mission.problems) {
+      unsolvedSince[problem.id] = state.missionNumber;
+    }
+  }
+
+  // Zasada z instrukcji: po dwóch kolejnych misjach można wrócić do problemu.
+  // Wraca na spód talii, żeby nie pojawił się natychmiast.
+  const readyForRetry = unsolvedProblems.filter(
+    (problem) => state.missionNumber - (unsolvedSince[problem.id] ?? 0) >= 2,
+  );
+  const retryIds = new Set(readyForRetry.map((p) => p.id));
+  unsolvedProblems = unsolvedProblems.filter((p) => !retryIds.has(p.id));
+  for (const id of retryIds) delete unsolvedSince[id];
+
+  const problemPile = [...state.problemPile, ...readyForRetry];
+  const gameOver = state.missionNumber >= state.config.missionsPerGame;
+
+  return {
+    state: {
+      ...state,
+      players,
+      drawPile: pile,
+      discardPile: discard,
+      rng: seed,
+      problemPile,
+      solvedProblems,
+      unsolvedProblems,
+      unsolvedSince,
+      mission: null,
+      phase: gameOver ? 'finale' : 'setup',
+    },
+  };
+}
+
 export function reduce(state: GameState, action: Action): ReducerResult {
   switch (action.type) {
     case 'START_MISSION':
@@ -304,6 +523,12 @@ export function reduce(state: GameState, action: Action): ReducerResult {
       return pass(state, action.playerId);
     case 'SWAP_HAND':
       return swapHand(state, action.playerId);
+    case 'TAKE_CARD_TO_MAT':
+      return takeCardToMat(state, action);
+    case 'SHARE_CARD':
+      return shareCard(state, action);
+    case 'END_MISSION_SUMMARY':
+      return endMissionSummary(state);
     default:
       return reject(state, `Nieobsługiwana akcja: ${(action as Action).type}`);
   }
