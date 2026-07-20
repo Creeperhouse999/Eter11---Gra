@@ -26,8 +26,8 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
   };
 
   const add = () => {
+    // Na początku listy — na końcu byłaby poza widokiem.
     onChange([
-      ...characters,
       {
         id: `char-${Date.now()}`,
         name: 'Nowa postać',
@@ -35,7 +35,9 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
         traits: '',
         icon: 'compass',
       },
+      ...characters,
     ]);
+    toast('Dodano postać na górze listy.');
   };
 
   const remove = async (id: string) => {

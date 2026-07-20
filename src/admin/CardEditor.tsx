@@ -42,6 +42,7 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const visible = filter === 'all' ? cards : cards.filter((c) => c.category === filter);
 
@@ -51,19 +52,22 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
 
   const add = () => {
     const category: CardCategory = filter === 'all' ? 'psychological' : filter;
-    onChange([
-      ...cards,
-      {
-        id: `card-${Date.now()}`,
-        name: 'Nowa karta',
-        category,
-        description: '',
-        icon: 'star',
-        family: 'red' as FamilyId,
-        draft: true,
-        ...(category === 'blackswan' ? { blackSwanKind: 'extraProblem' as BlackSwanKind } : {}),
-      },
-    ]);
+    const created: Card = {
+      id: `card-${Date.now()}`,
+      name: 'Nowa karta',
+      category,
+      description: '',
+      icon: 'star',
+      family: 'red' as FamilyId,
+      draft: true,
+      ...(category === 'blackswan' ? { blackSwanKind: 'extraProblem' as BlackSwanKind } : {}),
+    };
+
+    // Nowa karta trafia na początek listy. Na końcu ginęłaby poniżej
+    // kilkudziesięciu pozycji i trzeba by jej szukać przewijaniem.
+    onChange([created, ...cards]);
+    setJustAddedId(created.id);
+    toast('Dodano kartę na górze listy.');
   };
 
   const remove = async (id: string) => {
@@ -113,7 +117,10 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
         {visible.map((card) => (
           <li
             key={card.id}
-            className="eter-rise rounded-lg border-l-4 border border-edge bg-surface p-3"
+            className={[
+              'eter-rise rounded-lg border-l-4 border bg-surface p-3 transition',
+              card.id === justAddedId ? 'border-accent' : 'border-edge',
+            ].join(' ')}
             style={{ borderLeftColor: categoryColorVar(card.category) }}
           >
             <div className="grid gap-2 sm:grid-cols-[9rem_1fr_10rem_auto]">

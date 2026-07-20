@@ -108,7 +108,17 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Problemy ({problems.length})</h2>
-        <Button icon="plus" onClick={() => onChange([...problems, emptyProblem()])}>
+        <Button
+          icon="plus"
+          onClick={() => {
+            // Na górze listy i od razu rozwinięty — inaczej trzeba by go
+            // szukać na końcu i klikać, żeby zacząć wypełniać.
+            const created = emptyProblem();
+            onChange([created, ...problems]);
+            setOpenId(created.id);
+            toast('Dodano problem na górze listy.');
+          }}
+        >
           Dodaj problem
         </Button>
       </div>

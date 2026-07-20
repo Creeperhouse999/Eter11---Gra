@@ -18,6 +18,10 @@ interface ProblemCardProps {
   selectedCard: Card | null;
   onSlotClick: (problemId: string, slotKey: SlotKey) => void;
   canPlayInSlot: (card: Card, slotKey: SlotKey, family: ProblemSlot['family']) => boolean;
+  /** Właściwości strefy upuszczenia z useCardDrag. */
+  dropTargetProps?: (targetId: string) => Record<string, string | undefined>;
+  /** Karta trzymana w powietrzu — podświetla ścianki, które ją przyjmą. */
+  draggedCard?: Card | null;
 }
 
 /**
@@ -37,6 +41,8 @@ export function ProblemCard({
   selectedCard,
   onSlotClick,
   canPlayInSlot,
+  dropTargetProps,
+  draggedCard,
 }: ProblemCardProps) {
   const typeColor = problemTypeColorVar(problem.type);
 
@@ -53,6 +59,10 @@ export function ProblemCard({
     const filled = cardsInSlot(mission, problem.id, key) >= required;
     const playable =
       Boolean(selectedCard) && !filled && canPlayInSlot(selectedCard!, key, slot.family);
+    // Ścianka gotowa przyjąć trzymaną kartę — podświetlana podczas przeciągania.
+    const accepts =
+      Boolean(draggedCard) && !filled && canPlayInSlot(draggedCard!, key, slot.family);
+    const dropId = `${problem.id}:${key}`;
     const color = slotColorVar(key);
     const familyColor = `var(--eter-family-${slot.family})`;
 
@@ -60,22 +70,39 @@ export function ProblemCard({
       <button
         key={key}
         type="button"
-        onClick={() => onSlotClick(problem.id, key)}
-        disabled={!playable}
+        onClick={() => playable && onSlotClick(problem.id, key)}
+        // Nie `disabled`: wyłączony przycisk nie odbiera zdarzeń wskaźnika,
+        // więc nie dałoby się na niego upuścić karty.
+        aria-disabled={!playable && !accepts}
         aria-label={
           filled
             ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
             : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
         }
+        {...(dropTargetProps?.(dropId) ?? {})}
         className={[
           'flex min-h-[8.5rem] flex-col rounded-lg border-2 p-2.5 text-left transition',
           filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
-          playable ? 'cursor-pointer bg-raised' : 'cursor-default',
+          playable || accepts ? 'bg-raised' : '',
+          playable ? 'cursor-pointer' : 'cursor-default',
+          accepts ? 'scale-[1.03]' : '',
+          // Strefa pod kursorem dostaje mocniejsze podświetlenie przez atrybut.
+          'data-[drag-over=true]:border-success',
           extraClass,
         ].join(' ')}
         style={{
-          borderColor: filled ? familyColor : playable ? 'var(--eter-accent)' : 'var(--eter-edge)',
-          boxShadow: playable ? '0 0 20px -8px var(--eter-accent)' : undefined,
+          borderColor: filled
+            ? familyColor
+            : accepts
+              ? 'var(--eter-success)'
+              : playable
+                ? 'var(--eter-accent)'
+                : 'var(--eter-edge)',
+          boxShadow: accepts
+            ? '0 0 26px -6px var(--eter-success)'
+            : playable
+              ? '0 0 20px -8px var(--eter-accent)'
+              : undefined,
         }}
       >
         {/* Nagłówek ścianki: kategoria plus wymagany kolor rodziny */}

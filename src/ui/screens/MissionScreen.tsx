@@ -4,9 +4,11 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { CardView } from '../components/CardView';
+import { DragGhost } from '../components/DragGhost';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
 import { RoundFuel } from '../components/RoundFuel';
+import { useCardDrag } from '../components/useCardDrag';
 import { Alert } from '../controls/Alert';
 import { Button } from '../controls/Button';
 import type { Game } from '../useGame';
@@ -33,6 +35,10 @@ export function MissionScreen({
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
   const [handRevealed, setHandRevealed] = useState(false);
+  const { drag, dragHandlers, dropTargetProps, registerDrop } = useCardDrag<{
+    card: Card;
+    fromMat: boolean;
+  }>();
 
   const activePlayer = state.players[state.activePlayerIndex];
 
@@ -50,18 +56,28 @@ export function MissionScreen({
 
   const characterOf = (characterId: string) => characters.find((c) => c.id === characterId);
 
-  const playSelected = (problemId: string, slotKey: SlotKey) => {
-    if (!selected) return;
+  const play = (card: Card, fromMat: boolean, problemId: string, slotKey: SlotKey) => {
     dispatch({
       type: 'PLAY_CARD',
       playerId: activePlayer.id,
-      cardId: selected.card.id,
+      cardId: card.id,
       slotKey,
       problemId,
-      fromMat: selected.fromMat,
+      fromMat,
     });
     setSelected(null);
   };
+
+  const playSelected = (problemId: string, slotKey: SlotKey) => {
+    if (!selected) return;
+    play(selected.card, selected.fromMat, problemId, slotKey);
+  };
+
+  // Upuszczenie karty na ściankę. Identyfikator strefy to „problemId:slotKey".
+  registerDrop((targetId, payload) => {
+    const [problemId, slotKey] = targetId.split(':');
+    play(payload.card, payload.fromMat, problemId, slotKey as SlotKey);
+  });
 
   const endTurnAction = (type: 'PASS' | 'SWAP_HAND') => {
     dispatch({ type, playerId: activePlayer.id });
@@ -127,6 +143,8 @@ export function MissionScreen({
                 selectedCard={selected?.card ?? null}
                 onSlotClick={playSelected}
                 canPlayInSlot={canPlay}
+                dropTargetProps={dropTargetProps}
+                draggedCard={drag?.payload.data.card ?? null}
               />
             ))}
           </div>
@@ -180,13 +198,22 @@ export function MissionScreen({
                       dealIndex={index}
                       selected={selected?.card.id === card.id && !selected.fromMat}
                       onClick={() => setSelected({ card, fromMat: false })}
+                      dragHandlers={dragHandlers({
+                        data: { card, fromMat: false },
+                        label: card.name,
+                      })}
+                      beingDragged={drag?.payload.data.card.id === card.id}
                     />
                   ))}
                 </div>
 
-                {selected && (
+                {selected ? (
                   <p className="eter-rise mt-3 text-sm text-accent">
                     Wybrano: {selected.card.name}. {text.missionSelectedHint}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-xs text-ink-dim">
+                    Przeciągnij kartę na pasującą ściankę albo kliknij ją i wybierz ściankę.
                   </p>
                 )}
               </>
@@ -205,6 +232,23 @@ export function MissionScreen({
           </div>
         </div>
       </section>
+
+      {drag && (
+        <DragGhost
+          card={drag.payload.data.card}
+          x={drag.x}
+          y={drag.y}
+          overValidTarget={Boolean(
+            drag.overId &&
+              (() => {
+                const [problemId, slotKey] = drag.overId.split(':');
+                const problem = mission.problems.find((p) => p.id === problemId);
+                const slot = problem?.slots.find((s) => s.key === slotKey);
+                return slot && canPlay(drag.payload.data.card, slot.key, slot.family);
+              })(),
+          )}
+        />
+      )}
 
       {state.log.length > 0 && (
         <section className="relative mt-5" aria-label="Przebieg misji">
