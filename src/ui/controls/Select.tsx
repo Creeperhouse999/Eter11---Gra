@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '../icons/Icon';
 
 export interface SelectOption<T extends string> {
@@ -41,8 +42,29 @@ export function Select<T extends string>({
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(0, options.findIndex((o) => o.value === value)),
   );
+  /** Pozycja listy na ekranie — liczona z prostokąta przycisku. */
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+
+  const MAX_LIST_HEIGHT = 256;
+
+  // Lista renderuje się w portalu, bo edytory mają przewijane kontenery,
+  // które przycinałyby ją w połowie. Pozycję trzeba więc policzyć ręcznie.
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const height = Math.min(MAX_LIST_HEIGHT, options.length * 38 + 8);
+
+    setPosition({
+      top: spaceBelow < height ? rect.top - height - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [open, options.length]);
 
   const selected = options.find((o) => o.value === value);
 
@@ -50,10 +72,20 @@ export function Select<T extends string>({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (listRef.current?.contains(target)) return;
+      setOpen(false);
     };
+    // Przewinięcie strony rozjechałoby listę z przyciskiem.
+    const onScroll = () => setOpen(false);
+
     document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -115,6 +147,7 @@ export function Select<T extends string>({
       {label && <span className="block text-sm text-ink-dim">{label}</span>}
 
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
@@ -144,52 +177,57 @@ export function Select<T extends string>({
         />
       </button>
 
-      {open && (
-        <ul
-          ref={listRef}
-          role="listbox"
-          aria-label={ariaLabel ?? label}
-          className="eter-pop absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
-        >
-          {options.map((option, index) => {
-            const isSelected = option.value === value;
-            const isActive = index === activeIndex;
-            return (
-              <li key={option.value}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  data-active={isActive}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => choose(option.value)}
-                  className={[
-                    'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition',
-                    isActive ? 'bg-raised' : '',
-                    isSelected ? 'text-accent' : '',
-                  ].join(' ')}
-                >
-                  {option.color && (
-                    <span
-                      aria-hidden="true"
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: option.color }}
-                    />
-                  )}
-                  {option.icon && <Icon name={option.icon} size={16} />}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{option.label}</span>
-                    {option.hint && (
-                      <span className="block truncate text-xs text-ink-dim">{option.hint}</span>
+      {open &&
+        createPortal(
+          <ul
+            ref={listRef}
+            role="listbox"
+            aria-label={ariaLabel ?? label}
+            className="eter-pop fixed z-50 max-h-64 overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
+            style={{ top: position.top, left: position.left, width: position.width }}
+          >
+            {options.map((option, index) => {
+              const isSelected = option.value === value;
+              const isActive = index === activeIndex;
+              return (
+                <li key={option.value}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    data-active={isActive}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => choose(option.value)}
+                    className={[
+                      'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition',
+                      isActive ? 'bg-raised' : '',
+                      isSelected ? 'text-accent' : '',
+                    ].join(' ')}
+                  >
+                    {option.color && (
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: option.color }}
+                      />
                     )}
-                  </span>
-                  {isSelected && <Icon name="tick" size={14} />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    {option.icon && <Icon name={option.icon} size={16} />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{option.label}</span>
+                      {option.hint && (
+                        <span className="block truncate text-xs text-ink-dim">
+                          {option.hint}
+                        </span>
+                      )}
+                    </span>
+                    {isSelected && <Icon name="tick" size={14} />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 }

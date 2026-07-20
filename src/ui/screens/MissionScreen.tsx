@@ -24,12 +24,18 @@ interface MissionScreenProps {
     handRevealed: boolean;
     cardSelected: boolean;
     swapMode: boolean;
+    swapSelected: number;
   }) => void;
   /**
    * Samouczek blokuje ruchy spoza bieżącego kroku, żeby gracz nie wyprzedził
    * scenariusza. Brak funkcji = wszystko dozwolone.
    */
   allows?: (action: 'play' | 'swap' | 'pass') => boolean;
+  /**
+   * Ręka odkryta od startu. Samouczek gra jedna osoba, więc chowanie kart
+   * przed samym sobą nie ma sensu i tylko dokłada krok.
+   */
+  alwaysRevealed?: boolean;
 }
 
 /**
@@ -46,10 +52,11 @@ export function MissionScreen({
   characters = ALL_CHARACTERS,
   onContext,
   allows,
+  alwaysRevealed = false,
 }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
-  const [handRevealed, setHandRevealed] = useState(false);
+  const [handRevealed, setHandRevealed] = useState(alwaysRevealed);
   /** Karty zaznaczone do wymiany. Pusty zbiór = tryb wymiany wyłączony. */
   const [swapMode, setSwapMode] = useState(false);
   const [toSwap, setToSwap] = useState<string[]>([]);
@@ -62,11 +69,11 @@ export function MissionScreen({
 
   // Zmiana gracza zakrywa karty — bez tego następny gracz zobaczyłby cudzą rękę.
   useEffect(() => {
-    setHandRevealed(false);
+    setHandRevealed(alwaysRevealed);
     setSelected(null);
     setSwapMode(false);
     setToSwap([]);
-  }, [state.activePlayerIndex, state.mission?.round]);
+  }, [state.activePlayerIndex, state.mission?.round, alwaysRevealed]);
 
   // Samouczek musi wiedzieć, czy karty są odkryte i czy któraś jest wybrana.
   useEffect(() => {
@@ -74,8 +81,9 @@ export function MissionScreen({
       handRevealed,
       cardSelected: selected !== null,
       swapMode,
+      swapSelected: toSwap.length,
     });
-  }, [onContext, handRevealed, selected, swapMode]);
+  }, [onContext, handRevealed, selected, swapMode, toSwap.length]);
 
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
@@ -156,7 +164,10 @@ export function MissionScreen({
           </p>
         </div>
         <MissionProgress mission={mission} />
-        <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
+        {/* Samouczek nie ma limitu rund — licznik tylko myliłby. */}
+        {!alwaysRevealed && (
+          <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
+        )}
         <div className="text-right">
           <span className="eter-label">Teraz gra</span>
           <p className="font-display text-2xl font-bold text-accent">{activePlayer.name}</p>
@@ -234,14 +245,16 @@ export function MissionScreen({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="eter-label">Karty na ręce</span>
-              <Button
-                size="sm"
-                data-tour="reveal"
-                icon={handRevealed ? 'eyeOff' : 'eyeOn'}
-                onClick={() => setHandRevealed((v) => !v)}
-              >
-                {handRevealed ? 'Zakryj karty' : 'Pokaż moje karty'}
-              </Button>
+              {!alwaysRevealed && (
+                <Button
+                  size="sm"
+                  data-tour="reveal"
+                  icon={handRevealed ? 'eyeOff' : 'eyeOn'}
+                  onClick={() => setHandRevealed((v) => !v)}
+                >
+                  {handRevealed ? 'Zakryj karty' : 'Pokaż moje karty'}
+                </Button>
+              )}
             </div>
 
             {handRevealed ? (
@@ -295,6 +308,7 @@ export function MissionScreen({
                   <Button
                     variant="primary"
                     icon="undo"
+                    data-tour="swap-confirm"
                     disabled={toSwap.length === 0}
                     onClick={confirmSwap}
                   >

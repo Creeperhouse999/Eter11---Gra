@@ -95,6 +95,7 @@ export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenPro
                       <CardView card={play.card} disabled={shared || alreadyTook} />
                       <button
                         type="button"
+                        data-tour="take-card"
                         disabled={alreadyTook || shared}
                         onClick={() =>
                           dispatch({

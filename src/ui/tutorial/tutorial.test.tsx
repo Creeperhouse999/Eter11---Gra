@@ -35,9 +35,11 @@ const tutorialGame = (): GameState => {
 };
 
 const idle: TutorialContext = {
-  handRevealed: false,
+  // Samouczek odkrywa rękę od startu — gra jedna osoba.
+  handRevealed: true,
   cardSelected: false,
   swapMode: false,
+  swapSelected: 0,
 };
 
 beforeEach(() => {
@@ -112,9 +114,9 @@ describe('useTutorial — kroki', () => {
     expect(result.current.done).toBe(false);
   });
 
-  it('odkrycie kart zalicza pierwszy krok', () => {
+  it('kliknięcie karty zalicza pierwszy krok', () => {
     const { result, rerender } = setup();
-    rerender({ ctx: { ...idle, handRevealed: true } });
+    rerender({ ctx: { ...idle, cardSelected: true } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.done).toBe(true);
   });
@@ -129,7 +131,7 @@ describe('useTutorial — kroki', () => {
 
   it('po wykonaniu kroku przestaje blokować', () => {
     const { result, rerender } = setup();
-    rerender({ ctx: { ...idle, handRevealed: true } });
+    rerender({ ctx: { ...idle, cardSelected: true } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.allows('play')).toBe(true);
   });
@@ -140,6 +142,57 @@ describe('useTutorial — kroki', () => {
 
     const step = TUTORIAL_STEPS[swapStep];
     expect(step.allow).toEqual(['swap']);
+  });
+
+  it('krok wymiany prowadzi przez trzy etapy', () => {
+    const state = tutorialGame();
+    const swapIndex = TUTORIAL_STEPS.findIndex((s) => s.goal === 'swapCards');
+
+    // Ustawiamy hook na kroku wymiany, przechodząc przez poprzednie.
+    const { result, rerender } = renderHook(
+      ({ ctx }) => useTutorial(true, state, ctx, vi.fn()),
+      { initialProps: { ctx: idle } },
+    );
+
+    for (let i = 0; i < swapIndex; i += 1) {
+      rerender({ ctx: { ...idle, cardSelected: true } });
+      if (!result.current.active) throw new Error('samouczek nieaktywny');
+      act(() => result.current.active && result.current.next());
+    }
+
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.step.goal).toBe('swapCards');
+
+    // Etap 1: przycisk otwierający wymianę.
+    expect(result.current.anchor).toBe('[data-tour="swap"]');
+
+    // Etap 2: tryb włączony, nic nie zaznaczono — podświetlamy karty.
+    rerender({ ctx: { ...idle, swapMode: true } });
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.anchor).toBe('[data-tour="hand"]');
+    expect(result.current.message).toMatch(/kliknij karty/i);
+
+    // Etap 3: coś zaznaczone — podświetlamy potwierdzenie.
+    rerender({ ctx: { ...idle, swapMode: true, swapSelected: 2 } });
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.anchor).toBe('[data-tour="swap-confirm"]');
+    expect(result.current.message).toMatch(/Wymień 2/);
+  });
+
+  it('ostatni krok uczy zabierania karty na postać', () => {
+    const last = TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1];
+    expect(last.goal).toBe('takeCard');
+    expect(last.say).toMatch(/kartę postaci/i);
+  });
+
+  it('podświetlenie zostaje na czas pochwały', () => {
+    const { result, rerender } = setup();
+    rerender({ ctx: { ...idle, cardSelected: true } });
+
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    // ETER11 mówi „ścianka zaświeciła" — musi być co pokazać.
+    expect(result.current.done).toBe(true);
+    expect(result.current.anchor).not.toBeNull();
   });
 
   it('każdy krok ma tekst i pochwałę', () => {
@@ -162,7 +215,7 @@ describe('TutorialLayer', () => {
 
     // Tekst pisze się literami — kliknięcie pokazuje całość.
     fireEvent.click(dialog.querySelector('p')!);
-    expect(dialog.textContent).toMatch(/Pokaż moje karty/);
+    expect(dialog.textContent).toMatch(/Kliknij dowolną kartę/);
   });
 
   it('pokazuje numer kroku', () => {
@@ -174,12 +227,12 @@ describe('TutorialLayer', () => {
     const { rerender } = render(<Harness context={idle} />);
     expect(screen.queryByRole('button', { name: /Dalej/ })).toBeNull();
 
-    rerender(<Harness context={{ ...idle, handRevealed: true }} />);
+    rerender(<Harness context={{ ...idle, cardSelected: true }} />);
     expect(screen.getByRole('button', { name: /Dalej/ })).toBeDefined();
   });
 
   it('przejście dalej pokazuje kolejny krok', () => {
-    render(<Harness context={{ ...idle, handRevealed: true }} />);
+    render(<Harness context={{ ...idle, cardSelected: true }} />);
 
     act(() => {
       screen.getByRole('button', { name: /Dalej/ }).click();

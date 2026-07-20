@@ -35,14 +35,24 @@ describe('GameApp — ekran startowy', () => {
     ).toBe(false);
   });
 
-  it('samouczek prowadzi jednego gracza', () => {
+  it('samouczek startuje od razu, bez pytania o misję', () => {
     render(<GameApp />);
     fireEvent.click(screen.getByRole('button', { name: /Naucz mnie grać/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Odkryj problem/ }));
 
-    // Jedna karta postaci na stole — nikt nie czeka na swoją kolej.
-    expect(screen.getAllByLabelText(/Karta postaci/)).toHaveLength(1);
+    // Bez ekranu „Odkryj problem" — samouczek wchodzi prosto do misji.
+    expect(screen.queryByRole('button', { name: /Odkryj problem/ })).toBeNull();
     expect(screen.getByRole('dialog', { name: 'Samouczek' })).toBeDefined();
+  });
+
+  it('samouczek prowadzi jednego gracza z odkrytą ręką', () => {
+    render(<GameApp />);
+    fireEvent.click(screen.getByRole('button', { name: /Naucz mnie grać/ }));
+
+    // Jedna karta postaci — nikt nie czeka na swoją kolej.
+    expect(screen.getAllByLabelText(/Karta postaci/)).toHaveLength(1);
+    // Ręka odkryta od startu: chowanie kart przed samym sobą nie ma sensu.
+    expect(screen.queryByRole('button', { name: /Pokaż moje karty/ })).toBeNull();
+    expect(screen.queryByText(/Karty są zakryte/)).toBeNull();
   });
 
   it('blokuje start bez imion graczy', () => {

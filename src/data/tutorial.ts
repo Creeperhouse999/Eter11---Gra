@@ -11,13 +11,13 @@ import type { Card, Problem } from '../engine/types';
  */
 
 export type TutorialGoal =
-  | 'revealHand'
   | 'selectCard'
   | 'playFirst'
   | 'playSecond'
   | 'swapCards'
   | 'playAfterSwap'
-  | 'finish';
+  | 'finish'
+  | 'takeCard';
 
 export interface TutorialStep {
   id: string;
@@ -37,18 +37,10 @@ export interface TutorialStep {
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
-    id: 'reveal',
-    goal: 'revealHand',
-    allow: [],
-    say: 'Cześć, jestem ETER11. W kilka minut nauczę Cię grać. Zacznijmy od Twoich kart — naciśnij „Pokaż moje karty".',
-    praise: 'Świetnie. To Twoja ręka. Każda karta ma kolor — zapamiętaj to, zaraz się przyda.',
-    nudge: 'Przycisk jest po prawej stronie, nad kartami.',
-  },
-  {
     id: 'look',
     goal: 'selectCard',
     allow: [],
-    say: 'Na środku leży problem, a wokół niego pięć ścianek. Każda czeka na kartę w swoim kolorze. Kliknij dowolną swoją kartę.',
+    say: 'Cześć, jestem ETER11. Nauczę Cię grać. Na środku leży problem, a wokół niego pięć ścianek — każda czeka na kartę w swoim kolorze. Kliknij dowolną kartę z ręki.',
     praise: 'Widzisz? Ścianka, do której ta karta pasuje, zaświeciła.',
     nudge: 'Kliknij którąkolwiek kartę na dole ekranu.',
   },
@@ -89,7 +81,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     goal: 'finish',
     allow: ['play', 'swap'],
     say: 'Zostały dwie ścianki. Dokończ problem — masz w ręku wszystko, czego trzeba.',
-    praise: 'Problem rozwiązany! Umiesz już wszystko. W prawdziwej grze gracie razem: każdy dokłada, co ma, i dzielicie się kartami.',
+    praise: 'Problem rozwiązany! Zostało jeszcze jedno.',
+  },
+  {
+    id: 'take',
+    goal: 'takeCard',
+    allow: [],
+    say: 'Za rozwiązanie problemu zabierasz jedną ze swoich kart na kartę postaci — zostaje z Tobą na całą grę. Wybierz kartę i naciśnij „Zabieram na postać".',
+    praise: 'Gotowe. Ta karta jest teraz Twoja — możesz jej użyć w kolejnych misjach.',
+    nudge: 'Pod każdą zagraną kartą jest przycisk „Zabieram na postać".',
   },
 ];
 

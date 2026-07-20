@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../data/uiText';
 import type { Card, Character, Problem, RulesConfig } from '../engine/types';
@@ -13,6 +13,7 @@ import {
   TUTORIAL_PLAYER,
   TUTORIAL_PROBLEM,
 } from '../data/tutorial';
+import { TutorialDone } from './tutorial/TutorialDone';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
 import { useGame, type PlayerSetup } from './useGame';
@@ -63,10 +64,19 @@ function RunningGame({
       : { cards: content.cards, problems: content.problems },
   );
   const { state, dispatch } = game;
+
+  // Samouczek nie ma po co pytać „czy zaczynamy" — startuje od razu.
+  useEffect(() => {
+    if (tutorial && state.phase === 'setup' && state.missionNumber === 0) {
+      dispatch({ type: 'START_MISSION' });
+    }
+  }, [tutorial, state.phase, state.missionNumber, dispatch]);
+
   const [tourContext, setTourContext] = useState<TutorialContext>({
     handRevealed: false,
     cardSelected: false,
     swapMode: false,
+    swapSelected: 0,
   });
 
   const tour = useTutorial(tutorial, state, tourContext, onTutorialFinish);
@@ -74,7 +84,22 @@ function RunningGame({
   if (state.phase === 'finale') {
     return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
   }
-  if (state.phase === 'missionSummary') return <SummaryScreen game={game} text={text} />;
+
+  // Samouczek pokazuje podsumowanie misji — tam gracz uczy się zabierania
+  // karty na postać. Kończy się dopiero po tym kroku, zamiast wpuszczać
+  // w kolejny problem.
+  if (tutorial && state.missionNumber > 0 && state.phase === 'setup') {
+    return <TutorialDone onBack={onRestart} />;
+  }
+
+  if (state.phase === 'missionSummary') {
+    return (
+      <>
+        <SummaryScreen game={game} text={text} />
+        <TutorialLayer tutorial={tour} />
+      </>
+    );
+  }
   if (state.phase === 'mission') {
     return (
       <>
@@ -84,6 +109,7 @@ function RunningGame({
           characters={content.characters ?? ALL_CHARACTERS}
           onContext={setTourContext}
           allows={tour.active ? tour.allows : undefined}
+          alwaysRevealed={tutorial}
         />
         <TutorialLayer tutorial={tour} />
       </>

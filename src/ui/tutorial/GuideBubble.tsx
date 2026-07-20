@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../controls/Button';
 import { Icon } from '../icons/Icon';
 
@@ -16,24 +16,24 @@ interface GuideBubbleProps {
   anchor: string | null;
 }
 
-interface Position {
+interface Placement {
   top: number;
   left: number;
 }
 
-const BUBBLE_WIDTH = 340;
-const MARGIN = 16;
+const WIDTH = 320;
+const GAP = 14;
 
 /**
  * ETER11 mówiący do gracza podczas samouczka.
  *
- * Bąbel trzyma się blisko podświetlonego elementu, ale nigdy go nie zasłania:
- * ustawia się pod nim, a gdy tam nie ma miejsca — nad. Bez wskazanego elementu
- * ląduje na dole ekranu, gdzie nie zakrywa stołu.
+ * Bąbel nigdy nie zasłania tego, co gracz ma kliknąć. Sprawdza kolejno cztery
+ * strony podświetlonego elementu i wybiera pierwszą, na której się mieści;
+ * gdy żadna nie pasuje, ląduje w rogu najdalszym od podświetlenia.
  *
- * Tekst pisze się litera po literze. To jedyne miejsce w grze z takim efektem
- * i ma powód: nadaje ETER11 głos, a dziecku daje rytm czytania zamiast ściany
- * tekstu. Efekt znika przy `prefers-reduced-motion`.
+ * Tekst pisze się litera po literze — to jedyne miejsce w grze z takim
+ * efektem. Nadaje ETER11 głos i daje dziecku rytm czytania zamiast ściany
+ * tekstu. Klik pokazuje całość, a `prefers-reduced-motion` wyłącza efekt.
  */
 export function GuideBubble({
   message,
@@ -44,11 +44,10 @@ export function GuideBubble({
   onSkip,
   anchor,
 }: GuideBubbleProps) {
-  const [position, setPosition] = useState<Position | null>(null);
+  const [placement, setPlacement] = useState<Placement | null>(null);
   const [typed, setTyped] = useState('');
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
-  // Pisanie litera po literze. Pełny tekst pojawia się od razu, gdy
-  // użytkownik prosi o ograniczenie animacji.
   useEffect(() => {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
@@ -62,39 +61,75 @@ export function GuideBubble({
       index += 1;
       setTyped(message.slice(0, index));
       if (index >= message.length) window.clearInterval(timer);
-    }, 18);
+    }, 16);
 
     return () => window.clearInterval(timer);
   }, [message]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const place = () => {
       if (!anchor) {
-        setPosition(null);
+        setPlacement(null);
         return;
       }
 
       const element = document.querySelector(anchor);
       if (!element) {
-        setPosition(null);
+        setPlacement(null);
         return;
       }
 
-      const box = element.getBoundingClientRect();
-      const below = box.bottom + MARGIN;
-      const fitsBelow = below + 200 < window.innerHeight;
+      const target = element.getBoundingClientRect();
+      const height = bubbleRef.current?.offsetHeight ?? 190;
+      const { innerWidth: vw, innerHeight: vh } = window;
 
-      setPosition({
-        top: fitsBelow ? below : Math.max(MARGIN, box.top - 200 - MARGIN),
-        left: Math.min(
-          Math.max(MARGIN, box.left + box.width / 2 - BUBBLE_WIDTH / 2),
-          window.innerWidth - BUBBLE_WIDTH - MARGIN,
-        ),
+      const clampX = (x: number) => Math.min(Math.max(GAP, x), vw - WIDTH - GAP);
+      const clampY = (y: number) => Math.min(Math.max(GAP, y), vh - height - GAP);
+
+      // Kandydaci w kolejności preferencji: pod, nad, obok.
+      const candidates: Array<Placement & { fits: boolean }> = [
+        {
+          top: target.bottom + GAP,
+          left: clampX(target.left + target.width / 2 - WIDTH / 2),
+          fits: target.bottom + GAP + height <= vh,
+        },
+        {
+          top: target.top - height - GAP,
+          left: clampX(target.left + target.width / 2 - WIDTH / 2),
+          fits: target.top - height - GAP >= 0,
+        },
+        {
+          top: clampY(target.top + target.height / 2 - height / 2),
+          left: target.right + GAP,
+          fits: target.right + GAP + WIDTH <= vw,
+        },
+        {
+          top: clampY(target.top + target.height / 2 - height / 2),
+          left: target.left - WIDTH - GAP,
+          fits: target.left - WIDTH - GAP >= 0,
+        },
+      ];
+
+      const chosen = candidates.find((candidate) => candidate.fits);
+
+      if (chosen) {
+        setPlacement({ top: chosen.top, left: chosen.left });
+        return;
+      }
+
+      // Nic się nie mieści obok — idziemy do rogu po przeciwnej stronie
+      // ekranu niż podświetlenie, żeby go nie przykryć.
+      const targetOnLeft = target.left + target.width / 2 < vw / 2;
+      const targetOnTop = target.top + target.height / 2 < vh / 2;
+
+      setPlacement({
+        top: targetOnTop ? vh - height - GAP : GAP,
+        left: targetOnLeft ? vw - WIDTH - GAP : GAP,
       });
     };
 
     place();
-    const interval = window.setInterval(place, 250);
+    const interval = window.setInterval(place, 200);
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
 
@@ -103,33 +138,32 @@ export function GuideBubble({
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [anchor]);
+  }, [anchor, typed]);
 
-  const skipTyping = () => setTyped(message);
   const typing = typed.length < message.length;
 
   return (
     <div
-      className="eter-pop fixed z-40 w-[21rem] max-w-[calc(100vw-2rem)]"
+      ref={bubbleRef}
+      className="eter-pop fixed z-40 max-w-[calc(100vw-1.75rem)]"
       style={
-        position
-          ? { top: position.top, left: position.left }
-          : { bottom: MARGIN, left: '50%', transform: 'translateX(-50%)' }
+        placement
+          ? { top: placement.top, left: placement.left, width: WIDTH }
+          : // Bez podświetlenia: dół ekranu, gdzie nie zasłania stołu.
+            { bottom: GAP, left: '50%', transform: 'translateX(-50%)', width: WIDTH }
       }
       role="dialog"
       aria-label="Samouczek"
     >
       <div
         className="overflow-hidden rounded-xl border bg-surface shadow-2xl"
-        style={{ borderColor: done ? 'var(--eter-success)' : 'var(--eter-accent)' }}
+        style={{
+          borderColor: done ? 'var(--eter-success)' : 'var(--eter-accent)',
+          // Cień odcina bąbel od przyciemnionego tła.
+          boxShadow: `0 16px 48px -12px ${done ? 'var(--eter-success)' : 'var(--eter-accent)'}, 0 0 0 1px var(--eter-bg)`,
+        }}
       >
-        <div
-          aria-hidden="true"
-          className="h-1"
-          style={{ background: done ? 'var(--eter-success)' : 'var(--eter-accent)' }}
-        />
-
-        <div className="flex items-start gap-3 p-4">
+        <div className="flex items-start gap-2.5 p-3.5">
           <span
             className="shrink-0 rounded-lg p-1.5"
             style={{
@@ -137,7 +171,7 @@ export function GuideBubble({
               color: done ? 'var(--eter-success)' : 'var(--eter-accent)',
             }}
           >
-            <Icon name={done ? 'tick' : 'spark'} size={20} />
+            <Icon name={done ? 'tick' : 'spark'} size={18} />
           </span>
 
           <div className="min-w-0 flex-1">
@@ -153,10 +187,10 @@ export function GuideBubble({
               </span>
             </div>
 
-            {/* Klik w tekst pokazuje całość — czytający szybciej nie czekają. */}
+            {/* Klik pokazuje całość — czytający szybciej nie czekają. */}
             <p
-              className="mt-1 min-h-[3.5rem] cursor-default text-sm leading-relaxed"
-              onClick={skipTyping}
+              className="mt-1 text-sm leading-relaxed"
+              onClick={() => setTyped(message)}
             >
               {typed}
               {typing && <span className="eter-pulse text-accent">▍</span>}
@@ -164,7 +198,6 @@ export function GuideBubble({
           </div>
         </div>
 
-        {/* Pasek postępu — ile kroków za nami */}
         <div className="h-0.5 bg-edge">
           <div
             className="h-full transition-all duration-500"
@@ -175,13 +208,13 @@ export function GuideBubble({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-edge p-3">
+        <div className="flex items-center justify-between gap-2 border-t border-edge px-3 py-2">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             Pomiń samouczek
           </Button>
 
           {done && (
-            <Button variant="primary" size="sm" iconEnd="chevronDown" onClick={onNext}>
+            <Button variant="primary" size="sm" onClick={onNext}>
               {step === total ? 'Zaczynamy grę' : 'Dalej'}
             </Button>
           )}
