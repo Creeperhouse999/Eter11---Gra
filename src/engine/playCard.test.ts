@@ -170,6 +170,70 @@ describe('SWAP_HAND', () => {
     expect(after).toHaveLength(state.config.handSize);
     expect(result.state.activePlayerIndex).toBe(1);
   });
+
+  it('wymiana całej ręki daje same nowe karty', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const before = new Set(state.players[0].hand.map((c) => c.id));
+    const result = reduce(state, { type: 'SWAP_HAND', playerId: 'p1' });
+
+    for (const card of result.state.players[0].hand) {
+      expect(before.has(card.id), `karta ${card.id} wróciła po wymianie`).toBe(false);
+    }
+  });
+
+  it('wymienia tylko wskazane karty, resztę zostawia', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const hand = state.players[0].hand;
+    const swapped = [hand[0].id, hand[1].id];
+    const kept = hand.slice(2).map((c) => c.id);
+
+    const result = reduce(state, {
+      type: 'SWAP_HAND', playerId: 'p1', cardIds: swapped,
+    });
+    const after = result.state.players[0].hand.map((c) => c.id);
+
+    expect(after).toHaveLength(state.config.handSize);
+    for (const id of kept) expect(after).toContain(id);
+    for (const id of swapped) expect(after).not.toContain(id);
+  });
+
+  it('wymiana jednej karty zmienia dokładnie jedną', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const target = state.players[0].hand[2];
+
+    const result = reduce(state, {
+      type: 'SWAP_HAND', playerId: 'p1', cardIds: [target.id],
+    });
+    const after = result.state.players[0].hand.map((c) => c.id);
+
+    expect(after).toHaveLength(state.config.handSize);
+    expect(after).not.toContain(target.id);
+  });
+
+  it('odrzuca wymianę bez wskazanych kart', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const result = reduce(state, { type: 'SWAP_HAND', playerId: 'p1', cardIds: [] });
+    expect(result.rejected).toContain('przynajmniej jedną');
+  });
+
+  it('odrzuca wymianę karty, której gracz nie ma', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const result = reduce(state, {
+      type: 'SWAP_HAND', playerId: 'p1', cardIds: ['nie-istnieje'],
+    });
+    expect(result.rejected).toBeTruthy();
+  });
+
+  it('oddane karty wracają na stos odrzuconych', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const target = state.players[0].hand[0];
+
+    const result = reduce(state, {
+      type: 'SWAP_HAND', playerId: 'p1', cardIds: [target.id],
+    });
+
+    expect(result.state.discardPile.map((c) => c.id)).toContain(target.id);
+  });
 });
 
 describe('SWAP_HAND a rozmiar ręki', () => {

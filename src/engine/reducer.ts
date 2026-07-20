@@ -269,8 +269,18 @@ function pass(state: GameState, playerId: string): ReducerResult {
   return { state: endTurn(state) };
 }
 
-/** Wymiana całej ręki na nowe karty. Kosztuje ruch w tej rundzie. */
-function swapHand(state: GameState, playerId: string): ReducerResult {
+/**
+ * Wymiana wybranych kart na nowe. Kosztuje ruch w tej rundzie.
+ *
+ * Brak `cardIds` oznacza wymianę całej ręki. Wymienione karty trafiają na
+ * stos odrzuconych dopiero po dobraniu — inaczej przy kończącej się talii
+ * gracz mógłby dostać z powrotem dokładnie te karty, których się pozbywał.
+ */
+function swapHand(
+  state: GameState,
+  playerId: string,
+  cardIds?: string[],
+): ReducerResult {
   if (!state.mission || state.mission.phase !== 'playing') {
     return reject(state, 'Misja nie trwa.');
   }
@@ -281,25 +291,41 @@ function swapHand(state: GameState, playerId: string): ReducerResult {
   const player = state.players.find((p) => p.id === playerId);
   if (!player) return reject(state, 'Nieznany gracz.');
 
-  const discardWithOldHand = [...state.discardPile, ...player.hand];
-  const result = draw(
-    state.drawPile,
-    discardWithOldHand,
-    state.config.handSize,
-    state.rng,
-  );
+  const toSwap = cardIds
+    ? player.hand.filter((card) => cardIds.includes(card.id))
+    : player.hand;
+
+  if (toSwap.length === 0) {
+    return reject(state, 'Wybierz przynajmniej jedną kartę do wymiany.');
+  }
+  if (cardIds && toSwap.length !== cardIds.length) {
+    return reject(state, 'Nie masz którejś z tych kart.');
+  }
+
+  const swapIds = new Set(toSwap.map((card) => card.id));
+  const kept = player.hand.filter((card) => !swapIds.has(card.id));
+
+  const result = draw(state.drawPile, state.discardPile, toSwap.length, state.rng);
 
   const mission = state.mission;
+  const label =
+    toSwap.length === 1
+      ? 'jedną kartę'
+      : `${toSwap.length} ${toSwap.length < 5 ? 'karty' : 'kart'}`;
 
   return {
     state: endTurn({
       ...state,
-      players: updatePlayer(state, playerId, (p) => ({ ...p, hand: result.drawn })),
+      players: updatePlayer(state, playerId, (p) => ({
+        ...p,
+        hand: [...kept, ...result.drawn],
+      })),
       drawPile: result.pile,
-      discardPile: result.discard,
+      // Oddane karty dopiero teraz wracają do obiegu.
+      discardPile: [...result.discard, ...toSwap],
       rng: result.seed,
       mission: { ...mission, swappedThisRound: [...mission.swappedThisRound, playerId] },
-      log: [...state.log, `${player.name} wymienia karty.`],
+      log: [...state.log, `${player.name} wymienia ${label}.`],
     }),
   };
 }
@@ -591,7 +617,7 @@ export function reduce(state: GameState, action: Action): ReducerResult {
     case 'PASS':
       return pass(state, action.playerId);
     case 'SWAP_HAND':
-      return swapHand(state, action.playerId);
+      return swapHand(state, action.playerId, action.cardIds);
     case 'TAKE_CARD_TO_MAT':
       return takeCardToMat(state, action);
     case 'SHARE_CARD':

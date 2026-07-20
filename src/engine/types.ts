@@ -171,7 +171,11 @@ export type Action =
   | { type: 'START_MISSION' }
   | { type: 'PLAY_CARD'; playerId: string; cardId: string; slotKey: SlotKey; problemId: string; fromMat: boolean }
   | { type: 'PASS'; playerId: string }
-  | { type: 'SWAP_HAND'; playerId: string }
+  /**
+   * Wymiana kart. Brak `cardIds` oznacza wymianę całej ręki.
+   * Puste `cardIds` to ruch pusty — odrzucany.
+   */
+  | { type: 'SWAP_HAND'; playerId: string; cardIds?: string[] }
   | { type: 'TAKE_CARD_TO_MAT'; playerId: string; cardId: string }
   | { type: 'SHARE_CARD'; fromPlayerId: string; toPlayerId: string; cardId: string }
   | { type: 'END_MISSION_SUMMARY' }

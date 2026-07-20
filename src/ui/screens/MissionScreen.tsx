@@ -35,6 +35,9 @@ export function MissionScreen({
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
   const [handRevealed, setHandRevealed] = useState(false);
+  /** Karty zaznaczone do wymiany. Pusty zbiór = tryb wymiany wyłączony. */
+  const [swapMode, setSwapMode] = useState(false);
+  const [toSwap, setToSwap] = useState<string[]>([]);
   const { drag, dragHandlers, dropTargetProps, registerDrop } = useCardDrag<{
     card: Card;
     fromMat: boolean;
@@ -46,6 +49,8 @@ export function MissionScreen({
   useEffect(() => {
     setHandRevealed(false);
     setSelected(null);
+    setSwapMode(false);
+    setToSwap([]);
   }, [state.activePlayerIndex, state.mission?.round]);
 
   const mission = state.mission;
@@ -79,10 +84,22 @@ export function MissionScreen({
     play(payload.card, payload.fromMat, problemId, slotKey as SlotKey);
   });
 
-  const endTurnAction = (type: 'PASS' | 'SWAP_HAND') => {
-    dispatch({ type, playerId: activePlayer.id });
+  const pass = () => {
+    dispatch({ type: 'PASS', playerId: activePlayer.id });
     setSelected(null);
   };
+
+  const confirmSwap = () => {
+    dispatch({ type: 'SWAP_HAND', playerId: activePlayer.id, cardIds: toSwap });
+    setSelected(null);
+    setSwapMode(false);
+    setToSwap([]);
+  };
+
+  const toggleSwap = (cardId: string) =>
+    setToSwap((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+    );
 
   const canPlay = (card: Card, slotKey: SlotKey, family: FamilyId) =>
     cardFitsSlot(card, slotKey, family);
@@ -196,18 +213,37 @@ export function MissionScreen({
                       key={card.id}
                       card={card}
                       dealIndex={index}
-                      selected={selected?.card.id === card.id && !selected.fromMat}
-                      onClick={() => setSelected({ card, fromMat: false })}
-                      dragHandlers={dragHandlers({
-                        data: { card, fromMat: false },
-                        label: card.name,
-                      })}
+                      selected={
+                        swapMode
+                          ? toSwap.includes(card.id)
+                          : selected?.card.id === card.id && !selected.fromMat
+                      }
+                      onClick={
+                        swapMode
+                          ? () => toggleSwap(card.id)
+                          : () => setSelected({ card, fromMat: false })
+                      }
+                      // W trybie wymiany klik zaznacza kartę — przeciąganie
+                      // myliłoby się z zagrywaniem.
+                      dragHandlers={
+                        swapMode
+                          ? undefined
+                          : dragHandlers({
+                              data: { card, fromMat: false },
+                              label: card.name,
+                            })
+                      }
                       beingDragged={drag?.payload.data.card.id === card.id}
                     />
                   ))}
                 </div>
 
-                {selected ? (
+                {swapMode ? (
+                  <p className="eter-rise mt-3 text-sm text-accent-2">
+                    Zaznacz karty do wymiany
+                    {toSwap.length > 0 && ` — wybrano ${toSwap.length}`}.
+                  </p>
+                ) : selected ? (
                   <p className="eter-rise mt-3 text-sm text-accent">
                     Wybrano: {selected.card.name}. {text.missionSelectedHint}
                   </p>
@@ -224,10 +260,50 @@ export function MissionScreen({
             )}
 
             <div className="mt-4 flex flex-wrap gap-3 border-t border-edge pt-4">
-              <Button onClick={() => endTurnAction('PASS')}>Pasuję</Button>
-              <Button icon="undo" onClick={() => endTurnAction('SWAP_HAND')}>
-                Wymieniam wszystkie karty
-              </Button>
+              {swapMode ? (
+                <>
+                  <Button
+                    variant="primary"
+                    icon="undo"
+                    disabled={toSwap.length === 0}
+                    onClick={confirmSwap}
+                  >
+                    {toSwap.length === 0
+                      ? 'Zaznacz karty'
+                      : `Wymień ${toSwap.length}`}
+                  </Button>
+                  <Button
+                    onClick={() => setToSwap(activePlayer.hand.map((c) => c.id))}
+                    disabled={toSwap.length === activePlayer.hand.length}
+                  >
+                    Zaznacz wszystkie
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSwapMode(false);
+                      setToSwap([]);
+                    }}
+                  >
+                    Anuluj
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={pass}>Pasuję</Button>
+                  <Button
+                    icon="undo"
+                    disabled={!handRevealed}
+                    title={handRevealed ? undefined : 'Najpierw odkryj karty'}
+                    onClick={() => {
+                      setSwapMode(true);
+                      setSelected(null);
+                    }}
+                  >
+                    Wymieniam karty
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
