@@ -1,4 +1,5 @@
 import type { CardCategory, ProblemType, SlotKey } from '../../engine/types';
+import type { IconName } from '../icons/Icon';
 
 export function categoryLabel(category: CardCategory): string {
   const labels: Record<CardCategory, string> = {
@@ -28,12 +29,12 @@ export function slotLabel(slot: SlotKey): string {
   return labels[slot];
 }
 
-export function slotIcon(slot: SlotKey): string {
-  const icons: Record<SlotKey, string> = {
-    psychological: '🧠',
-    digital: '💻',
-    social: '🤝',
-    mentorTalent: '⭐',
+export function slotIcon(slot: SlotKey): IconName {
+  const icons: Record<SlotKey, IconName> = {
+    psychological: 'brain',
+    digital: 'chip',
+    social: 'handshake',
+    mentorTalent: 'star',
   };
   return icons[slot];
 }

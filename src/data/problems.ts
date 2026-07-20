@@ -13,7 +13,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-01',
     name: 'Toksyczny park',
-    art: '🏞️',
+    icon: 'park',
     type: 'action',
     story: 'W parku pojawiła się dziwna substancja. Zwierzęta znikają, a ludzie zaczynają chorować. Firma Szybki Zysk zaprzecza wszystkiemu.',
     antagonist: 'Firma Szybki Zysk',
@@ -29,7 +29,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-02',
     name: 'Sieć kłamstw',
-    art: '🕸️',
+    icon: 'web',
     type: 'thinking',
     story: 'Internet zalewają fałszywe informacje. Ludzie się kłócą i nie wiedzą, co jest prawdą. Nikt nie wie, kto za tym stoi — państwo, korporacja, a może kosmici?',
     antagonist: 'Generator Chaosu',
@@ -45,7 +45,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-03',
     name: 'Robot, który oszalał',
-    art: '🤖',
+    icon: 'robotFace',
     type: 'thinking',
     story: 'Robot pomagał w szkole, ale zaczął dawać dzieciom absurdalne zadania i karać za kreatywność. Nie da się odpiąć go od prądu.',
     antagonist: 'Źle zaprogramowany algorytm',
@@ -61,7 +61,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-04',
     name: 'Projekt, który się rozpadł',
-    art: '⚙️',
+    icon: 'gear',
     type: 'cooperation',
     story: 'Klasa buduje wynalazek na konkurs przyszłości, ale każdy chce robić po swojemu. Maszyna zaraz się rozsypie.',
     antagonist: 'Brak słuchania i współpracy',
@@ -77,7 +77,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-05',
     name: 'Dzień, w którym zgasło światło',
-    art: '🔌',
+    icon: 'plug',
     type: 'action',
     story: 'W całym mieście znika prąd. Nie działają telefony, sklepy, szkoła ani transport. Ludzie zaczynają panikować.',
     antagonist: 'Awaria sieci energetycznej',
@@ -93,7 +93,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-06',
     name: 'Aplikacja, która kradnie czas',
-    art: '📱',
+    icon: 'phone',
     type: 'selfchange',
     story: 'Nowa aplikacja jest tak wciągająca, że ludzie zapominają o śnie, rozmowie i ruchu.',
     antagonist: 'Projektant Uzależniających Kliknięć',
@@ -109,7 +109,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-07',
     name: 'Planeta samotnych ludzi',
-    art: '🪐',
+    icon: 'planet',
     type: 'cooperation',
     story: 'Ludzie mają tysiące znajomych online, ale coraz mniej prawdziwych rozmów. ETER11 pokazuje przyszłość, w której każdy siedzi sam w swoim pokoju.',
     antagonist: 'Samotność w sieci',
@@ -125,7 +125,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-08',
     name: 'Miasto, które samo decyduje',
-    art: '🏙️',
+    icon: 'city',
     type: 'action',
     story: 'System AI zarządzający miastem zaczyna podejmować decyzje bez ludzi — zamyka szkoły, zmienia trasy, blokuje dostęp do miejsc.',
     antagonist: 'Autonomiczna AI',
@@ -141,7 +141,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-09',
     name: 'Cyfrowe bańki',
-    art: '🫧',
+    icon: 'bubbles',
     type: 'thinking',
     draft: true,
     story: 'Każdy widzi tylko treści, które potwierdzają jego zdanie. Ludzie przestają się rozumieć, bo każdy żyje w innym internecie.',
@@ -158,7 +158,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-10',
     name: 'Atak hejtu',
-    art: '💢',
+    icon: 'clash',
     type: 'cooperation',
     story: 'Grupa dzieci zostaje zaatakowana w internecie. Pojawiają się obraźliwe komentarze, memy i fałszywe oskarżenia. Część osób się śmieje, część milczy, a dzieci zaczynają bać się chodzić do szkoły.',
     antagonist: 'Anonimowy Hejter i tłum, który udostępnia krzywdzące treści',
@@ -174,7 +174,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-11',
     name: 'Głód na świecie',
-    art: '🌾',
+    icon: 'wheat',
     type: 'action',
     draft: true,
     story: 'W odległej części świata od tygodni nie spadł deszcz. Pola wyschły, w domach brakuje jedzenia. Tymczasem w innych krajach codziennie wyrzuca się tony żywności.',
@@ -191,7 +191,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-12',
     name: 'Plastikowa fala',
-    art: '🌊',
+    icon: 'wave',
     type: 'action',
     draft: true,
     story: 'Mieszkańcy wyspy obudzili się i zobaczyli, że plaża zniknęła pod górą śmieci. Żółwie nie mogą dotrzeć do swoich jaj, ryby zaplątały się w plastik.',
@@ -208,7 +208,7 @@ export const ALL_PROBLEMS: Problem[] = [
   {
     id: 'prob-13',
     name: 'Tajemniczy wirus',
-    art: '🦠',
+    icon: 'virus',
     type: 'thinking',
     draft: true,
     story: 'W różnych częściach świata ludzie zaczynają chorować. Lekarze pracują dzień i noc, ale wirus ciągle się zmienia. W internecie mnożą się plotki — jedni panikują, inni nie wierzą w zagrożenie.',

@@ -60,7 +60,7 @@ describe('useGame', () => {
     const problems = [
       {
         id: 'custom', name: 'Własny problem', story: 'x', antagonist: 'y',
-        consequence: 'z', goal: 'g', type: 'action' as const, art: '🌍',
+        consequence: 'z', goal: 'g', type: 'action' as const, icon: 'star',
         slots: [
           { key: 'psychological' as const, hint: 'h', bonusCardIds: [] },
           { key: 'digital' as const, hint: 'h', bonusCardIds: [] },

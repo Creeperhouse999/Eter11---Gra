@@ -12,7 +12,7 @@ const card = (id: string, category: Card['category']): Card => ({
   name: id,
   category,
   description: '',
-  art: '🎴',
+  icon: 'star',
 });
 
 const problem: Problem = {
@@ -23,7 +23,7 @@ const problem: Problem = {
   consequence: '',
   goal: '',
   type: 'action',
-  art: '🌍',
+  icon: 'star',
   slots: [
     { key: 'psychological', hint: '', bonusCardIds: [] },
     { key: 'digital', hint: '', bonusCardIds: [] },

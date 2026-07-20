@@ -22,8 +22,8 @@ export interface Card {
   category: CardCategory;
   /** Opis widoczny na karcie. */
   description: string;
-  /** Emoji jako placeholder grafiki. */
-  art: string;
+  /** Nazwa ikony z zestawu ETER11 (patrz src/ui/icons/Icon.tsx). */
+  icon: string;
   /** Tylko dla category === 'blackswan'. */
   blackSwanKind?: BlackSwanKind;
   /** Oznaczenie treści dopisanej technicznie, do weryfikacji merytorycznej. */
@@ -50,7 +50,7 @@ export interface Problem {
   goal: string;
   type: ProblemType;
   slots: ProblemSlot[];
-  art: string;
+  icon: string;
   draft?: boolean;
 }
 
@@ -59,7 +59,7 @@ export interface Character {
   name: string;
   kind: 'child' | 'parent' | 'teacher';
   traits: string;
-  art: string;
+  icon: string;
 }
 
 /** Karta doświadczenia. Typ ma znaczenie dla warunku spełnienia. */

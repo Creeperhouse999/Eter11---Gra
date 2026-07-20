@@ -66,7 +66,7 @@ describe('powrót nierozwiązanych problemów', () => {
     fills.forEach(([category, slotKey], index) => {
       const card = {
         id: `fill-${index}`, name: 'x', category,
-        description: '', art: '🎴',
+        description: '', icon: 'star',
       };
       state = {
         ...state,

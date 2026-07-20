@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { isIconName } from '../ui/icons/Icon';
 import { ALL_CHARACTERS } from './characters';
 
 describe('ALL_CHARACTERS', () => {
@@ -18,7 +19,7 @@ describe('ALL_CHARACTERS', () => {
     for (const character of ALL_CHARACTERS) {
       expect(character.name.length).toBeGreaterThan(0);
       expect(character.traits.length).toBeGreaterThan(0);
-      expect(character.art.length).toBeGreaterThan(0);
+      expect(isIconName(character.icon)).toBe(true);
     }
   });
 });

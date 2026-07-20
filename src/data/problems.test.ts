@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { isIconName } from '../ui/icons/Icon';
 import { ALL_PROBLEMS } from './problems';
 import { ALL_CARDS } from './cards';
 
@@ -23,7 +24,7 @@ describe('ALL_PROBLEMS', () => {
       expect(problem.antagonist.length, `${problem.id}: przeciwnik`).toBeGreaterThan(0);
       expect(problem.consequence.length, `${problem.id}: konsekwencja`).toBeGreaterThan(0);
       expect(problem.goal.length, `${problem.id}: cel`).toBeGreaterThan(0);
-      expect(problem.art.length, `${problem.id}: emoji`).toBeGreaterThan(0);
+      expect(isIconName(problem.icon), `${problem.id}: nieznana ikona ${problem.icon}`).toBe(true);
     }
   });
 

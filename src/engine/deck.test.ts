@@ -7,7 +7,7 @@ const makeCard = (id: string): Card => ({
   name: id,
   category: 'talent',
   description: '',
-  art: '⭐',
+  icon: 'star',
 });
 
 describe('nextRandom', () => {

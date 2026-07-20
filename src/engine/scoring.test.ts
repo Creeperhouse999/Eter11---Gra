@@ -3,7 +3,7 @@ import { awardTitles, hasFulfillment, fulfillmentProgress, playerScore } from '.
 import type { Card, Player, RulesConfig } from './types';
 
 const card = (id: string, category: Card['category']): Card => ({
-  id, name: id, category, description: '', art: '🎴',
+  id, name: id, category, description: '', icon: 'star',
 });
 
 const config: RulesConfig = {

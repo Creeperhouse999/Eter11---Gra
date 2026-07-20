@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { isIconName } from '../ui/icons/Icon';
 import { ALL_CARDS, buildDeck } from './cards';
 
 describe('ALL_CARDS', () => {
@@ -11,7 +12,7 @@ describe('ALL_CARDS', () => {
     for (const card of ALL_CARDS) {
       expect(card.name.length, `karta ${card.id} bez nazwy`).toBeGreaterThan(0);
       expect(card.description.length, `karta ${card.id} bez opisu`).toBeGreaterThan(0);
-      expect(card.art.length, `karta ${card.id} bez emoji`).toBeGreaterThan(0);
+      expect(isIconName(card.icon), `karta ${card.id}: nieznana ikona ${card.icon}`).toBe(true);
     }
   });
 

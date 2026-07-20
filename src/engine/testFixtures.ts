@@ -8,7 +8,7 @@ export const makeCard = (id: string, category: Card['category']): Card => ({
   name: id,
   category,
   description: '',
-  art: '🎴',
+  icon: 'star',
 });
 
 /** Talia z zapasem kart każdej kategorii — wystarcza na pełną rozgrywkę testową. */
@@ -31,7 +31,7 @@ export const testProblem = (id: string): Problem => ({
   consequence: '',
   goal: '',
   type: 'action',
-  art: '🌍',
+  icon: 'star',
   slots: [
     { key: 'psychological', hint: '', bonusCardIds: [] },
     { key: 'digital', hint: '', bonusCardIds: [] },

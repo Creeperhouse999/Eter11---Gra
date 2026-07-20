@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import type { Character } from '../../engine/types';
+import { Icon, type IconName } from '../icons/Icon';
 import type { PlayerSetup } from '../useGame';
 
 interface SetupScreenProps {
@@ -115,7 +116,9 @@ export function SetupScreen({ onStart, characters = ALL_CHARACTERS }: SetupScree
                         onChange={() => update(index, { characterId: character.id })}
                         className="sr-only"
                       />
-                      <span className="text-2xl" aria-hidden="true">{character.art}</span>
+                      <span className={chosen ? 'text-accent' : 'text-ink-dim'}>
+                        <Icon name={character.icon as IconName} size={26} />
+                      </span>
                       <span className="min-w-0">
                         <span className="block font-display text-sm font-bold">
                           {character.name}

@@ -1,4 +1,5 @@
 import type { Card } from '../../engine/types';
+import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
 
 interface CardViewProps {
@@ -45,8 +46,8 @@ export function CardView({ card, selected, disabled, onClick, compact }: CardVie
         style={{ background: color }}
       />
 
-      <span className={compact ? 'mt-1 text-xl' : 'mt-1 text-3xl'} aria-hidden="true">
-        {card.art}
+      <span className="mt-1.5" style={{ color }}>
+        <Icon name={card.icon as IconName} size={compact ? 22 : 32} />
       </span>
 
       <span

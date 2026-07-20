@@ -1,5 +1,6 @@
 import { cardsInSlot, requiredCountForSlot } from '../../engine/rules';
 import type { Card, MissionState, Problem, SlotKey } from '../../engine/types';
+import { Icon, type IconName } from '../icons/Icon';
 import { CardView } from './CardView';
 import {
   problemTypeColorVar,
@@ -45,8 +46,8 @@ export function ProblemBoard({
 
       <header className="p-4 sm:p-5">
         <div className="flex items-start gap-4">
-          <span className="text-4xl leading-none sm:text-5xl" aria-hidden="true">
-            {problem.art}
+          <span style={{ color: typeColor }}>
+            <Icon name={problem.icon as IconName} size={44} />
           </span>
           <div className="min-w-0 flex-1">
             <span className="eter-label" style={{ color: typeColor }}>
@@ -111,7 +112,9 @@ export function ProblemBoard({
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg" aria-hidden="true">{slotIcon(slot.key)}</span>
+                <span style={{ color: filled ? color : 'var(--eter-ink-dim)' }}>
+                  <Icon name={filled ? 'lockedSlot' : slotIcon(slot.key)} size={18} />
+                </span>
                 <span className="eter-label" style={{ color: filled ? color : undefined }}>
                   {slotLabel(slot.key)}
                 </span>
