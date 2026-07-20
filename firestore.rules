@@ -7,14 +7,12 @@ service cloud.firestore {
     // Odczyt publiczny — gra ładuje dane bez logowania.
     // Zapis wyłącznie z konta administracyjnego.
     //
-    // UWAGA: przed wdrożeniem panelu wstaw poniżej UID konta utworzonego
-    // w Firebase Console (Authentication → Users → kolumna User UID).
-    // Dopóki placeholder pozostaje niezmieniony, zapis jest zablokowany
-    // dla wszystkich — łącznie z panelem administracyjnym.
+    // UID konta info@eter11.pl (Firebase Console → Authentication → Users).
+    // Zmiana konta wymaga podmiany tego UID i ponownego wdrożenia reguł.
     match /content/{document} {
       allow read: if true;
       allow write: if request.auth != null
-                   && request.auth.uid == 'WSTAW_TUTAJ_UID_KONTA_ADMIN';
+                   && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
     }
 
     // Wszystkie pozostałe ścieżki zamknięte.
