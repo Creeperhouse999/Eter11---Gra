@@ -111,6 +111,7 @@ function startMission(state: GameState): ReducerResult {
     slotsFilledBeforeDoubling: [],
     takenToMat: [],
     sharedCardIds: [],
+    swappedThisRound: [],
   };
 
   return {
@@ -160,10 +161,14 @@ function endTurn(state: GameState): GameState {
   }
 
   // Nowa runda: każdy dobiera 1 kartę.
+  // Pomijamy graczy, którzy w tej rundzie wymienili rękę — wymiana była ich
+  // dobraniem, więc kolejna karta dałaby im przewagę nad resztą stołu.
   let pile = state.drawPile;
   let discard = state.discardPile;
   let seed = state.rng;
   const players = state.players.map((player) => {
+    if (mission.swappedThisRound.includes(player.id)) return player;
+
     const result = draw(pile, discard, 1, seed);
     pile = result.pile;
     discard = result.discard;
@@ -178,7 +183,7 @@ function endTurn(state: GameState): GameState {
     discardPile: discard,
     rng: seed,
     activePlayerIndex: 0,
-    mission: { ...mission, round: mission.round + 1 },
+    mission: { ...mission, round: mission.round + 1, swappedThisRound: [] },
   };
 }
 
@@ -284,6 +289,8 @@ function swapHand(state: GameState, playerId: string): ReducerResult {
     state.rng,
   );
 
+  const mission = state.mission;
+
   return {
     state: endTurn({
       ...state,
@@ -291,6 +298,7 @@ function swapHand(state: GameState, playerId: string): ReducerResult {
       drawPile: result.pile,
       discardPile: result.discard,
       rng: result.seed,
+      mission: { ...mission, swappedThisRound: [...mission.swappedThisRound, playerId] },
       log: [...state.log, `${player.name} wymienia karty.`],
     }),
   };

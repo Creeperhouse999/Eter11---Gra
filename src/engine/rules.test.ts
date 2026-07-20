@@ -44,6 +44,7 @@ const mission = (overrides: Partial<MissionState> = {}): MissionState => ({
   slotsFilledBeforeDoubling: [],
   takenToMat: [],
   sharedCardIds: [],
+  swappedThisRound: [],
   ...overrides,
 });
 

@@ -171,3 +171,25 @@ describe('SWAP_HAND', () => {
     expect(result.state.activePlayerIndex).toBe(1);
   });
 });
+
+describe('SWAP_HAND a rozmiar ręki', () => {
+  it('po wymianie i zamknięciu rundy gracz ma dokładnie tyle kart, ile trzeba', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const { handSize } = state.config;
+
+    // p1 wymienia rękę, p2 pasuje — ruch p2 zamyka rundę i rozdaje po karcie.
+    const afterSwap = reduce(state, { type: 'SWAP_HAND', playerId: 'p1' }).state;
+    const afterRound = reduce(afterSwap, { type: 'PASS', playerId: 'p2' }).state;
+
+    // Wymiana kosztuje ruch w tej rundzie, więc gracz nie powinien
+    // dostać jeszcze karty na dobitkę.
+    expect(afterRound.players[0].hand).toHaveLength(handSize);
+    expect(afterRound.players[1].hand).toHaveLength(handSize + 1);
+  });
+
+  it('wymiana w środku rundy nie zwiększa ręki ponad limit', () => {
+    const { state } = reduce(newGame(), { type: 'START_MISSION' });
+    const result = reduce(state, { type: 'SWAP_HAND', playerId: 'p1' });
+    expect(result.state.players[0].hand).toHaveLength(state.config.handSize);
+  });
+});

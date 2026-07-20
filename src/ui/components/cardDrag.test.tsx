@@ -200,9 +200,13 @@ describe('CardView z przeciąganiem', () => {
     expect(cardEl.style.touchAction).toBe('');
   });
 
-  it('pokazuje rodzinę karty', () => {
+  it('pokazuje kategorię nad nazwą karty', () => {
     render(<CardView card={card} />);
-    expect(screen.getByText(/Czerwona/)).toBeDefined();
+    const cardEl = screen.getByRole('button', { name: /Odwaga/ });
+    // Kategoria poprzedza nazwę — mówi, do której ścianki karta należy.
+    expect(cardEl.textContent?.indexOf('Talent')).toBeLessThan(
+      cardEl.textContent?.indexOf('Odwaga') ?? -1,
+    );
   });
 
   it('klik nadal działa obok przeciągania', () => {

@@ -81,7 +81,7 @@ export function ProblemCard({
         }
         {...(dropTargetProps?.(dropId) ?? {})}
         className={[
-          'flex min-h-[8.5rem] flex-col rounded-lg border-2 p-2.5 text-left transition',
+          'flex min-h-[8.5rem] flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
           filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
           playable || accepts ? 'bg-raised' : '',
           playable ? 'cursor-pointer' : 'cursor-default',
@@ -110,7 +110,10 @@ export function ProblemCard({
           <span style={{ color: filled ? familyColor : 'var(--eter-ink-dim)' }}>
             <Icon name={filled ? 'lockedSlot' : slotIcon(key)} size={16} />
           </span>
-          <span className="eter-label" style={{ color: filled ? color : undefined }}>
+          <span
+            className="eter-label truncate"
+            style={{ color: filled ? color : undefined }}
+          >
             {slotLabel(key)}
           </span>
           <span
@@ -135,7 +138,12 @@ export function ProblemCard({
             >
               {FAMILY_LABELS[slot.family]}
             </span>
-            <span className="mt-1 text-xs leading-snug text-ink-dim">{slot.hint}</span>
+            <span
+              className="mt-1 line-clamp-3 text-xs leading-snug text-ink-dim"
+              style={{ overflowWrap: 'anywhere' }}
+            >
+              {slot.hint}
+            </span>
           </>
         )}
 
@@ -165,21 +173,35 @@ export function ProblemCard({
       <span className="eter-label mt-2" style={{ color: typeColor }}>
         {problemTypeLabel(problem.type)}
       </span>
-      <h2 className="font-display text-xl font-bold leading-tight">{problem.name}</h2>
-      <p className="mt-2 text-xs leading-relaxed text-ink-dim">{problem.story}</p>
+      <h2
+        className="font-display text-xl font-bold leading-tight"
+        style={{ overflowWrap: 'anywhere' }}
+      >
+        {problem.name}
+      </h2>
+      <p
+        className="mt-2 text-xs leading-relaxed text-ink-dim"
+        style={{ overflowWrap: 'anywhere' }}
+      >
+        {problem.story}
+      </p>
 
       <dl className="mt-3 space-y-1.5 text-left text-xs">
         <div>
           <dt className="eter-label">Cel</dt>
-          <dd className="text-accent">{problem.goal}</dd>
+          <dd className="text-accent" style={{ overflowWrap: 'anywhere' }}>
+            {problem.goal}
+          </dd>
         </div>
         <div>
           <dt className="eter-label">Przeciwnik</dt>
-          <dd>{problem.antagonist}</dd>
+          <dd style={{ overflowWrap: 'anywhere' }}>{problem.antagonist}</dd>
         </div>
         <div>
           <dt className="eter-label">Jeśli się nie uda</dt>
-          <dd className="text-danger">{problem.consequence}</dd>
+          <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
+            {problem.consequence}
+          </dd>
         </div>
       </dl>
     </div>

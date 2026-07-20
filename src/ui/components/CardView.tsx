@@ -1,5 +1,4 @@
 import type { PointerEventHandler } from 'react';
-import { FAMILY_LABELS } from '../../data/families';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
@@ -30,9 +29,13 @@ interface CardViewProps {
 /**
  * Karta gry.
  *
- * Kolor krawędzi koduje kategorię, kropka pokazuje rodzinę (kolor wymagany
- * przez ścianki). Kartę można przeciągnąć na ściankę albo kliknąć i wybrać
- * ściankę — obie drogi prowadzą do tego samego ruchu.
+ * Układ od góry: pasek rodziny, kategoria, ikona, nazwa, opis. Kolor rodziny
+ * niesie pasek i nazwa — to rodzina decyduje, do której ścianki karta pasuje,
+ * więc musi być widoczna także wtedy, gdy karty leżą na sobie w wachlarzu.
+ *
+ * Karta ma stałą szerokość, a nazwy bywają długie („Rozwiązywanie problemów"),
+ * dlatego wszystkie teksty łamią wyrazy i mają ograniczoną liczbę linii —
+ * bez tego wychodziły poza krawędź.
  */
 export function CardView({
   card,
@@ -48,6 +51,7 @@ export function CardView({
   const interactive = Boolean(onClick) && !disabled;
   const draggable = Boolean(dragHandlers) && !disabled;
   const familyColor = card.family ? `var(--eter-family-${card.family})` : undefined;
+  const accent = familyColor ?? color;
 
   return (
     <button
@@ -57,9 +61,9 @@ export function CardView({
       aria-pressed={onClick ? Boolean(selected) : undefined}
       {...(draggable ? dragHandlers : {})}
       className={[
-        'group relative flex flex-col rounded-lg border bg-raised text-left transition-transform',
+        'group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',
         dealIndex === undefined ? '' : 'eter-deal',
-        compact ? 'w-24 gap-0.5 p-2' : 'w-36 gap-1 p-3',
+        compact ? 'w-24 p-2 pt-2.5' : 'w-36 p-3 pt-3.5',
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
         interactive && !draggable ? 'cursor-pointer' : '',
         interactive && !beingDragged ? 'hover:-translate-y-1' : '',
@@ -67,9 +71,9 @@ export function CardView({
         beingDragged ? 'opacity-30' : '',
       ].join(' ')}
       style={{
-        borderColor: selected ? (familyColor ?? color) : 'var(--eter-edge)',
+        borderColor: selected ? accent : 'var(--eter-edge)',
         borderWidth: selected ? 2 : 1,
-        boxShadow: selected ? `0 0 22px -6px ${familyColor ?? color}` : undefined,
+        boxShadow: selected ? `0 0 22px -6px ${accent}` : undefined,
         // Bez tego przeciąganie palcem przewija stronę zamiast podnosić kartę.
         touchAction: draggable ? 'none' : undefined,
         ...(dealIndex === undefined
@@ -77,40 +81,44 @@ export function CardView({
           : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),
       }}
     >
-      {/*
-        Pasek niesie kolor rodziny — to on decyduje, do której ścianki karta
-        pasuje, więc musi być widoczny nawet gdy karty leżą na sobie w wachlarzu.
-        Kategoria schodzi do kropki: jest już zapisana w ikonie i podpisie.
-      */}
+      {/* Pasek rodziny — kolor, którego szukają ścianki problemu */}
       <span
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-1.5 rounded-t-lg"
-        style={{ background: familyColor ?? color }}
+        className="absolute inset-x-0 top-0 h-1.5"
+        style={{ background: accent }}
       />
 
-      <span className="mt-2" style={{ color: familyColor ?? color }}>
-        <Icon name={card.icon as IconName} size={compact ? 22 : 32} />
+      {/* Kategoria nad nazwą — mówi, do której ścianki karta w ogóle należy */}
+      <span
+        className="eter-label truncate leading-tight"
+        style={{ color: accent, fontSize: compact ? '0.5625rem' : undefined }}
+      >
+        {categoryLabel(card.category)}
+      </span>
+
+      <span className="mt-1" style={{ color: accent }}>
+        <Icon name={card.icon as IconName} size={compact ? 20 : 28} />
       </span>
 
       <span
-        className={`font-display font-bold leading-tight ${compact ? 'text-xs' : 'text-sm'}`}
-        style={{ color: familyColor ?? color }}
+        className={[
+          'mt-1 font-display font-bold leading-tight hyphens-auto',
+          compact ? 'line-clamp-3 text-[0.6875rem]' : 'line-clamp-2 text-sm',
+        ].join(' ')}
+        style={{ color: accent, overflowWrap: 'anywhere' }}
+        lang="pl"
       >
         {card.name}
       </span>
 
       {!compact && (
-        <span className="text-xs leading-snug text-ink-dim">{card.description}</span>
+        <span
+          className="mt-1 line-clamp-3 text-xs leading-snug text-ink-dim"
+          style={{ overflowWrap: 'anywhere' }}
+        >
+          {card.description}
+        </span>
       )}
-
-      {/*
-        Podpis w kolorze rodziny — ten sam kolor co pasek u góry, więc nawet
-        gdy karta jest częściowo zasłonięta, widać, do której ścianki pasuje.
-      */}
-      <span className="eter-label mt-auto pt-2" style={{ color: familyColor ?? color }}>
-        {categoryLabel(card.category)}
-        {card.family && <> · {FAMILY_LABELS[card.family]}</>}
-      </span>
     </button>
   );
 }

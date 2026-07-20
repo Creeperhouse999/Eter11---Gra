@@ -140,6 +140,11 @@ export interface MissionState {
   takenToMat: string[];
   /** Id kart przekazanych innym graczom w tej misji. */
   sharedCardIds: string[];
+  /**
+   * Id graczy, którzy wymienili rękę w bieżącej rundzie.
+   * Nie dobierają na początku następnej — wymiana była ich dobraniem.
+   */
+  swappedThisRound: string[];
 }
 
 export interface GameState {

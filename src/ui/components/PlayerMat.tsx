@@ -52,7 +52,7 @@ export function PlayerMat({
     <section
       aria-label={`Karta postaci: ${player.name}`}
       className={[
-        'rounded-xl border bg-surface p-3 transition',
+        'overflow-hidden rounded-xl border bg-surface p-3 transition',
         active ? 'border-accent' : 'border-edge',
       ].join(' ')}
       style={active ? { boxShadow: '0 0 24px -10px var(--eter-accent)' } : undefined}
