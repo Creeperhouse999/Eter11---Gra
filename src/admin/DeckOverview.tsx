@@ -2,10 +2,28 @@ import { buildDeck } from '../data/cards';
 import type { CardCategory } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { categoryColorVar, categoryLabel, problemTypeLabel, slotLabel } from '../ui/components/categoryStyles';
+import { Alert } from '../ui/controls/Alert';
+import { Icon, type IconName } from '../ui/icons/Icon';
 
 interface DeckOverviewProps {
   content: GameContent;
+  /** Przejście do zakładki — skróty prowadzą tam, gdzie trzeba popracować. */
+  onGoTo?: (tab: 'problems' | 'cards' | 'families' | 'rules' | 'test') => void;
 }
+
+interface Shortcut {
+  tab: 'problems' | 'cards' | 'families' | 'rules' | 'test';
+  icon: IconName;
+  label: string;
+  hint: string;
+}
+
+const SHORTCUTS: Shortcut[] = [
+  { tab: 'problems', icon: 'clash', label: 'Popraw problem', hint: 'Historia, cel, ścianki' },
+  { tab: 'cards', icon: 'clipboard', label: 'Dodaj kartę', hint: 'Kompetencje, talenty, mentorzy' },
+  { tab: 'families', icon: 'palette', label: 'Nazwij rodziny', hint: 'Kolory i symbole' },
+  { tab: 'test', icon: 'flask', label: 'Rozegraj partię', hint: 'Sprawdź, jak gra się zmieniła' },
+];
 
 const CATEGORIES: CardCategory[] = [
   'psychological', 'digital', 'social', 'talent', 'mentor', 'eter11', 'blackswan',
@@ -17,7 +35,7 @@ const CATEGORIES: CardCategory[] = [
  * Wyłapuje problemy, które inaczej wyszłyby dopiero przy stole: za mało kart
  * na liczbę graczy, problemy bez podpowiedzi, karty nieużywane jako bonus.
  */
-export function DeckOverview({ content }: DeckOverviewProps) {
+export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
   const deck = buildDeck(content.cards);
   const { rules, problems, cards } = content;
 
@@ -66,18 +84,49 @@ export function DeckOverview({ content }: DeckOverviewProps) {
   return (
     <section>
       <h2 className="font-display text-lg font-bold">Przegląd talii</h2>
-      <p className="mt-1 text-sm text-ink-dim">
-        Podsumowanie zawartości i ostrzeżenia o balansie.
+      <p className="mt-1 max-w-prose text-sm text-ink-dim">
+        Stan zawartości gry. Zmiany zapisujesz przyciskiem u góry — gracze
+        zobaczą je po odświeżeniu strony.
       </p>
 
+      {onGoTo && (
+        <div className="eter-stagger mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {SHORTCUTS.map((shortcut) => (
+            <button
+              key={shortcut.tab}
+              type="button"
+              onClick={() => onGoTo(shortcut.tab)}
+              className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface p-3 text-left transition hover:border-accent"
+            >
+              <span className="mt-0.5 text-accent">
+                <Icon name={shortcut.icon} size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{shortcut.label}</span>
+                <span className="block text-xs text-ink-dim">{shortcut.hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {warnings.length > 0 && (
-        <div role="alert" className="mt-4 rounded-lg border border-danger bg-surface p-3">
-          <h3 className="text-sm font-bold text-danger">Do sprawdzenia</h3>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
-            {warnings.map((warning, index) => (
-              <li key={index}>{warning}</li>
-            ))}
-          </ul>
+        <div className="mt-4">
+          <Alert tone="warning" title={`Do sprawdzenia (${warnings.length})`}>
+            <ul className="list-inside list-disc space-y-1">
+              {warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </Alert>
+        </div>
+      )}
+
+      {warnings.length === 0 && (
+        <div className="mt-4">
+          <Alert tone="success">
+            Zawartość jest spójna — każdą ściankę da się zamknąć kartą z talii.
+          </Alert>
         </div>
       )}
 

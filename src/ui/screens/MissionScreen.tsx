@@ -4,7 +4,9 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { CardView } from '../components/CardView';
+import { Coach } from '../components/Coach';
 import { DragGhost } from '../components/DragGhost';
+import { MissionProgress } from '../components/MissionProgress';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
 import { RoundFuel } from '../components/RoundFuel';
@@ -17,6 +19,12 @@ interface MissionScreenProps {
   game: Game;
   text?: UiText;
   characters?: Character[];
+  /** Samouczek obserwuje, co gracz widzi na ekranie. */
+  onContext?: (context: {
+    handRevealed: boolean;
+    cardSelected: boolean;
+    swapMode: boolean;
+  }) => void;
 }
 
 /**
@@ -31,6 +39,7 @@ export function MissionScreen({
   game,
   text = DEFAULT_UI_TEXT,
   characters = ALL_CHARACTERS,
+  onContext,
 }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
@@ -52,6 +61,15 @@ export function MissionScreen({
     setSwapMode(false);
     setToSwap([]);
   }, [state.activePlayerIndex, state.mission?.round]);
+
+  // Samouczek musi wiedzieć, czy karty są odkryte i czy któraś jest wybrana.
+  useEffect(() => {
+    onContext?.({
+      handRevealed,
+      cardSelected: selected !== null,
+      swapMode,
+    });
+  }, [onContext, handRevealed, selected, swapMode]);
 
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
@@ -129,12 +147,24 @@ export function MissionScreen({
             Rozwiązane problemy: {state.solvedProblems.length}
           </p>
         </div>
+        <MissionProgress mission={mission} />
         <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
         <div className="text-right">
           <span className="eter-label">Teraz gra</span>
           <p className="font-display text-2xl font-bold text-accent">{activePlayer.name}</p>
         </div>
       </header>
+
+      {/* Podpowiedź prowadząca przez turę — zmienia się z sytuacją na stole. */}
+      <div className="relative mb-4">
+        <Coach
+          state={state}
+          player={activePlayer}
+          selectedCard={selected?.card ?? null}
+          handRevealed={handRevealed}
+          swapMode={swapMode}
+        />
+      </div>
 
       {rejection && (
         <div className="relative mb-4">
@@ -151,7 +181,7 @@ export function MissionScreen({
         <div className="grid gap-3 xl:grid-cols-[minmax(0,15rem)_1fr_minmax(0,15rem)]">
           <div className="order-2 xl:order-1 xl:self-center">{renderMat(left)}</div>
 
-          <div className="order-1 space-y-4 xl:order-2">
+          <div className="order-1 space-y-4 xl:order-2" data-tour="problem">
             {mission.problems.map((problem) => (
               <ProblemCard
                 key={problem.id}
@@ -198,6 +228,7 @@ export function MissionScreen({
               <span className="eter-label">Karty na ręce</span>
               <Button
                 size="sm"
+                data-tour="reveal"
                 icon={handRevealed ? 'eyeOff' : 'eyeOn'}
                 onClick={() => setHandRevealed((v) => !v)}
               >
@@ -207,7 +238,7 @@ export function MissionScreen({
 
             {handRevealed ? (
               <>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2" data-tour="hand">
                   {activePlayer.hand.map((card, index) => (
                     <CardView
                       key={card.id}
@@ -238,18 +269,9 @@ export function MissionScreen({
                   ))}
                 </div>
 
-                {swapMode ? (
+                {swapMode && toSwap.length > 0 && (
                   <p className="eter-rise mt-3 text-sm text-accent-2">
-                    Zaznacz karty do wymiany
-                    {toSwap.length > 0 && ` — wybrano ${toSwap.length}`}.
-                  </p>
-                ) : selected ? (
-                  <p className="eter-rise mt-3 text-sm text-accent">
-                    Wybrano: {selected.card.name}. {text.missionSelectedHint}
-                  </p>
-                ) : (
-                  <p className="mt-3 text-xs text-ink-dim">
-                    Przeciągnij kartę na pasującą ściankę albo kliknij ją i wybierz ściankę.
+                    Wybrano {toSwap.length} do wymiany.
                   </p>
                 )}
               </>
@@ -293,6 +315,7 @@ export function MissionScreen({
                   <Button onClick={pass}>Pasuję</Button>
                   <Button
                     icon="undo"
+                    data-tour="swap"
                     disabled={!handRevealed}
                     title={handRevealed ? undefined : 'Najpierw odkryj karty'}
                     onClick={() => {

@@ -213,7 +213,7 @@ describe('DeckOverview', () => {
     const data = content();
     data.problems = data.problems.slice(0, 2);
     render(<DeckOverview content={data} />);
-    expect(screen.getByRole('alert').textContent).toContain('mniej niż misji');
+    expect(screen.getByText(/mniej niż misji/)).toBeDefined();
   });
 
   it('ostrzega o problemach bez kart bonusowych', () => {
@@ -223,7 +223,7 @@ describe('DeckOverview', () => {
       slots: p.slots.map((s) => ({ ...s, bonusCardIds: [] })),
     }));
     render(<DeckOverview content={data} />);
-    expect(screen.getByRole('alert').textContent).toContain('bez żadnej karty bonusowej');
+    expect(screen.getByText(/bez żadnej karty bonusowej/)).toBeDefined();
   });
 
   it('wypisuje treści oznaczone do weryfikacji', () => {
@@ -231,8 +231,8 @@ describe('DeckOverview', () => {
     expect(screen.getByText(/Do weryfikacji merytorycznej/)).toBeDefined();
   });
 
-  it('nie ostrzega przy domyślnej zawartości', () => {
+  it('potwierdza spójność przy domyślnej zawartości', () => {
     render(<DeckOverview content={content()} />);
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText(/Zawartość jest spójna/)).toBeDefined();
   });
 });

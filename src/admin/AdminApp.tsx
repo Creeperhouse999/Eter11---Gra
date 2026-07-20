@@ -236,7 +236,7 @@ export function AdminApp() {
         )}
 
         <div key={tab} className="eter-fade-in">
-        {tab === 'overview' && <DeckOverview content={content} />}
+        {tab === 'overview' && <DeckOverview content={content} onGoTo={setTab} />}
         {tab === 'problems' && (
           <ProblemEditor
             problems={content.problems}
