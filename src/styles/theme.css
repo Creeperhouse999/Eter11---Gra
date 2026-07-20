@@ -31,6 +31,12 @@
   --eter-type-cooperation: #ffc94d;
   --eter-type-selfchange: #5ce08f;
 
+  /* Rodziny kart — wspólne dla wszystkich kategorii */
+  --eter-family-red: #ff6b6b;
+  --eter-family-blue: #5b9dff;
+  --eter-family-yellow: #ffc94d;
+  --eter-family-green: #5ce08f;
+
   /* Kategorie kart */
   --eter-cat-psychological: #ff8fb3;
   --eter-cat-digital: #5bc8ff;

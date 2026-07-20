@@ -2,6 +2,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
+import { DEFAULT_FAMILIES } from '../data/families';
 import { DEFAULT_THEME } from '../data/theme';
 import { DEFAULT_UI_TEXT } from '../data/uiText';
 import { DEFAULT_CONFIG } from '../engine/reducer';
@@ -16,6 +17,7 @@ export const BUILTIN_CONTENT: GameContent = {
   rules: DEFAULT_CONFIG,
   text: DEFAULT_UI_TEXT,
   theme: DEFAULT_THEME,
+  families: DEFAULT_FAMILIES,
 };
 
 /**
@@ -30,6 +32,7 @@ function migrate(raw: Record<string, unknown>): GameContent {
     rules: { ...DEFAULT_CONFIG, ...(raw.rules as object) },
     text: { ...DEFAULT_UI_TEXT, ...(raw.text as object) },
     theme: { ...DEFAULT_THEME, ...(raw.theme as object) },
+    families: { ...DEFAULT_FAMILIES, ...(raw.families as object) },
   };
 }
 

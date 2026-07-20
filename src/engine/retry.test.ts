@@ -60,13 +60,14 @@ describe('powrót nierozwiązanych problemów', () => {
       ['psychological', 'psychological'],
       ['digital', 'digital'],
       ['social', 'social'],
-      ['mentor', 'mentorTalent'],
+      ['mentor', 'mentor'],
+  ['talent', 'talent'],
     ] as const;
 
     fills.forEach(([category, slotKey], index) => {
       const card = {
         id: `fill-${index}`, name: 'x', category,
-        description: '', icon: 'star',
+        description: '', icon: 'star', family: 'red' as const,
       };
       state = {
         ...state,

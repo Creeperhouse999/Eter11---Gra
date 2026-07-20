@@ -25,6 +25,10 @@ export interface ThemeColors {
   catSocial: string;
   catTalent: string;
   catMentor: string;
+  familyRed: string;
+  familyBlue: string;
+  familyYellow: string;
+  familyGreen: string;
 }
 
 export const DEFAULT_THEME: ThemeColors = {
@@ -47,6 +51,10 @@ export const DEFAULT_THEME: ThemeColors = {
   catSocial: '#ffc94d',
   catTalent: '#a97cff',
   catMentor: '#3ddbd0',
+  familyRed: '#ff6b6b',
+  familyBlue: '#5b9dff',
+  familyYellow: '#ffc94d',
+  familyGreen: '#5ce08f',
 };
 
 /** Mapowanie klucza motywu na nazwę zmiennej CSS. */
@@ -70,6 +78,10 @@ const CSS_VARIABLES: Record<keyof ThemeColors, string> = {
   catSocial: '--eter-cat-social',
   catTalent: '--eter-cat-talent',
   catMentor: '--eter-cat-mentor',
+  familyRed: '--eter-family-red',
+  familyBlue: '--eter-family-blue',
+  familyYellow: '--eter-family-yellow',
+  familyGreen: '--eter-family-green',
 };
 
 /** Wpisuje motyw do dokumentu. Wywoływane przy starcie i przy każdej zmianie w panelu. */
@@ -115,6 +127,15 @@ export const THEME_GROUPS: Array<{
       { key: 'typeThinking', label: 'Myślenie' },
       { key: 'typeCooperation', label: 'Współpraca' },
       { key: 'typeSelfchange', label: 'Zmiana w sobie' },
+    ],
+  },
+  {
+    title: 'Rodziny kart',
+    fields: [
+      { key: 'familyRed', label: 'Czerwona' },
+      { key: 'familyBlue', label: 'Niebieska' },
+      { key: 'familyYellow', label: 'Żółta' },
+      { key: 'familyGreen', label: 'Zielona' },
     ],
   },
   {

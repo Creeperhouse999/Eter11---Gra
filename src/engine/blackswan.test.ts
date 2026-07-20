@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyBlackSwan, reduce } from './reducer';
 import { giveCard, makeCard, newGame } from './testFixtures';
-import type { GameState } from './types';
+import type { Card, GameState, SlotKey } from './types';
 
 const started = (): GameState => reduce(newGame(), { type: 'START_MISSION' }).state;
 
@@ -27,16 +27,17 @@ describe('applyBlackSwan: extraProblem', () => {
     let state = applyBlackSwan(started(), 'extraProblem');
     const firstId = state.mission!.problems[0].id;
 
-    const fills: Array<[string, 'psychological' | 'digital' | 'social' | 'mentorTalent']> = [
+    const fills: Array<[Card['category'], SlotKey]> = [
       ['psychological', 'psychological'],
       ['digital', 'digital'],
       ['social', 'social'],
-      ['mentor', 'mentorTalent'],
+      ['mentor', 'mentor'],
+      ['talent', 'talent'],
     ];
 
     fills.forEach(([category, slotKey], index) => {
       const playerId = state.players[state.activePlayerIndex].id;
-      const card = makeCard(`f-${index}`, category as never);
+      const card = makeCard(`f-${index}`, category);
       state = giveCard(state, playerId, card);
       state = reduce(state, {
         type: 'PLAY_CARD', playerId, cardId: card.id,

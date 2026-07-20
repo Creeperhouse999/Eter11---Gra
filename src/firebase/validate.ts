@@ -1,4 +1,5 @@
 import type { Card, Character, Problem, RulesConfig, SlotKey } from '../engine/types';
+import type { FamilyMap } from '../data/families';
 import type { ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
@@ -9,6 +10,7 @@ export interface GameContent {
   rules: RulesConfig;
   text: UiText;
   theme: ThemeColors;
+  families: FamilyMap;
 }
 
 export interface ValidationResult {
@@ -16,7 +18,9 @@ export interface ValidationResult {
   errors: string[];
 }
 
-const REQUIRED_SLOTS: SlotKey[] = ['psychological', 'digital', 'social', 'mentorTalent'];
+const REQUIRED_SLOTS: SlotKey[] = [
+  'mentor', 'talent', 'psychological', 'social', 'digital',
+];
 const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'] as const;
 
 const NUMERIC_RULES: Array<[keyof RulesConfig, number, number]> = [
@@ -77,6 +81,10 @@ export function validateContent(content: unknown): ValidationResult {
 
     if (!card.name?.trim()) add(`Karta ${card.id}: brak nazwy.`);
     if (!card.icon?.trim()) add(`Karta ${card.id}: brak ikony.`);
+    const isSpecial = card.category === 'eter11' || card.category === 'blackswan';
+    if (!isSpecial && !card.family) {
+      add(`Karta ${card.id}: brak rodziny (koloru).`);
+    }
     if (card.category === 'blackswan' && !card.blackSwanKind) {
       add(`Karta ${card.id}: Czarny Łabędź bez określonego wariantu.`);
     }
@@ -114,6 +122,21 @@ export function validateContent(content: unknown): ValidationResult {
       if (!slot.hint?.trim()) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak podpowiedzi.`);
       }
+      if (!slot.family) {
+        add(`Problem ${problem.id}, ścianka ${slot.key}: brak wymaganej rodziny.`);
+      } else {
+        // Ścianka bez ani jednej pasującej karty w talii zablokowałaby misję.
+        const matching = cardList.filter(
+          (c) => c.category === slot.key && c.family === slot.family,
+        );
+        if (matching.length === 0) {
+          add(
+            `Problem ${problem.id}, ścianka ${slot.key}: w talii nie ma żadnej karty ` +
+              `kategorii ${slot.key} w rodzinie ${slot.family} — misji nie da się ukończyć.`,
+          );
+        }
+      }
+
       for (const bonusId of slot.bonusCardIds ?? []) {
         if (!cardIds.has(bonusId)) {
           add(`Problem ${problem.id}: karta bonusowa ${bonusId} nie istnieje w talii.`);

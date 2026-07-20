@@ -13,6 +13,7 @@ const card = (id: string, category: Card['category']): Card => ({
   category,
   description: '',
   icon: 'star',
+  family: 'red',
 });
 
 const problem: Problem = {
@@ -25,10 +26,11 @@ const problem: Problem = {
   type: 'action',
   icon: 'star',
   slots: [
-    { key: 'psychological', hint: '', bonusCardIds: [] },
-    { key: 'digital', hint: '', bonusCardIds: [] },
-    { key: 'social', hint: '', bonusCardIds: [] },
-    { key: 'mentorTalent', hint: '', bonusCardIds: [] },
+    { key: 'psychological', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'digital', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'social', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'mentor', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'talent', family: 'red', hint: '', bonusCardIds: [] },
   ],
 };
 
@@ -63,11 +65,11 @@ describe('cardFitsSlot', () => {
   });
 
   it('talent pasuje do slotu mentor/talent', () => {
-    expect(cardFitsSlot(card('a', 'talent'), 'mentorTalent')).toBe(true);
+    expect(cardFitsSlot(card('a', 'talent'), 'talent')).toBe(true);
   });
 
   it('mentor pasuje do slotu mentor/talent', () => {
-    expect(cardFitsSlot(card('a', 'mentor'), 'mentorTalent')).toBe(true);
+    expect(cardFitsSlot(card('a', 'mentor'), 'mentor')).toBe(true);
   });
 
   it('talent nie pasuje do slotu społecznego', () => {
@@ -79,12 +81,12 @@ describe('cardFitsSlot', () => {
     expect(cardFitsSlot(eter, 'psychological')).toBe(true);
     expect(cardFitsSlot(eter, 'digital')).toBe(true);
     expect(cardFitsSlot(eter, 'social')).toBe(true);
-    expect(cardFitsSlot(eter, 'mentorTalent')).toBe(true);
+    expect(cardFitsSlot(eter, 'mentor')).toBe(true);
   });
 
   it('Czarny Łabędź nie pasuje do żadnego slotu', () => {
     expect(cardFitsSlot(card('b', 'blackswan'), 'social')).toBe(false);
-    expect(cardFitsSlot(card('b', 'blackswan'), 'mentorTalent')).toBe(false);
+    expect(cardFitsSlot(card('b', 'blackswan'), 'mentor')).toBe(false);
   });
 });
 
@@ -142,7 +144,8 @@ describe('isMissionSolved', () => {
     play(card('a', 'psychological'), 'psychological'),
     play(card('b', 'digital'), 'digital'),
     play(card('c', 'social'), 'social'),
-    play(card('d', 'mentor'), 'mentorTalent'),
+    play(card('d', 'mentor'), 'mentor'),
+    play(card('e', 'talent'), 'talent'),
   ];
 
   it('komplet 4 slotów rozwiązuje problem', () => {

@@ -9,6 +9,7 @@ export const makeCard = (id: string, category: Card['category']): Card => ({
   category,
   description: '',
   icon: 'star',
+  family: 'red',
 });
 
 /** Talia z zapasem kart każdej kategorii — wystarcza na pełną rozgrywkę testową. */
@@ -33,10 +34,11 @@ export const testProblem = (id: string): Problem => ({
   type: 'action',
   icon: 'star',
   slots: [
-    { key: 'psychological', hint: '', bonusCardIds: [] },
-    { key: 'digital', hint: '', bonusCardIds: [] },
-    { key: 'social', hint: '', bonusCardIds: [] },
-    { key: 'mentorTalent', hint: '', bonusCardIds: [] },
+    { key: 'psychological', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'digital', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'social', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'mentor', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'talent', family: 'red', hint: '', bonusCardIds: [] },
   ],
 });
 

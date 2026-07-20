@@ -211,10 +211,11 @@ function playCard(
   const problem = mission.problems.find((p) => p.id === action.problemId);
   if (!problem) return reject(state, 'Nieznany problem.');
   if (!problem.slots.some((s) => s.key === action.slotKey)) {
-    return reject(state, 'Ten problem nie ma takiego slotu.');
+    return reject(state, 'Ten problem nie ma takiej ścianki.');
   }
-  if (!cardFitsSlot(card, action.slotKey)) {
-    return reject(state, 'Ta karta nie pasuje do tego slotu.');
+  const slot = problem.slots.find((s) => s.key === action.slotKey)!;
+  if (!cardFitsSlot(card, action.slotKey, slot.family)) {
+    return reject(state, 'Ta karta nie pasuje do tej ścianki.');
   }
   if (isSlotFilled(mission, action.problemId, action.slotKey)) {
     return reject(state, 'Ten slot jest już zapełniony.');

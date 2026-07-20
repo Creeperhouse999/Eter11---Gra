@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { BlackSwanKind, Card, CardCategory } from '../engine/types';
+import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
+import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
 import { categoryColorVar, categoryLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Checkbox } from '../ui/controls/Checkbox';
@@ -24,6 +25,12 @@ const SWAN_KINDS: Array<[BlackSwanKind, string]> = [
   ['doubleRequirements', 'Podwojone wymagania'],
   ['swapHands', 'Wymiana rąk'],
 ];
+
+const FAMILY_OPTIONS = FAMILY_IDS.map((id) => ({
+  value: id,
+  label: FAMILY_LABELS[id],
+  color: FAMILY_COLORS[id],
+}));
 
 const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
   value: category,
@@ -52,6 +59,7 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
         category,
         description: '',
         icon: 'star',
+        family: 'red' as FamilyId,
         draft: true,
         ...(category === 'blackswan' ? { blackSwanKind: 'extraProblem' as BlackSwanKind } : {}),
       },
@@ -144,7 +152,17 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
               className="mt-2"
             />
 
-            <div className="mt-2 flex flex-wrap items-center gap-4">
+            <div className="mt-2 flex flex-wrap items-end gap-4">
+              {card.family && (
+                <Select
+                  value={card.family}
+                  label="Rodzina"
+                  className="w-44"
+                  options={FAMILY_OPTIONS}
+                  onChange={(family) => update(card.id, { family })}
+                />
+              )}
+
               {card.category === 'blackswan' && (
                 <Select
                   value={card.blackSwanKind ?? 'extraProblem'}

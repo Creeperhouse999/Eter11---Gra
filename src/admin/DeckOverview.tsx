@@ -138,7 +138,7 @@ export function DeckOverview({ content }: DeckOverviewProps) {
 
       <h3 className="eter-label mt-6">Karty bonusowe w ściankach</h3>
       <div className="mt-2 flex flex-wrap gap-2">
-        {(['psychological', 'digital', 'social', 'mentorTalent'] as const).map((slot) => {
+        {(['mentor', 'talent', 'psychological', 'social', 'digital'] as const).map((slot) => {
           const total = problems.reduce(
             (sum, p) => sum + (p.slots.find((s) => s.key === slot)?.bonusCardIds.length ?? 0),
             0,

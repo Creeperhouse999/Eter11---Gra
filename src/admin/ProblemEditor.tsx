@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import type { Card, Problem, ProblemSlot, ProblemType, SlotKey } from '../engine/types';
+import { FAMILY_IDS, FAMILY_COLORS, FAMILY_LABELS } from '../data/families';
+import type {
+  Card,
+  FamilyId,
+  Problem,
+  ProblemSlot,
+  ProblemType,
+  SlotKey,
+} from '../engine/types';
 import {
   problemTypeColorVar,
   problemTypeLabel,
@@ -23,7 +31,7 @@ interface ProblemEditorProps {
 }
 
 const PROBLEM_TYPES: ProblemType[] = ['action', 'thinking', 'cooperation', 'selfchange'];
-const SLOT_KEYS: SlotKey[] = ['psychological', 'digital', 'social', 'mentorTalent'];
+const SLOT_KEYS: SlotKey[] = ['mentor', 'talent', 'psychological', 'social', 'digital'];
 
 function emptyProblem(): Problem {
   return {
@@ -36,9 +44,20 @@ function emptyProblem(): Problem {
     type: 'action',
     icon: 'earth',
     draft: true,
-    slots: SLOT_KEYS.map((key) => ({ key, hint: '', bonusCardIds: [] })),
+    slots: SLOT_KEYS.map((key) => ({
+      key,
+      family: 'red' as const,
+      hint: '',
+      bonusCardIds: [],
+    })),
   };
 }
+
+const FAMILY_OPTIONS = FAMILY_IDS.map((id) => ({
+  value: id,
+  label: FAMILY_LABELS[id],
+  color: FAMILY_COLORS[id],
+}));
 
 const TYPE_OPTIONS = PROBLEM_TYPES.map((type) => ({
   value: type,
@@ -81,12 +100,8 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
   };
 
   /** Karty pasujące kategorią do ścianki — tylko one mogą być bonusem. */
-  const cardsForSlot = (slotKey: SlotKey) =>
-    cards.filter((c) =>
-      slotKey === 'mentorTalent'
-        ? c.category === 'mentor' || c.category === 'talent'
-        : c.category === slotKey,
-    );
+  const cardsForSlot = (slotKey: SlotKey, family: FamilyId) =>
+    cards.filter((c) => c.category === slotKey && c.family === family);
 
   return (
     <section>
@@ -199,6 +214,16 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                           {slotLabel(slot.key)}
                         </span>
 
+                        <Select
+                          label="Wymagana rodzina"
+                          className="mt-2 w-56"
+                          value={slot.family}
+                          options={FAMILY_OPTIONS}
+                          onChange={(family) =>
+                            updateSlot(problem.id, slot.key, { family, bonusCardIds: [] })
+                          }
+                        />
+
                         <TextField
                           label="Podpowiedź dla graczy"
                           className="mt-2"
@@ -213,7 +238,7 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                             Karty bonusowe — zagranie ich daje dodatkową kartę doświadczenia
                           </legend>
                           <div className="mt-2 flex flex-wrap gap-1.5">
-                            {cardsForSlot(slot.key).map((card) => {
+                            {cardsForSlot(slot.key, slot.family).map((card) => {
                               const checked = slot.bonusCardIds.includes(card.id);
                               return (
                                 <Chip

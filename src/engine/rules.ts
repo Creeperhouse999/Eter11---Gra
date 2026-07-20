@@ -1,4 +1,4 @@
-import type { Card, MissionState, Problem, SlotKey } from './types';
+import type { Card, FamilyId, MissionState, Problem, SlotKey } from './types';
 
 /** Klucz slotu w obrębie misji — problem może być więcej niż jeden. */
 export function slotId(problemId: string, slotKey: SlotKey): string {
@@ -6,16 +6,36 @@ export function slotId(problemId: string, slotKey: SlotKey): string {
 }
 
 /**
- * Czy karta pasuje do slotu.
- * ETER11 zastępuje dowolną kartę. Czarny Łabędź nie jest kartą do wykładania.
+ * Czy karta pasuje do ścianki.
+ *
+ * Ścianka wymaga karty właściwej kategorii **i** właściwej rodziny — dziecko
+ * dopasowuje kolor do koloru. ETER11 zastępuje dowolną kartę; Czarny Łabędź
+ * nie jest kartą do wykładania.
+ *
+ * Rodzina ścianki jest opcjonalna w sygnaturze, bo część widoków sprawdza
+ * samą kategorię (np. podświetlenie kart na ręce przed wyborem ścianki).
  */
-export function cardFitsSlot(card: Card, slotKey: SlotKey): boolean {
+export function cardFitsSlot(
+  card: Card,
+  slotKey: SlotKey,
+  family?: FamilyId,
+): boolean {
   if (card.category === 'eter11') return true;
   if (card.category === 'blackswan') return false;
-  if (slotKey === 'mentorTalent') {
-    return card.category === 'mentor' || card.category === 'talent';
-  }
-  return card.category === slotKey;
+  if (card.category !== slotKey) return false;
+  if (family === undefined) return true;
+  return card.family === family;
+}
+
+/** Czy karta pasuje do ścianki danego problemu — wersja czytająca rodzinę ze ścianki. */
+export function cardFitsProblemSlot(
+  card: Card,
+  problem: Problem,
+  slotKey: SlotKey,
+): boolean {
+  const slot = problem.slots.find((s) => s.key === slotKey);
+  if (!slot) return false;
+  return cardFitsSlot(card, slotKey, slot.family);
 }
 
 /**

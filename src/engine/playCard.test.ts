@@ -54,7 +54,7 @@ describe('PLAY_CARD', () => {
     const result = reduce(state, {
       type: 'PLAY_CARD', playerId: 'p2', cardId: p2Card.id,
       slotKey: p2Card.category === 'mentor' || p2Card.category === 'talent'
-        ? 'mentorTalent'
+        ? 'mentor'
         : (p2Card.category as 'psychological' | 'digital' | 'social'),
       problemId, fromMat: false,
     });

@@ -7,7 +7,8 @@ const FILL: Array<[Card['category'], SlotKey]> = [
   ['psychological', 'psychological'],
   ['digital', 'digital'],
   ['social', 'social'],
-  ['mentor', 'mentorTalent'],
+  ['mentor', 'mentor'],
+  ['talent', 'talent'],
 ];
 
 /** Doprowadza grę do podsumowania misji zakończonej sukcesem. */

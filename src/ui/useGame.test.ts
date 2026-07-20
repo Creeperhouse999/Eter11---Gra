@@ -62,10 +62,11 @@ describe('useGame', () => {
         id: 'custom', name: 'Własny problem', story: 'x', antagonist: 'y',
         consequence: 'z', goal: 'g', type: 'action' as const, icon: 'star',
         slots: [
-          { key: 'psychological' as const, hint: 'h', bonusCardIds: [] },
-          { key: 'digital' as const, hint: 'h', bonusCardIds: [] },
-          { key: 'social' as const, hint: 'h', bonusCardIds: [] },
-          { key: 'mentorTalent' as const, hint: 'h', bonusCardIds: [] },
+          { key: 'psychological' as const, family: 'red' as const, hint: 'h', bonusCardIds: [] },
+          { key: 'digital' as const, family: 'red' as const, hint: 'h', bonusCardIds: [] },
+          { key: 'social' as const, family: 'red' as const, hint: 'h', bonusCardIds: [] },
+          { key: 'mentor' as const, family: 'red' as const, hint: 'h', bonusCardIds: [] },
+          { key: 'talent' as const, family: 'red' as const, hint: 'h', bonusCardIds: [] },
         ],
       },
     ];

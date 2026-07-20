@@ -4,6 +4,7 @@ import { ALL_CARDS } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_CONFIG } from '../engine/reducer';
+import { DEFAULT_FAMILIES } from '../data/families';
 import { DEFAULT_THEME } from '../data/theme';
 import { DEFAULT_UI_TEXT } from '../data/uiText';
 
@@ -14,6 +15,7 @@ const validContent = (): GameContent => ({
   rules: { ...DEFAULT_CONFIG },
   text: { ...DEFAULT_UI_TEXT },
   theme: { ...DEFAULT_THEME },
+  families: structuredClone(DEFAULT_FAMILIES),
 });
 
 describe('validateContent', () => {
@@ -61,14 +63,14 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('wariantu');
   });
 
-  it('odrzuca problem bez kompletu 4 ścianek', () => {
+  it('odrzuca problem bez kompletu 5 ścianek', () => {
     const content = validContent();
     content.problems = [
       { ...content.problems[0], slots: content.problems[0].slots.slice(0, 3) },
     ];
     const result = validateContent(content);
     expect(result.ok).toBe(false);
-    expect(result.errors.join(' ')).toContain('mentorTalent');
+    expect(result.errors.join(' ')).toContain('brakuje ścianki');
   });
 
   it('odrzuca kartę bonusową wskazującą na nieistniejącą kartę', () => {

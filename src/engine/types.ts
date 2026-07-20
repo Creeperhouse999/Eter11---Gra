@@ -8,13 +8,24 @@ export type CardCategory =
   | 'eter11'          // joker — zastępuje dowolny slot
   | 'blackswan';      // Czarny Łabędź — utrudnienie
 
-/** Sloty problemu. Karta talent LUB mentor pasuje do slotu 'mentorTalent'. */
-export type SlotKey = 'psychological' | 'digital' | 'social' | 'mentorTalent';
+/**
+ * Ścianki problemu — po jednej na każdy bok karty.
+ * Układ na stole: psychologiczna po lewej, cyfrowa na dole, społeczna
+ * po prawej, mentor w lewym górnym rogu, talent w prawym górnym.
+ */
+export type SlotKey = 'psychological' | 'digital' | 'social' | 'mentor' | 'talent';
 
 /** Typ problemu — kolor z instrukcji. */
 export type ProblemType = 'action' | 'thinking' | 'cooperation' | 'selfchange';
 
 export type BlackSwanKind = 'extraProblem' | 'doubleRequirements' | 'swapHands';
+
+/**
+ * Rodzina karty — drugi wymiar obok kategorii.
+ * Ścianka problemu wymaga konkretnej rodziny, więc dziecko dopasowuje
+ * kolor do koloru. Karty specjalne (ETER11, Czarny Łabędź) rodziny nie mają.
+ */
+export type FamilyId = 'red' | 'blue' | 'yellow' | 'green';
 
 export interface Card {
   id: string;
@@ -24,6 +35,8 @@ export interface Card {
   description: string;
   /** Nazwa ikony z zestawu ETER11 (patrz src/ui/icons/Icon.tsx). */
   icon: string;
+  /** Rodzina w obrębie kategorii. Brak oznacza kartę specjalną. */
+  family?: FamilyId;
   /** Tylko dla category === 'blackswan'. */
   blackSwanKind?: BlackSwanKind;
   /** Oznaczenie treści dopisanej technicznie, do weryfikacji merytorycznej. */
@@ -32,6 +45,11 @@ export interface Card {
 
 export interface ProblemSlot {
   key: SlotKey;
+  /**
+   * Wymagana rodzina karty. Ścianka przyjmuje wyłącznie kartę swojej
+   * kategorii w tej rodzinie — albo kartę ETER11.
+   */
+  family: FamilyId;
   /** Podpowiedź dla graczy, np. "Ktoś, kto uspokoi emocje". */
   hint: string;
   /** Id kart dających bonus (wymienione wprost w opisie problemu). */

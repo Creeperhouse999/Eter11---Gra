@@ -1,25 +1,35 @@
 import { useEffect, useState } from 'react';
+import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { cardFitsSlot } from '../../engine/rules';
-import type { Card, SlotKey } from '../../engine/types';
+import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { CardView } from '../components/CardView';
-import { ProblemBoard } from '../components/ProblemBoard';
+import { PlayerMat } from '../components/PlayerMat';
+import { ProblemCard } from '../components/ProblemCard';
 import { RoundFuel } from '../components/RoundFuel';
+import { Alert } from '../controls/Alert';
+import { Button } from '../controls/Button';
 import type { Game } from '../useGame';
 
 interface MissionScreenProps {
   game: Game;
   text?: UiText;
+  characters?: Character[];
 }
 
 /**
- * Ekran rozgrywki hot-seat.
+ * Ekran misji jako stół.
  *
- * Widoczna jest ręka wyłącznie aktywnego gracza — urządzenie wędruje między
- * graczami przy stole, więc karty muszą domyślnie pozostać zakryte i chować
- * się automatycznie przy zmianie tury.
+ * Karta problemu leży na środku, karty postaci graczy rozstawione są wokół
+ * niej — na szerokim ekranie po bokach, na wąskim jedna pod drugą. Ręka jest
+ * widoczna tylko dla gracza, którego jest ruch, bo urządzenie wędruje między
+ * siedzącymi przy stole.
  */
-export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenProps) {
+export function MissionScreen({
+  game,
+  text = DEFAULT_UI_TEXT,
+  characters = ALL_CHARACTERS,
+}: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
   const [handRevealed, setHandRevealed] = useState(false);
@@ -37,6 +47,8 @@ export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenPro
 
   const matUsed = mission.matUsedBy.filter((id) => id === activePlayer.id).length;
   const canUseMat = matUsed < state.config.maxMatCardsPerMission;
+
+  const characterOf = (characterId: string) => characters.find((c) => c.id === characterId);
 
   const playSelected = (problemId: string, slotKey: SlotKey) => {
     if (!selected) return;
@@ -56,8 +68,25 @@ export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenPro
     setSelected(null);
   };
 
+  const canPlay = (card: Card, slotKey: SlotKey, family: FamilyId) =>
+    cardFitsSlot(card, slotKey, family);
+
+  // Miejsca przy stole: aktywny gracz na dole, pozostali wokół karty problemu.
+  const others = state.players.filter((p) => p.id !== activePlayer.id);
+  const [left, top, right] = others;
+
+  const renderMat = (player: Player | undefined) =>
+    player ? (
+      <PlayerMat
+        key={player.id}
+        player={player}
+        character={characterOf(player.characterId)}
+        compact
+      />
+    ) : null;
+
   return (
-    <main className="relative mx-auto max-w-6xl px-4 py-6">
+    <main className="eter-fade-in relative mx-auto max-w-7xl px-4 py-6">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
 
       <header className="relative mb-5 flex flex-wrap items-end justify-between gap-4">
@@ -75,110 +104,105 @@ export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenPro
       </header>
 
       {rejection && (
-        <div
-          role="alert"
-          className="relative mb-4 flex items-center justify-between gap-4 rounded-lg border border-danger bg-surface px-4 py-2 text-sm"
-        >
-          <span>{rejection}</span>
-          <button type="button" onClick={dismissRejection} className="underline underline-offset-2">
-            Rozumiem
-          </button>
+        <div className="relative mb-4">
+          <Alert tone="danger" onDismiss={dismissRejection}>
+            {rejection}
+          </Alert>
         </div>
       )}
 
-      <div className="relative space-y-4">
-        {mission.problems.map((problem) => (
-          <ProblemBoard
-            key={problem.id}
-            mission={mission}
-            problem={problem}
-            selectedCard={selected?.card ?? null}
-            onSlotClick={playSelected}
-            canPlayInSlot={cardFitsSlot}
-          />
-        ))}
+      {/* ── Stół ──────────────────────────────────────────────────────── */}
+      <div className="relative">
+        {top && <div className="mx-auto mb-3 max-w-md">{renderMat(top)}</div>}
+
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,15rem)_1fr_minmax(0,15rem)]">
+          <div className="order-2 xl:order-1 xl:self-center">{renderMat(left)}</div>
+
+          <div className="order-1 space-y-4 xl:order-2">
+            {mission.problems.map((problem) => (
+              <ProblemCard
+                key={problem.id}
+                mission={mission}
+                problem={problem}
+                selectedCard={selected?.card ?? null}
+                onSlotClick={playSelected}
+                canPlayInSlot={canPlay}
+              />
+            ))}
+          </div>
+
+          <div className="order-3 xl:self-center">{renderMat(right)}</div>
+        </div>
       </div>
 
+      {/* ── Miejsce aktywnego gracza ──────────────────────────────────── */}
       <section
         aria-label={`Ręka gracza ${activePlayer.name}`}
-        className="relative mt-5 rounded-xl border border-edge bg-surface p-4"
+        className="relative mt-5 rounded-xl border-2 border-accent bg-surface p-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <span className="eter-label">Ręka gracza</span>
-            <p className="font-display font-bold">{activePlayer.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setHandRevealed((v) => !v)}
-            className="rounded-lg border border-edge px-4 py-2 text-sm transition hover:border-ink-dim"
-          >
-            {handRevealed ? 'Zakryj karty' : 'Pokaż moje karty'}
-          </button>
-        </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_1fr]">
+          <PlayerMat
+            player={activePlayer}
+            character={characterOf(activePlayer.characterId)}
+            active
+            revealed={handRevealed}
+            cardsDisabled={!canUseMat}
+            selectedCardId={selected?.fromMat ? selected.card.id : null}
+            onCardClick={
+              canUseMat && handRevealed
+                ? (cardId) => {
+                    const card = activePlayer.mat.find((c) => c.id === cardId);
+                    if (card) setSelected({ card, fromMat: true });
+                  }
+                : undefined
+            }
+          />
 
-        {handRevealed ? (
-          <>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {activePlayer.hand.map((card, index) => (
-                <CardView
-                  key={card.id}
-                  card={card}
-                  dealIndex={index}
-                  selected={selected?.card.id === card.id && !selected.fromMat}
-                  onClick={() => setSelected({ card, fromMat: false })}
-                />
-              ))}
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="eter-label">Karty na ręce</span>
+              <Button
+                size="sm"
+                icon={handRevealed ? 'eyeOff' : 'eyeOn'}
+                onClick={() => setHandRevealed((v) => !v)}
+              >
+                {handRevealed ? 'Zakryj karty' : 'Pokaż moje karty'}
+              </Button>
             </div>
 
-            {selected && (
-              <p className="eter-rise mt-3 text-sm text-accent">
-                Wybrano: {selected.card.name}. {text.missionSelectedHint}
-              </p>
-            )}
-
-            {activePlayer.mat.length > 0 && (
-              <div className="mt-5 border-t border-edge pt-4">
-                <span className="eter-label">
-                  Twoja postać{' '}
-                  {canUseMat ? '— możesz użyć jednej karty' : '— karta już użyta w tej misji'}
-                </span>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {activePlayer.mat.map((card) => (
+            {handRevealed ? (
+              <>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {activePlayer.hand.map((card, index) => (
                     <CardView
                       key={card.id}
                       card={card}
-                      compact
-                      disabled={!canUseMat}
-                      selected={selected?.card.id === card.id && selected.fromMat}
-                      onClick={canUseMat ? () => setSelected({ card, fromMat: true }) : undefined}
+                      dealIndex={index}
+                      selected={selected?.card.id === card.id && !selected.fromMat}
+                      onClick={() => setSelected({ card, fromMat: false })}
                     />
                   ))}
                 </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="mt-4 text-sm text-ink-dim">
-            {text.missionHandHidden} {activePlayer.name}.
-          </p>
-        )}
 
-        <div className="mt-5 flex flex-wrap gap-3 border-t border-edge pt-4">
-          <button
-            type="button"
-            onClick={() => endTurnAction('PASS')}
-            className="rounded-lg border border-edge px-4 py-2 text-sm transition hover:border-ink-dim"
-          >
-            Pasuję
-          </button>
-          <button
-            type="button"
-            onClick={() => endTurnAction('SWAP_HAND')}
-            className="rounded-lg border border-edge px-4 py-2 text-sm transition hover:border-ink-dim"
-          >
-            Wymieniam wszystkie karty
-          </button>
+                {selected && (
+                  <p className="eter-rise mt-3 text-sm text-accent">
+                    Wybrano: {selected.card.name}. {text.missionSelectedHint}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-ink-dim">
+                {text.missionHandHidden} {activePlayer.name}.
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-3 border-t border-edge pt-4">
+              <Button onClick={() => endTurnAction('PASS')}>Pasuję</Button>
+              <Button icon="undo" onClick={() => endTurnAction('SWAP_HAND')}>
+                Wymieniam wszystkie karty
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -36,14 +36,17 @@ describe('GameApp — ekran startowy', () => {
 });
 
 describe('GameApp — misja', () => {
-  it('odkrycie problemu pokazuje planszę z czterema ściankami', () => {
+  it('odkrycie problemu pokazuje planszę z pięcioma ściankami', () => {
     startGame();
     fireEvent.click(screen.getByRole('button', { name: 'Odkryj problem' }));
 
     expect(screen.getByText(/Runda/)).toBeDefined();
-    // Cztery ścianki jako przyciski z etykietami kategorii.
-    for (const label of ['Psychologiczna', 'Cyfrowa', 'Społeczna', 'Mentor lub talent']) {
-      expect(screen.getAllByLabelText(new RegExp(label)).length).toBeGreaterThan(0);
+    // Pięć ścianek jako przyciski z etykietami kategorii.
+    for (const label of ['Psychologiczna', 'Cyfrowa', 'Społeczna', 'Mentor', 'Talent']) {
+      expect(
+        screen.getAllByLabelText(new RegExp(label)).length,
+        `brak ścianki ${label}`,
+      ).toBeGreaterThan(0);
     }
   });
 

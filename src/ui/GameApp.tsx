@@ -46,7 +46,15 @@ function RunningGame({
     return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
   }
   if (state.phase === 'missionSummary') return <SummaryScreen game={game} text={text} />;
-  if (state.phase === 'mission') return <MissionScreen game={game} text={text} />;
+  if (state.phase === 'mission') {
+    return (
+      <MissionScreen
+        game={game}
+        text={text}
+        characters={content.characters ?? ALL_CHARACTERS}
+      />
+    );
+  }
 
   const first = state.missionNumber === 0;
 

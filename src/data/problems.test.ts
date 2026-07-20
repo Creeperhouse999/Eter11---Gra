@@ -9,10 +9,10 @@ describe('ALL_PROBLEMS', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('każdy problem ma dokładnie 4 ścianki w ustalonej kolejności', () => {
+  it('każdy problem ma dokładnie 5 ścianek', () => {
     for (const problem of ALL_PROBLEMS) {
-      expect(problem.slots.map((s) => s.key), `problem ${problem.id}`).toEqual([
-        'psychological', 'digital', 'social', 'mentorTalent',
+      expect(problem.slots.map((s) => s.key).sort(), `problem ${problem.id}`).toEqual([
+        'digital', 'mentor', 'psychological', 'social', 'talent',
       ]);
     }
   });
@@ -53,10 +53,14 @@ describe('ALL_PROBLEMS', () => {
       for (const slot of problem.slots) {
         for (const bonusId of slot.bonusCardIds) {
           const card = byId.get(bonusId)!;
-          const fits = slot.key === 'mentorTalent'
-            ? card.category === 'mentor' || card.category === 'talent'
-            : card.category === slot.key;
-          expect(fits, `${problem.id}: ${bonusId} (${card.category}) nie pasuje do ${slot.key}`).toBe(true);
+          expect(
+            card.category === slot.key,
+            `${problem.id}: ${bonusId} (${card.category}) nie pasuje do ścianki ${slot.key}`,
+          ).toBe(true);
+          expect(
+            card.family === slot.family,
+            `${problem.id}: ${bonusId} (rodzina ${card.family}) nie pasuje do rodziny ${slot.family}`,
+          ).toBe(true);
         }
       }
     }

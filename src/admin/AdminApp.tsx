@@ -11,6 +11,7 @@ import { Icon, type IconName } from '../ui/icons/Icon';
 import { CardEditor } from './CardEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
+import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
 import { RulesEditor } from './RulesEditor';
@@ -19,12 +20,22 @@ import { TextEditor } from './TextEditor';
 import { ThemeEditor } from './ThemeEditor';
 import { useAdminAuth } from './useAdminAuth';
 
-type Tab = 'overview' | 'problems' | 'cards' | 'characters' | 'rules' | 'text' | 'theme' | 'test';
+type Tab =
+  | 'overview'
+  | 'problems'
+  | 'cards'
+  | 'families'
+  | 'characters'
+  | 'rules'
+  | 'text'
+  | 'theme'
+  | 'test';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
   { key: 'problems', label: 'Problemy', icon: 'clash' },
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
+  { key: 'families', label: 'Rodziny', icon: 'palette' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
@@ -235,6 +246,13 @@ export function AdminApp() {
             cards={content.cards}
             problemBonusIds={problemBonusIds}
             onChange={(cards) => update({ cards })}
+          />
+        )}
+        {tab === 'families' && (
+          <FamilyEditor
+            families={content.families}
+            cards={content.cards}
+            onChange={(families) => update({ families })}
           />
         )}
         {tab === 'characters' && (

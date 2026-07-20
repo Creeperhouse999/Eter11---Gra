@@ -5,6 +5,7 @@ import { ToastProvider } from '../ui/controls/Toast';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
+import { DEFAULT_FAMILIES } from '../data/families';
 import { DEFAULT_THEME } from '../data/theme';
 import { DEFAULT_UI_TEXT } from '../data/uiText';
 import { DEFAULT_CONFIG } from '../engine/reducer';
@@ -26,6 +27,7 @@ const content = (): GameContent => ({
   rules: { ...DEFAULT_CONFIG },
   text: { ...DEFAULT_UI_TEXT },
   theme: { ...DEFAULT_THEME },
+  families: structuredClone(DEFAULT_FAMILIES),
 });
 
 describe('RulesEditor', () => {

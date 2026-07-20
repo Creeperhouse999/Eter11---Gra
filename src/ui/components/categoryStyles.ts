@@ -24,23 +24,52 @@ export function slotLabel(slot: SlotKey): string {
     psychological: 'Psychologiczna',
     digital: 'Cyfrowa',
     social: 'Społeczna',
-    mentorTalent: 'Mentor lub talent',
+    mentor: 'Mentor',
+    talent: 'Talent',
   };
   return labels[slot];
 }
+
+/**
+ * Umiejscowienie ścianki na karcie problemu.
+ *
+ * Układ ustalony przez zespół: psychologiczna po lewej, cyfrowa na dole,
+ * społeczna po prawej, mentor w lewym górnym rogu, talent w prawym górnym.
+ */
+export type SlotSide = 'left' | 'bottom' | 'right' | 'topLeft' | 'topRight';
+
+export function slotSide(slot: SlotKey): SlotSide {
+  const sides: Record<SlotKey, SlotSide> = {
+    psychological: 'left',
+    digital: 'bottom',
+    social: 'right',
+    mentor: 'topLeft',
+    talent: 'topRight',
+  };
+  return sides[slot];
+}
+
+/** Kolejność ścianek zgodna z układem karty problemu. */
+export const SLOT_ORDER: SlotKey[] = [
+  'mentor',
+  'talent',
+  'psychological',
+  'social',
+  'digital',
+];
 
 export function slotIcon(slot: SlotKey): IconName {
   const icons: Record<SlotKey, IconName> = {
     psychological: 'brain',
     digital: 'chip',
     social: 'handshake',
-    mentorTalent: 'star',
+    mentor: 'compass',
+    talent: 'star',
   };
   return icons[slot];
 }
 
 export function slotColorVar(slot: SlotKey): string {
-  if (slot === 'mentorTalent') return 'var(--eter-cat-mentor)';
   return `var(--eter-cat-${slot})`;
 }
 
