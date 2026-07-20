@@ -1,3 +1,37 @@
+/* Fonty self-hosted — gra działa offline, bez zapytań do CDN. */
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+@import './styles/theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
+  min-height: 100vh;
+  background: var(--eter-bg);
+  color: var(--eter-ink);
+  font-family: var(--eter-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--eter-font-display);
+}
+
+/* Widoczny fokus klawiatury — gra bywa obsługiwana bez myszy. */
+:focus-visible {
+  outline: 2px solid var(--eter-accent);
+  outline-offset: 2px;
 }
