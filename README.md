@@ -85,9 +85,6 @@ Osiem sekcji, wszystkie zmiany zapisywane do Firestore:
 | **Kolory** | Paleta z podglądem na żywo i sprawdzaniem kontrastu |
 | **Tryb testowy** | Rozgrywka na edytowanych kartach, cofanie ruchów, ręczny Czarny Łabędź |
 
-**Eksportuj / Importuj** — zrzut całej zawartości do pliku JSON. Warto zrobić
-kopię przed większymi zmianami.
-
 Zapis jest blokowany, dopóki zawartość ma błędy — panel wypisuje je nad treścią.
 Chroni to graczy przed wersją gry, w której czegoś brakuje.
 

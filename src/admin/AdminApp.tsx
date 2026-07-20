@@ -91,37 +91,6 @@ export function AdminApp() {
     setStatus('Zmiany odrzucone.');
   };
 
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `eter11-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importJson = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        const check = validateContent(parsed);
-        if (!check.ok) {
-          setErrors(['Plik zawiera błędy — nie został wczytany:', ...check.errors]);
-          return;
-        }
-        setContent(parsed);
-        applyTheme(parsed.theme);
-        setStatus('Wczytano plik. Sprawdź zawartość i zapisz, żeby trafiła do bazy.');
-        setErrors([]);
-      } catch {
-        setErrors(['Plik nie jest poprawnym JSON-em.']);
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const problemBonusIds = useMemo(
     () => new Set(content.problems.flatMap((p) => p.slots.flatMap((s) => s.bonusCardIds))),
     [content.problems],
@@ -150,24 +119,6 @@ export function AdminApp() {
                 niezapisane zmiany
               </span>
             )}
-            <button
-              type="button"
-              onClick={exportJson}
-              className="flex items-center gap-1.5 rounded border border-edge px-3 py-1.5 text-sm"
-            >
-              <Icon name="download" size={14} />
-              Eksportuj
-            </button>
-            <label className="flex cursor-pointer items-center gap-1.5 rounded border border-edge px-3 py-1.5 text-sm">
-              <Icon name="upload" size={14} />
-              Importuj
-              <input
-                type="file"
-                accept="application/json"
-                onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])}
-                className="sr-only"
-              />
-            </label>
             {dirty && (
               <button
                 type="button"

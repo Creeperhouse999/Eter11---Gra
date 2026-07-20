@@ -35,8 +35,14 @@ function migrate(raw: Record<string, unknown>): GameContent {
 
 export interface LoadResult {
   content: GameContent;
-  /** Skąd pochodzą dane — UI informuje gracza o trybie offline. */
   source: 'firestore' | 'builtin';
+  /**
+   * Dlaczego użyto danych wbudowanych.
+   * - `empty`: baza działa, ale panel nic jeszcze nie zapisał — stan normalny
+   * - `invalid`: w bazie są dane, ale nie przechodzą walidacji
+   * - `unreachable`: brak połączenia albo brak uprawnień do odczytu
+   */
+  reason?: 'empty' | 'invalid' | 'unreachable';
   warning?: string;
 }
 
@@ -54,8 +60,10 @@ export async function loadContent(): Promise<LoadResult> {
   try {
     const snapshot = await getDoc(doc(db, COLLECTION, DOCUMENT));
 
+    // Brak dokumentu to stan normalny: panel jeszcze nic nie zapisał.
+    // Gra ma komplet kart w kodzie, więc gracz nie musi o tym wiedzieć.
     if (!snapshot.exists()) {
-      return { content: BUILTIN_CONTENT, source: 'builtin' };
+      return { content: BUILTIN_CONTENT, source: 'builtin', reason: 'empty' };
     }
 
     const data = migrate(snapshot.data());
@@ -65,6 +73,7 @@ export async function loadContent(): Promise<LoadResult> {
       return {
         content: BUILTIN_CONTENT,
         source: 'builtin',
+        reason: 'invalid',
         warning:
           'Dane w bazie są uszkodzone — gra działa na wersji wbudowanej. ' +
           validation.errors.join('; '),
@@ -76,7 +85,8 @@ export async function loadContent(): Promise<LoadResult> {
     return {
       content: BUILTIN_CONTENT,
       source: 'builtin',
-      warning: 'Tryb offline — gra korzysta z kart zapisanych w aplikacji.',
+      reason: 'unreachable',
+      warning: 'Brak połączenia z bazą — gra korzysta z kart zapisanych w aplikacji.',
     };
   }
 }

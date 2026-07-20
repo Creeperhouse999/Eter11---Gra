@@ -23,8 +23,10 @@ function Game() {
     loadContent().then((result) => {
       setContent(result.content);
       applyTheme(result.content.theme);
-      if (result.source === 'builtin') {
-        setNotice(result.warning ?? 'Tryb offline — gra korzysta z kart zapisanych w aplikacji.');
+      // Pusta baza to stan normalny — gra ma komplet kart w kodzie.
+      // Gracza informujemy tylko wtedy, gdy coś naprawdę poszło nie tak.
+      if (result.reason === 'unreachable' || result.reason === 'invalid') {
+        setNotice(result.warning ?? null);
       }
     });
   }, []);
