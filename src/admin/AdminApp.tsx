@@ -14,6 +14,7 @@ import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
+import { ReportsPanel } from './ReportsPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
@@ -29,7 +30,8 @@ type Tab =
   | 'rules'
   | 'text'
   | 'theme'
-  | 'test';
+  | 'test'
+  | 'reports';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -41,6 +43,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'text', label: 'Teksty', icon: 'message' },
   { key: 'theme', label: 'Kolory', icon: 'palette' },
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
+  { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
 ];
 
 export function AdminApp() {
@@ -271,6 +274,7 @@ export function AdminApp() {
           <ThemeEditor theme={content.theme} onChange={(theme) => update({ theme })} />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
+        {tab === 'reports' && <ReportsPanel />}
         </div>
       </main>
     </div>

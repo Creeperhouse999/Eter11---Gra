@@ -15,6 +15,35 @@ service cloud.firestore {
                    && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
     }
 
+    // Zgłoszenia błędów i pomysłów od zespołu.
+    //
+    // Odczyt otwarty świadomie: pozwala odczytywać zgłoszenia narzędziami
+    // spoza aplikacji, bez zakładania konta serwisowego. Treść to uwagi
+    // o działaniu gry, więc nie wpisujemy tu danych osobowych ani haseł —
+    // każdy, kto zna adres projektu, może je przeczytać.
+    //
+    // Tworzyć może każdy: zespół merytoryczny nie ma kont, a wymaganie
+    // logowania zniechęciłoby do zgłaszania. Ograniczenia pól i długości
+    // chronią przed zalewaniem bazy.
+    //
+    // Zmiana statusu i usuwanie pozostają przy koncie administracyjnym,
+    // żeby nikt z zewnątrz nie zamknął cudzego zgłoszenia.
+    match /reports/{report} {
+      allow read: if true;
+      allow update, delete: if request.auth != null
+                            && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
+
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['kind', 'title', 'description', 'author', 'status', 'createdAt'])
+                    && request.resource.data.kind in ['bug', 'idea']
+                    && request.resource.data.status == 'new'
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 120
+                    && request.resource.data.description is string
+                    && request.resource.data.description.size() <= 4000;
+    }
+
     // Wszystkie pozostałe ścieżki zamknięte.
     // Bez tej reguły kolekcje dodane w przyszłości (pokoje gier w fazie 2)
     // mogłyby zostać otwarte przez przeoczenie.
