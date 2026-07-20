@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
+import { DEFAULT_UI_TEXT, type UiText } from '../data/uiText';
 import type { Card, Character, Problem, RulesConfig } from '../engine/types';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import { FinaleScreen } from './screens/FinaleScreen';
@@ -13,6 +14,7 @@ export interface GameAppContent {
   problems?: Problem[];
   characters?: Character[];
   rules?: RulesConfig;
+  text?: UiText;
 }
 
 interface GameAppProps {
@@ -33,15 +35,18 @@ function RunningGame({
   content: GameAppContent;
   onRestart: () => void;
 }) {
+  const text = content.text ?? DEFAULT_UI_TEXT;
   const game = useGame(players, seed, content.rules ?? DEFAULT_CONFIG, {
     cards: content.cards,
     problems: content.problems,
   });
   const { state, dispatch } = game;
 
-  if (state.phase === 'finale') return <FinaleScreen game={game} onRestart={onRestart} />;
-  if (state.phase === 'missionSummary') return <SummaryScreen game={game} />;
-  if (state.phase === 'mission') return <MissionScreen game={game} />;
+  if (state.phase === 'finale') {
+    return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
+  }
+  if (state.phase === 'missionSummary') return <SummaryScreen game={game} text={text} />;
+  if (state.phase === 'mission') return <MissionScreen game={game} text={text} />;
 
   const first = state.missionNumber === 0;
 
@@ -53,7 +58,7 @@ function RunningGame({
           {first ? 'Start' : `Misja ${state.missionNumber + 1}`}
         </span>
         <h1 className="font-display text-3xl font-bold text-accent">
-          {first ? 'Gotowi do pierwszej misji?' : 'Kolejna misja czeka'}
+          {first ? text.missionFirstHeading : text.missionNextHeading}
         </h1>
         <p className="mt-3 font-mono text-sm text-ink-dim">
           Rozwiązane: {state.solvedProblems.length} · W talii: {state.problemPile.length}
@@ -66,7 +71,7 @@ function RunningGame({
           disabled={state.problemPile.length === 0}
           className="mt-8 rounded-lg bg-accent px-8 py-4 font-display text-lg font-bold text-bg disabled:opacity-40"
         >
-          Odkryj problem
+          {text.missionRevealButton}
         </button>
         {state.problemPile.length === 0 && (
           <p className="mt-3 text-sm text-ink-dim">
@@ -98,6 +103,7 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
         />
       ) : (
         <SetupScreen
+          text={content.text ?? DEFAULT_UI_TEXT}
           characters={content.characters ?? ALL_CHARACTERS}
           // Ziarno z zegara — każda rozgrywka tasuje talię inaczej.
           onStart={(players) => setSession({ players, seed: Date.now() })}

@@ -1,10 +1,14 @@
 import type { Card, Character, Problem, RulesConfig, SlotKey } from '../engine/types';
+import type { ThemeColors } from '../data/theme';
+import type { UiText } from '../data/uiText';
 
 export interface GameContent {
   cards: Card[];
   problems: Problem[];
   characters: Character[];
   rules: RulesConfig;
+  text: UiText;
+  theme: ThemeColors;
 }
 
 export interface ValidationResult {
@@ -45,6 +49,8 @@ export function validateContent(content: unknown): ValidationResult {
 
   const data = content as Partial<GameContent>;
 
+  // Sekcje `text` i `theme` doszły później — dokumenty zapisane wcześniej ich
+  // nie mają, a uzupełnia je migracja przy odczycie. Dlatego nie są wymagane.
   for (const section of ['cards', 'problems', 'characters', 'rules'] as const) {
     if (!data[section]) add(`Brak sekcji: ${section}.`);
   }
@@ -146,6 +152,18 @@ export function validateContent(content: unknown): ValidationResult {
     add(
       'Próg zwycięstwa drużynowego jest wyższy niż liczba misji — gra byłaby niemożliwa do wygrania.',
     );
+  }
+
+  // --- Motyw ---
+  // Nieprawidłowy kolor wywróciłby wygląd całej gry, a błąd byłby trudny
+  // do namierzenia — sprawdzamy format zapisu.
+  const theme = (data as Partial<GameContent>).theme;
+  if (theme) {
+    for (const [key, value] of Object.entries(theme)) {
+      if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
+        add(`Motyw, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
+      }
+    }
   }
 
   return { ok: errors.length === 0, errors };

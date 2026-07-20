@@ -2,6 +2,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
+import { DEFAULT_THEME } from '../data/theme';
+import { DEFAULT_UI_TEXT } from '../data/uiText';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import { db } from './client';
 import { validateContent, type GameContent } from './validate';
@@ -12,7 +14,24 @@ export const BUILTIN_CONTENT: GameContent = {
   problems: ALL_PROBLEMS,
   characters: ALL_CHARACTERS,
   rules: DEFAULT_CONFIG,
+  text: DEFAULT_UI_TEXT,
+  theme: DEFAULT_THEME,
 };
+
+/**
+ * Uzupełnia brakujące sekcje wartościami domyślnymi.
+ *
+ * Dokumenty zapisane przed dodaniem tekstów i motywu nie mają tych pól —
+ * bez migracji panel pokazałby puste formularze, a gra straciłaby teksty.
+ */
+function migrate(raw: Record<string, unknown>): GameContent {
+  return {
+    ...(raw as unknown as GameContent),
+    rules: { ...DEFAULT_CONFIG, ...(raw.rules as object) },
+    text: { ...DEFAULT_UI_TEXT, ...(raw.text as object) },
+    theme: { ...DEFAULT_THEME, ...(raw.theme as object) },
+  };
+}
 
 export interface LoadResult {
   content: GameContent;
@@ -39,7 +58,7 @@ export async function loadContent(): Promise<LoadResult> {
       return { content: BUILTIN_CONTENT, source: 'builtin' };
     }
 
-    const data = snapshot.data();
+    const data = migrate(snapshot.data());
     const validation = validateContent(data);
 
     if (!validation.ok) {
@@ -52,7 +71,7 @@ export async function loadContent(): Promise<LoadResult> {
       };
     }
 
-    return { content: data as GameContent, source: 'firestore' };
+    return { content: data, source: 'firestore' };
   } catch {
     return {
       content: BUILTIN_CONTENT,

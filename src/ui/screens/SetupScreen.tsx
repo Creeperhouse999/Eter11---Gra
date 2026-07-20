@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
+import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import type { PlayerSetup } from '../useGame';
@@ -7,6 +8,7 @@ import type { PlayerSetup } from '../useGame';
 interface SetupScreenProps {
   onStart: (players: PlayerSetup[]) => void;
   characters?: Character[];
+  text?: UiText;
 }
 
 interface Draft {
@@ -18,7 +20,11 @@ const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
 
 /** Ekran startowy: imiona graczy i wybór postaci. */
-export function SetupScreen({ onStart, characters = ALL_CHARACTERS }: SetupScreenProps) {
+export function SetupScreen({
+  onStart,
+  characters = ALL_CHARACTERS,
+  text = DEFAULT_UI_TEXT,
+}: SetupScreenProps) {
   const [drafts, setDrafts] = useState<Draft[]>(() => [
     { name: '', characterId: characters[0].id },
     { name: '', characterId: characters[Math.min(3, characters.length - 1)].id },
@@ -58,14 +64,10 @@ export function SetupScreen({ onStart, characters = ALL_CHARACTERS }: SetupScree
       <header className="relative">
         <span className="eter-label">Misja ratunkowa</span>
         <h1 className="font-display text-5xl font-bold tracking-tight text-accent sm:text-6xl">
-          ETER11
+          {text.gameTitle}
         </h1>
-        <p className="mt-1 font-display text-xl text-ink-dim">Save the World</p>
-        <p className="mt-4 max-w-prose text-sm leading-relaxed">
-          Wspólnie rozwiązujecie problemy świata. Każdy dokłada coś od siebie,
-          uczycie się od siebie nawzajem i odkrywacie, jakie kompetencje przyszłości
-          są dla Was ważne.
-        </p>
+        <p className="mt-1 font-display text-xl text-ink-dim">{text.gameSubtitle}</p>
+        <p className="mt-4 max-w-prose text-sm leading-relaxed">{text.gameIntro}</p>
       </header>
 
       <section className="relative mt-8 space-y-4" aria-label="Gracze">
@@ -152,10 +154,10 @@ export function SetupScreen({ onStart, characters = ALL_CHARACTERS }: SetupScree
           disabled={!namesFilled}
           className="rounded-lg bg-accent px-6 py-3 font-display font-bold text-bg transition disabled:opacity-40"
         >
-          Zaczynamy misję
+          {text.setupStartButton}
         </button>
         {!namesFilled && (
-          <p className="text-xs text-ink-dim">Wpisz imię każdego gracza, żeby zacząć.</p>
+          <p className="text-xs text-ink-dim">{text.setupNamesHint}</p>
         )}
       </div>
     </main>

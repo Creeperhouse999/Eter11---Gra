@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Card } from '../../engine/types';
 import { CardView } from '../components/CardView';
 import type { Game } from '../useGame';
 
 interface SummaryScreenProps {
   game: Game;
+  text?: UiText;
 }
 
 const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
@@ -16,7 +18,7 @@ const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
  * także po porażce, zgodnie z zasadą „nawet przegrana uczy". Kompetencję
  * można zamiast tego przekazać innemu graczowi.
  */
-export function SummaryScreen({ game }: SummaryScreenProps) {
+export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
 
@@ -35,12 +37,10 @@ export function SummaryScreen({ game }: SummaryScreenProps) {
           className="font-display text-4xl font-bold"
           style={{ color: won ? 'var(--eter-success)' : 'var(--eter-danger)' }}
         >
-          {won ? 'Problem rozwiązany' : 'Tym razem problem wygrał'}
+          {won ? text.summaryWonHeading : text.summaryLostHeading}
         </h1>
         <p className="mt-3 max-w-prose text-sm leading-relaxed">
-          {won
-            ? 'Udało się. Każdy z Was zabiera jedną ze swoich kart na kartę postaci. Kompetencję możecie zamiast tego przekazać innemu graczowi — wtedy dostajecie dodatkową kartę doświadczenia za uczenie innych.'
-            : 'Problem trafia na stos nierozwiązanych, ale to nie koniec. Porozmawiajcie, jakich kompetencji zabrakło. Każdy, kto wyłożył kartę, i tak zabiera jedną na swoją postać — Wasze postacie właśnie się uczą. Do tego problemu wrócicie po dwóch kolejnych misjach.'}
+          {won ? text.summaryWonBody : text.summaryLostBody}
         </p>
       </header>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, SlotKey } from '../../engine/types';
 import { CardView } from '../components/CardView';
@@ -8,6 +9,7 @@ import type { Game } from '../useGame';
 
 interface MissionScreenProps {
   game: Game;
+  text?: UiText;
 }
 
 /**
@@ -17,7 +19,7 @@ interface MissionScreenProps {
  * graczami przy stole, więc karty muszą domyślnie pozostać zakryte i chować
  * się automatycznie przy zmianie tury.
  */
-export function MissionScreen({ game }: MissionScreenProps) {
+export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
   const [handRevealed, setHandRevealed] = useState(false);
@@ -130,7 +132,7 @@ export function MissionScreen({ game }: MissionScreenProps) {
 
             {selected && (
               <p className="mt-3 text-sm text-accent">
-                Wybrano: {selected.card.name}. Kliknij ściankę, do której pasuje.
+                Wybrano: {selected.card.name}. {text.missionSelectedHint}
               </p>
             )}
 
@@ -157,7 +159,7 @@ export function MissionScreen({ game }: MissionScreenProps) {
           </>
         ) : (
           <p className="mt-4 text-sm text-ink-dim">
-            Karty są zakryte. Podaj urządzenie graczowi {activePlayer.name}.
+            {text.missionHandHidden} {activePlayer.name}.
           </p>
         )}
 

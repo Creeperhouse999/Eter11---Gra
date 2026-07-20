@@ -6,11 +6,13 @@ import {
   playerScore,
   teamResult,
 } from '../../engine/scoring';
+import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Game } from '../useGame';
 
 interface FinaleScreenProps {
   game: Game;
   onRestart: () => void;
+  text?: UiText;
 }
 
 const PROGRESS_LABELS: Record<string, string> = {
@@ -25,19 +27,17 @@ const PROGRESS_LABELS: Record<string, string> = {
   experienceShare: 'Doświadczenie za uczenie innych',
 };
 
-const JOB_EXAMPLES = [
-  'RoboOgrodnik',
-  'EkoBudowniczy',
-  'Projektant Emocji AI',
-  'Nauczyciel Robotów',
-  'Strażnik Danych',
-  'Architekt Dobrostanu',
-  'Mediator Przyszłości',
-];
-
 /** Ekran końcowy: wynik drużynowy, wyniki indywidualne, zawody przyszłości. */
-export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
+export function FinaleScreen({
+  game,
+  onRestart,
+  text = DEFAULT_UI_TEXT,
+}: FinaleScreenProps) {
   const { state } = game;
+  const jobExamples = text.finaleJobExamples
+    .split(',')
+    .map((example) => example.trim())
+    .filter(Boolean);
   const team = teamResult(state);
   const titles = awardTitles(state.players);
   const [jobs, setJobs] = useState<Record<string, string>>({});
@@ -48,7 +48,7 @@ export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
 
       <header className="relative">
         <span className="eter-label">Koniec gry</span>
-        <h1 className="font-display text-4xl font-bold text-accent">Podsumowanie misji</h1>
+        <h1 className="font-display text-4xl font-bold text-accent">{text.finaleHeading}</h1>
       </header>
 
       <section
@@ -62,7 +62,7 @@ export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
         />
         <div className="p-5">
           <h2 className="font-display text-2xl font-bold">
-            {team.won ? 'Wygraliście wspólnie' : 'Świat wciąż czeka na Wasz powrót'}
+            {team.won ? text.finaleTeamWon : text.finaleTeamLost}
           </h2>
           <p className="mt-2 text-sm">
             Rozwiązane problemy: <strong className="font-mono">{team.solved}</strong> z{' '}
@@ -96,7 +96,7 @@ export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
 
               {hasFulfillment(player) && (
                 <p className="mt-1 text-sm font-bold text-success">
-                  Spełnienie osiągnięte — Twoja postać rozwinęła się w pełni.
+                  {text.finaleFulfillment}
                 </p>
               )}
 
@@ -114,14 +114,11 @@ export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
               </ul>
 
               <label className="mt-4 block">
-                <span className="text-sm text-ink-dim">
-                  Twój zawód przyszłości — połącz talent, kompetencję i problem,
-                  który Cię zaciekawił
-                </span>
+                <span className="text-sm text-ink-dim">{text.finaleJobPrompt}</span>
                 <input
                   value={jobs[player.id] ?? ''}
                   onChange={(e) => setJobs((prev) => ({ ...prev, [player.id]: e.target.value }))}
-                  placeholder={JOB_EXAMPLES[state.players.indexOf(player) % JOB_EXAMPLES.length]}
+                  placeholder={jobExamples[state.players.indexOf(player) % jobExamples.length]}
                   className="mt-1 w-full rounded-lg border border-edge bg-bg px-3 py-2 text-ink placeholder:text-ink-dim/60"
                 />
               </label>
@@ -131,7 +128,7 @@ export function FinaleScreen({ game, onRestart }: FinaleScreenProps) {
       </section>
 
       <p className="relative mt-6 text-xs text-ink-dim">
-        Przykłady zawodów przyszłości: {JOB_EXAMPLES.join(', ')}.
+        Przykłady zawodów przyszłości: {jobExamples.join(', ')}.
       </p>
 
       <button

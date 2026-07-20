@@ -4,12 +4,16 @@ import { ALL_CARDS } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_CONFIG } from '../engine/reducer';
+import { DEFAULT_THEME } from '../data/theme';
+import { DEFAULT_UI_TEXT } from '../data/uiText';
 
 const validContent = (): GameContent => ({
   cards: structuredClone(ALL_CARDS),
   problems: structuredClone(ALL_PROBLEMS),
   characters: structuredClone(ALL_CHARACTERS),
   rules: { ...DEFAULT_CONFIG },
+  text: { ...DEFAULT_UI_TEXT },
+  theme: { ...DEFAULT_THEME },
 });
 
 describe('validateContent', () => {
@@ -103,6 +107,21 @@ describe('validateContent', () => {
     const result = validateContent(content);
     expect(result.ok).toBe(false);
     expect(result.errors.join(' ')).toContain('niemożliwa do wygrania');
+  });
+
+  it('odrzuca kolor motywu w złym formacie', () => {
+    const content = validContent();
+    content.theme = { ...content.theme, accent: 'turkusowy' };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('accent');
+  });
+
+  it('akceptuje zawartość bez sekcji text i theme (starszy dokument)', () => {
+    const content = validContent() as Partial<GameContent>;
+    delete content.text;
+    delete content.theme;
+    expect(validateContent(content).ok).toBe(true);
   });
 
   it('zbiera wiele błędów naraz', () => {
