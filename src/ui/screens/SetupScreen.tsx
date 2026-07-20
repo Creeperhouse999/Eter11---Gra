@@ -61,6 +61,13 @@ export function SetupScreen({
   const namesFilled = drafts.every((d) => d.name.trim().length > 0);
 
   const start = (tutorial: boolean) => {
+    // Samouczek gra jedna osoba na ustawionym scenariuszu — nie wymaga
+    // wpisywania imion ani wybierania postaci.
+    if (tutorial) {
+      onStart([], true);
+      return;
+    }
+
     if (!namesFilled) return;
     onStart(
       drafts.map((d, i) => ({
@@ -68,7 +75,7 @@ export function SetupScreen({
         name: d.name.trim(),
         characterId: d.characterId,
       })),
-      tutorial,
+      false,
     );
   };
 
@@ -84,7 +91,38 @@ export function SetupScreen({
         <p className="font-display text-lg text-ink-dim">{text.gameSubtitle}</p>
       </header>
 
-      <section className="relative mt-6 space-y-2" aria-label="Gracze">
+      {/* Samouczek przed ustawieniami: kto nie zna zasad, ma go pod ręką
+          i nie musi najpierw wypełniać formularza. */}
+      <button
+        type="button"
+        onClick={() => start(true)}
+        className="eter-rise relative mt-6 flex w-full items-center gap-3 rounded-xl border-2 border-accent bg-surface p-4 text-left transition hover:bg-raised"
+      >
+        <span className="shrink-0 text-accent">
+          <Icon name="spark" size={24} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display font-bold text-accent">
+            Naucz mnie grać
+          </span>
+          <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
+            {seenTutorial
+              ? 'Znasz zasady, ale możesz powtórzyć. Grasz sam, zajmie kilka minut.'
+              : 'ETER11 poprowadzi Cię krok po kroku. Grasz sam, zajmie kilka minut.'}
+          </span>
+        </span>
+        <span className="shrink-0 text-ink-dim">
+          <Icon name="chevronDown" size={18} className="-rotate-90" />
+        </span>
+      </button>
+
+      <div className="relative mt-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-edge" />
+        <span className="eter-label">albo zagrajcie razem</span>
+        <span className="h-px flex-1 bg-edge" />
+      </div>
+
+      <section className="relative mt-4 space-y-2" aria-label="Gracze">
         {drafts.map((draft, index) => {
           const chosen = characters.find((c) => c.id === draft.characterId);
 
@@ -172,49 +210,21 @@ export function SetupScreen({
         )}
       </section>
 
-      <div className="relative mt-5 grid gap-2 sm:grid-cols-2">
-        {/* Samouczek pierwszy: kto gra pierwszy raz, nie musi go szukać. */}
-        <button
-          type="button"
-          onClick={() => start(true)}
-          disabled={!namesFilled}
-          className="flex items-start gap-3 rounded-xl border-2 border-accent bg-surface p-3.5 text-left transition hover:bg-raised disabled:opacity-40"
-        >
-          <span className="mt-0.5 shrink-0 text-accent">
-            <Icon name="spark" size={20} />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-display font-bold text-accent">
-              Naucz mnie grać
-            </span>
-            <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
-              {seenTutorial
-                ? 'Znasz zasady, ale możesz powtórzyć.'
-                : 'ETER11 poprowadzi Was krok po kroku.'}
-            </span>
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => start(false)}
-          disabled={!namesFilled}
-          className="flex items-start gap-3 rounded-xl border border-edge bg-surface p-3.5 text-left transition hover:border-ink-dim hover:bg-raised disabled:opacity-40"
-        >
-          <span className="mt-0.5 shrink-0 text-ink-dim">
-            <Icon name="rocket" size={20} />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-display font-bold">{text.setupStartButton}</span>
-            <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
-              Znamy zasady, ruszamy od razu.
-            </span>
-          </span>
-        </button>
-      </div>
+      <Button
+        variant="primary"
+        size="lg"
+        icon="rocket"
+        onClick={() => start(false)}
+        disabled={!namesFilled}
+        className="relative mt-4 w-full"
+      >
+        {text.setupStartButton}
+      </Button>
 
       {!namesFilled && (
-        <p className="relative mt-3 text-xs text-ink-dim">{text.setupNamesHint}</p>
+        <p className="relative mt-2 text-center text-xs text-ink-dim">
+          {text.setupNamesHint}
+        </p>
       )}
 
       <p className="relative mt-6 max-w-prose text-xs leading-relaxed text-ink-dim">

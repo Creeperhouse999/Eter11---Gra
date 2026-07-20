@@ -23,6 +23,28 @@ describe('GameApp — ekran startowy', () => {
     expect(screen.getByRole('button', { name: /Naucz mnie grać/ })).toBeDefined();
   });
 
+  it('samouczek startuje bez wpisywania imion', () => {
+    render(<GameApp />);
+
+    // Zwykła gra czeka na imiona, samouczek nie — gra w nim jedna osoba.
+    expect(
+      screen.getByRole('button', { name: /Zaczynamy misję/ }).hasAttribute('disabled'),
+    ).toBe(true);
+    expect(
+      screen.getByRole('button', { name: /Naucz mnie grać/ }).hasAttribute('disabled'),
+    ).toBe(false);
+  });
+
+  it('samouczek prowadzi jednego gracza', () => {
+    render(<GameApp />);
+    fireEvent.click(screen.getByRole('button', { name: /Naucz mnie grać/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Odkryj problem/ }));
+
+    // Jedna karta postaci na stole — nikt nie czeka na swoją kolej.
+    expect(screen.getAllByLabelText(/Karta postaci/)).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: 'Samouczek' })).toBeDefined();
+  });
+
   it('blokuje start bez imion graczy', () => {
     render(<GameApp />);
     const start = screen.getByRole('button', { name: /Zaczynamy misję/ });
