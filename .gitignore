@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+.firebase
+.env
+.env.local
+.DS_Store
+*.log
