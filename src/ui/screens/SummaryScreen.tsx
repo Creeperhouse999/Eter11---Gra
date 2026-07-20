@@ -28,7 +28,7 @@ export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenPro
   const won = mission.phase === 'won';
 
   return (
-    <main className="relative mx-auto max-w-4xl px-4 py-8">
+    <main className="eter-fade-in relative mx-auto max-w-4xl px-4 py-8">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
 
       <header className="relative">

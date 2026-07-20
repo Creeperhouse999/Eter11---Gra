@@ -1,0 +1,195 @@
+import { useEffect, useRef, useState } from 'react';
+import { Icon, type IconName } from '../icons/Icon';
+
+export interface SelectOption<T extends string> {
+  value: T;
+  label: string;
+  icon?: IconName;
+  /** Kolor kropki przy opcji — koduje kategorię albo typ. */
+  color?: string;
+  hint?: string;
+}
+
+interface SelectProps<T extends string> {
+  value: T;
+  options: SelectOption<T>[];
+  onChange: (value: T) => void;
+  label?: string;
+  /** Etykieta dla czytników, gdy `label` nie jest widoczna. */
+  ariaLabel?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+/**
+ * Lista rozwijana w stylu ETER11.
+ *
+ * Natywny `<select>` nie pozwala rysować ikon ani kolorów kategorii, a te
+ * niosą tu informację — dlatego własna implementacja. Obsługa klawiatury
+ * odtworzona ręcznie: strzałki, Enter, Escape, Home/End.
+ */
+export function Select<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  ariaLabel,
+  disabled,
+  className,
+}: SelectProps<T>) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(() =>
+    Math.max(0, options.findIndex((o) => o.value === value)),
+  );
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const selected = options.find((o) => o.value === value);
+
+  // Kliknięcie poza listą zamyka ją — inaczej zostawałaby otwarta pod innymi polami.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const active = listRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    // scrollIntoView nie istnieje w środowiskach testowych ani w starszych
+    // przeglądarkach — przewijanie jest udogodnieniem, nie warunkiem działania.
+    active?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, activeIndex]);
+
+  const choose = (next: T) => {
+    onChange(next);
+    setOpen(false);
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    if (!open && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
+      event.preventDefault();
+      setActiveIndex(Math.max(0, options.findIndex((o) => o.value === value)));
+      setOpen(true);
+      return;
+    }
+
+    if (!open) return;
+
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        setOpen(false);
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        setActiveIndex((i) => (i + 1) % options.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setActiveIndex((i) => (i - 1 + options.length) % options.length);
+        break;
+      case 'Home':
+        event.preventDefault();
+        setActiveIndex(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        setActiveIndex(options.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        choose(options[activeIndex].value);
+        break;
+    }
+  };
+
+  return (
+    <div ref={rootRef} className={`relative ${className ?? ''}`}>
+      {label && <span className="block text-sm text-ink-dim">{label}</span>}
+
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={onKeyDown}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={ariaLabel ?? label}
+        className={[
+          'mt-1 flex w-full items-center gap-2 rounded-lg border bg-bg px-2.5 py-2 text-left text-sm transition',
+          open ? 'border-accent' : 'border-edge hover:border-ink-dim',
+          disabled ? 'cursor-not-allowed opacity-50' : '',
+        ].join(' ')}
+      >
+        {selected?.color && (
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: selected.color }}
+          />
+        )}
+        {selected?.icon && <Icon name={selected.icon} size={16} />}
+        <span className="flex-1 truncate">{selected?.label ?? '—'}</span>
+        <Icon
+          name="chevronDown"
+          size={15}
+          className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <ul
+          ref={listRef}
+          role="listbox"
+          aria-label={ariaLabel ?? label}
+          className="eter-pop absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
+        >
+          {options.map((option, index) => {
+            const isSelected = option.value === value;
+            const isActive = index === activeIndex;
+            return (
+              <li key={option.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  data-active={isActive}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => choose(option.value)}
+                  className={[
+                    'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition',
+                    isActive ? 'bg-raised' : '',
+                    isSelected ? 'text-accent' : '',
+                  ].join(' ')}
+                >
+                  {option.color && (
+                    <span
+                      aria-hidden="true"
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: option.color }}
+                    />
+                  )}
+                  {option.icon && <Icon name={option.icon} size={16} />}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{option.label}</span>
+                    {option.hint && (
+                      <span className="block truncate text-xs text-ink-dim">{option.hint}</span>
+                    )}
+                  </span>
+                  {isSelected && <Icon name="tick" size={14} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}

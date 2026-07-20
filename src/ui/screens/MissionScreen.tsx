@@ -120,10 +120,11 @@ export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenPro
         {handRevealed ? (
           <>
             <div className="mt-4 flex flex-wrap gap-2">
-              {activePlayer.hand.map((card) => (
+              {activePlayer.hand.map((card, index) => (
                 <CardView
                   key={card.id}
                   card={card}
+                  dealIndex={index}
                   selected={selected?.card.id === card.id && !selected.fromMat}
                   onClick={() => setSelected({ card, fromMat: false })}
                 />
@@ -131,7 +132,7 @@ export function MissionScreen({ game, text = DEFAULT_UI_TEXT }: MissionScreenPro
             </div>
 
             {selected && (
-              <p className="mt-3 text-sm text-accent">
+              <p className="eter-rise mt-3 text-sm text-accent">
                 Wybrano: {selected.card.name}. {text.missionSelectedHint}
               </p>
             )}

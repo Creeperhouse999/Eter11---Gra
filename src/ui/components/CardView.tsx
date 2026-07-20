@@ -9,6 +9,8 @@ interface CardViewProps {
   onClick?: () => void;
   /** Wariant kompaktowy — karty wyłożone na stół. */
   compact?: boolean;
+  /** Kolejność w rozdaniu — karty wchodzą jedna po drugiej. */
+  dealIndex?: number;
 }
 
 /**
@@ -17,7 +19,14 @@ interface CardViewProps {
  * Kolor krawędzi koduje kategorię, emoji zastępuje ilustrację. Pole `art`
  * przyjmie docelową grafikę bez zmian w tym komponencie.
  */
-export function CardView({ card, selected, disabled, onClick, compact }: CardViewProps) {
+export function CardView({
+  card,
+  selected,
+  disabled,
+  onClick,
+  compact,
+  dealIndex,
+}: CardViewProps) {
   const color = categoryColorVar(card.category);
   const interactive = Boolean(onClick) && !disabled;
 
@@ -29,6 +38,7 @@ export function CardView({ card, selected, disabled, onClick, compact }: CardVie
       aria-pressed={onClick ? Boolean(selected) : undefined}
       className={[
         'group relative flex flex-col rounded-lg border bg-raised text-left transition-transform',
+        dealIndex === undefined ? '' : 'eter-deal',
         compact ? 'w-24 gap-0.5 p-2' : 'w-36 gap-1 p-3',
         interactive ? 'cursor-pointer hover:-translate-y-1' : 'cursor-default',
         disabled ? 'opacity-40' : '',
@@ -37,6 +47,9 @@ export function CardView({ card, selected, disabled, onClick, compact }: CardVie
         borderColor: selected ? color : 'var(--eter-edge)',
         borderWidth: selected ? 2 : 1,
         boxShadow: selected ? `0 0 22px -6px ${color}` : undefined,
+        ...(dealIndex === undefined
+          ? {}
+          : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),
       }}
     >
       {/* Pasek kategorii — czytelny nawet gdy karta jest zasłonięta */}

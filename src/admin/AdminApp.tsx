@@ -3,6 +3,10 @@ import { applyTheme } from '../data/theme';
 import { BUILTIN_CONTENT, loadContent, saveContent } from '../firebase/content';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
+import { Alert } from '../ui/controls/Alert';
+import { Button } from '../ui/controls/Button';
+import { useToast } from '../ui/controls/Toast';
+import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { CardEditor } from './CardEditor';
 import { CharacterEditor } from './CharacterEditor';
@@ -36,6 +40,8 @@ export function AdminApp() {
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirm();
+  const toast = useToast();
 
   const dirty = useMemo(
     () => JSON.stringify(content) !== JSON.stringify(savedContent),
@@ -76,19 +82,27 @@ export function AdminApp() {
     if (result.ok) {
       setSavedContent(content);
       setErrors([]);
-      setStatus('Zapisano. Gracze zobaczą zmiany po odświeżeniu strony.');
+      setStatus(null);
+      toast('Zapisano. Gracze zobaczą zmiany po odświeżeniu strony.', 'success');
     } else {
       setErrors(result.errors);
       setStatus(null);
+      toast('Zapis odrzucony — popraw błędy.', 'danger');
     }
   };
 
-  const discard = () => {
-    if (!window.confirm('Odrzucić wszystkie niezapisane zmiany?')) return;
+  const discard = async () => {
+    const confirmed = await confirm({
+      title: 'Odrzucić zmiany?',
+      message: 'Wszystkie niezapisane zmiany zostaną utracone i wrócisz do ostatnio zapisanej wersji.',
+      confirmLabel: 'Odrzuć',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     setContent(savedContent);
     applyTheme(savedContent.theme);
     setErrors([]);
-    setStatus('Zmiany odrzucone.');
+    toast('Wrócono do ostatnio zapisanej wersji.');
   };
 
   const problemBonusIds = useMemo(
@@ -120,31 +134,26 @@ export function AdminApp() {
               </span>
             )}
             {dirty && (
-              <button
-                type="button"
-                onClick={discard}
-                className="rounded border border-edge px-3 py-1.5 text-sm text-danger"
-              >
+              <Button variant="ghost" size="sm" onClick={discard} className="text-danger">
                 Odrzuć zmiany
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={save}
               disabled={!dirty || saving || !validation.ok}
               title={!validation.ok ? 'Popraw błędy, żeby zapisać' : undefined}
-              className="rounded bg-accent px-4 py-1.5 text-sm font-bold text-bg disabled:opacity-40"
             >
               {saving ? 'Zapisywanie…' : 'Zapisz'}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="logout"
               onClick={auth.logout}
               aria-label="Wyloguj"
-              className="rounded border border-edge p-2"
-            >
-              <Icon name="logout" size={14} />
-            </button>
+            />
           </div>
         </div>
 
@@ -170,35 +179,49 @@ export function AdminApp() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
+        {dialog}
+
         {status && (
-          <p className="mb-4 rounded border border-edge bg-surface px-3 py-2 text-sm">{status}</p>
+          <div className="mb-4">
+            <Alert tone="info" onDismiss={() => setStatus(null)}>
+              {status}
+            </Alert>
+          </div>
         )}
 
         {errors.length > 0 && (
-          <div role="alert" className="mb-4 rounded border border-danger bg-surface px-3 py-2">
-            <p className="text-sm font-bold text-danger">Zapis odrzucony — popraw błędy:</p>
-            <ul className="mt-1 list-inside list-disc text-xs text-ink-dim">
-              {errors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
+          <div className="mb-4">
+            <Alert tone="danger" title="Zapis odrzucony — popraw błędy">
+              <ul className="list-inside list-disc space-y-0.5 text-xs">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </Alert>
           </div>
         )}
 
         {!validation.ok && errors.length === 0 && (
-          <div role="status" className="mb-4 rounded border border-danger bg-surface px-3 py-2">
-            <p className="text-sm font-bold text-danger">
-              Zawartość ma {validation.errors.length} {validation.errors.length === 1 ? 'błąd' : 'błędów'} — zapis jest zablokowany:
-            </p>
-            <ul className="mt-1 list-inside list-disc text-xs text-ink-dim">
-              {validation.errors.slice(0, 5).map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-              {validation.errors.length > 5 && <li>…i {validation.errors.length - 5} więcej</li>}
-            </ul>
+          <div className="mb-4">
+            <Alert
+              tone="warning"
+              title={`Zapis zablokowany — ${validation.errors.length} ${
+                validation.errors.length === 1 ? 'błąd' : 'błędów'
+              } w zawartości`}
+            >
+              <ul className="list-inside list-disc space-y-0.5 text-xs">
+                {validation.errors.slice(0, 5).map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+                {validation.errors.length > 5 && (
+                  <li>…i {validation.errors.length - 5} więcej</li>
+                )}
+              </ul>
+            </Alert>
           </div>
         )}
 
+        <div key={tab} className="eter-fade-in">
         {tab === 'overview' && <DeckOverview content={content} />}
         {tab === 'problems' && (
           <ProblemEditor
@@ -230,6 +253,7 @@ export function AdminApp() {
           <ThemeEditor theme={content.theme} onChange={(theme) => update({ theme })} />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
+        </div>
       </main>
     </div>
   );

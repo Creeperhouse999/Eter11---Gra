@@ -58,7 +58,7 @@ export function SetupScreen({
   };
 
   return (
-    <main className="relative mx-auto max-w-3xl px-4 py-10">
+    <main className="eter-fade-in relative mx-auto max-w-3xl px-4 py-10">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
 
       <header className="relative">

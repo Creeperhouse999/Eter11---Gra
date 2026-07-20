@@ -37,7 +37,7 @@ export function ProblemBoard({
 
   return (
     <section
-      className="overflow-hidden rounded-xl border bg-surface"
+      className="eter-rise overflow-hidden rounded-xl border bg-surface"
       style={{ borderColor: 'var(--eter-edge)' }}
       aria-label={`Problem: ${problem.name}`}
     >

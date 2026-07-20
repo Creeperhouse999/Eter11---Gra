@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TextField } from '../ui/controls/Field';
 import { ICON_NAMES, Icon, type IconName } from '../ui/icons/Icon';
 
 interface IconPickerProps {
@@ -28,20 +29,20 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="mt-1 flex w-full items-center gap-2 rounded border border-edge bg-bg px-2 py-1.5 text-sm"
+        className="mt-1 flex w-full items-center gap-2 rounded-lg border border-edge bg-bg px-2.5 py-2 text-sm transition hover:border-ink-dim"
       >
         <Icon name={value as IconName} size={20} />
         <span className="truncate font-mono text-xs text-ink-dim">{value}</span>
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-72 rounded-lg border border-edge bg-surface p-3 shadow-xl">
-          <input
+        <div className="eter-pop absolute z-20 mt-1 w-72 rounded-lg border border-edge bg-surface p-3 shadow-2xl">
+          <TextField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Szukaj ikony"
             aria-label="Szukaj ikony"
-            className="w-full rounded border border-edge bg-bg px-2 py-1 text-sm"
+            autoFocus
           />
           <div className="mt-2 grid max-h-64 grid-cols-7 gap-1 overflow-y-auto">
             {matches.map((name) => (

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ToastProvider } from '../ui/controls/Toast';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
@@ -13,6 +15,9 @@ import { DeckOverview } from './DeckOverview';
 import { RulesEditor } from './RulesEditor';
 import { TextEditor } from './TextEditor';
 import { ThemeEditor } from './ThemeEditor';
+
+/** Komponenty panelu korzystają z useToast — wymagają providera. */
+const render = (ui: ReactElement) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
 
 const content = (): GameContent => ({
   cards: structuredClone(ALL_CARDS),
@@ -57,14 +62,37 @@ describe('CharacterEditor', () => {
     expect(onChange.mock.calls[0][0]).toHaveLength(ALL_CHARACTERS.length + 1);
   });
 
-  it('blokuje usunięcie, gdy zostałaby mniej niż jedna para postaci', () => {
+  it('blokuje usunięcie, gdy zostałaby mniej niż jedna para postaci', async () => {
     const onChange = vi.fn();
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     render(<CharacterEditor characters={ALL_CHARACTERS.slice(0, 2)} onChange={onChange} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
+    expect(await screen.findByText(/co najmniej dwie postacie/)).toBeDefined();
     expect(onChange).not.toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalled();
-    alertSpy.mockRestore();
+  });
+
+  it('usuwa postać po potwierdzeniu w oknie', async () => {
+    const onChange = vi.fn();
+    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Usunąć postać?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Usuń' }));
+
+    await waitFor(() =>
+      expect(onChange.mock.calls[0][0]).toHaveLength(ALL_CHARACTERS.length - 1),
+    );
+  });
+
+  it('anulowanie w oknie nie usuwa postaci', async () => {
+    const onChange = vi.fn();
+    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Usunąć postać?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Anuluj' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('zmienia nazwę postaci', () => {
@@ -79,17 +107,34 @@ describe('CharacterEditor', () => {
 });
 
 describe('CardEditor', () => {
-  it('filtruje karty po kategorii', () => {
+  it('filtruje karty po kategorii', async () => {
     render(
       <CardEditor cards={ALL_CARDS} problemBonusIds={new Set()} onChange={vi.fn()} />,
     );
-    fireEvent.change(screen.getByLabelText('Filtruj kategorię'), {
-      target: { value: 'mentor' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
+
+    const list = await screen.findByRole('listbox', { name: 'Filtruj kategorię' });
+    fireEvent.click(within(list).getByRole('option', { name: /Mentor/ }));
+
     const mentorCount = ALL_CARDS.filter((c) => c.category === 'mentor').length;
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toContain(
-      `${mentorCount} z ${ALL_CARDS.length}`,
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2 }).textContent).toContain(
+        `${mentorCount} z ${ALL_CARDS.length}`,
+      ),
     );
+  });
+
+  it('lista kategorii obsługuje klawiaturę', async () => {
+    render(
+      <CardEditor cards={ALL_CARDS} problemBonusIds={new Set()} onChange={vi.fn()} />,
+    );
+    const trigger = screen.getByRole('button', { name: 'Filtruj kategorię' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    expect(await screen.findByRole('listbox', { name: 'Filtruj kategorię' })).toBeDefined();
+
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 
   it('oznacza karty używane jako bonus', () => {
@@ -104,8 +149,7 @@ describe('CardEditor', () => {
     expect(screen.getAllByText('karta bonusowa')).toHaveLength(1);
   });
 
-  it('ostrzega przed usunięciem karty bonusowej', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('ostrzega przed usunięciem karty bonusowej', async () => {
     const card = ALL_CARDS[0];
     render(
       <CardEditor
@@ -115,8 +159,9 @@ describe('CardEditor', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Usuń' }));
-    expect(confirmSpy.mock.calls[0][0]).toContain('bonusową');
-    confirmSpy.mockRestore();
+
+    const dialog = await screen.findByRole('dialog', { name: 'Usunąć kartę?' });
+    expect(dialog.textContent).toContain('bonusową');
   });
 });
 
@@ -124,8 +169,7 @@ describe('TextEditor', () => {
   it('zmiana tytułu gry wywołuje onChange', () => {
     const onChange = vi.fn();
     render(<TextEditor text={DEFAULT_UI_TEXT} onChange={onChange} />);
-    const field = screen.getByText('Tytuł gry').closest('label')!;
-    fireEvent.change(within(field).getByRole('textbox'), { target: { value: 'ETER22' } });
+    fireEvent.change(screen.getByLabelText('Tytuł gry'), { target: { value: 'ETER22' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ gameTitle: 'ETER22' }));
   });
 });

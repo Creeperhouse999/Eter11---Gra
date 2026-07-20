@@ -1,4 +1,6 @@
 import type { RulesConfig } from '../engine/types';
+import { Alert } from '../ui/controls/Alert';
+import { NumberField } from '../ui/controls/Field';
 
 interface RulesEditorProps {
   rules: RulesConfig;
@@ -35,33 +37,26 @@ export function RulesEditor({ rules, onChange }: RulesEditorProps) {
       </p>
 
       {impossibleToWin && (
-        <p role="alert" className="mt-3 rounded border border-danger bg-surface px-3 py-2 text-sm text-danger">
-          Próg zwycięstwa ({rules.teamWinThreshold}) jest wyższy niż liczba misji (
-          {rules.missionsPerGame}). Przy tych wartościach gry nie da się wygrać — zapis
-          zostanie odrzucony.
-        </p>
+        <div className="mt-3">
+          <Alert tone="danger" title="Gry nie da się wygrać">
+            Próg zwycięstwa ({rules.teamWinThreshold}) jest wyższy niż liczba misji (
+            {rules.missionsPerGame}). Przy tych wartościach zapis zostanie odrzucony.
+          </Alert>
+        </div>
       )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="eter-stagger mt-4 grid gap-3 sm:grid-cols-2">
         {FIELDS.map((field) => (
-          <label
-            key={field.key}
-            className="block rounded-lg border border-edge bg-surface p-3 text-sm"
-          >
-            <span className="font-semibold">{field.label}</span>
-            <input
-              type="number"
+          <div key={field.key} className="rounded-lg border border-edge bg-surface p-3">
+            <NumberField
+              label={field.label}
+              value={rules[field.key]}
               min={field.min}
               max={field.max}
-              value={rules[field.key]}
-              onChange={(e) => onChange({ ...rules, [field.key]: Number(e.target.value) })}
-              className="mt-1 w-full rounded border border-edge bg-bg px-2 py-1.5 font-mono text-ink"
+              hint={`${field.hint} Zakres ${field.min}–${field.max}.`}
+              onChange={(value) => onChange({ ...rules, [field.key]: value })}
             />
-            <span className="mt-1 block text-xs text-ink-dim">{field.hint}</span>
-            <span className="mt-0.5 block font-mono text-[10px] text-ink-dim">
-              zakres {field.min}–{field.max}
-            </span>
-          </label>
+          </div>
         ))}
       </div>
     </section>

@@ -3,6 +3,7 @@ import { AdminApp } from './admin/AdminApp';
 import { applyTheme } from './data/theme';
 import { BUILTIN_CONTENT, loadContent } from './firebase/content';
 import type { GameContent } from './firebase/validate';
+import { ToastProvider } from './ui/controls/Toast';
 import { GameApp } from './ui/GameApp';
 
 /**
@@ -11,8 +12,7 @@ import { GameApp } from './ui/GameApp';
  */
 export default function App() {
   const isAdmin = window.location.pathname.startsWith('/admin');
-  if (isAdmin) return <AdminApp />;
-  return <Game />;
+  return <ToastProvider>{isAdmin ? <AdminApp /> : <Game />}</ToastProvider>;
 }
 
 function Game() {

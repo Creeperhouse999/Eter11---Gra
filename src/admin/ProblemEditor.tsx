@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import type { Card, Problem, ProblemSlot, ProblemType, SlotKey } from '../engine/types';
-import { problemTypeLabel, slotIcon, slotLabel } from '../ui/components/categoryStyles';
+import {
+  problemTypeColorVar,
+  problemTypeLabel,
+  slotIcon,
+  slotLabel,
+} from '../ui/components/categoryStyles';
+import { Button } from '../ui/controls/Button';
+import { Checkbox } from '../ui/controls/Checkbox';
+import { Chip } from '../ui/controls/Chip';
+import { TextArea, TextField } from '../ui/controls/Field';
+import { Select } from '../ui/controls/Select';
+import { useToast } from '../ui/controls/Toast';
+import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
 
@@ -28,11 +40,17 @@ function emptyProblem(): Problem {
   };
 }
 
-const inputClass = 'mt-1 w-full rounded border border-edge bg-bg px-2 py-1.5 text-sm text-ink';
+const TYPE_OPTIONS = PROBLEM_TYPES.map((type) => ({
+  value: type,
+  label: problemTypeLabel(type),
+  color: problemTypeColorVar(type),
+}));
 
 /** Edytor kart problemów: treść, typ, cztery ścianki z podpowiedziami i bonusami. */
 export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
+  const toast = useToast();
 
   const update = (id: string, patch: Partial<Problem>) => {
     onChange(problems.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -48,13 +66,18 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
     );
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     const problem = problems.find((p) => p.id === id);
-    const confirmed = window.confirm(
-      `Usunąć problem „${problem?.name}"? Zmiana zniknie z bazy dopiero po zapisaniu, ` +
-        'ale nie da się jej cofnąć bez ponownego wczytania danych.',
-    );
-    if (confirmed) onChange(problems.filter((p) => p.id !== id));
+    const confirmed = await confirm({
+      title: 'Usunąć problem?',
+      message: `„${problem?.name}" zniknie z talii. Zmiana wejdzie w życie po zapisaniu, ale nie da się jej cofnąć bez ponownego wczytania danych.`,
+      confirmLabel: 'Usuń',
+      tone: 'danger',
+    });
+    if (confirmed) {
+      onChange(problems.filter((p) => p.id !== id));
+      toast(`Usunięto problem „${problem?.name}".`);
+    }
   };
 
   /** Karty pasujące kategorią do ścianki — tylko one mogą być bonusem. */
@@ -67,15 +90,12 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
 
   return (
     <section>
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Problemy ({problems.length})</h2>
-        <button
-          type="button"
-          onClick={() => onChange([...problems, emptyProblem()])}
-          className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent"
-        >
+        <Button icon="plus" onClick={() => onChange([...problems, emptyProblem()])}>
           Dodaj problem
-        </button>
+        </Button>
       </div>
 
       <ul className="mt-4 space-y-2">
@@ -83,7 +103,7 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
           const open = openId === problem.id;
 
           return (
-            <li key={problem.id} className="rounded-xl border border-edge bg-surface">
+            <li key={problem.id} className="eter-rise rounded-xl border border-edge bg-surface">
               <div className="flex items-center gap-3 p-3">
                 <span className="text-ink-dim">
                   <Icon name={problem.icon as IconName} size={24} />
@@ -104,95 +124,70 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                     </span>
                   )}
                 </button>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="trash"
                   onClick={() => remove(problem.id)}
-                  className="text-xs text-danger underline underline-offset-2"
+                  className="text-danger"
                 >
                   Usuń
-                </button>
+                </Button>
               </div>
 
               {open && (
-                <div className="space-y-4 border-t border-edge p-4">
+                <div className="eter-fade-in space-y-4 border-t border-edge p-4">
                   <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
-                    <label className="block text-sm">
-                      <span className="text-ink-dim">Nazwa</span>
-                      <input
-                        value={problem.name}
-                        onChange={(e) => update(problem.id, { name: e.target.value })}
-                        className={inputClass}
-                      />
-                    </label>
+                    <TextField
+                      label="Nazwa"
+                      value={problem.name}
+                      onChange={(e) => update(problem.id, { name: e.target.value })}
+                    />
                     <IconPicker
                       value={problem.icon}
                       onChange={(icon) => update(problem.id, { icon })}
                     />
                   </div>
 
-                  <label className="block text-sm">
-                    <span className="text-ink-dim">Historia</span>
-                    <textarea
-                      value={problem.story}
-                      onChange={(e) => update(problem.id, { story: e.target.value })}
-                      rows={3}
-                      className={inputClass}
-                    />
-                  </label>
+                  <TextArea
+                    label="Historia"
+                    value={problem.story}
+                    onChange={(e) => update(problem.id, { story: e.target.value })}
+                  />
 
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <label className="block text-sm">
-                      <span className="text-ink-dim">Przeciwnik</span>
-                      <input
-                        value={problem.antagonist}
-                        onChange={(e) => update(problem.id, { antagonist: e.target.value })}
-                        className={inputClass}
-                      />
-                    </label>
-                    <label className="block text-sm">
-                      <span className="text-ink-dim">Cel misji</span>
-                      <input
-                        value={problem.goal}
-                        onChange={(e) => update(problem.id, { goal: e.target.value })}
-                        className={inputClass}
-                      />
-                    </label>
-                    <label className="block text-sm">
-                      <span className="text-ink-dim">Jeśli się nie uda</span>
-                      <input
-                        value={problem.consequence}
-                        onChange={(e) => update(problem.id, { consequence: e.target.value })}
-                        className={inputClass}
-                      />
-                    </label>
+                    <TextField
+                      label="Przeciwnik"
+                      value={problem.antagonist}
+                      onChange={(e) => update(problem.id, { antagonist: e.target.value })}
+                    />
+                    <TextField
+                      label="Cel misji"
+                      value={problem.goal}
+                      onChange={(e) => update(problem.id, { goal: e.target.value })}
+                    />
+                    <TextField
+                      label="Jeśli się nie uda"
+                      value={problem.consequence}
+                      onChange={(e) => update(problem.id, { consequence: e.target.value })}
+                    />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-5">
-                    <label className="text-sm">
-                      <span className="text-ink-dim">Typ</span>
-                      <select
-                        value={problem.type}
-                        onChange={(e) =>
-                          update(problem.id, { type: e.target.value as ProblemType })
-                        }
-                        className="ml-2 rounded border border-edge bg-bg px-2 py-1 text-sm"
-                      >
-                        {PROBLEM_TYPES.map((type) => (
-                          <option key={type} value={type}>
-                            {problemTypeLabel(type)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  <div className="flex flex-wrap items-end gap-5">
+                    <Select
+                      label="Typ"
+                      className="w-56"
+                      value={problem.type}
+                      options={TYPE_OPTIONS}
+                      onChange={(type) => update(problem.id, { type })}
+                    />
 
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(problem.draft)}
-                        onChange={(e) => update(problem.id, { draft: e.target.checked })}
-                      />
-                      <span className="text-ink-dim">Wymaga weryfikacji merytorycznej</span>
-                    </label>
+                    <Checkbox
+                      checked={Boolean(problem.draft)}
+                      onChange={(draft) => update(problem.id, { draft })}
+                    >
+                      Wymaga weryfikacji merytorycznej
+                    </Checkbox>
                   </div>
 
                   <div className="space-y-3">
@@ -204,51 +199,37 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                           {slotLabel(slot.key)}
                         </span>
 
-                        <label className="mt-2 block text-sm">
-                          <span className="text-ink-dim">Podpowiedź dla graczy</span>
-                          <input
-                            value={slot.hint}
-                            onChange={(e) =>
-                              updateSlot(problem.id, slot.key, { hint: e.target.value })
-                            }
-                            className={inputClass}
-                          />
-                        </label>
+                        <TextField
+                          label="Podpowiedź dla graczy"
+                          className="mt-2"
+                          value={slot.hint}
+                          onChange={(e) =>
+                            updateSlot(problem.id, slot.key, { hint: e.target.value })
+                          }
+                        />
 
                         <fieldset className="mt-3">
                           <legend className="text-xs text-ink-dim">
                             Karty bonusowe — zagranie ich daje dodatkową kartę doświadczenia
                           </legend>
-                          <div className="mt-2 flex flex-wrap gap-2">
+                          <div className="mt-2 flex flex-wrap gap-1.5">
                             {cardsForSlot(slot.key).map((card) => {
                               const checked = slot.bonusCardIds.includes(card.id);
                               return (
-                                <label
+                                <Chip
                                   key={card.id}
-                                  className={[
-                                    'cursor-pointer rounded border px-2 py-1 text-xs transition',
-                                    checked
-                                      ? 'border-accent text-accent'
-                                      : 'border-edge text-ink-dim hover:border-ink-dim',
-                                  ].join(' ')}
+                                  checked={checked}
+                                  icon={card.icon as IconName}
+                                  onChange={(next) =>
+                                    updateSlot(problem.id, slot.key, {
+                                      bonusCardIds: next
+                                        ? [...slot.bonusCardIds, card.id]
+                                        : slot.bonusCardIds.filter((id) => id !== card.id),
+                                    })
+                                  }
                                 >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() =>
-                                      updateSlot(problem.id, slot.key, {
-                                        bonusCardIds: checked
-                                          ? slot.bonusCardIds.filter((id) => id !== card.id)
-                                          : [...slot.bonusCardIds, card.id],
-                                      })
-                                    }
-                                    className="sr-only"
-                                  />
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <Icon name={card.icon as IconName} size={14} />
-                                    {card.name}
-                                  </span>
-                                </label>
+                                  {card.name}
+                                </Chip>
                               );
                             })}
                           </div>

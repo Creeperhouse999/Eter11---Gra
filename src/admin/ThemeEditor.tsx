@@ -1,4 +1,6 @@
 import { applyTheme, DEFAULT_THEME, THEME_GROUPS, type ThemeColors } from '../data/theme';
+import { Button } from '../ui/controls/Button';
+import { Icon } from '../ui/icons/Icon';
 
 interface ThemeEditorProps {
   theme: ThemeColors;
@@ -45,13 +47,9 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Kolory</h2>
-        <button
-          type="button"
-          onClick={() => update(DEFAULT_THEME)}
-          className="rounded-lg border border-edge px-3 py-1.5 text-sm"
-        >
+        <Button icon="undo" size="sm" onClick={() => update(DEFAULT_THEME)}>
           Przywróć domyślne
-        </button>
+        </Button>
       </div>
 
       <p className="mt-1 text-sm text-ink-dim">
@@ -62,20 +60,22 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
         <div className="rounded-lg border border-edge bg-surface p-3">
           <span className="eter-label">Kontrast tekstu głównego</span>
           <p
-            className="mt-1 font-mono text-lg font-bold"
+            className="mt-1 flex items-center gap-1.5 font-mono text-lg font-bold"
             style={{ color: inkContrast >= 4.5 ? 'var(--eter-success)' : 'var(--eter-danger)' }}
           >
-            {inkContrast.toFixed(1)}:1 {inkContrast >= 4.5 ? '✓' : '— za mało'}
+            <Icon name={inkContrast >= 4.5 ? 'tick' : 'warning'} size={16} />
+            {inkContrast.toFixed(1)}:1{inkContrast >= 4.5 ? '' : ' — za mało'}
           </p>
           <span className="text-xs text-ink-dim">Wymagane minimum 4.5:1</span>
         </div>
         <div className="rounded-lg border border-edge bg-surface p-3">
           <span className="eter-label">Kontrast tekstu wtórnego</span>
           <p
-            className="mt-1 font-mono text-lg font-bold"
+            className="mt-1 flex items-center gap-1.5 font-mono text-lg font-bold"
             style={{ color: dimContrast >= 4.5 ? 'var(--eter-success)' : 'var(--eter-danger)' }}
           >
-            {dimContrast.toFixed(1)}:1 {dimContrast >= 4.5 ? '✓' : '— za mało'}
+            <Icon name={dimContrast >= 4.5 ? 'tick' : 'warning'} size={16} />
+            {dimContrast.toFixed(1)}:1{dimContrast >= 4.5 ? '' : ' — za mało'}
           </p>
           <span className="text-xs text-ink-dim">Podpowiedzi, etykiety, opisy kart</span>
         </div>
@@ -92,7 +92,7 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
                 return (
                   <div
                     key={field.key}
-                    className="rounded-lg border border-edge bg-surface p-2"
+                    className="eter-rise rounded-lg border border-edge bg-surface p-2 transition hover:border-ink-dim"
                   >
                     <span className="block text-xs">{field.label}</span>
                     <div className="mt-1.5 flex items-center gap-2">

@@ -96,12 +96,82 @@
   background: var(--eter-danger);
 }
 
+/*
+ * Animacje.
+ *
+ * Jedna krzywa (--eter-ease) i trzy długości dla całej aplikacji — ruch ma
+ * być spójny, nie efektowny. Wszystko poniżej wyłącza się przy
+ * prefers-reduced-motion.
+ */
+:root {
+  --eter-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --eter-fast: 160ms;
+  --eter-normal: 260ms;
+  --eter-slow: 420ms;
+}
+
+@keyframes eter-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes eter-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes eter-pop {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes eter-slide-left {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes eter-deal {
+  from { opacity: 0; transform: translateY(24px) rotate(-4deg) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+.eter-fade-in { animation: eter-fade-in var(--eter-normal) var(--eter-ease) both; }
+.eter-rise { animation: eter-rise var(--eter-normal) var(--eter-ease) both; }
+.eter-pop { animation: eter-pop var(--eter-fast) var(--eter-ease) both; }
+.eter-slide-left { animation: eter-slide-left var(--eter-normal) var(--eter-ease) both; }
+
+/* Rozdanie kart — opóźnienie ustawiane inline przez --eter-delay. */
+.eter-deal {
+  animation: eter-deal var(--eter-slow) var(--eter-ease) both;
+  animation-delay: var(--eter-delay, 0ms);
+}
+
+/* Wejście listy: każdy element wchodzi chwilę po poprzednim. */
+.eter-stagger > * {
+  animation: eter-rise var(--eter-normal) var(--eter-ease) both;
+}
+.eter-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.eter-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.eter-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.eter-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.eter-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.eter-stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
+
+/* Pulsowanie dla elementu wymagającego uwagi — np. ostatnia runda. */
+@keyframes eter-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.eter-pulse { animation: eter-pulse 1.6s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,4 +1,5 @@
 import { UI_TEXT_FIELDS, type UiText } from '../data/uiText';
+import { TextArea, TextField } from '../ui/controls/Field';
 
 interface TextEditorProps {
   text: UiText;
@@ -14,30 +15,24 @@ export function TextEditor({ text, onChange }: TextEditorProps) {
         Nagłówki, przyciski i komunikaty. Zmiany widać po odświeżeniu gry.
       </p>
 
-      <div className="mt-4 space-y-3">
-        {UI_TEXT_FIELDS.map((field) => (
-          <label
-            key={field.key}
-            className="block rounded-lg border border-edge bg-surface p-3"
-          >
-            <span className="text-sm font-semibold">{field.label}</span>
-            <span className="ml-2 font-mono text-[10px] text-ink-dim">{field.where}</span>
-            {field.multiline ? (
-              <textarea
+      <div className="eter-stagger mt-4 space-y-3">
+        {UI_TEXT_FIELDS.map((field) => {
+          const Control = field.multiline ? TextArea : TextField;
+          return (
+            <div key={field.key} className="rounded-lg border border-edge bg-surface p-3">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-sm font-semibold">{field.label}</span>
+                <span className="font-mono text-[10px] text-ink-dim">{field.where}</span>
+              </div>
+              <Control
+                className="mt-1.5"
+                aria-label={field.label}
                 value={text[field.key]}
                 onChange={(e) => onChange({ ...text, [field.key]: e.target.value })}
-                rows={3}
-                className="mt-1.5 w-full rounded border border-edge bg-bg px-2 py-1.5 text-sm text-ink"
               />
-            ) : (
-              <input
-                value={text[field.key]}
-                onChange={(e) => onChange({ ...text, [field.key]: e.target.value })}
-                className="mt-1.5 w-full rounded border border-edge bg-bg px-2 py-1.5 text-sm text-ink"
-              />
-            )}
-          </label>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
