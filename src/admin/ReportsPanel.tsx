@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   addReport,
+  deleteReport,
   loadReports,
   setReportStatus,
   type Report,
@@ -11,6 +12,7 @@ import { Button } from '../ui/controls/Button';
 import { TextArea, TextField } from '../ui/controls/Field';
 import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
+import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon } from '../ui/icons/Icon';
 
 const KIND_OPTIONS = [
@@ -40,6 +42,7 @@ function formatDate(iso: string): string {
  */
 export function ReportsPanel() {
   const toast = useToast();
+  const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,12 +94,31 @@ export function ReportsPanel() {
     );
   };
 
+  const remove = async (report: Report) => {
+    const confirmed = await confirm({
+      title: 'Usunąć zgłoszenie?',
+      message: `„${report.title}" zniknie na dobre. Tego nie da się cofnąć.`,
+      confirmLabel: 'Usuń',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteReport(report.id);
+      setReports((prev) => prev.filter((r) => r.id !== report.id));
+      toast('Zgłoszenie usunięte.');
+    } catch {
+      toast('Nie udało się usunąć. Sprawdź, czy jesteś zalogowany.', 'danger');
+    }
+  };
+
   const open = reports.filter((r) => r.status === 'new');
   const done = reports.filter((r) => r.status === 'done');
   const visible = showDone ? done : open;
 
   return (
     <section>
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Zgłoszenia</h2>
         <Button size="sm" icon="undo" onClick={() => void refresh()}>
@@ -211,14 +233,24 @@ export function ReportsPanel() {
                   </span>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant={report.status === 'new' ? 'secondary' : 'ghost'}
-                  icon={report.status === 'new' ? 'tick' : 'undo'}
-                  onClick={() => void toggleStatus(report)}
-                >
-                  {report.status === 'new' ? 'Załatwione' : 'Otwórz ponownie'}
-                </Button>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    size="sm"
+                    variant={report.status === 'new' ? 'secondary' : 'ghost'}
+                    icon={report.status === 'new' ? 'tick' : 'undo'}
+                    onClick={() => void toggleStatus(report)}
+                  >
+                    {report.status === 'new' ? 'Załatwione' : 'Otwórz ponownie'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="trash"
+                    aria-label={`Usuń zgłoszenie: ${report.title}`}
+                    className="text-danger"
+                    onClick={() => void remove(report)}
+                  />
+                </div>
               </div>
 
               {report.description && (

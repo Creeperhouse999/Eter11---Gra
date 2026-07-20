@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   orderBy,
@@ -74,6 +75,11 @@ export async function loadReports(): Promise<Report[]> {
       createdAt: (data.createdAt as string) ?? '',
     };
   });
+}
+
+/** Trwałe usunięcie zgłoszenia. Wymaga konta administracyjnego. */
+export async function deleteReport(id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTION, id));
 }
 
 export async function setReportStatus(
