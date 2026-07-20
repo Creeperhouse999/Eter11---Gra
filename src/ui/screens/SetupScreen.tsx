@@ -4,7 +4,6 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { Button } from '../controls/Button';
 import { Icon, type IconName } from '../icons/Icon';
-import { hasSeenTutorial } from '../tutorial/useTutorial';
 import type { PlayerSetup } from '../useGame';
 
 interface SetupScreenProps {
@@ -35,7 +34,6 @@ export function SetupScreen({
   characters = ALL_CHARACTERS,
   text = DEFAULT_UI_TEXT,
 }: SetupScreenProps) {
-  const seenTutorial = hasSeenTutorial();
   const [drafts, setDrafts] = useState<Draft[]>(() => [
     { name: '', characterId: characters[0].id },
     { name: '', characterId: characters[Math.min(3, characters.length - 1)].id },
@@ -106,9 +104,7 @@ export function SetupScreen({
             Naucz mnie grać
           </span>
           <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
-            {seenTutorial
-              ? 'Znasz zasady, ale możesz powtórzyć. Grasz sam, zajmie kilka minut.'
-              : 'ETER11 poprowadzi Cię krok po kroku. Grasz sam, zajmie kilka minut.'}
+            ETER11 poprowadzi Cię krok po kroku. Grasz sam, zajmie kilka minut.
           </span>
         </span>
         <span className="shrink-0 text-ink-dim">
@@ -176,15 +172,17 @@ export function SetupScreen({
                       title={`${character.name} — ${character.traits}${
                         takenBy >= 0 ? ` (wybrał gracz ${takenBy + 1})` : ''
                       }`}
+                      // Postać zajęta przez kogoś innego jest niedostępna:
+                      // przygaszona i klikalna zarazem myliłaby.
+                      disabled={takenBy >= 0}
                       onClick={() => update(index, { characterId: character.id })}
                       className={[
                         'flex h-10 w-10 items-center justify-center rounded-lg border transition',
                         active
                           ? 'border-accent bg-raised text-accent'
-                          : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
-                        // Ta sama postać u dwóch graczy jest dozwolona,
-                        // ale warto to zaznaczyć.
-                        takenBy >= 0 && !active ? 'opacity-40' : '',
+                          : takenBy >= 0
+                            ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
+                            : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
                       ].join(' ')}
                     >
                       <Icon name={character.icon as IconName} size={20} />

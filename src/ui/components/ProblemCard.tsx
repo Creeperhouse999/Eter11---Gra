@@ -79,6 +79,7 @@ export function ProblemCard({
             ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
             : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
         }
+        data-slot={dropId}
         {...(dropTargetProps?.(dropId) ?? {})}
         className={[
           'flex min-h-[8.5rem] flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',

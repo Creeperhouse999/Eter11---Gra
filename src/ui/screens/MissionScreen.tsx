@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { cardFitsSlot } from '../../engine/rules';
@@ -25,6 +25,8 @@ interface MissionScreenProps {
     cardSelected: boolean;
     swapMode: boolean;
     swapSelected: number;
+    targetSlot: string | null;
+    handChanged: boolean;
   }) => void;
   /**
    * Samouczek blokuje ruchy spoza bieżącego kroku, żeby gracz nie wyprzedził
@@ -67,6 +69,12 @@ export function MissionScreen({
 
   const activePlayer = state.players[state.activePlayerIndex];
 
+  // Ręka z początku misji — po wymianie pojawią się karty spoza tego zbioru.
+  const startingHand = useRef<Set<string> | null>(null);
+  if (startingHand.current === null && activePlayer) {
+    startingHand.current = new Set(activePlayer.hand.map((c) => c.id));
+  }
+
   // Zmiana gracza zakrywa karty — bez tego następny gracz zobaczyłby cudzą rękę.
   useEffect(() => {
     setHandRevealed(alwaysRevealed);
@@ -77,13 +85,42 @@ export function MissionScreen({
 
   // Samouczek musi wiedzieć, czy karty są odkryte i czy któraś jest wybrana.
   useEffect(() => {
+    // Pierwsza wolna ścianka pasująca do wybranej karty — samouczek ją
+    // podświetla. Bez wybranej karty: pierwsza, którą da się zamknąć czymś
+    // z ręki.
+    const findTarget = (): string | null => {
+      const mission = state.mission;
+      if (!mission) return null;
+
+      const candidates = selected ? [selected.card] : activePlayer?.hand ?? [];
+
+      for (const problem of mission.problems) {
+        for (const slot of problem.slots) {
+          const filled =
+            mission.played.filter(
+              (p) => p.problemId === problem.id && p.slotKey === slot.key,
+            ).length > 0;
+          if (filled) continue;
+
+          if (candidates.some((card) => cardFitsSlot(card, slot.key, slot.family))) {
+            return `${problem.id}:${slot.key}`;
+          }
+        }
+      }
+      return null;
+    };
+
     onContext?.({
       handRevealed,
       cardSelected: selected !== null,
       swapMode,
       swapSelected: toSwap.length,
+      targetSlot: findTarget(),
+      handChanged: startingHand.current
+        ? activePlayer?.hand.some((c) => !startingHand.current!.has(c.id)) ?? false
+        : false,
     });
-  }, [onContext, handRevealed, selected, swapMode, toSwap.length]);
+  }, [onContext, handRevealed, selected, swapMode, toSwap.length, state.mission, activePlayer]);
 
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
@@ -265,6 +302,23 @@ export function MissionScreen({
                       key={card.id}
                       card={card}
                       dealIndex={index}
+                      // Samouczek podświetla dokładnie tę kartę, którą trzeba
+                      // złapać — nie całą rękę.
+                      data-tour={
+                        !swapMode &&
+                        !selected &&
+                        mission.problems.some((problem) =>
+                          problem.slots.some(
+                            (slot) =>
+                              cardFitsSlot(card, slot.key, slot.family) &&
+                              mission.played.filter(
+                                (p) => p.problemId === problem.id && p.slotKey === slot.key,
+                              ).length === 0,
+                          ),
+                        )
+                          ? 'playable-card'
+                          : undefined
+                      }
                       selected={
                         swapMode
                           ? toSwap.includes(card.id)

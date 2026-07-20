@@ -9,6 +9,13 @@ export interface TutorialContext {
   swapMode: boolean;
   /** Ile kart zaznaczono do wymiany — samouczek prowadzi przez ten wybór. */
   swapSelected: number;
+  /**
+   * Ścianka, do której pasuje wybrana karta — `problemId:slotKey`.
+   * Podświetlamy ją zamiast całej planszy, żeby gracz wiedział, gdzie ciągnąć.
+   */
+  targetSlot: string | null;
+  /** Ręka zmieniła się od startu misji — dowód, że wymiana się odbyła. */
+  handChanged: boolean;
 }
 
 /**
@@ -19,9 +26,12 @@ export interface TutorialContext {
  * podświetlenie zostawałoby na przycisku, który znika po włączeniu trybu.
  */
 function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null {
-  // Po wybraniu karty uwaga przenosi się na ścianki — to o nich mówi
-  // pochwała i to tam gracz ma za chwilę kliknąć.
-  if (goal === 'selectCard' && context.cardSelected) return '[data-tour="problem"]';
+  // Po wybraniu karty celujemy w konkretną ściankę, nie w całą planszę:
+  // przy pięciu ściankach wokół karty „gdzieś tam" nie wystarcza.
+  if (context.targetSlot && (goal === 'selectCard' || goal === 'playFirst' ||
+      goal === 'playSecond' || goal === 'playAfterSwap' || goal === 'finish')) {
+    return `[data-slot="${context.targetSlot}"]`;
+  }
 
   if (goal === 'swapCards') {
     if (!context.swapMode) return '[data-tour="swap"]';
@@ -30,10 +40,10 @@ function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null 
 
   const anchors: Record<Exclude<TutorialGoal, 'swapCards'>, string> = {
     intro: '[data-tour="problem"]',
-    selectCard: '[data-tour="hand"]',
+    selectCard: '[data-tour="playable-card"]',
     playFirst: '[data-tour="problem"]',
     playSecond: '[data-tour="problem"]',
-    playAfterSwap: '[data-tour="hand"]',
+    playAfterSwap: '[data-tour="playable-card"]',
     finish: '[data-tour="problem"]',
     takeCard: '[data-tour="take-card"]',
   };
@@ -65,9 +75,10 @@ function isGoalMet(
     case 'playSecond':
       return played >= 2;
     case 'swapCards':
-      // Wymiana czyści się na nowej rundzie, więc liczy się też to,
-      // że gracz zdążył już zagrać kartę po wymianie.
-      return swapped > 0 || played >= 3;
+      // `swappedThisRound` czyści się z nową rundą, a wymiana kończy turę —
+      // więc sama flaga zgasłaby, zanim krok zostałby zaliczony. Liczy się
+      // też ręka: po wymianie gracz ma karty, których wcześniej nie miał.
+      return swapped > 0 || played >= 3 || context.handChanged;
     case 'playAfterSwap':
       return played >= 3;
     case 'finish':

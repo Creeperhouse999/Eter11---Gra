@@ -77,6 +77,8 @@ function RunningGame({
     cardSelected: false,
     swapMode: false,
     swapSelected: 0,
+    targetSlot: null,
+    handChanged: false,
   });
 
   const tour = useTutorial(tutorial, state, tourContext, onTutorialFinish);
@@ -85,10 +87,10 @@ function RunningGame({
     return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
   }
 
-  // Samouczek pokazuje podsumowanie misji — tam gracz uczy się zabierania
-  // karty na postać. Kończy się dopiero po tym kroku, zamiast wpuszczać
-  // w kolejny problem.
-  if (tutorial && state.missionNumber > 0 && state.phase === 'setup') {
+  // Samouczek kończy się, gdy problem zostanie rozwiązany. Sprawdzamy stos
+  // rozwiązanych, nie fazę: faza `setup` to ekran „kolejna misja", który
+  // w samouczku nie powinien się w ogóle pojawić.
+  if (tutorial && state.solvedProblems.length > 0) {
     return <TutorialDone onBack={onRestart} />;
   }
 

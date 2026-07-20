@@ -1,5 +1,6 @@
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -11,7 +12,26 @@ import {
 import { db } from './client';
 
 export type ReportKind = 'bug' | 'idea';
-export type ReportStatus = 'new' | 'done';
+
+/**
+ * Obieg zgłoszenia.
+ *
+ * - `new` — zgłoszone, czeka na programistę
+ * - `fixed` — programista twierdzi, że naprawione; czeka na sprawdzenie
+ * - `rejected` — zgłaszający sprawdził i dalej nie działa; wraca do naprawy
+ * - `done` — zgłaszający potwierdził, że działa
+ *
+ * Rozdzielenie `fixed` i `done` jest sednem: naprawiający nie zamyka
+ * własnego zgłoszenia. Zamyka je ten, kto je napisał.
+ */
+export type ReportStatus = 'new' | 'fixed' | 'rejected' | 'done';
+
+export interface ReportNote {
+  /** Kto pisze: programista czy zgłaszający. */
+  from: 'dev' | 'reporter';
+  text: string;
+  at: string;
+}
 
 export interface Report {
   id: string;
@@ -19,20 +39,14 @@ export interface Report {
   title: string;
   description: string;
   status: ReportStatus;
-  /** Kto zgłosił — pole opcjonalne, wpisywane ręcznie. */
   author?: string;
   createdAt: string;
+  /** Rozmowa o zgłoszeniu: co naprawiono, co dalej nie działa. */
+  notes?: ReportNote[];
 }
 
 const COLLECTION = 'reports';
 
-/**
- * Zgłoszenia błędów i pomysłów od zespołu.
- *
- * Osobna kolekcja od zawartości gry: zapis jest tu otwarty dla wszystkich,
- * bo zespół merytoryczny nie ma kont, a odczyt wymaga zalogowania — inaczej
- * zgłoszenia byłyby widoczne dla graczy.
- */
 export async function addReport(input: {
   kind: ReportKind;
   title: string;
@@ -50,6 +64,7 @@ export async function addReport(input: {
       author: input.author?.trim() || null,
       status: 'new' satisfies ReportStatus,
       createdAt: new Date().toISOString(),
+      notes: [],
     });
     return { ok: true };
   } catch (error) {
@@ -73,18 +88,39 @@ export async function loadReports(): Promise<Report[]> {
       status: (data.status as ReportStatus) ?? 'new',
       author: (data.author as string) ?? undefined,
       createdAt: (data.createdAt as string) ?? '',
+      notes: (data.notes as ReportNote[]) ?? [],
     };
+  });
+}
+
+/**
+ * Zmiana statusu, opcjonalnie z komentarzem.
+ *
+ * Komentarz dopisywany jest do listy, nie nadpisuje poprzednich — historia
+ * zgłoszenia zostaje w całości, żeby dało się prześledzić, co już próbowano.
+ */
+export async function setReportStatus(
+  id: string,
+  status: ReportStatus,
+  note?: { from: ReportNote['from']; text: string },
+): Promise<void> {
+  const text = note?.text.trim();
+
+  await updateDoc(doc(db, COLLECTION, id), {
+    status,
+    ...(text
+      ? {
+          notes: arrayUnion({
+            from: note!.from,
+            text,
+            at: new Date().toISOString(),
+          }),
+        }
+      : {}),
   });
 }
 
 /** Trwałe usunięcie zgłoszenia. Wymaga konta administracyjnego. */
 export async function deleteReport(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
-}
-
-export async function setReportStatus(
-  id: string,
-  status: ReportStatus,
-): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), { status });
 }

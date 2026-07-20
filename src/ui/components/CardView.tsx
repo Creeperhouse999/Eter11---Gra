@@ -24,6 +24,8 @@ interface CardViewProps {
   dragHandlers?: CardDragHandlers;
   /** Ta karta jest właśnie przeciągana — zostaje po niej ślad. */
   beingDragged?: boolean;
+  /** Znacznik dla samouczka — podświetla dokładnie tę kartę. */
+  'data-tour'?: string;
 }
 
 /**
@@ -46,6 +48,7 @@ export function CardView({
   dealIndex,
   dragHandlers,
   beingDragged,
+  ...rest
 }: CardViewProps) {
   const color = categoryColorVar(card.category);
   const interactive = Boolean(onClick) && !disabled;
@@ -60,6 +63,7 @@ export function CardView({
       disabled={disabled || !onClick}
       aria-pressed={onClick ? Boolean(selected) : undefined}
       {...(draggable ? dragHandlers : {})}
+      {...rest}
       className={[
         'group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',
         dealIndex === undefined ? '' : 'eter-deal',

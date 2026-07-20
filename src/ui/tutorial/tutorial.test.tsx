@@ -40,6 +40,8 @@ const idle: TutorialContext = {
   cardSelected: false,
   swapMode: false,
   swapSelected: 0,
+  targetSlot: null,
+  handChanged: false,
 };
 
 beforeEach(() => {
@@ -203,6 +205,43 @@ describe('useTutorial — kroki', () => {
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.anchor).toBe('[data-tour="swap-confirm"]');
     expect(result.current.message).toMatch(/Wymień 2/);
+  });
+
+  it('krok wymiany kończy się mimo nowej rundy', () => {
+    // Regresja: `swappedThisRound` czyści się z nową rundą, a wymiana kończy
+    // turę — samouczek pętlił się na tym kroku w nieskończoność.
+    const state = tutorialGame();
+    const swapIndex = TUTORIAL_STEPS.findIndex((s) => s.goal === 'swapCards');
+
+    const { result, rerender } = renderHook(
+      ({ ctx }) => useTutorial(true, state, ctx, vi.fn()),
+      { initialProps: { ctx: idle } },
+    );
+
+    for (let i = 0; i < swapIndex; i += 1) {
+      rerender({ ctx: { ...idle, cardSelected: true } });
+      act(() => result.current.active && result.current.next());
+    }
+
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.step.goal).toBe('swapCards');
+    expect(result.current.done).toBe(false);
+
+    // Ręka zmieniona = wymiana się odbyła, choć licznik rundy już się zresetował.
+    rerender({ ctx: { ...idle, handChanged: true } });
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.done).toBe(true);
+  });
+
+  it('podświetla konkretną ściankę, nie całą planszę', () => {
+    const { result, rerender } = setup();
+
+    act(() => result.current.active && result.current.next());
+    act(() => result.current.active && result.current.next());
+
+    rerender({ ctx: { ...idle, cardSelected: true, targetSlot: 'tutorial-1:mentor' } });
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.anchor).toBe('[data-slot="tutorial-1:mentor"]');
   });
 
   it('ostatni krok uczy zabierania karty na postać', () => {
