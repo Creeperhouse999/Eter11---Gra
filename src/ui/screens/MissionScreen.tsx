@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
+import { pendingBlackSwan } from '../../engine/reducer';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { CardView } from '../components/CardView';
@@ -125,6 +126,9 @@ export function MissionScreen({
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
 
+  // Dobrany Czarny Łabędź blokuje inne ruchy — trzeba go najpierw zagrać.
+  const swanInHand = pendingBlackSwan(activePlayer);
+
   const matUsed = mission.matUsedBy.filter((id) => id === activePlayer.id).length;
   const canUseMat = matUsed < state.config.maxMatCardsPerMission;
 
@@ -175,6 +179,30 @@ export function MissionScreen({
   const canPlay = (card: Card, slotKey: SlotKey, family: FamilyId) =>
     allowed('play') && cardFitsSlot(card, slotKey, family);
 
+  /**
+   * Podwójne kliknięcie zagrywa kartę na pierwszą pasującą, wolną ściankę.
+   * Skrót dla graczy, którym przeciąganie i wybieranie ścianki zajmuje
+   * za dużo ruchów — przy jednej pasującej ściance wybór i tak jest oczywisty.
+   */
+  const quickPlay = (card: Card, fromMat: boolean) => {
+    if (!allowed('play')) return;
+
+    for (const problem of mission.problems) {
+      for (const slot of problem.slots) {
+        const filled =
+          mission.played.filter(
+            (p) => p.problemId === problem.id && p.slotKey === slot.key,
+          ).length > 0;
+        if (filled) continue;
+
+        if (cardFitsSlot(card, slot.key, slot.family)) {
+          play(card, fromMat, problem.id, slot.key);
+          return;
+        }
+      }
+    }
+  };
+
   // Miejsca przy stole: aktywny gracz na dole, pozostali wokół karty problemu.
   const others = state.players.filter((p) => p.id !== activePlayer.id);
   const [left, top, right] = others;
@@ -211,7 +239,12 @@ export function MissionScreen({
         </div>
       </header>
 
-      {/* Podpowiedź prowadząca przez turę — zmienia się z sytuacją na stole. */}
+      {/*
+        Podpowiedź prowadząca przez turę.
+        W samouczku milczy: ETER11 mówi już swoje, a dwa źródła podpowiedzi
+        potrafiły przeczyć sobie nawzajem.
+      */}
+      {!alwaysRevealed && (
       <div className="relative mb-4">
         <Coach
           state={state}
@@ -221,11 +254,35 @@ export function MissionScreen({
           swapMode={swapMode}
         />
       </div>
+      )}
 
       {rejection && (
         <div className="relative mb-4">
           <Alert tone="danger" onDismiss={dismissRejection}>
             {rejection}
+          </Alert>
+        </div>
+      )}
+
+      {swanInHand && handRevealed && (
+        <div className="relative mb-4">
+          <Alert tone="danger" title="Czarny Łabędź!">
+            <p className="leading-relaxed">{swanInHand.description}</p>
+            <Button
+              variant="danger"
+              size="sm"
+              icon="swan"
+              className="mt-2"
+              onClick={() =>
+                dispatch({
+                  type: 'PLAY_BLACK_SWAN',
+                  playerId: activePlayer.id,
+                  cardId: swanInHand.id,
+                })
+              }
+            >
+              Odkrywam Czarnego Łabędzia
+            </Button>
           </Alert>
         </div>
       )}
@@ -329,6 +386,9 @@ export function MissionScreen({
                           ? () => toggleSwap(card.id)
                           : () => setSelected({ card, fromMat: false })
                       }
+                      onDoubleClick={
+                        swapMode ? undefined : () => quickPlay(card, false)
+                      }
                       // W trybie wymiany klik zaznacza kartę — przeciąganie
                       // myliłoby się z zagrywaniem.
                       dragHandlers={
@@ -353,6 +413,11 @@ export function MissionScreen({
             ) : (
               <p className="mt-3 text-sm text-ink-dim">
                 {text.missionHandHidden} {activePlayer.name}.
+                {swanInHand && (
+                  <span className="mt-1 block text-danger">
+                    Uwaga: w tej ręce jest Czarny Łabędź.
+                  </span>
+                )}
               </p>
             )}
 
@@ -371,10 +436,31 @@ export function MissionScreen({
                       : `Wymień ${toSwap.length}`}
                   </Button>
                   <Button
-                    onClick={() => setToSwap(activePlayer.hand.map((c) => c.id))}
-                    disabled={toSwap.length === activePlayer.hand.length}
+                    onClick={() =>
+                      // Zaznaczamy tylko karty nieprzydatne — zaznaczenie
+                      // wszystkich potrafiło oddać jedyną kartę pasującą
+                      // do wolnej ścianki i zablokować misję.
+                      setToSwap(
+                        activePlayer.hand
+                          .filter(
+                            (card) =>
+                              !mission.problems.some((problem) =>
+                                problem.slots.some(
+                                  (slot) =>
+                                    cardFitsSlot(card, slot.key, slot.family) &&
+                                    mission.played.filter(
+                                      (p) =>
+                                        p.problemId === problem.id &&
+                                        p.slotKey === slot.key,
+                                    ).length === 0,
+                                ),
+                              ),
+                          )
+                          .map((c) => c.id),
+                      )
+                    }
                   >
-                    Zaznacz wszystkie
+                    Zaznacz nieprzydatne
                   </Button>
                   <Button
                     variant="ghost"
@@ -388,13 +474,13 @@ export function MissionScreen({
                 </>
               ) : (
                 <>
-                  <Button onClick={pass} disabled={!allowed('pass')}>
+                  <Button onClick={pass} disabled={!allowed('pass') || Boolean(swanInHand)}>
                     Pasuję
                   </Button>
                   <Button
                     icon="undo"
                     data-tour="swap"
-                    disabled={!handRevealed || !allowed('swap')}
+                    disabled={!handRevealed || !allowed('swap') || Boolean(swanInHand)}
                     title={handRevealed ? undefined : 'Najpierw odkryj karty'}
                     onClick={() => {
                       setSwapMode(true);

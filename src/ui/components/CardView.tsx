@@ -16,6 +16,8 @@ interface CardViewProps {
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  /** Podwójne kliknięcie — skrót zagrania bez wybierania ścianki. */
+  onDoubleClick?: () => void;
   /** Wariant kompaktowy — karty wyłożone na stół. */
   compact?: boolean;
   /** Kolejność w rozdaniu — karty wchodzą jedna po drugiej. */
@@ -44,6 +46,7 @@ export function CardView({
   selected,
   disabled,
   onClick,
+  onDoubleClick,
   compact,
   dealIndex,
   dragHandlers,
@@ -60,6 +63,7 @@ export function CardView({
     <button
       type="button"
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       disabled={disabled || !onClick}
       aria-pressed={onClick ? Boolean(selected) : undefined}
       {...(draggable ? dragHandlers : {})}

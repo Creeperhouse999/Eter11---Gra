@@ -208,3 +208,43 @@ describe('END_MISSION_SUMMARY', () => {
     expect(player.mat.map((c) => c.id)).toContain(play.card.id);
   });
 });
+
+describe('luki w przekazywaniu i zabieraniu kart', () => {
+  it('karta zabrana na matę nie może być potem przekazana', () => {
+    let state = solvedMission();
+    const play = state.mission!.played.find((p) => p.card.category === 'psychological')!;
+    const otherId = state.players.find((p) => p.id !== play.playerId)!.id;
+
+    state = reduce(state, {
+      type: 'TAKE_CARD_TO_MAT', playerId: play.playerId, cardId: play.card.id,
+    }).state;
+
+    const result = reduce(state, {
+      type: 'SHARE_CARD', fromPlayerId: play.playerId,
+      toPlayerId: otherId, cardId: play.card.id,
+    });
+
+    // Bez tego jedna karta leżałaby na dwóch matach naraz.
+    expect(result.rejected).toBeTruthy();
+  });
+
+  it('nie da się wznowić gry po jej zakończeniu', () => {
+    let state = newGame();
+    // Skracamy grę do jednej misji, żeby szybko dojść do finału.
+    state = { ...state, config: { ...state.config, missionsPerGame: 1 } };
+    state = reduce(state, { type: 'START_MISSION' }).state;
+
+    let guard = 0;
+    while (state.mission?.phase === 'playing' && guard < 100) {
+      const playerId = state.players[state.activePlayerIndex].id;
+      state = reduce(state, { type: 'PASS', playerId }).state;
+      guard++;
+    }
+    state = reduce(state, { type: 'END_MISSION_SUMMARY' }).state;
+    expect(state.phase).toBe('finale');
+
+    const result = reduce(state, { type: 'START_MISSION' });
+    expect(result.rejected).toBeTruthy();
+    expect(result.state.phase).toBe('finale');
+  });
+});

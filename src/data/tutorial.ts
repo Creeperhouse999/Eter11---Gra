@@ -83,9 +83,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'swap',
     goal: 'swapCards',
     allow: ['swap'],
-    say: 'Uwaga — teraz żadna Twoja karta nie pasuje do wolnych ścianek. Tak też bywa. Wtedy wymieniasz karty: naciśnij „Wymieniam karty", zaznacz te nieprzydatne i potwierdź.',
+    say: 'Zostały Ci karty zielone — one nie pasują do żadnej ścianki tego problemu. Tak też bywa. Wtedy wymieniasz je na nowe: naciśnij „Wymieniam karty", zaznacz zielone i potwierdź.',
     praise: 'Właśnie tak. Wymiana kosztuje Twój ruch w tej rundzie, ale daje nowe karty.',
-    nudge: 'Przycisk „Wymieniam karty" jest na dole, obok „Pasuję".',
+    nudge: 'Przycisk „Wymieniam karty" jest na dole, obok „Pasuję". Zaznacz karty zielone.',
   },
   {
     id: 'after-swap',
@@ -151,8 +151,10 @@ const card = (
  * Ręka startowa: trzy karty czerwone pasujące do trzech ścianek, dwie
  * zielone, które nie pasują nigdzie.
  *
- * Po zagraniu trzech czerwonych zostają dwie zielone — i wtedy krok wymiany
- * ma sens, bo gracz naprawdę nie ma czym zagrać.
+ * Uwaga na mechanikę: przy jednym graczu każdy ruch kończy rundę, więc po
+ * każdym zagraniu gracz dobiera kartę. Talia samouczka jest dlatego pusta
+ * (patrz TUTORIAL_DECK) — inaczej po dwóch zagraniach miałby już karty
+ * niebieskie i krok „nic nie pasuje" byłby kłamstwem.
  */
 export const TUTORIAL_HAND: Card[] = [
   card('tut-men-red', 'Lider', 'mentor', 'red', 'flag', 'Bierze odpowiedzialność, gdy inni się wahają.'),
@@ -163,18 +165,20 @@ export const TUTORIAL_HAND: Card[] = [
 ];
 
 /**
- * Talia samouczka: same karty niebieskie pasujące do dwóch ostatnich ścianek.
+ * Talia samouczka: karty niebieskie na dwie ostatnie ścianki.
  *
- * Po wymianie gracz dostanie dokładnie to, czego potrzebuje — samouczek nie
- * może zależeć od szczęścia w losowaniu.
+ * Kolejność ma znaczenie. Przy jednym graczu każdy ruch kończy rundę,
+ * a koniec rundy rozdaje po karcie — więc gracz dobiera z tej talii także
+ * między zagraniami, nie tylko przy wymianie. Same karty niebieskie
+ * gwarantują, że dwie ostatnie ścianki da się zamknąć, a żadna dobrana
+ * karta nie unieważni kroku o wymianie: zielone z ręki i tak nie pasują
+ * do niczego, a niebieskie pasują dopiero do ścianek odsłoniętych na końcu.
  */
 export const TUTORIAL_DECK: Card[] = [
   card('tut-soc-blue-1', 'Krytyczne myślenie', 'social', 'blue', 'puzzle', 'Pyta „skąd to wiesz?" zanim uwierzy.'),
   card('tut-dig-blue-1', 'Analiza danych', 'digital', 'blue', 'chart', 'Znajduje wzory tam, gdzie inni widzą chaos.'),
   card('tut-soc-blue-2', 'Myślenie przyszłościowe', 'social', 'blue', 'telescope', 'Przewiduje skutki decyzji.'),
   card('tut-dig-blue-2', 'Projektant AI', 'digital', 'blue', 'network', 'Tworzy systemy, które pomagają ludziom.'),
-  card('tut-soc-blue-3', 'Rozwiązywanie problemów', 'social', 'blue', 'wrench', 'Rozkłada wielki problem na małe kroki.'),
-  card('tut-dig-blue-3', 'Mistrz Planowania', 'digital', 'blue', 'map', 'Wyznacza najlepszą trasę.'),
 ];
 
 /** Gracz samouczka. Jedna osoba — nikt nie czeka na swoją kolej. */

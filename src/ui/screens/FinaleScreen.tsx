@@ -6,13 +6,17 @@ import {
   playerScore,
   teamResult,
 } from '../../engine/scoring';
+import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
+import type { Character } from '../../engine/types';
+import { PlayerMat } from '../components/PlayerMat';
 import type { Game } from '../useGame';
 
 interface FinaleScreenProps {
   game: Game;
   onRestart: () => void;
   text?: UiText;
+  characters?: Character[];
 }
 
 const PROGRESS_LABELS: Record<string, string> = {
@@ -32,6 +36,7 @@ export function FinaleScreen({
   game,
   onRestart,
   text = DEFAULT_UI_TEXT,
+  characters = ALL_CHARACTERS,
 }: FinaleScreenProps) {
   const { state } = game;
   const jobExamples = text.finaleJobExamples
@@ -103,6 +108,16 @@ export function FinaleScreen({
               {playerTitles.length > 0 && (
                 <p className="mt-1 text-sm text-accent-2">{playerTitles.join(' · ')}</p>
               )}
+
+              {/* Karta postaci — zespół prosił, żeby na koniec było widać,
+                  co się uzbierało przez całą grę. */}
+              <div className="mt-3">
+                <PlayerMat
+                  player={player}
+                  character={characters.find((c) => c.id === player.characterId)}
+                  revealed
+                />
+              </div>
 
               <ul className="mt-3 grid gap-1 text-xs sm:grid-cols-2">
                 {Object.entries(progress).map(([key, done]) => (

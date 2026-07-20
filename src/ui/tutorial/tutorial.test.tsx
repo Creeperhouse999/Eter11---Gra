@@ -159,7 +159,7 @@ describe('useTutorial — kroki', () => {
     act(() => result.current.active && result.current.next());
     act(() => result.current.active && result.current.next());
 
-    rerender({ ctx: { ...idle, cardSelected: true } });
+    rerender({ ctx: { ...idle, cardSelected: true, targetSlot: 'tutorial-1:mentor' } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.allows('play')).toBe(true);
   });
@@ -205,6 +205,37 @@ describe('useTutorial — kroki', () => {
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.anchor).toBe('[data-tour="swap-confirm"]');
     expect(result.current.message).toMatch(/Wymień 2/);
+  });
+
+  it('nie chwali, gdy wybrana karta nie pasuje do żadnej ścianki', () => {
+    // Regresja: ETER11 mówił „ścianka zaświeciła" po kliknięciu dowolnej
+    // karty — także takiej, która nie pasuje nigdzie i nic nie podświetla.
+    const { result, rerender } = setup();
+
+    act(() => result.current.active && result.current.next());
+    act(() => result.current.active && result.current.next());
+
+    // Karta wybrana, ale bez pasującej ścianki.
+    rerender({ ctx: { ...idle, cardSelected: true, targetSlot: null } });
+
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.done).toBe(false);
+    expect(result.current.message).not.toMatch(/zaświeciła/);
+  });
+
+  it('chwali dopiero, gdy wybrana karta ma gdzie trafić', () => {
+    const { result, rerender } = setup();
+
+    act(() => result.current.active && result.current.next());
+    act(() => result.current.active && result.current.next());
+
+    rerender({
+      ctx: { ...idle, cardSelected: true, targetSlot: 'tutorial-1:mentor' },
+    });
+
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+    expect(result.current.done).toBe(true);
+    expect(result.current.message).toMatch(/zaświeciła/);
   });
 
   it('krok wymiany kończy się mimo nowej rundy', () => {

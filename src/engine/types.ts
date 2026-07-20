@@ -176,6 +176,8 @@ export type Action =
    * Puste `cardIds` to ruch pusty — odrzucany.
    */
   | { type: 'SWAP_HAND'; playerId: string; cardIds?: string[] }
+  /** Zagranie Czarnego Łabędzia z ręki — obowiązkowe, gdy gracz go dobierze. */
+  | { type: 'PLAY_BLACK_SWAN'; playerId: string; cardId: string }
   | { type: 'TAKE_CARD_TO_MAT'; playerId: string; cardId: string }
   | { type: 'SHARE_CARD'; fromPlayerId: string; toPlayerId: string; cardId: string }
   | { type: 'END_MISSION_SUMMARY' }

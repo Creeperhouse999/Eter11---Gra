@@ -1,7 +1,6 @@
 import type { Character, Player } from '../../engine/types';
 import { fulfillmentProgress } from '../../engine/scoring';
 import { Icon, type IconName } from '../icons/Icon';
-import { CardView } from './CardView';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
 
 interface PlayerMatProps {
@@ -68,12 +67,18 @@ export function PlayerMat({
         {active && <span className="eter-label text-accent">Twój ruch</span>}
       </header>
 
-      {/* Miejsca na karty zdobyte — po jednym na kategorię */}
-      <div className="mt-3 grid grid-cols-5 gap-1.5">
+      {/*
+        Miejsca na karty zdobyte — po jednym na kategorię.
+        Siatka skaluje się do szerokości kolumny: przy 240 px pięć kart
+        po 96 px nie zmieściłoby się i byłyby obcinane.
+      */}
+      <div className="mt-3 grid grid-cols-5 gap-1">
         {SLOTS.map((slot) => {
-          const card = player.mat.find((c) => c.category === slot.category);
+          // Gracz może zebrać kilka kart tej samej kategorii przez wiele
+          // misji — pokazujemy wszystkie, bo inaczej znikałyby bez śladu.
+          const cards = player.mat.filter((c) => c.category === slot.category);
+          const card = cards[0];
           const color = categoryColorVar(slot.category as never);
-          const received = card && player.receivedCardIds.includes(card.id);
 
           if (!card) {
             return (
@@ -91,32 +96,66 @@ export function PlayerMat({
             return (
               <div
                 key={slot.category}
-                title={categoryLabel(slot.category as never)}
-                className="flex aspect-[3/4] items-center justify-center rounded border"
+                title={`${categoryLabel(slot.category as never)}: ${cards.length}`}
+                className="relative flex aspect-[3/4] items-center justify-center rounded border"
                 style={{ borderColor: color, background: 'var(--eter-raised)', color }}
               >
                 <Icon name={slot.icon} size={compact ? 13 : 16} />
+                {cards.length > 1 && (
+                  <span className="absolute bottom-0 right-0.5 font-mono text-[9px]">
+                    {cards.length}
+                  </span>
+                )}
               </div>
             );
           }
 
           return (
-            <div key={slot.category} className="relative">
-              <CardView
-                card={card}
-                compact
-                disabled={cardsDisabled}
-                selected={selectedCardId === card.id}
-                onClick={onCardClick ? () => onCardClick(card.id) : undefined}
-              />
-              {received && (
-                <span
-                  title="Karta od innego gracza"
-                  className="absolute -right-1 -top-1 rounded-full bg-accent p-0.5 text-bg"
-                >
-                  <Icon name="handshake" size={10} />
-                </span>
-              )}
+            <div key={slot.category} className="flex flex-col gap-1">
+              {cards.map((matCard) => {
+                const fromOther = player.receivedCardIds.includes(matCard.id);
+                const familyColor = matCard.family
+                  ? `var(--eter-family-${matCard.family})`
+                  : color;
+
+                return (
+                  <div key={matCard.id} className="relative">
+                    <button
+                      type="button"
+                      title={`${matCard.name} — ${categoryLabel(matCard.category)}`}
+                      disabled={cardsDisabled || !onCardClick}
+                      onClick={onCardClick ? () => onCardClick(matCard.id) : undefined}
+                      className={[
+                        'flex aspect-[3/4] w-full flex-col items-center justify-center gap-0.5',
+                        'overflow-hidden rounded border p-1 text-center transition',
+                        cardsDisabled ? 'opacity-40' : '',
+                        onCardClick && !cardsDisabled ? 'cursor-pointer hover:brightness-125' : '',
+                      ].join(' ')}
+                      style={{
+                        borderColor:
+                          selectedCardId === matCard.id ? familyColor : 'var(--eter-edge)',
+                        borderWidth: selectedCardId === matCard.id ? 2 : 1,
+                        background: 'var(--eter-raised)',
+                        color: familyColor,
+                      }}
+                    >
+                      <Icon name={matCard.icon as IconName} size={compact ? 13 : 16} />
+                      <span className="line-clamp-2 text-[8px] leading-tight">
+                        {matCard.name}
+                      </span>
+                    </button>
+
+                    {fromOther && (
+                      <span
+                        title="Karta od innego gracza"
+                        className="absolute -right-0.5 -top-0.5 rounded-full bg-accent p-0.5 text-bg"
+                      >
+                        <Icon name="handshake" size={8} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}

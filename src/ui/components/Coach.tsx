@@ -73,6 +73,15 @@ function buildHint(props: CoachProps): Hint | null {
     };
   }
 
+  // Pusta ręka: wymiana nic nie da, bo nie ma czego wymieniać.
+  if (player.hand.length === 0) {
+    return {
+      icon: 'warning',
+      tone: 'warn',
+      text: 'Nie masz już kart, a talia się skończyła. Możesz tylko spasować — poczekaj na pozostałych graczy.',
+    };
+  }
+
   // Nic nie wybrano: czy w ogóle jest czym zagrać?
   const playable = player.hand.filter((card) =>
     mission.problems.some((problem) =>

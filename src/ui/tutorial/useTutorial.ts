@@ -69,7 +69,10 @@ function isGoalMet(
     case 'intro':
       return true;
     case 'selectCard':
-      return context.cardSelected || played > 0;
+      // Sama karta nie wystarcza: pochwała mówi „ścianka zaświeciła", więc
+      // musi istnieć ścianka, która ją przyjmie. Bez tego ETER11 chwalił
+      // wybór karty pasującej donikąd.
+      return (context.cardSelected && context.targetSlot !== null) || played > 0;
     case 'playFirst':
       return played >= 1;
     case 'playSecond':
@@ -82,7 +85,9 @@ function isGoalMet(
     case 'playAfterSwap':
       return played >= 3;
     case 'finish':
-      return state.mission?.phase === 'won' || state.phase === 'missionSummary';
+      // Tylko wygrana: `phase === 'missionSummary'` obejmuje też porażkę,
+      // a pochwała mówi „problem rozwiązany".
+      return state.mission?.phase === 'won';
     case 'takeCard':
       return (state.mission?.takenToMat.length ?? 0) > 0;
   }
@@ -92,6 +97,19 @@ function isGoalMet(
  * Wymiana ma trzy etapy i na każdym trzeba powiedzieć co innego.
  * Zwraca null, gdy krok nie dotyczy wymiany — wtedy używamy tekstu z kroku.
  */
+/**
+ * Gracz wybrał kartę, która nie pasuje do żadnej wolnej ścianki.
+ * Bez tego komunikatu samouczek stałby w miejscu bez wyjaśnienia dlaczego.
+ */
+function wrongCardMessage(goal: TutorialGoal, context: TutorialContext): string | null {
+  const picking = goal === 'selectCard' || goal === 'playFirst' ||
+    goal === 'playSecond' || goal === 'playAfterSwap' || goal === 'finish';
+
+  if (!picking || !context.cardSelected || context.targetSlot !== null) return null;
+
+  return 'Ta karta nie pasuje do żadnej wolnej ścianki — jej kolor nie zgadza się z żadnym. Wybierz inną.';
+}
+
 function swapStageMessage(goal: TutorialGoal, context: TutorialContext): string | null {
   if (goal !== 'swapCards' || !context.swapMode) return null;
 
@@ -210,7 +228,8 @@ export function useTutorial(
     message:
       done && !step.readOnly
         ? step.praise
-        : swapStageMessage(step.goal, context) ??
+        : wrongCardMessage(step.goal, context) ??
+          swapStageMessage(step.goal, context) ??
           (stuck && step.nudge ? step.nudge : step.say),
     // Podświetlenie zostaje także przy pochwale: ETER11 mówi „ścianka
     // zaświeciła", więc musi być co pokazać, gdy to mówi.

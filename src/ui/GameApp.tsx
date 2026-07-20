@@ -39,14 +39,12 @@ function RunningGame({
   content,
   tutorial,
   onRestart,
-  onTutorialFinish,
 }: {
   players: PlayerSetup[];
   seed: number;
   content: GameAppContent;
   tutorial: boolean;
   onRestart: () => void;
-  onTutorialFinish: () => void;
 }) {
   const text = content.text ?? DEFAULT_UI_TEXT;
   // Samouczek gra na własnym scenariuszu: jeden gracz, ustawiona ręka
@@ -72,6 +70,13 @@ function RunningGame({
     }
   }, [tutorial, state.phase, state.missionNumber, dispatch]);
 
+  /**
+   * Samouczek dobiegł końca. Osobny stan, bo flaga `tutorial` gaśnie
+   * w momencie kliknięcia „Zaczynamy grę" — warunek oparty na niej nigdy
+   * by nie zadziałał.
+   */
+  const [tutorialDone, setTutorialDone] = useState(false);
+
   const [tourContext, setTourContext] = useState<TutorialContext>({
     handRevealed: false,
     cardSelected: false,
@@ -81,16 +86,20 @@ function RunningGame({
     handChanged: false,
   });
 
-  const tour = useTutorial(tutorial, state, tourContext, onTutorialFinish);
+  const tour = useTutorial(tutorial, state, tourContext, () => setTutorialDone(true));
 
   if (state.phase === 'finale') {
-    return <FinaleScreen game={game} text={text} onRestart={onRestart} />;
+    return (
+      <FinaleScreen
+        game={game}
+        text={text}
+        characters={content.characters ?? ALL_CHARACTERS}
+        onRestart={onRestart}
+      />
+    );
   }
 
-  // Samouczek kończy się, gdy problem zostanie rozwiązany. Sprawdzamy stos
-  // rozwiązanych, nie fazę: faza `setup` to ekran „kolejna misja", który
-  // w samouczku nie powinien się w ogóle pojawić.
-  if (tutorial && state.solvedProblems.length > 0) {
+  if (tutorialDone) {
     return <TutorialDone onBack={onRestart} />;
   }
 
@@ -175,9 +184,6 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           content={content}
           tutorial={session.tutorial}
           onRestart={() => setSession(null)}
-          onTutorialFinish={() =>
-            setSession((current) => (current ? { ...current, tutorial: false } : null))
-          }
         />
       ) : (
         <SetupScreen

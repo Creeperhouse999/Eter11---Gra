@@ -93,6 +93,9 @@ function updatePlayer(
 }
 
 function startMission(state: GameState): ReducerResult {
+  if (state.phase === 'finale') {
+    return reject(state, 'Gra już się zakończyła.');
+  }
   if (state.mission && state.mission.phase === 'playing') {
     return reject(state, 'Misja już trwa.');
   }
@@ -202,6 +205,11 @@ function playCard(
   const player = state.players.find((p) => p.id === action.playerId);
   if (!player) return reject(state, 'Nieznany gracz.');
 
+  // Dobrany Czarny Łabędź trzeba zagrać, zanim zrobi się cokolwiek innego.
+  if (pendingBlackSwan(player)) {
+    return reject(state, 'Najpierw zagraj Czarnego Łabędzia.');
+  }
+
   const source = action.fromMat ? player.mat : player.hand;
   const card = source.find((c) => c.id === action.cardId);
   if (!card) return reject(state, 'Nie masz tej karty.');
@@ -266,6 +274,12 @@ function pass(state: GameState, playerId: string): ReducerResult {
   if (!isActivePlayer(state, playerId)) {
     return reject(state, 'To nie Twoja kolej.');
   }
+
+  const player = state.players.find((p) => p.id === playerId);
+  if (player && pendingBlackSwan(player)) {
+    return reject(state, 'Najpierw zagraj Czarnego Łabędzia.');
+  }
+
   return { state: endTurn(state) };
 }
 
@@ -343,12 +357,19 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
   if (!mission || mission.phase !== 'playing') return state;
 
   if (kind === 'extraProblem') {
+    // Bez tego drugie wywołanie dokładałoby trzeci problem, choć zasady
+    // mówią o jednym dodatkowym.
+    if (mission.activeBlackSwans.includes('extraProblem')) return state;
     if (state.problemPile.length === 0) return state;
     const [extra, ...rest] = state.problemPile;
     return {
       ...state,
       problemPile: rest,
-      mission: { ...mission, problems: [...mission.problems, extra] },
+      mission: {
+        ...mission,
+        problems: [...mission.problems, extra],
+        activeBlackSwans: [...mission.activeBlackSwans, 'extraProblem'],
+      },
       log: [...state.log, `Czarny Łabędź: dodatkowy problem — ${extra.name}!`],
     };
   }
@@ -374,11 +395,14 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     };
   }
 
-  // swapHands — ręka gracza i trafia do gracza i+1 (ostatni oddaje pierwszemu)
+  // swapHands — ręka gracza i trafia do gracza i+1 (ostatni oddaje pierwszemu).
+  // Kopiujemy tablice, żeby dwóch graczy nie dzieliło tej samej referencji.
+  if (mission.activeBlackSwans.includes('swapHands')) return state;
+
   const hands = state.players.map((p) => p.hand);
   const players = state.players.map((player, index) => ({
     ...player,
-    hand: hands[(index - 1 + hands.length) % hands.length],
+    hand: [...hands[(index - 1 + hands.length) % hands.length]],
   }));
 
   return {
@@ -454,6 +478,17 @@ function shareCard(
   );
   if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
 
+  // Karta już zabrana na matę nie może zostać przekazana — inaczej ta sama
+  // karta leżałaby na dwóch matach naraz i liczyła się obu graczom.
+  const alreadyOnMat = state.players.some((p) =>
+    p.mat.some((card) => card.id === action.cardId),
+  );
+  if (alreadyOnMat) {
+    return reject(state, 'Ta karta leży już na czyjejś karcie postaci.');
+  }
+
+  // Karty specjalne zostają u tego, kto je zagrał: ETER11 jest jokerem,
+  // a Czarny Łabędź utrudnieniem — żadna nie jest kompetencją do nauczenia.
   if (!COMPETENCE_CATEGORIES.includes(play.card.category)) {
     return reject(state, 'Przekazywać można tylko karty kompetencji.');
   }
@@ -608,6 +643,49 @@ function endMissionSummary(state: GameState): ReducerResult {
   };
 }
 
+/**
+ * Zagranie Czarnego Łabędzia.
+ *
+ * Zgodnie z instrukcją karta nie leży w ręce jako zwykła — gdy gracz ją
+ * dobierze, musi ją zagrać, a jej efekt utrudnia bieżącą misję.
+ */
+function playBlackSwan(
+  state: GameState,
+  action: Extract<Action, { type: 'PLAY_BLACK_SWAN' }>,
+): ReducerResult {
+  const mission = state.mission;
+  if (!mission || mission.phase !== 'playing') {
+    return reject(state, 'Misja nie trwa.');
+  }
+
+  const player = state.players.find((p) => p.id === action.playerId);
+  if (!player) return reject(state, 'Nieznany gracz.');
+
+  const card = player.hand.find((c) => c.id === action.cardId);
+  if (!card) return reject(state, 'Nie masz tej karty.');
+  if (card.category !== 'blackswan' || !card.blackSwanKind) {
+    return reject(state, 'To nie jest karta Czarnego Łabędzia.');
+  }
+
+  // Karta schodzi z ręki na stos odrzuconych, a jej efekt wchodzi w życie.
+  const withoutCard: GameState = {
+    ...state,
+    players: updatePlayer(state, action.playerId, (p) => ({
+      ...p,
+      hand: p.hand.filter((c) => c.id !== action.cardId),
+    })),
+    discardPile: [...state.discardPile, card],
+    log: [...state.log, `${player.name} odkrywa: ${card.name}`],
+  };
+
+  return { state: applyBlackSwan(withoutCard, card.blackSwanKind) };
+}
+
+/** Czy gracz trzyma Czarnego Łabędzia — musi go zagrać przed innym ruchem. */
+export function pendingBlackSwan(player: Player): Card | null {
+  return player.hand.find((c) => c.category === 'blackswan') ?? null;
+}
+
 export function reduce(state: GameState, action: Action): ReducerResult {
   switch (action.type) {
     case 'START_MISSION':
@@ -618,6 +696,8 @@ export function reduce(state: GameState, action: Action): ReducerResult {
       return pass(state, action.playerId);
     case 'SWAP_HAND':
       return swapHand(state, action.playerId, action.cardIds);
+    case 'PLAY_BLACK_SWAN':
+      return playBlackSwan(state, action);
     case 'TAKE_CARD_TO_MAT':
       return takeCardToMat(state, action);
     case 'SHARE_CARD':
