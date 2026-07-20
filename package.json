@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy": "npm run build && firebase deploy --only hosting --project savetheworld-eter11",
+    "deploy:rules": "firebase deploy --only firestore:rules --project savetheworld-eter11"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
