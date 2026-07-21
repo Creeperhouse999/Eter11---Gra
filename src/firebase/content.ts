@@ -21,6 +21,12 @@ function migrate(raw: Record<string, unknown>): GameContent {
     // Wstęp i samouczek: zapisy sprzed dodania tych pól ich nie mają, a bez
     // podstawienia gra pokazałaby pusty ekran powitalny. Pusta lista jest
     // traktowana jak brak — redaktor mógł skasować wszystkie sceny.
+    // Kategorie scalamy po kluczu: zapis sprzed dodania tego pola nie ma
+    // żadnej, a brakująca nazwa zostawiłaby na ściance puste miejsce.
+    categories: {
+      ...BUILTIN_CONTENT.categories,
+      ...(raw.categories as object),
+    } as GameContent['categories'],
     intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
     tutorial: (raw.tutorial as GameContent['tutorial'])?.length
       ? (raw.tutorial as GameContent['tutorial'])

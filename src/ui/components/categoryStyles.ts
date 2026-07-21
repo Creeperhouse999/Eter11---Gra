@@ -1,17 +1,29 @@
+import { DEFAULT_CATEGORIES, type CategoryMap } from '../../data/categories';
 import type { CardCategory, ProblemType, SlotKey } from '../../engine/types';
 import type { IconName } from '../icons/Icon';
 
+/**
+ * Nazwy i ikony kategorii, ustawiane raz po wczytaniu zawartości.
+ *
+ * Rejestr modułowy, a nie właściwość przekazywana w dół drzewa: nazwy
+ * kategorii czyta trzydzieści miejsc w dziesięciu plikach, w tym funkcje
+ * pomocnicze bez dostępu do Reacta. Przewlekanie tego przez props zamieniłoby
+ * drobną zmianę redakcyjną w przebudowę połowy interfejsu.
+ *
+ * Wartości wbudowane działają, dopóki nic nie ustawiono — gra rysuje się
+ * poprawnie także wtedy, gdy Firestore jeszcze nie odpowiedział.
+ */
+let categories: CategoryMap = DEFAULT_CATEGORIES;
+
+/** Podmienia nazwy i ikony kategorii na te z panelu redakcyjnego. */
+export function setCategoryStyles(next?: Partial<CategoryMap>): void {
+  // Scalanie, nie podmiana: zapis sprzed dodania tego pola nie ma wszystkich
+  // kategorii, a brakująca nazwa zostawiłaby na ściance puste miejsce.
+  categories = { ...DEFAULT_CATEGORIES, ...next };
+}
+
 export function categoryLabel(category: CardCategory): string {
-  const labels: Record<CardCategory, string> = {
-    psychological: 'Psychologiczna',
-    digital: 'Cyfrowa',
-    social: 'Społeczna',
-    talent: 'Talent',
-    mentor: 'Mentor',
-    eter11: 'ETER11',
-    blackswan: 'Czarny Łabędź',
-  };
-  return labels[category];
+  return categories[category]?.label ?? DEFAULT_CATEGORIES[category].label;
 }
 
 export function categoryColorVar(category: CardCategory): string {
@@ -19,15 +31,15 @@ export function categoryColorVar(category: CardCategory): string {
 }
 
 /** Pełna etykieta ścianki — używana w opisach i panelu. */
+/**
+ * Nazwa ścianki. To ta sama nazwa co kategorii — ścianka nazywa się tak jak
+ * karta, która do niej pasuje.
+ *
+ * Trzymała tu własną kopię pięciu nazw, więc zmiana nazwy kategorii minęłaby
+ * ścianki bokiem i gracz zobaczyłby dwie różne nazwy tej samej rzeczy.
+ */
 export function slotLabel(slot: SlotKey): string {
-  const labels: Record<SlotKey, string> = {
-    psychological: 'Psychologiczna',
-    digital: 'Cyfrowa',
-    social: 'Społeczna',
-    mentor: 'Mentor',
-    talent: 'Talent',
-  };
-  return labels[slot];
+  return categoryLabel(slot);
 }
 
 /**
@@ -68,14 +80,7 @@ export function isCompetence(category: string): boolean {
 }
 
 export function slotIcon(slot: SlotKey): IconName {
-  const icons: Record<SlotKey, IconName> = {
-    psychological: 'brain',
-    digital: 'chip',
-    social: 'handshake',
-    mentor: 'compass',
-    talent: 'star',
-  };
-  return icons[slot];
+  return categories[slot]?.icon ?? DEFAULT_CATEGORIES[slot].icon;
 }
 
 export function slotColorVar(slot: SlotKey): string {

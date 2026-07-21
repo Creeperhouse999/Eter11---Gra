@@ -7,6 +7,7 @@ import type { FamilyMap } from '../data/families';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
+import type { CategoryMap } from '../data/categories';
 import type { IntroContent } from '../data/intro';
 import type { TutorialStep } from '../data/tutorial';
 
@@ -25,6 +26,8 @@ export interface GameContent {
    * podstawia wtedy teksty wbudowane. Bez tego wczytanie starszej wersji
    * zawartości zostawiłoby dziecko z pustym ekranem wstępu.
    */
+  /** Nazwy i ikony kategorii. Brak = wartości wbudowane. */
+  categories?: CategoryMap;
   intro?: IntroContent;
   tutorial?: TutorialStep[];
 }

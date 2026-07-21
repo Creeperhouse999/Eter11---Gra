@@ -22,6 +22,8 @@ import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
 import { StoryEditor } from './StoryEditor';
+import { CategoryEditor } from './CategoryEditor';
+import { setCategoryStyles } from '../ui/components/categoryStyles';
 import { ThemeEditor } from './ThemeEditor';
 import { useAdminAuth } from './useAdminAuth';
 
@@ -30,6 +32,7 @@ type Tab =
   | 'problems'
   | 'cards'
   | 'families'
+  | 'categories'
   | 'characters'
   | 'rules'
   | 'text'
@@ -45,6 +48,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'problems', label: 'Problemy', icon: 'clash' },
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
   { key: 'families', label: 'Rodziny', icon: 'palette' },
+  { key: 'categories', label: 'Kategorie', icon: 'clipboard' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
@@ -119,6 +123,15 @@ export function AdminApp() {
     },
     [savedTheme],
   );
+
+  // Podgląd nazw i ikon kategorii w samym panelu.
+  //
+  // Redaktor zmienia nazwę i od razu widzi ją na kartach w zakładce „Karty”
+  // oraz na ściankach problemów — bez zapisu i odświeżania gry. Bez tego
+  // pisałby w ciemno i sprawdzał efekt dopiero po wdrożeniu.
+  useEffect(() => {
+    setCategoryStyles(content.categories);
+  }, [content.categories]);
 
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
   useEffect(() => {
@@ -374,6 +387,12 @@ export function AdminApp() {
         )}
         {tab === 'text' && (
           <TextEditor text={content.text} onChange={(text) => update({ text })} />
+        )}
+        {tab === 'categories' && (
+          <CategoryEditor
+            categories={content.categories}
+            onChange={(categories) => update({ categories })}
+          />
         )}
         {tab === 'story' && (
           <StoryEditor
