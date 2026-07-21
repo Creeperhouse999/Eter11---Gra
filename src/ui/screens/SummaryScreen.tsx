@@ -166,7 +166,9 @@ export function SummaryScreen({
                     : shared
                       ? 'Ta karta poszła do innego gracza.'
                       : alreadyTook
-                        ? 'W tej misji zabrałeś już kartę na postać.'
+                        // Ekran pokazuje karty wszystkich naraz, więc „zabrałeś"
+                        // trafiało do osoby czytającej, nie do właściciela karty.
+                        ? `${player.name} zabrał już kartę w tej misji.`
                         : undefined;
 
                   return (
@@ -201,7 +203,7 @@ export function SummaryScreen({
                           className="w-full text-accent"
                           onClick={() => setSharing({ card: play.card, fromPlayerId: player.id })}
                         >
-                          Uczę kogoś
+                          Oddaję koledze
                         </Button>
                       )}
                       {shared && (

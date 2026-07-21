@@ -101,7 +101,7 @@ export const INTRO_RULES: IntroScene[] = [
     icon: 'medal',
     heading: 'Po misji zabierasz kartę',
     body:
-      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nMożesz też oddać ją innemu graczowi. Dostajesz wtedy dodatkową kartę doświadczenia, bo uczenie innych też się liczy.',
+      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nMożesz też oddać ją innemu graczowi. Dostajesz wtedy punkt doświadczenia, bo uczenie innych też się liczy.',
   },
   {
     icon: 'sprout',

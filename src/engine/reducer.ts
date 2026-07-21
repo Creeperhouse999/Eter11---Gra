@@ -394,10 +394,15 @@ function swapHand(
   );
 
   const mission = state.mission;
+  // Polska odmiana ma trzy formy, a 12–14 bierze mnogą mimo końcówki 2–4:
+  // proste `< 5` dawało „12 karty".
+  const lastDigit = toSwap.length % 10;
+  const lastTwo = toSwap.length % 100;
+  const few = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
   const label =
     toSwap.length === 1
       ? 'jedną kartę'
-      : `${toSwap.length} ${toSwap.length < 5 ? 'karty' : 'kart'}`;
+      : `${toSwap.length} ${few ? 'karty' : 'kart'}`;
 
   const swapped: GameState = {
     ...state,

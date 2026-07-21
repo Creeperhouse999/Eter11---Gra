@@ -3,6 +3,7 @@ import { roundsForPlayers } from '../../engine/reducer';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, GameState, Player } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
+import { counted } from '../plural';
 import { slotLabel } from './categoryStyles';
 
 interface CoachProps {
@@ -108,14 +109,18 @@ function buildHint(props: CoachProps): Hint | null {
     return {
       icon: 'warning',
       tone: 'warn',
-      text: `Zostały ${remaining === 1 ? 'ostatnia runda' : 'dwie rundy'}. Masz ${playable.length} pasujących kart — wybierz jedną.`,
+      text:
+        `${remaining === 1 ? 'To ostatnia runda' : `Zostały ${counted(remaining, 'runda', 'rundy', 'rund')}`}. ` +
+        `Masz ${counted(playable.length, 'pasującą kartę', 'pasujące karty', 'pasujących kart')} — wybierz jedną.`,
     };
   }
 
   return {
     icon: 'bulb',
     tone: 'neutral',
-    text: `Masz ${playable.length} ${playable.length === 1 ? 'pasującą kartę' : 'pasujących kart'}. Kliknij kartę, żeby zobaczyć, gdzie ją położyć.`,
+    text:
+      `Masz ${counted(playable.length, 'pasującą kartę', 'pasujące karty', 'pasujących kart')}. ` +
+      'Kliknij kartę, żeby zobaczyć, gdzie ją położyć.',
   };
 }
 

@@ -11,6 +11,7 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { PlayerMat } from '../components/PlayerMat';
 import type { Game } from '../useGame';
+import { Button } from '../controls/Button';
 import { useScreenTitle } from '../useScreenTitle';
 
 interface FinaleScreenProps {
@@ -153,13 +154,9 @@ export function FinaleScreen({
         Przykłady zawodów przyszłości: {jobExamples.join(', ')}.
       </p>
 
-      <button
-        type="button"
-        onClick={onRestart}
-        className="relative mt-8 rounded-lg bg-accent px-6 py-3 font-display font-bold text-bg"
-      >
-        Nowa gra
-      </button>
+      <Button variant="primary" size="lg" icon="rocket" onClick={onRestart}>
+          Nowa gra
+        </Button>
     </main>
   );
 }

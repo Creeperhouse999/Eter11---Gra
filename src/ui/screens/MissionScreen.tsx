@@ -261,13 +261,14 @@ export function MissionScreen({
         </div>
         <div className="text-right sm:order-last">
           {onQuit && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onQuit}
-              className="mb-0.5 text-[11px] text-ink-dim underline underline-offset-2 transition hover:text-danger"
+              className="mb-0.5 text-[11px] text-ink-dim hover:text-danger"
             >
               Zakończ grę
-            </button>
+            </Button>
           )}
           <span className="eter-label block">Teraz gra</span>
           <p

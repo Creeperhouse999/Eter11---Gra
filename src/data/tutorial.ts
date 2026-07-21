@@ -47,7 +47,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     goal: 'intro',
     readOnly: true,
     allow: [],
-    say: 'Cześć, jestem ETER11. W trzy minuty nauczę Cię grać. Na środku stołu leży problem — to on jest Waszym przeciwnikiem. Żeby go pokonać, trzeba zamknąć pięć ścianek wokół jego karty.',
+    say: 'Cześć, jestem ETER11. Za chwilę nauczę Cię grać. Na środku stołu leży problem — to on jest Waszym przeciwnikiem. Żeby go pokonać, trzeba zamknąć pięć ścianek wokół jego karty.',
     praise: 'Idziemy dalej.',
   },
   {
@@ -98,7 +98,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'swap',
     goal: 'swapCards',
     allow: ['swap'],
-    say: 'W ręku zostały same karty zielone — żadna nie pasuje do niebieskich ścianek. Tak też bywa. Wtedy wymieniasz karty na nowe: naciśnij „Wymieniam karty", zaznacz wszystkie i potwierdź.',
+    say: 'W ręku zostały same karty zielone — żadna nie pasuje do niebieskich ścianek. Tak też bywa. Wtedy wymieniasz karty na nowe: naciśnij „Wymieniam karty", potem „Zaznacz nieprzydatne" i potwierdź.',
     praise: 'Właśnie tak. Wymiana kosztuje Twój ruch w tej rundzie, ale daje nowe karty.',
     nudge: 'Przycisk „Wymieniam karty" jest na dole, obok „Pasuję". Zaznacz karty zielone.',
   },

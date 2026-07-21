@@ -50,7 +50,7 @@ export const DEFAULT_UI_TEXT: UiText = {
 
   summaryWonHeading: 'Problem rozwiązany',
   summaryWonBody:
-    'Udało się. Każdy z Was zabiera jedną ze swoich kart na kartę postaci. Kompetencję możecie zamiast tego przekazać innemu graczowi — wtedy dostajecie dodatkową kartę doświadczenia za uczenie innych.',
+    'Udało się. Każdy z Was zabiera jedną ze swoich kart na kartę postaci. Kompetencję możecie zamiast tego przekazać innemu graczowi — wtedy dostajecie punkt doświadczenia za uczenie innych.',
   summaryLostHeading: 'Tym razem problem wygrał',
   summaryLostBody:
     'Problem trafia na stos nierozwiązanych, ale to nie koniec. Porozmawiajcie, jakich kompetencji zabrakło. Każdy, kto wyłożył kartę, i tak zabiera jedną na swoją postać — Wasze postacie właśnie się uczą. Do tego problemu wrócicie po dwóch kolejnych misjach.',
