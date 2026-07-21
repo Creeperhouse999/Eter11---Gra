@@ -173,6 +173,21 @@ export function AdminApp() {
     // Rejestracja listenera jest tania, a cleanup zdejmuje poprzedni.
   });
 
+  /** Wylogowanie kasuje niezapisane zmiany — pytamy, zanim to zrobimy. */
+  const logout = async () => {
+    if (dirty) {
+      const confirmed = await confirm({
+        title: 'Wylogować się?',
+        message:
+          'Masz niezapisane zmiany. Wylogowanie je porzuci — zapisz je najpierw, jeśli mają zostać.',
+        confirmLabel: 'Wyloguj',
+        tone: 'danger',
+      });
+      if (!confirmed) return;
+    }
+    await auth.logout();
+  };
+
   const discard = async () => {
     const confirmed = await confirm({
       title: 'Odrzucić zmiany?',
@@ -192,7 +207,23 @@ export function AdminApp() {
   }
 
   if (!auth.user) {
-    return <LoginForm onSubmit={auth.login} error={auth.error} pending={auth.pending} />;
+    return (
+      <>
+        <LoginForm onSubmit={auth.login} error={auth.error} pending={auth.pending} />
+        {/* Sesja Firebase wygasa po godzinie. Bez tego ostrzeżenia redaktor
+            widział nagle ekran logowania i nie wiedział, że jego niezapisane
+            zmiany czekają w pamięci karty — wystarczy zalogować się ponownie
+            zamiast odświeżać stronę. */}
+        {dirty && (
+          <div className="mx-auto mt-4 max-w-sm px-4">
+            <Alert tone="warning" title="Masz niezapisane zmiany">
+              Zaloguj się ponownie w tej karcie, a wrócisz do nich. Odświeżenie
+              strony je skasuje.
+            </Alert>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
@@ -234,7 +265,7 @@ export function AdminApp() {
               variant="secondary"
               size="sm"
               icon="logout"
-              onClick={auth.logout}
+              onClick={() => void logout()}
               aria-label="Wyloguj"
             />
           </div>

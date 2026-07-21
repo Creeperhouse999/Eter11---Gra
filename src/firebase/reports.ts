@@ -61,10 +61,13 @@ export async function addReport(input: {
       kind: input.kind,
       title,
       description: input.description.trim(),
-      author: input.author?.trim() || null,
+      author: input.author?.trim() ?? '',
       status: 'new' satisfies ReportStatus,
       createdAt: new Date().toISOString(),
-      notes: [],
+      // Bez `notes`: reguły dopuszczają dokładnie sześć pól, a pusta lista
+      // niczego nie wnosi — odczyt i tak podstawia `[]`, gdy pola brakuje.
+      // Wysyłanie jej odrzucało KAŻDE zgłoszenie z błędem uprawnień, czyli
+      // kanał zgłaszania błędów był martwy od początku.
     });
     return { ok: true };
   } catch (error) {

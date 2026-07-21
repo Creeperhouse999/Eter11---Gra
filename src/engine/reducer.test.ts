@@ -68,15 +68,22 @@ describe('START_MISSION', () => {
     expect(state.phase).toBe('finale');
   });
 
-  it('każe czekać, gdy odłożone problemy jeszcze wrócą', () => {
+  it('sprowadza odłożony problem, gdy talia opustoszała', () => {
+    // Odłożone problemy wracają normalnie przy zamykaniu misji. Gdy nie ma
+    // czego zamykać, gracz stał na ekranie startu z obietnicą powrotu,
+    // której nic nie mogło spełnić.
     const base = newGame();
     const waiting = {
       ...base,
       problemPile: [],
-      // Problem zdjęty ze stosu czeka na powrót po dwóch misjach.
       unsolvedProblems: [base.problemPile[0]],
     };
-    const { rejected } = reduce(waiting, { type: 'START_MISSION' });
-    expect(rejected).toContain('Brak problemów');
+
+    const { state, rejected } = reduce(waiting, { type: 'START_MISSION' });
+
+    expect(rejected).toBeUndefined();
+    expect(state.phase).toBe('mission');
+    // Problem nie może zostać na liście odłożonych, skoro leży na stole.
+    expect(state.unsolvedProblems).toHaveLength(0);
   });
 });

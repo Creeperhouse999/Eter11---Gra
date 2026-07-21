@@ -76,15 +76,27 @@ export function SetupScreen({
   const [triedStart, setTriedStart] = useState(false);
   const titleRef = useScreenTitle();
 
+  /**
+   * Start blokuje się po pierwszym kliknięciu.
+   *
+   * Bez tego dwa szybkie kliknięcia tworzyły dwie sesje z różnymi ziarnami —
+   * druga natychmiast nadpisywała pierwszą, a plansza przeskakiwała na inne
+   * rozdanie w trakcie patrzenia.
+   */
+  const [starting, setStarting] = useState(false);
+
   const start = (tutorial: boolean) => {
+    if (starting) return;
     // Samouczek gra jedna osoba na ustawionym scenariuszu — nie wymaga
     // wpisywania imion ani wybierania postaci.
     if (tutorial) {
+      setStarting(true);
       onStart([], true);
       return;
     }
 
     if (!namesFilled) return;
+    setStarting(true);
     onStart(
       drafts.map((d, i) => ({
         id: `player-${i + 1}`,

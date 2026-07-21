@@ -117,23 +117,27 @@ function startMission(state: GameState): ReducerResult {
   if (state.mission && state.mission.phase === 'playing') {
     return reject(state, 'Misja już trwa.');
   }
-  if (state.problemPile.length === 0) {
-    // Nie ma czego odkryć — gra dobiega końca zamiast wisieć w fazie startu.
-    // Zdarza się, gdy misji zaplanowano więcej niż problemów w talii:
-    // rozwiązane problemy nie wracają do puli, więc czekanie nic nie zmieni.
-    if (state.unsolvedProblems.length === 0) {
-      return {
-        state: {
-          ...state,
-          phase: 'finale',
-          log: [...state.log, 'Talia problemów wyczerpana — koniec gry.'],
-        },
-      };
-    }
-    return reject(state, 'Brak problemów w talii.');
+  // Odłożone problemy wracają normalnie przy zamykaniu misji. Gdy talia
+  // pustoszeje, nie ma czego zamykać — bez tego gracz stał na ekranie startu
+  // z komunikatem „wrócą po dwóch misjach", którego nic nie mogło spełnić.
+  const pile =
+    state.problemPile.length > 0
+      ? state.problemPile
+      : [...state.unsolvedProblems];
+  const recycled = state.problemPile.length === 0 && pile.length > 0;
+
+  if (pile.length === 0) {
+    // Naprawdę nie ma czego odkryć — gra dobiega końca zamiast wisieć.
+    return {
+      state: {
+        ...state,
+        phase: 'finale',
+        log: [...state.log, 'Talia problemów wyczerpana — koniec gry.'],
+      },
+    };
   }
 
-  const [problem, ...rest] = state.problemPile;
+  const [problem, ...rest] = pile;
   const mission: MissionState = {
     problems: [problem],
     played: [],
@@ -151,6 +155,11 @@ function startMission(state: GameState): ReducerResult {
   const started: GameState = {
     ...state,
     problemPile: rest,
+    // Problem wrócił do gry — znika z listy odłożonych, żeby nie trafił
+    // na stół dwa razy.
+    unsolvedProblems: recycled
+      ? state.unsolvedProblems.filter((p) => p.id !== problem.id)
+      : state.unsolvedProblems,
     mission,
     missionNumber: state.missionNumber + 1,
     activePlayerIndex: 0,

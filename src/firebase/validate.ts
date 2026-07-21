@@ -32,6 +32,13 @@ const REQUIRED_SLOTS = SLOT_ORDER;
  * Bez limitów nazwa karty na 200 znaków przechodziła walidację i wychodziła
  * poza kartę, a opis problemu na 2000 znaków wypychał planszę poza ekran.
  */
+/** Kategorie, które gra potrafi obsłużyć. */
+const KNOWN_CATEGORIES: string[] = [
+  ...SLOT_ORDER,
+  'eter11',
+  'blackswan',
+];
+
 const MAX_LENGTHS = {
   cardName: 60,
   cardDescription: 300,
@@ -41,6 +48,15 @@ const MAX_LENGTHS = {
   slotHint: 120,
   characterName: 40,
 } as const;
+
+/**
+ * Czy pole jest tekstem.
+ *
+ * Dane z bazy bywają dowolnego kształtu — pole zapisane kiedyś jako liczba
+ * wywracało walidację wyjątkiem `trim is not a function`, czyli dokładnie
+ * tam, gdzie miała ona chronić grę przed uszkodzoną zawartością.
+ */
+const isText = (value: unknown): value is string => typeof value === 'string';
 
 /** Znaki, które w nazwie wyglądają jak błąd, a nie jak treść. */
 const looksLikeMarkup = (value: string) => /[<>]/.test(value);
@@ -101,7 +117,7 @@ export function validateContent(content: unknown): ValidationResult {
     else if (cardIds.has(card.id)) add(`Duplikat identyfikatora karty: ${card.id}.`);
     else cardIds.add(card.id);
 
-    if (!card.name?.trim()) add(`Karta ${card.id}: brak nazwy.`);
+    if (!isText(card.name) || !card.name.trim()) add(`Karta ${card.id}: brak nazwy.`);
     else if (card.name.length > MAX_LENGTHS.cardName) {
       add(
         `Karta ${card.id}: nazwa ma ${card.name.length} znaków, ` +
@@ -111,14 +127,20 @@ export function validateContent(content: unknown): ValidationResult {
       add(`Karta ${card.id}: nazwa zawiera znaki < lub >, które wyświetlą się dosłownie.`);
     }
 
-    if (!card.icon?.trim()) add(`Karta ${card.id}: brak ikony.`);
+    if (!isText(card.icon) || !card.icon.trim()) add(`Karta ${card.id}: brak ikony.`);
 
-    if ((card.description?.length ?? 0) > MAX_LENGTHS.cardDescription) {
+    if (isText(card.description) && card.description.length > MAX_LENGTHS.cardDescription) {
       add(
         `Karta ${card.id}: opis ma ${card.description.length} znaków, ` +
           `a mieści się ${MAX_LENGTHS.cardDescription}.`,
       );
     }
+    // Nieznana kategoria przechodziła i lądowała w grze jako karta bez
+    // koloru, ikony kategorii i miejsca na macie.
+    if (!KNOWN_CATEGORIES.includes(card.category)) {
+      add(`Karta ${card.id}: nieznana kategoria „${card.category}".`);
+    }
+
     const isSpecial = card.category === 'eter11' || card.category === 'blackswan';
     if (!isSpecial && !card.family) {
       add(`Karta ${card.id}: brak rodziny (koloru).`);
@@ -145,32 +167,37 @@ export function validateContent(content: unknown): ValidationResult {
     else if (problemIds.has(problem.id)) add(`Duplikat identyfikatora problemu: ${problem.id}.`);
     else problemIds.add(problem.id);
 
-    if (!problem.name?.trim()) add(`Problem ${problem.id}: brak nazwy.`);
+    if (!isText(problem.name) || !problem.name.trim()) add(`Problem ${problem.id}: brak nazwy.`);
     else if (problem.name.length > MAX_LENGTHS.problemName) {
       add(`Problem ${problem.id}: nazwa ma ${problem.name.length} znaków, a mieści się ${MAX_LENGTHS.problemName}.`);
     } else if (looksLikeMarkup(problem.name)) {
       add(`Problem ${problem.id}: nazwa zawiera znaki < lub >, które wyświetlą się dosłownie.`);
     }
 
-    if (!problem.story?.trim()) add(`Problem ${problem.id}: brak historii.`);
+    if (!isText(problem.story) || !problem.story.trim()) add(`Problem ${problem.id}: brak historii.`);
     else if (problem.story.length > MAX_LENGTHS.problemStory) {
       add(`Problem ${problem.id}: historia ma ${problem.story.length} znaków, a mieści się ${MAX_LENGTHS.problemStory}.`);
     }
 
-    if (!problem.goal?.trim()) add(`Problem ${problem.id}: brak celu.`);
+    if (!isText(problem.goal) || !problem.goal.trim()) add(`Problem ${problem.id}: brak celu.`);
     else if (problem.goal.length > MAX_LENGTHS.problemField) {
       add(`Problem ${problem.id}: cel ma ${problem.goal.length} znaków, a mieści się ${MAX_LENGTHS.problemField}.`);
     }
 
-    const slotKeys = (problem.slots ?? []).map((s) => s.key);
+    if (!Array.isArray(problem.slots)) {
+      add(`Problem ${problem.id}: ścianki nie są listą.`);
+      continue;
+    }
+
+    const slotKeys = problem.slots.map((s) => s.key);
     for (const required of REQUIRED_SLOTS) {
       if (!slotKeys.includes(required)) {
         add(`Problem ${problem.id}: brakuje ścianki ${required}.`);
       }
     }
 
-    for (const slot of problem.slots ?? []) {
-      if (!slot.hint?.trim()) {
+    for (const slot of problem.slots) {
+      if (!isText(slot.hint) || !slot.hint.trim()) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak podpowiedzi.`);
       } else if (slot.hint.length > MAX_LENGTHS.slotHint) {
         add(
@@ -203,7 +230,7 @@ export function validateContent(content: unknown): ValidationResult {
       add(`Duplikat identyfikatora postaci: ${character.id}.`);
     } else characterIds.add(character.id);
 
-    if (!character.name?.trim()) add(`Postać ${character.id}: brak nazwy.`);
+    if (!isText(character.name) || !character.name.trim()) add(`Postać ${character.id}: brak nazwy.`);
     else if (character.name.length > MAX_LENGTHS.characterName) {
       add(`Postać ${character.id}: nazwa ma ${character.name.length} znaków, a mieści się ${MAX_LENGTHS.characterName}.`);
     }
