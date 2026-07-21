@@ -95,11 +95,19 @@ export function SummaryScreen({
               <div className="flex flex-wrap gap-3">
                 {plays.map((play) => {
                   const shared = mission.sharedCardIds.includes(play.card.id);
+                  // Odbiorcą może być tylko ktoś, kto nie zabrał jeszcze
+                  // karty w tej misji — bez tego przycisk prowadził do listy,
+                  // na której nie było nikogo.
+                  const hasReceiver = state.players.some(
+                    (other) =>
+                      other.id !== player.id && !mission.takenToMat.includes(other.id),
+                  );
+
                   const canShare =
                     !shared &&
                     !alreadyTook &&
                     COMPETENCE_CATEGORIES.includes(play.card.category) &&
-                    state.players.length > 1;
+                    hasReceiver;
 
                   // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej
                   // gracz widzi cztery przygaszone kafle i nie wie, czy to
@@ -156,12 +164,28 @@ export function SummaryScreen({
 
               {sharing?.fromPlayerId === player.id && (
                 <div className="mt-4 rounded-lg border border-accent bg-raised p-3">
-                  <p className="text-sm">
-                    Komu przekazujesz kartę <strong>{sharing.card.name}</strong>?
-                  </p>
+                  {state.players.some(
+                    (other) =>
+                      other.id !== player.id && !mission.takenToMat.includes(other.id),
+                  ) ? (
+                    <p className="text-sm">
+                      Komu przekazujesz kartę <strong>{sharing.card.name}</strong>?
+                    </p>
+                  ) : (
+                    <p className="text-sm text-ink-dim">
+                      Wszyscy zabrali już kartę w tej misji — nie ma komu jej przekazać.
+                      Zabierz ją dla siebie albo zostaw na później.
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {state.players
-                      .filter((other) => other.id !== player.id)
+                      // Kto zabrał już kartę w tej misji, nie może dostać
+                      // kolejnej — limit dotyczy też kart otrzymanych.
+                      .filter(
+                        (other) =>
+                          other.id !== player.id &&
+                          !mission.takenToMat.includes(other.id),
+                      )
                       .map((other) => (
                         <Button
                           key={other.id}

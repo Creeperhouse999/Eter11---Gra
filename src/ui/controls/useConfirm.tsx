@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import { Modal } from './Modal';
 
@@ -33,6 +33,24 @@ export function useConfirm() {
       new Promise<boolean>((resolve) => {
         setPending({ ...options, resolve });
       }),
+    [],
+  );
+
+  /**
+   * Znikający komponent odpowiada „nie".
+   *
+   * Bez tego obietnica nigdy się nie kończyła: redaktor otwierał
+   * potwierdzenie usunięcia i przełączał zakładkę, a wszystko po
+   * `await confirm(...)` zostawało zawieszone na zawsze. „Nie" jest
+   * bezpieczną odpowiedzią — nikt nie potwierdził usunięcia.
+   */
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+
+  useEffect(
+    () => () => {
+      pendingRef.current?.resolve(false);
+    },
     [],
   );
 

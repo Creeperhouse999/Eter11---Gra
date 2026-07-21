@@ -48,9 +48,24 @@ export function useCardDrag<T>() {
   const active = useRef(false);
   const dropHandler = useRef<((targetId: string, data: T) => void) | null>(null);
 
+  /**
+   * Podpięcie funkcji wykonującej upuszczenie.
+   *
+   * Wywoływane w trakcie renderu wywołującego, więc handler trafia najpierw
+   * do pola tymczasowego, a do `dropHandler` dopiero po zatwierdzeniu renderu.
+   * React 18 potrafi porzucić rozpoczęty render — bez tego kroku porzucona
+   * wersja zostawiłaby handler domknięty na stanie, który nigdy nie wszedł
+   * w życie, i upuszczenie karty zadziałałoby na nieaktualnych danych.
+   */
+  const nextHandler = useRef<((targetId: string, data: T) => void) | null>(null);
+
   const registerDrop = useCallback((handler: (targetId: string, data: T) => void) => {
-    dropHandler.current = handler;
+    nextHandler.current = handler;
   }, []);
+
+  useEffect(() => {
+    dropHandler.current = nextHandler.current;
+  });
 
   const findTarget = (x: number, y: number): string | null => {
     const element = document.elementFromPoint(x, y);

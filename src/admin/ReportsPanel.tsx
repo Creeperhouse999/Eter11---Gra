@@ -180,8 +180,13 @@ export function ReportsPanel() {
             : r,
         ),
       );
-      setCommenting(null);
-      setComment('');
+      // Czyścimy tylko wtedy, gdy zmiana dotyczy komentowanego zgłoszenia.
+      // Inaczej kliknięcie statusu przy innym zgłoszeniu kasowało tekst
+      // wpisany dla tego pierwszego.
+      if (commenting === report.id) {
+        setCommenting(null);
+        setComment('');
+      }
       toast(STATUS_TOAST[next]);
     } catch {
       toast('Nie udało się zapisać. Sprawdź, czy jesteś zalogowany.', 'danger');

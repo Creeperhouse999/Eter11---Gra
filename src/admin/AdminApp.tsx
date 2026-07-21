@@ -64,15 +64,34 @@ export function AdminApp() {
 
   const validation = useMemo(() => validateContent(content), [content]);
 
+  /**
+   * Wczytanie zawartości po zalogowaniu.
+   *
+   * Zależność to `uid`, nie obiekt użytkownika: Firebase odświeża token co
+   * godzinę i podstawia NOWY obiekt, choć to wciąż ta sama osoba. Zależność
+   * od obiektu uruchamiała wtedy ponowne wczytanie, które nadpisywało
+   * niezapisane zmiany redaktora — bez pytania i bez śladu.
+   *
+   * `ignore` chroni przed drugą wersją tego samego problemu: odpowiedź
+   * z porzuconego żądania nie może wywrócić stanu, który już nie jest jej.
+   */
+  const uid = auth.user?.uid;
   useEffect(() => {
-    if (!auth.user) return;
+    if (!uid) return;
+    let ignore = false;
+
     loadContent().then((result) => {
+      if (ignore) return;
       setContent(result.content);
       setSavedContent(result.content);
       applyTheme(result.content.theme);
       if (result.warning) setStatus(result.warning);
     });
-  }, [auth.user]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [uid]);
 
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
   useEffect(() => {

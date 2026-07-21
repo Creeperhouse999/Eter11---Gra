@@ -24,9 +24,23 @@ const SWAN_LABELS: Array<[BlackSwanKind, string]> = [
  * Pozwala rozegrać partię na aktualnie edytowanych kartach, z podglądem stanu,
  * cofaniem ruchów i ręcznym wywołaniem Czarnego Łabędzia — bez czekania,
  * aż karta wypadnie z talii.
+ *
+ * Ziarno trzymane jest tutaj, a partia niżej: `useGame` czyta ziarno wyłącznie
+ * przy montowaniu, więc samo zwiększenie licznika nie rozdawało kart od nowa
+ * i „Nowa partia" w kółko powtarzała to samo rozdanie. `key` przemontowuje
+ * partię, zostawiając ustawienia na miejscu.
  */
 export function TestMode({ content }: TestModeProps) {
   const [seed, setSeed] = useState(1);
+
+  return <TestGame key={seed} content={content} seed={seed} onReseed={setSeed} />;
+}
+
+function TestGame({
+  content,
+  seed,
+  onReseed,
+}: TestModeProps & { seed: number; onReseed: (update: (n: number) => number) => void }) {
   const [showState, setShowState] = useState(false);
 
   const players = content.characters.slice(0, 3).map((character, index) => ({
@@ -66,14 +80,14 @@ export function TestMode({ content }: TestModeProps) {
               // w trakcie wpisywania nowej liczby.
               onChange={(e) => {
                 const value = Number(e.target.value);
-                if (Number.isFinite(value) && value >= 1) setSeed(value);
+                if (Number.isFinite(value) && value >= 1) onReseed(() => value);
               }}
               className="ml-2 w-24 rounded border border-edge bg-bg px-2 py-1 font-mono text-sm"
             />
           </label>
           <button
             type="button"
-            onClick={() => setSeed((s) => s + 1)}
+            onClick={() => onReseed((s) => s + 1)}
             className="rounded border border-edge px-3 py-1 text-sm"
           >
             Nowa partia
@@ -152,7 +166,7 @@ export function TestMode({ content }: TestModeProps) {
         {state.phase === 'mission' && <MissionScreen game={game} />}
         {state.phase === 'missionSummary' && <SummaryScreen game={game} />}
         {state.phase === 'finale' && (
-          <FinaleScreen game={game} onRestart={() => setSeed((s) => s + 1)} />
+          <FinaleScreen game={game} onRestart={() => onReseed((s) => s + 1)} />
         )}
       </div>
     </div>

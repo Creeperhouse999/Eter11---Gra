@@ -9,6 +9,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { IconPicker } from './IconPicker';
+import { newId } from './newId';
 
 interface CardEditorProps {
   cards: Card[];
@@ -76,7 +77,7 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
   const add = () => {
     const category: CardCategory = filter === 'all' ? 'psychological' : filter;
     const created: Card = {
-      id: `card-${Date.now()}`,
+      id: newId('card'),
       name: 'Nowa karta',
       category,
       description: '',
@@ -174,7 +175,20 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
                 value={card.category}
                 ariaLabel={`Kategoria karty ${card.name}`}
                 options={CATEGORY_OPTIONS}
-                onChange={(category) => update(card.id, { category })}
+                onChange={(category) => {
+                  // Zmiana kategorii musi doprowadzić kartę do stanu, który
+                  // przejdzie walidację: zwykła karta wymaga rodziny, Czarny
+                  // Łabędź wariantu, a ETER11 nie chce ani jednego, ani drugiego.
+                  const special = category === 'blackswan' || category === 'eter11';
+                  update(card.id, {
+                    category,
+                    family: special ? undefined : (card.family ?? 'red'),
+                    blackSwanKind:
+                      category === 'blackswan'
+                        ? (card.blackSwanKind ?? 'extraProblem')
+                        : undefined,
+                  });
+                }}
               />
               <Button
                 variant="ghost"
@@ -196,9 +210,14 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
             />
 
             <div className="mt-2 flex flex-wrap items-end gap-4">
-              {card.family && (
+              {/* Rodzina zależy od kategorii, nie od tego, czy karta już ją
+                  ma. Wcześniej pole pokazywało się tylko przy ustawionej
+                  rodzinie — karta zmieniona z Czarnego Łabędzia na zwykłą
+                  nie miała jak jej dostać, a walidacja blokowała zapis
+                  całego panelu bez możliwości poprawy. */}
+              {card.category !== 'blackswan' && card.category !== 'eter11' && (
                 <Select
-                  value={card.family}
+                  value={card.family ?? 'red'}
                   label="Rodzina"
                   className="w-44"
                   options={FAMILY_OPTIONS}

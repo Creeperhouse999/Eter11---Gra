@@ -15,6 +15,7 @@ import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
+import { newId } from './newId';
 
 interface ProblemEditorProps {
   problems: Problem[];
@@ -26,7 +27,7 @@ const SLOT_KEYS: SlotKey[] = ['mentor', 'talent', 'psychological', 'social', 'di
 
 function emptyProblem(): Problem {
   return {
-    id: `prob-${Date.now()}`,
+    id: newId('prob'),
     name: 'Nowy problem',
     story: '',
     antagonist: '',

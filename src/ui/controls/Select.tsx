@@ -137,7 +137,12 @@ export function Select<T extends string>({
       case 'Enter':
       case ' ':
         event.preventDefault();
-        choose(options[activeIndex].value);
+        // Lista mogła się skrócić po tym, jak `activeIndex` został ustawiony
+        // (np. filtr zawęził opcje) — bez zabezpieczenia Enter wywracał render.
+        {
+          const option = options[activeIndex] ?? options[0];
+          if (option) choose(option.value);
+        }
         break;
     }
   };

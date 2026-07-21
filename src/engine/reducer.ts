@@ -585,6 +585,16 @@ function shareCard(
   const receiver = state.players.find((p) => p.id === action.toPlayerId);
   if (!receiver) return reject(state, 'Nieznany gracz docelowy.');
 
+  // Limit „jedna karta na misję" dotyczy też kart otrzymanych. Bez tego
+  // gracz brał własną kartę i dostawał jeszcze kilka od innych, a mata
+  // rosła w jednej misji o tyle kart, ilu było chętnych.
+  if (mission.takenToMat.includes(action.toPlayerId)) {
+    return reject(
+      state,
+      `${receiver.name} zabrał już kartę w tej misji — może dostać kolejną dopiero w następnej.`,
+    );
+  }
+
   const giver = state.players.find((p) => p.id === action.fromPlayerId);
   if (!giver) return reject(state, 'Nieznany gracz przekazujący.');
 
@@ -616,7 +626,13 @@ function shareCard(
     state: {
       ...state,
       players,
-      mission: { ...mission, sharedCardIds: [...mission.sharedCardIds, action.cardId] },
+      mission: {
+        ...mission,
+        sharedCardIds: [...mission.sharedCardIds, action.cardId],
+        // Otrzymana karta wyczerpuje limit odbiorcy na tę misję — inaczej
+        // dostałby po karcie od każdego chętnego gracza przy stole.
+        takenToMat: [...mission.takenToMat, action.toPlayerId],
+      },
       log: [...state.log, `${giver.name} uczy gracza ${receiver.name}: ${play.card.name}`],
     },
   };
