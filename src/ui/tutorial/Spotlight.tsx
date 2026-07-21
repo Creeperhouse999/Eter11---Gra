@@ -37,10 +37,20 @@ export function findVisible(selector: string): Element | null {
 }
 
 /**
- * Przyciemnienie ekranu z wyciętym otworem na wskazany element.
+ * Jak często mierzyć położenie celu.
  *
- * Otwór robiony jest ogromnym cieniem wokół małego prostokąta, a nie maską
- * SVG — działa w każdej przeglądarce i nie wymaga drugiego drzewa elementów.
+ * Pomiar w każdej klatce dawał ~1900 odczytów układu na sekundę: każdy
+ * `getBoundingClientRect` może wymusić przeliczenie układu, a `findVisible`
+ * sprawdza wszystkie pasujące elementy (ścianek jest dziesięć, bo plansza
+ * renderuje oba układy). Na telefonie było to odczuwalne.
+ *
+ * 50 ms to trzykrotnie mniej pracy, a przy przewijaniu różnicy nie widać —
+ * podświetlenie nadal trzyma się treści.
+ */
+const MEASURE_MS = 50;
+
+/**
+ * Przyciemnienie ekranu z wyciętym otworem na wskazany element.
  *
  * Warstwa nie przechwytuje kliknięć: gracz ma móc kliknąć podświetlony
  * element, a nie walczyć z zasłoną.
@@ -86,19 +96,23 @@ export function Spotlight({ target, from = null, padding = 8 }: SpotlightProps) 
       setFromRect((prev) => (same(prev, nextFrom) ? prev : nextFrom));
     };
 
-    // Pomiar w każdej klatce, nie co ćwierć sekundy.
+    // Pomiar w rytmie klatek, ale nie częściej niż co MEASURE_MS.
     //
-    // Interwał sprawiał, że przy przewijaniu podświetlenie skakało za treścią
-    // z opóźnieniem — stąd wrażenie „latania". `requestAnimationFrame` mierzy
-    // w tym samym rytmie, w jakim przeglądarka rysuje stronę, więc ramka trzyma
-    // się elementu. Aktualizujemy stan tylko przy realnej zmianie, żeby nie
-    // wywoływać renderu 60 razy na sekundę bez powodu.
+    // Wcześniejszy interwał 250 ms sprawiał, że przy przewijaniu podświetlenie
+    // skakało za treścią z opóźnieniem. Odczyt w każdej klatce to naprawił,
+    // ale kosztował ~1900 pomiarów układu na sekundę. Stan aktualizujemy
+    // wyłącznie przy realnej zmianie prostokąta.
     let frame = 0;
-    const loop = () => {
-      measure();
+    let last = 0;
+    const loop = (now: number) => {
+      if (now - last >= MEASURE_MS) {
+        last = now;
+        measure();
+      }
       frame = requestAnimationFrame(loop);
     };
-    loop();
+    measure();
+    frame = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(frame);
   }, [target, from, padding]);

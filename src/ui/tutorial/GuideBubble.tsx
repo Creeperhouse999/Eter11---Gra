@@ -21,15 +21,28 @@ interface GuideBubbleProps {
 }
 
 /**
+ * Jak często mierzyć położenie celu.
+ *
+ * Pomiar w każdej klatce dawał ~1900 odczytów układu na sekundę: każdy
+ * `getBoundingClientRect` może wymusić przeliczenie układu, a `findVisible`
+ * sprawdza wszystkie pasujące elementy (ścianek jest dziesięć, bo plansza
+ * renderuje oba układy). Na telefonie było to odczuwalne.
+ *
+ * 50 ms to trzykrotnie mniej pracy, a przy przewijaniu różnicy nie widać —
+ * podświetlenie nadal trzyma się treści.
+ */
+const MEASURE_MS = 50;
+
+/**
  * ETER11 mówiący do gracza podczas samouczka.
  *
- * Bąbel nigdy nie zasłania tego, co gracz ma kliknąć. Sprawdza kolejno cztery
- * strony podświetlonego elementu i wybiera pierwszą, na której się mieści;
- * gdy żadna nie pasuje, ląduje w rogu najdalszym od podświetlenia.
+ * Bąbel nigdy nie zasłania tego, co gracz ma kliknąć: sprawdza cztery strony
+ * podświetlenia i wybiera pierwszą wolną, a gdy żadna nie pasuje — róg
+ * zakrywający najmniej.
  *
- * Tekst pisze się litera po literze — to jedyne miejsce w grze z takim
- * efektem. Nadaje ETER11 głos i daje dziecku rytm czytania zamiast ściany
- * tekstu. Klik pokazuje całość, a `prefers-reduced-motion` wyłącza efekt.
+ * Tekst pisze się litera po literze. To jedyne miejsce w grze z takim efektem:
+ * nadaje ETER11 głos i daje dziecku rytm czytania zamiast ściany tekstu. Klik
+ * pokazuje całość, a `prefers-reduced-motion` wyłącza efekt.
  */
 export function GuideBubble({
   message,
@@ -96,19 +109,23 @@ export function GuideBubble({
       );
     };
 
-    // Pozycja liczona w każdej klatce, jak w Spotlight. Interwał 200 ms
-    // sprawiał, że przy przewijaniu dymek doganiał podświetlenie skokami.
+    // Ten sam rytm co w Spotlight: klatki, ale nie częściej niż MEASURE_MS.
     let frame = 0;
-    const loop = () => {
-      place();
+    let last = 0;
+    const loop = (now: number) => {
+      if (now - last >= MEASURE_MS) {
+        last = now;
+        place();
+      }
       frame = requestAnimationFrame(loop);
     };
-    loop();
+    place();
+    frame = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(frame);
     // Celowo bez `typed`: tekst dopisuje się co 16 ms, a przeliczanie pozycji
     // przy każdej literze to kilkadziesiąt pomiarów układu na sekundę.
-    // Rosnącą wysokość dymka dogania cykliczne `place()` poniżej.
+    // Rosnącą wysokość dymka dogania pętla powyżej.
   }, [anchor]);
 
   const typing = typed.length < message.length;
