@@ -102,6 +102,14 @@ export async function loadContent(): Promise<LoadResult> {
 export interface SaveResult {
   ok: boolean;
   errors: string[];
+  /**
+   * Znacznik faktycznie zapisany w dokumencie.
+   *
+   * Panel musi dostać dokładnie tę wartość, a nie własne `new Date()` —
+   * różnica choćby milisekundy sprawiłaby, że przy następnym zapisie
+   * wykrywanie konfliktu uznałoby własną wersję za cudzą i odmówiło zapisu.
+   */
+  updatedAt?: string;
 }
 
 /**
@@ -138,11 +146,9 @@ export async function saveContent(
       }
     }
 
-    await setDoc(doc(db, COLLECTION, DOCUMENT), {
-      ...content,
-      updatedAt: new Date().toISOString(),
-    });
-    return { ok: true, errors: [] };
+    const updatedAt = new Date().toISOString();
+    await setDoc(doc(db, COLLECTION, DOCUMENT), { ...content, updatedAt });
+    return { ok: true, errors: [], updatedAt };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {

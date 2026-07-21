@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { applyTheme } from '../data/theme';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
+import { recordVersion } from '../firebase/history';
+import { HistoryPanel } from './HistoryPanel';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
@@ -41,7 +43,8 @@ type Tab =
   | 'test'
   | 'reports'
   | 'discussions'
-  | 'account';
+  | 'account'
+  | 'history';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -58,6 +61,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'account', label: 'Konto', icon: 'people' },
+  { key: 'history', label: 'Historia', icon: 'undo' },
 ];
 
 export function AdminApp() {
@@ -160,8 +164,22 @@ export function AdminApp() {
     const result = await saveContent(content, baseVersion);
     setSaving(false);
     if (result.ok) {
-      // Po udanym zapisie nasza wersja staje się tą aktualną.
-      setBaseVersion(new Date().toISOString());
+      // Znacznik bierzemy z zapisu, nie z własnego zegara: różnica choćby
+      // milisekundy kazałaby następnemu zapisowi uznać własną wersję za cudzą.
+      setBaseVersion(result.updatedAt);
+
+      // Historia po zapisie, nie zamiast: gdyby jej dopisanie padło, treść
+      // i tak jest już w grze i nie ma czego cofać.
+      void recordVersion({
+        content,
+        previous: savedContent,
+        author: auth.user?.displayName || auth.user?.email || 'Zespół',
+        at: result.updatedAt ?? new Date().toISOString(),
+      }).catch(() => {
+        // Cicho: brak wpisu w historii nie jest powodem, by straszyć
+        // redaktora komunikatem o nieudanym zapisie, który się udał.
+      });
+
       setSavedContent(content);
       setErrors([]);
       setStatus(null);
@@ -412,6 +430,16 @@ export function AdminApp() {
             ma stać podpis, którego nie da się podszyć. */}
         {tab === 'discussions' && (
           <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+        )}
+        {tab === 'history' && (
+          <HistoryPanel
+            currentVersion={baseVersion}
+            onRestore={(restored) => {
+              setContent(restored);
+              applyTheme(restored.theme);
+              toast('Wersja wczytana. Kliknij „Zapisz", żeby trafiła do gry.');
+            }}
+          />
         )}
         {tab === 'account' && (
           <AccountPanel

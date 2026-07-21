@@ -85,6 +85,21 @@ service cloud.firestore {
                     && request.resource.data.messages.size() <= 200;
     }
 
+    /**
+     * Historia zapisów treści.
+     *
+     * Nadpisanie dokumentu z treścią kasuje poprzednią wersję bezpowrotnie —
+     * to jedyna nieodwracalna operacja w panelu, a wykonują ją cztery osoby
+     * na wspólnym dokumencie. Historia pozwala cofnąć cudzy albo własny
+     * zapis zamiast odtwarzać go z pamięci.
+     *
+     * Odczyt otwarty tak jak reszta treści gry; pisze i przycina zespół.
+     */
+    match /contentHistory/{version} {
+      allow read: if true;
+      allow write: if zalogowany();
+    }
+
     // Wszystkie pozostałe ścieżki zamknięte.
     // Bez tej reguły kolekcje dodane w przyszłości (pokoje gier w fazie 2)
     // mogłyby zostać otwarte przez przeoczenie.
