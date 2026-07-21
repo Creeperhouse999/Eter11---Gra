@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { DEFAULT_CONFIG } from '../engine/reducer';
 import { useGame } from './useGame';
 
 const setup = () => [
@@ -15,7 +16,9 @@ describe('useGame', () => {
 
   it('rozdaje karty z wbudowanej talii', () => {
     const { result } = renderHook(() => useGame(setup(), 42));
-    expect(result.current.state.players[0].hand).toHaveLength(5);
+    // Wielkość ręki bierzemy z zasad, nie z liczby wpisanej w test —
+    // inaczej zmiana balansu wywraca test, który nie o tym jest.
+    expect(result.current.state.players[0].hand).toHaveLength(DEFAULT_CONFIG.handSize);
   });
 
   it('dispatch zmienia stan', () => {

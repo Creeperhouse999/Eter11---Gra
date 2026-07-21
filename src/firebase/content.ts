@@ -47,6 +47,11 @@ export interface LoadResult {
    */
   reason?: 'empty' | 'invalid' | 'unreachable';
   warning?: string;
+  /**
+   * Znacznik czasu ostatniego zapisu. Panel odsyła go przy zapisie, żeby
+   * dało się wykryć, że ktoś w międzyczasie zapisał coś innego.
+   */
+  updatedAt?: string;
 }
 
 const COLLECTION = 'content';
@@ -69,7 +74,9 @@ export async function loadContent(): Promise<LoadResult> {
       return { content: BUILTIN_CONTENT, source: 'builtin', reason: 'empty' };
     }
 
-    const data = migrate(snapshot.data());
+    const raw = snapshot.data();
+    const updatedAt = typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined;
+    const data = migrate(raw);
     const validation = validateContent(data);
 
     if (!validation.ok) {
@@ -83,7 +90,7 @@ export async function loadContent(): Promise<LoadResult> {
       };
     }
 
-    return { content: data, source: 'firestore' };
+    return { content: data, source: 'firestore', updatedAt };
   } catch {
     return {
       content: BUILTIN_CONTENT,
@@ -104,11 +111,35 @@ export interface SaveResult {
  * Walidacja poprzedza zapis — uszkodzone dane nie trafią do bazy i nie
  * zablokują gry innym.
  */
-export async function saveContent(content: GameContent): Promise<SaveResult> {
+export async function saveContent(
+  content: GameContent,
+  /**
+   * Znacznik wersji, na której pracował panel. Gdy w bazie leży nowszy,
+   * ktoś zapisał w międzyczasie — nadpisanie skasowałoby jego pracę bez
+   * śladu, więc zapis jest wtedy odrzucany.
+   */
+  baseUpdatedAt?: string,
+): Promise<SaveResult> {
   const validation = validateContent(content);
   if (!validation.ok) return { ok: false, errors: validation.errors };
 
   try {
+    if (baseUpdatedAt !== undefined) {
+      const current = await getDoc(doc(db, COLLECTION, DOCUMENT));
+      const theirs = current.exists() ? current.data().updatedAt : undefined;
+
+      if (typeof theirs === 'string' && theirs !== baseUpdatedAt) {
+        return {
+          ok: false,
+          errors: [
+            'Ktoś inny zapisał zmiany, odkąd otworzyłeś panel. ' +
+              'Odśwież stronę i nanieś swoje poprawki jeszcze raz — ' +
+              'inaczej skasowałbyś jego pracę.',
+          ],
+        };
+      }
+    }
+
     await setDoc(doc(db, COLLECTION, DOCUMENT), {
       ...content,
       updatedAt: new Date().toISOString(),

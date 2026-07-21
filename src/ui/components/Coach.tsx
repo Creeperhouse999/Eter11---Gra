@@ -1,4 +1,5 @@
 import { FAMILY_LABELS } from '../../data/families';
+import { roundsForPlayers } from '../../engine/reducer';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, GameState, Player } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
@@ -97,7 +98,12 @@ function buildHint(props: CoachProps): Hint | null {
     };
   }
 
-  const remaining = state.config.roundsPerMission - mission.round + 1;
+  // Limit zależy od liczby graczy — podpowiedź musi liczyć tak samo
+  // jak silnik, inaczej mówiłaby o rundach, których już nie ma.
+  const remaining =
+    roundsForPlayers(state.players.length, state.config.roundsPerMission) -
+    mission.round +
+    1;
   if (remaining <= 2) {
     return {
       icon: 'warning',

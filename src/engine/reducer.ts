@@ -75,6 +75,23 @@ export function createGame(input: CreateGameInput): GameState {
   };
 }
 
+/**
+ * Limit rund na misję.
+ *
+ * Bierze wyłącznie wartość z zasad. Sprawdzałem skalowanie limitu liczbą
+ * graczy — miało wyrównać trudność, bo cztery osoby mają dwa razy więcej
+ * ruchów niż dwie na te same pięć ścianek. Pomiar A/B na tym samym bocie
+ * pokazał jednak zero różnicy (54% i 57% przed i po): misja rozstrzyga się
+ * w 3–5 rundach, więc limit siedmiu rund prawie nigdy nie jest tym, co ją
+ * kończy. Skracanie go zabierałoby graczom zapas, nie dokładając trudności.
+ *
+ * Zostawiam funkcję jako jedno miejsce, w którym liczy się limit — silnik,
+ * pasek rund i podpowiedzi muszą liczyć tak samo.
+ */
+export function roundsForPlayers(_players: number, configured: number): number {
+  return configured;
+}
+
 /** Odrzucenie ruchu — stan bez zmian, powód dla UI. */
 function reject(state: GameState, reason: string): ReducerResult {
   return { state, rejected: reason };
@@ -180,7 +197,7 @@ function endTurn(state: GameState): GameState {
     return { ...state, activePlayerIndex: nextIndex };
   }
 
-  if (mission.round >= state.config.roundsPerMission) {
+  if (mission.round >= roundsForPlayers(state.players.length, state.config.roundsPerMission)) {
     return {
       ...state,
       activePlayerIndex: 0,
@@ -523,7 +540,10 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     // z misji przegraną bez ruchu gracza.
     const perCard = mission.activeBlackSwans.includes('doubleRequirements') ? 2 : 1;
     const movesLeft =
-      (state.config.roundsPerMission - mission.round + 1) * state.players.length;
+      (roundsForPlayers(state.players.length, state.config.roundsPerMission) -
+        mission.round +
+        1) *
+      state.players.length;
     const openSlots = mission.problems.reduce(
       (sum, problem) =>
         sum +
@@ -555,7 +575,10 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     // misji 14 ruchów. Drugie utrudnienie odpuszczamy — misja ma być trudna,
     // a nie przegrana w chwili wylosowania karty.
     const movesLeft =
-      (state.config.roundsPerMission - mission.round + 1) * state.players.length;
+      (roundsForPlayers(state.players.length, state.config.roundsPerMission) -
+        mission.round +
+        1) *
+      state.players.length;
     const needed = mission.problems.reduce(
       (sum, problem) =>
         sum +

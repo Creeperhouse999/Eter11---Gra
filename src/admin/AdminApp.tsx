@@ -84,6 +84,7 @@ export function AdminApp() {
       if (ignore) return;
       setContent(result.content);
       setSavedContent(result.content);
+      setBaseVersion(result.updatedAt);
       applyTheme(result.content.theme);
       if (result.warning) setStatus(result.warning);
     });
@@ -123,12 +124,21 @@ export function AdminApp() {
     setErrors([]);
   };
 
+  /**
+   * Wersja, na której otwarto panel. Zapis odsyła ją do bazy, żeby wykryć,
+   * że w międzyczasie zapisał ktoś inny — bez tego dwie osoby edytujące
+   * naraz po cichu kasowały sobie pracę.
+   */
+  const [baseVersion, setBaseVersion] = useState<string | undefined>(undefined);
+
   const save = async () => {
     setSaving(true);
     setStatus('Zapisywanie…');
-    const result = await saveContent(content);
+    const result = await saveContent(content, baseVersion);
     setSaving(false);
     if (result.ok) {
+      // Po udanym zapisie nasza wersja staje się tą aktualną.
+      setBaseVersion(new Date().toISOString());
       setSavedContent(content);
       setErrors([]);
       setStatus(null);

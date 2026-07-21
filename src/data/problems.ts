@@ -142,7 +142,7 @@ export const ALL_PROBLEMS: Problem[] = [
       { key: 'psychological', family: 'red', hint: 'Zimna krew i odpowiedzialność, gdy system wymyka się spod kontroli' },
       { key: 'digital', family: 'red', hint: 'Ktoś, kto przeanalizuje algorytm i postawi zabezpieczenia' },
       { key: 'social', family: 'blue', hint: 'Ktoś, kto przewidzi skutki decyzji, zanim zapadną' },
-      { key: 'mentor', family: 'blue', hint: 'Ktoś, kto widzi cały system, nie tylko jego kawałek' },
+      { key: 'mentor', family: 'red', hint: 'Ktoś, kto weźmie odpowiedzialność i wyłączy system' },
       { key: 'talent', family: 'blue', hint: 'Spostrzegawczość, żeby wychwycić to, co system ukrywa' },
     ],
   },

@@ -145,6 +145,14 @@ describe('validateContent', () => {
     expect(result.ok, result.errors.join('; ')).toBe(true);
   });
 
+  it('dane wbudowane przechodzą walidację w komplecie', () => {
+    // To one ratują grę, gdy Firestore jest nieosiągalny albo pusty.
+    // Gdyby nie przechodziły walidacji, tryb offline startowałby z danymi,
+    // które gra sama uznaje za uszkodzone.
+    const result = validateContent(validContent());
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
   it('odrzuca motyw z brakującymi kolorami', () => {
     const content = validContent();
     // Brakujące pole wpisywało się do CSS jako `undefined` i element tracił

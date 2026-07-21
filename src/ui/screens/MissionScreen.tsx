@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
+import { roundsForPlayers } from '../../engine/reducer';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { BlackSwanBanner } from '../components/BlackSwanBanner';
@@ -283,7 +284,13 @@ export function MissionScreen({
           <MissionProgress mission={mission} />
           {/* Samouczek nie ma limitu rund — licznik tylko myliłby. */}
           {!alwaysRevealed && (
-            <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
+            <RoundFuel
+              round={mission.round}
+              total={roundsForPlayers(
+                state.players.length,
+                state.config.roundsPerMission,
+              )}
+            />
           )}
         </div>
       </header>
