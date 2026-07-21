@@ -1,10 +1,20 @@
-import { useEffect, useState } from 'react';
-import { AdminApp } from './admin/AdminApp';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { applyTheme } from './data/theme';
-import { BUILTIN_CONTENT, loadContent } from './firebase/content';
+import { BUILTIN_CONTENT } from './data/builtinContent';
 import type { GameContent } from './firebase/validate';
 import { ToastProvider } from './ui/controls/Toast';
 import { GameApp } from './ui/GameApp';
+
+/**
+ * Panel redakcyjny ładowany dopiero pod adresem /admin.
+ *
+ * Trafia tam kilka osób z zespołu, a gracze nigdy — nie ma powodu, żeby
+ * każde dziecko przy stole pobierało edytory kart razem z pakietem Firestore,
+ * który panel ciągnie za sobą.
+ */
+const AdminApp = lazy(() =>
+  import('./admin/AdminApp').then((m) => ({ default: m.AdminApp })),
+);
 
 /**
  * Routing bez biblioteki — aplikacja ma dokładnie dwa widoki.
@@ -12,11 +22,32 @@ import { GameApp } from './ui/GameApp';
  */
 export default function App() {
   const isAdmin = window.location.pathname.startsWith('/admin');
-  return <ToastProvider>{isAdmin ? <AdminApp /> : <Game />}</ToastProvider>;
+
+  return (
+    <ToastProvider>
+      {isAdmin ? (
+        <Suspense
+          fallback={<main className="p-8 font-mono text-sm text-ink-dim">Wczytywanie panelu…</main>}
+        >
+          <AdminApp />
+        </Suspense>
+      ) : (
+        <Game />
+      )}
+    </ToastProvider>
+  );
 }
 
 function Game() {
-  const [content, setContent] = useState<GameContent | null>(null);
+  /**
+   * Gra startuje na kartach wbudowanych, a dane z bazy dochodzą w tle.
+   *
+   * Wcześniej pierwszy render czekał na Firestore — 464 KB pakietu plus
+   * zapytanie sieciowe — choć komplet kart jest w kodzie i wystarcza do gry.
+   * Teraz plansza jest od razu, a `import()` ściąga Firestore dopiero po
+   * pierwszym renderze; jeśli baza ma nowszą zawartość, podmienia ją.
+   */
+  const [content, setContent] = useState<GameContent>(BUILTIN_CONTENT);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,20 +56,21 @@ function Game() {
     /**
      * Limit czasu na odpowiedź bazy.
      *
-     * Firestore przy słabym zasięgu potrafi wisieć bez końca, a gracz zostaje
-     * wtedy na „Wczytywanie kart…" — mimo że komplet kart jest w kodzie i gra
-     * mogłaby ruszyć od razu. Pięć sekund to granica, po której czekanie
-     * przestaje mieć sens.
+     * Gra już działa na kartach wbudowanych, więc czekanie niczego nie
+     * blokuje — ale po pięciu sekundach przestajemy liczyć na bazę i mówimy
+     * o tym graczowi, zamiast w nieskończoność trzymać nieaktualne dane.
      */
     const timeout = window.setTimeout(() => {
       if (done) return;
       done = true;
-      setContent(BUILTIN_CONTENT);
-      applyTheme(BUILTIN_CONTENT.theme);
       setNotice('Baza nie odpowiada — gramy na kartach wbudowanych w grę.');
     }, 5000);
 
-    loadContent()
+    // `import()` zamiast zwykłego importu: pakiet Firestore waży 464 KB,
+    // więcej niż React i cała reszta gry razem. Statyczny import kazał
+    // przeglądarce pobrać go i wykonać, zanim pokazała pierwszą kartę.
+    void import('./firebase/content')
+      .then(({ loadContent }) => loadContent())
       .then((result) => {
         if (done) return;
         done = true;
@@ -53,23 +85,17 @@ function Game() {
         }
       })
       .catch(() => {
-        // `loadContent` łapie własne błędy, ale `applyTheme` już nie — bez
-        // tego uszkodzony motyw zostawiał ekran ładowania na zawsze.
+        // Gra toczy się dalej na danych wbudowanych — nie ma czego ratować,
+        // wystarczy powiedzieć, że nowszej zawartości nie będzie.
         if (done) return;
         done = true;
         window.clearTimeout(timeout);
-        setContent(BUILTIN_CONTENT);
         setNotice('Nie udało się wczytać danych — gramy na kartach wbudowanych.');
       });
 
     return () => window.clearTimeout(timeout);
   }, []);
 
-  if (!content) {
-    // Krótka chwila przed odpowiedzią z bazy. Dane wbudowane i tak są zapasem,
-    // więc komunikat jest neutralny — gracz nie musi wiedzieć o Firestore.
-    return <main className="p-8 font-mono text-sm text-ink-dim">Wczytywanie kart…</main>;
-  }
 
   return <GameApp content={content} notice={notice} />;
 }

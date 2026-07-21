@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { applyTheme } from '../data/theme';
-import { BUILTIN_CONTENT, loadContent, saveContent } from '../firebase/content';
+import { BUILTIN_CONTENT } from '../data/builtinContent';
+import { loadContent, saveContent } from '../firebase/content';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';

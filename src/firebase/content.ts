@@ -1,24 +1,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ALL_CARDS } from '../data/cards';
-import { ALL_CHARACTERS } from '../data/characters';
-import { ALL_PROBLEMS } from '../data/problems';
-import { DEFAULT_FAMILIES } from '../data/families';
-import { DEFAULT_THEME } from '../data/theme';
-import { DEFAULT_UI_TEXT } from '../data/uiText';
-import { DEFAULT_CONFIG } from '../engine/reducer';
+import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { db } from './client';
 import { validateContent, type GameContent } from './validate';
-
-/** Dane wbudowane — zapas, gdy Firestore jest niedostępny. */
-export const BUILTIN_CONTENT: GameContent = {
-  cards: ALL_CARDS,
-  problems: ALL_PROBLEMS,
-  characters: ALL_CHARACTERS,
-  rules: DEFAULT_CONFIG,
-  text: DEFAULT_UI_TEXT,
-  theme: DEFAULT_THEME,
-  families: DEFAULT_FAMILIES,
-};
 
 /**
  * Uzupełnia brakujące sekcje wartościami domyślnymi.
@@ -29,10 +12,12 @@ export const BUILTIN_CONTENT: GameContent = {
 function migrate(raw: Record<string, unknown>): GameContent {
   return {
     ...(raw as unknown as GameContent),
-    rules: { ...DEFAULT_CONFIG, ...(raw.rules as object) },
-    text: { ...DEFAULT_UI_TEXT, ...(raw.text as object) },
-    theme: { ...DEFAULT_THEME, ...(raw.theme as object) },
-    families: { ...DEFAULT_FAMILIES, ...(raw.families as object) },
+    // Wartości domyślne bierzemy z danych wbudowanych — jedno źródło prawdy
+    // zamiast siedmiu osobnych importów, które i tak dawały to samo.
+    rules: { ...BUILTIN_CONTENT.rules, ...(raw.rules as object) },
+    text: { ...BUILTIN_CONTENT.text, ...(raw.text as object) },
+    theme: { ...BUILTIN_CONTENT.theme, ...(raw.theme as object) },
+    families: { ...BUILTIN_CONTENT.families, ...(raw.families as object) },
   };
 }
 
