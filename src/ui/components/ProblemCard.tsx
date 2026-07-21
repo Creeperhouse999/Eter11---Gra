@@ -169,25 +169,34 @@ export function ProblemCard({
 
   const core = (
     <div
-      className="flex flex-col justify-center rounded-xl border-2 bg-surface p-4 text-center"
+      className="flex flex-col justify-center rounded-xl border-2 bg-surface p-3 text-center sm:p-4"
       style={{ borderColor: typeColor }}
     >
-      <span className="mx-auto" style={{ color: typeColor }}>
-        <Icon name={problem.icon as IconName} size={40} />
-      </span>
-      <span className="eter-label mt-2" style={{ color: typeColor }}>
-        {problemTypeLabel(problem.type)}
-      </span>
-      <h2
-        className="font-display text-xl font-bold leading-tight"
-        style={{ overflowWrap: 'anywhere' }}
-      >
-        {problem.name}
-      </h2>
+      {/* Na telefonie ikona i tytuł stoją obok siebie: wyśrodkowana kolumna
+          zjadała ponad sto pikseli, przez które plansza nie mieściła się
+          na ekranie. Od `lg` wraca układ pionowy, bo tam miejsca nie brakuje. */}
+      <div className="flex items-center gap-3 text-left lg:block lg:text-center">
+        <span className="shrink-0 lg:mx-auto lg:block" style={{ color: typeColor }}>
+          <Icon name={problem.icon as IconName} size={32} />
+        </span>
+
+        <div className="min-w-0">
+          <span className="eter-label block lg:mt-2" style={{ color: typeColor }}>
+            {problemTypeLabel(problem.type)}
+          </span>
+          <h2
+            className="font-display text-lg font-bold leading-tight sm:text-xl"
+            style={{ overflowWrap: 'anywhere' }}
+          >
+            {problem.name}
+          </h2>
+        </div>
+      </div>
+
       {/* Cel zostaje zawsze — to on mówi, po co ten ruch. Reszta opisu jest
           do przeczytania raz i tylko zabiera wysokość, więc na wąskim ekranie
           chowa się pod rozwijaczem. */}
-      <p className="eter-label mt-3 text-left">Cel</p>
+      <p className="eter-label mt-2 text-left lg:mt-3">Cel</p>
       <p
         className="text-left text-xs text-accent"
         style={{ overflowWrap: 'anywhere' }}

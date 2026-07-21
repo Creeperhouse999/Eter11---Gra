@@ -185,7 +185,7 @@ export function ProblemEditor({ problems, onChange }: ProblemEditorProps) {
                   <div className="flex flex-wrap items-end gap-5">
                     <Select
                       label="Typ"
-                      className="w-56"
+                      className="w-full sm:w-56"
                       value={problem.type}
                       options={TYPE_OPTIONS}
                       onChange={(type) => update(problem.id, { type })}
@@ -210,7 +210,7 @@ export function ProblemEditor({ problems, onChange }: ProblemEditorProps) {
 
                         <Select
                           label="Wymagana rodzina"
-                          className="mt-2 w-56"
+                          className="mt-2 w-full sm:w-56"
                           value={slot.family}
                           options={FAMILY_OPTIONS}
                           onChange={(family) => updateSlot(problem.id, slot.key, { family })}

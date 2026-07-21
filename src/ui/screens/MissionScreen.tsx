@@ -240,7 +240,7 @@ export function MissionScreen({
     ) : null;
 
   return (
-    <main className="eter-fade-in relative mx-auto max-w-7xl px-4 py-6">
+    <main className="eter-fade-in relative mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
 
       {/* Na wąskim ekranie cztery bloki zawijały się w cztery rzędy, a ostatni
@@ -383,7 +383,7 @@ export function MissionScreen({
 
             {handRevealed ? (
               <>
-                <div className="mt-3 flex flex-wrap gap-2" data-tour="hand">
+                <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2" data-tour="hand">
                   {activePlayer.hand.map((card, index) => (
                     <CardView
                       key={card.id}
@@ -456,7 +456,7 @@ export function MissionScreen({
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-3 border-t border-edge pt-4">
+            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-edge pt-2.5 sm:mt-4 sm:gap-3 sm:pt-4">
               {swapMode ? (
                 <>
                   <Button

@@ -112,9 +112,15 @@ export function useGame(
    * Sprzątanie przy odmontowaniu wykonuje się jako ostatnie.
    */
   const abandonRef = useRef(false);
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
+
   useEffect(
     () => () => {
-      if (abandonRef.current) clearSavedGame();
+      // Warunek na `persist` jest istotny: partia, która niczego nie
+      // zapisuje (samouczek, tryb testowy), nie ma prawa skasować zapisu
+      // prawdziwej gry tej samej osoby.
+      if (abandonRef.current && persistRef.current) clearSavedGame();
     },
     [],
   );

@@ -132,12 +132,12 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Szukaj w nazwach i opisach"
             aria-label="Szukaj karty"
-            className="w-56"
+            className="w-full sm:w-56"
           />
           <Select
             value={filter}
             ariaLabel="Filtruj kategorię"
-            className="w-52"
+            className="w-full sm:w-52"
             options={[
               { value: 'all' as const, label: 'Wszystkie kategorie' },
               ...CATEGORY_OPTIONS,
@@ -219,7 +219,7 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
                 <Select
                   value={card.family ?? 'red'}
                   label="Rodzina"
-                  className="w-44"
+                  className="w-full sm:w-44"
                   options={FAMILY_OPTIONS}
                   onChange={(family) => update(card.id, { family })}
                 />
@@ -229,7 +229,7 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
                 <Select
                   value={card.blackSwanKind ?? 'extraProblem'}
                   label="Wariant"
-                  className="w-56"
+                  className="w-full sm:w-56"
                   options={SWAN_KINDS.map(([kind, label]) => ({ value: kind, label }))}
                   onChange={(blackSwanKind) => update(card.id, { blackSwanKind })}
                 />

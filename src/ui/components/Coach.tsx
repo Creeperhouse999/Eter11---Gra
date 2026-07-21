@@ -130,13 +130,13 @@ export function Coach(props: CoachProps) {
       // Zmiana treści ma być zauważona, ale nie ma przerywać czytania.
       role="status"
       aria-live="polite"
-      className="flex items-center gap-2.5 rounded-lg border border-edge bg-surface px-3 py-2"
+      className="flex items-center gap-2 rounded-lg border border-edge bg-surface px-2.5 py-1.5 sm:gap-2.5 sm:px-3 sm:py-2"
       style={{ borderLeftColor: color, borderLeftWidth: 3 }}
     >
       <span className="shrink-0" style={{ color }}>
         <Icon name={hint.icon} size={16} />
       </span>
-      <p className="text-sm leading-snug">{hint.text}</p>
+      <p className="text-xs leading-snug sm:text-sm">{hint.text}</p>
     </div>
   );
 }
