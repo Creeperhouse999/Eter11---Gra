@@ -88,7 +88,18 @@ export function SummaryScreen({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display text-lg font-bold">{player.name}</h2>
                 <span className="eter-label">
-                  {alreadyTook ? 'Karta zabrana' : 'Wybierz jedną kartę'}
+                  {alreadyTook
+                    ? 'Karta zabrana'
+                    : plays.every(
+                          (p) =>
+                            p.card.category === 'eter11' ||
+                            p.card.category === 'blackswan',
+                        )
+                      // Gracz, który zagrał wyłącznie karty specjalne, nie ma
+                      // czego zabrać — bez tego widziałby same wyłączone
+                      // przyciski i nie wiedział dlaczego.
+                      ? 'Nic do zabrania w tej misji'
+                      : 'Wybierz jedną kartę'}
                 </span>
               </div>
 
