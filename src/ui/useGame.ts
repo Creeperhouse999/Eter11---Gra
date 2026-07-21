@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildDeck } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
@@ -89,10 +89,12 @@ export function useGame(
    * Zapis rozpoznajemy po ziarnie, więc nowa partia nigdy nie wczyta
    * cudzego stanu.
    */
-  const [state, setState] = useState<GameState>(
-    () =>
-      (persist ? loadGame(seed) : null) ?? setupGame(players, seed, config, content),
-  );
+  const [state, setState] = useState<GameState>(() => {
+    const saved = persist ? loadGame(seed) : null;
+    if (saved) return saved;
+
+    return setupGame(players, seed, config, content);
+  });
 
   useEffect(() => {
     if (!persist) return;
@@ -101,6 +103,26 @@ export function useGame(
     if (state.phase === 'finale') clearSavedGame();
     else saveGame(seed, state);
   }, [persist, seed, state]);
+
+  /**
+   * Porzucona partia znika razem z ekranem gry.
+   *
+   * Kasowanie z zewnątrz nie działało: `GameApp` czyścił zapis, po czym
+   * efekt powyżej zapisywał stan jeszcze raz, zanim komponent zniknął.
+   * Sprzątanie przy odmontowaniu wykonuje się jako ostatnie.
+   */
+  const abandonRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (abandonRef.current) clearSavedGame();
+    },
+    [],
+  );
+
+  /** Oznacza partię jako porzuconą — zapis zniknie przy wyjściu z gry. */
+  const abandon = useCallback(() => {
+    abandonRef.current = true;
+  }, []);
   const [history, setHistory] = useState<GameState[]>([]);
   const [rejection, setRejection] = useState<string | null>(null);
 
@@ -136,7 +158,16 @@ export function useGame(
 
   const dismissRejection = useCallback(() => setRejection(null), []);
 
-  return { state, dispatch, rejection, dismissRejection, history, undo, overrideState };
+  return {
+    state,
+    dispatch,
+    rejection,
+    dismissRejection,
+    history,
+    undo,
+    overrideState,
+    abandon,
+  };
 }
 
 export type Game = ReturnType<typeof useGame>;

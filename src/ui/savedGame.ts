@@ -76,13 +76,25 @@ export function hasSavedGame(): boolean {
   }
 }
 
-/** Ziarno zapisanej partii — potrzebne, żeby ją wznowić. */
+/**
+ * Ziarno partii, którą da się wznowić.
+ *
+ * Celowo przechodzi przez `loadGame`, a nie czyta samego pola: sesja
+ * wznawia się z pustą listą graczy i liczy, że stan przyjdzie z zapisu.
+ * Gdyby ziarno zwracało się dla zapisu, którego `loadGame` potem odrzuca
+ * (inna wersja formatu, uszkodzone dane), powstałaby partia bez graczy —
+ * nie do rozegrania i nadpisująca oryginalny zapis.
+ */
 export function savedSeed(): number | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
+
     const payload = JSON.parse(raw) as Partial<Saved>;
-    return payload.version === VERSION ? (payload.seed ?? null) : null;
+    const seed = payload.seed;
+    if (typeof seed !== 'number') return null;
+
+    return loadGame(seed) === null ? null : seed;
   } catch {
     return null;
   }

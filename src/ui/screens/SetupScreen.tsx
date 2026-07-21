@@ -13,6 +13,12 @@ interface SetupScreenProps {
   text?: UiText;
   /** Ponowne otwarcie wstępu — pokazuje się sam tylko za pierwszym razem. */
   onShowIntro?: () => void;
+  /**
+   * Powrót do rozpoczętej partii. Brak funkcji = nie ma czego wznawiać.
+   * Wznowienie jest wyborem gracza, a nie automatem — inaczej ekran
+   * ustawień w ogóle by się nie pokazywał.
+   */
+  onResume?: () => void;
 }
 
 interface Draft {
@@ -36,6 +42,7 @@ export function SetupScreen({
   characters = ALL_CHARACTERS,
   text = DEFAULT_UI_TEXT,
   onShowIntro,
+  onResume,
 }: SetupScreenProps) {
   const [drafts, setDrafts] = useState<Draft[]>(() => [
     { name: '', characterId: characters[0].id },
@@ -112,6 +119,31 @@ export function SetupScreen({
           )}
         </div>
       </header>
+
+      {/* Rozpoczęta partia na samej górze: kto wrócił do gry, chce ją
+          dokończyć, a nie przewijać do niej przez formularz. */}
+      {onResume && (
+        <button
+          type="button"
+          onClick={onResume}
+          className="eter-rise relative mt-6 flex w-full items-center gap-3 rounded-xl border-2 border-success bg-surface p-4 text-left transition hover:bg-raised"
+        >
+          <span className="shrink-0 text-success">
+            <Icon name="undo" size={24} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display font-bold text-success">
+              Wróć do gry
+            </span>
+            <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
+              Macie rozpoczętą partię. Wszystko czeka tam, gdzie skończyliście.
+            </span>
+          </span>
+          <span className="shrink-0 text-ink-dim">
+            <Icon name="chevronDown" size={18} className="-rotate-90" />
+          </span>
+        </button>
+      )}
 
       {/* Samouczek przed ustawieniami: kto nie zna zasad, ma go pod ręką
           i nie musi najpierw wypełniać formularza. */}

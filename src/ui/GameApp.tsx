@@ -18,7 +18,7 @@ import { TutorialDone } from './tutorial/TutorialDone';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
 import { useConfirm } from './controls/useConfirm';
-import { clearSavedGame, savedSeed } from './savedGame';
+import { savedSeed } from './savedGame';
 import { useGame, type PlayerSetup } from './useGame';
 
 export interface GameAppContent {
@@ -50,18 +50,6 @@ function RunningGame({
   onRestart: () => void;
 }) {
   const { confirm, dialog } = useConfirm();
-
-  /** Porzucenie partii jest nieodwracalne — pytamy, zanim skasujemy zapis. */
-  const quit = async () => {
-    const confirmed = await confirm({
-      title: 'Zakończyć grę?',
-      message:
-        'Wrócicie do menu, a rozpoczęta partia przepadnie — nie da się do niej wrócić.',
-      confirmLabel: 'Zakończ',
-      tone: 'danger',
-    });
-    if (confirmed) onRestart();
-  };
   const text = content.text ?? DEFAULT_UI_TEXT;
   // Samouczek gra na własnym scenariuszu: jeden gracz, ustawiona ręka
   // i talia, więc przebieg jest identyczny za każdym razem.
@@ -81,6 +69,23 @@ function RunningGame({
     !tutorial,
   );
   const { state, dispatch } = game;
+
+  /** Porzucenie partii jest nieodwracalne — pytamy, zanim skasujemy zapis. */
+  const quit = async () => {
+    const confirmed = await confirm({
+      title: 'Zakończyć grę?',
+      message:
+        'Wrócicie do menu, a rozpoczęta partia przepadnie — nie da się do niej wrócić.',
+      confirmLabel: 'Zakończ',
+      tone: 'danger',
+    });
+    if (confirmed) {
+      // Zapis znika dopiero przy odmontowaniu ekranu gry — inaczej ostatni
+      // render zdążyłby go przywrócić.
+      game.abandon();
+      onRestart();
+    }
+  };
 
   // Samouczek nie ma po co pytać „czy zaczynamy" — startuje od razu.
   useEffect(() => {
@@ -200,21 +205,20 @@ function RunningGame({
 const INTRO_SEEN_KEY = 'eter11:intro-seen';
 
 export function GameApp({ content = {}, notice }: GameAppProps) {
-  /**
-   * Rozpoczęta partia wraca po odświeżeniu.
-   *
-   * Sam stan gry zapisuje `useGame`, ale bez wznowienia sesji gracz lądował
-   * w menu i nie miał jak do niej wrócić. Ziarno wystarcza: `useGame` po nim
-   * rozpozna właściwy zapis, a gracze i tak siedzą w zapisanym stanie.
-   */
   const [session, setSession] = useState<{
     players: PlayerSetup[];
     seed: number;
     tutorial: boolean;
-  } | null>(() => {
-    const seed = savedSeed();
-    return seed === null ? null : { players: [], seed, tutorial: false };
-  });
+  } | null>(null);
+
+  /**
+   * Ziarno rozpoczętej partii — albo `null`, gdy nie ma czego wznawiać.
+   *
+   * Świadomie NIE wznawiamy automatycznie. Automat zabierał drogę do
+   * samouczka i do nowej gry: ekran ustawień w ogóle się nie pokazywał,
+   * a jedynym wyjściem było porzucenie partii. Menu pyta, zamiast decydować.
+   */
+  const [resumable] = useState(() => savedSeed());
 
   /**
    * Wstęp widzi tylko ten, kto go jeszcze nie oglądał.
@@ -257,12 +261,11 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           seed={session.seed}
           content={content}
           tutorial={session.tutorial}
-          onRestart={() => {
-            // Powrót do menu kończy partię — inaczej „Nowa gra" wznawiałaby
-            // tę samą rozgrywkę, którą gracz właśnie zostawił.
-            clearSavedGame();
-            setSession(null);
-          }}
+          // Powrót do menu kończy partię — inaczej „Nowa gra" wznawiałaby
+          // tę samą rozgrywkę, którą gracz właśnie zostawił. Zapis kasuje
+          // `useGame` przy odmontowaniu, żeby ostatni render nie zdążył go
+          // przywrócić.
+          onRestart={() => setSession(null)}
         />
       ) : (
         <SetupScreen
@@ -273,6 +276,13 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
             setSession({ players, seed: Date.now(), tutorial })
           }
           onShowIntro={() => setShowIntro(true)}
+          // Rozpoczęta partia czeka w menu zamiast wznawiać się sama —
+          // gracz może do niej wrócić albo zacząć coś innego.
+          onResume={
+            resumable === null
+              ? undefined
+              : () => setSession({ players: [], seed: resumable, tutorial: false })
+          }
         />
       )}
     </>
