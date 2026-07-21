@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
 import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
 import { categoryColorVar, categoryLabel } from '../ui/components/categoryStyles';
@@ -44,6 +44,19 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
   const toast = useToast();
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
+  /**
+   * Wyróżnienie nowo dodanej karty gaśnie po chwili.
+   *
+   * Bez tego po dodaniu kilku kart świeci się kilka wierszy naraz i „nowa"
+   * przestaje cokolwiek znaczyć. Timer w efekcie, a nie w handlerze, żeby
+   * zniknął razem z komponentem.
+   */
+  useEffect(() => {
+    if (!justAddedId) return;
+    const timer = window.setTimeout(() => setJustAddedId(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [justAddedId]);
+
   // Sześćdziesiąt kilka kart w jednej liście: bez szukania poprawa literówki
   // w nazwie oznacza przewijanie kilkunastu ekranów na oślep.
   const needle = search.trim().toLowerCase();
@@ -77,9 +90,6 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
     // kilkudziesięciu pozycji i trzeba by jej szukać przewijaniem.
     onChange([created, ...cards]);
     setJustAddedId(created.id);
-    // Wyróżnienie gaśnie po chwili. Bez tego po dodaniu kilku kart świeci
-    // się kilka wierszy naraz i „nowa" przestaje cokolwiek znaczyć.
-    window.setTimeout(() => setJustAddedId((id) => (id === created.id ? null : id)), 4000);
     toast('Dodano kartę na górze listy.');
   };
 

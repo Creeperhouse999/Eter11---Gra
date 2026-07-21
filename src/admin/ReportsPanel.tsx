@@ -283,7 +283,13 @@ export function ReportsPanel() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setTab(item.id)}
+              onClick={() => {
+                setTab(item.id);
+                // Zaczęty komentarz dotyczy zgłoszenia z poprzedniej listy —
+                // po zmianie zakładki nie ma już czego komentować.
+                setCommenting(null);
+                setComment('');
+              }}
               aria-current={active ? 'page' : undefined}
               className={[
                 'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition',
