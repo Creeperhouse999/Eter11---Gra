@@ -10,6 +10,7 @@ import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { PlayerMat } from '../components/PlayerMat';
+import { LearningSummary } from '../components/LearningSummary';
 import type { Game } from '../useGame';
 import { Button } from '../controls/Button';
 import { useScreenTitle } from '../useScreenTitle';
@@ -92,6 +93,8 @@ export function FinaleScreen({
 
       <section className="relative mt-6 space-y-4">
         <h2 className="font-display text-xl font-bold">Wyniki indywidualne</h2>
+        <LearningSummary state={state} />
+
         {state.players.map((player) => {
           const progress = fulfillmentProgress(player);
           const playerTitles = Object.entries(titles)

@@ -9,6 +9,7 @@ import { CardView } from '../components/CardView';
 import { Coach } from '../components/Coach';
 import { DragGhost } from '../components/DragGhost';
 import { CardZoom } from '../components/CardZoom';
+import { Icon, type IconName } from '../icons/Icon';
 import { MissionProgress } from '../components/MissionProgress';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
@@ -158,6 +159,7 @@ export function MissionScreen({
   const canUseMat = matUsed < state.config.maxMatCardsPerMission;
 
   const characterOf = (characterId: string) => characters.find((c) => c.id === characterId);
+  const activeCharacter = characterOf(activePlayer.characterId);
 
   const play = (card: Card, fromMat: boolean, problemId: string, slotKey: SlotKey) => {
     dispatch({
@@ -274,12 +276,23 @@ export function MissionScreen({
             </Button>
           )}
           <span className="eter-label block">Teraz gra</span>
-          <p
-            className="truncate font-display text-xl font-bold text-accent sm:text-2xl"
-            title={activePlayer.name}
-          >
-            {activePlayer.name}
-          </p>
+          {/* Samo imię ginęło, gdy nad jednym telefonem stoi czworo dzieci
+              i każde sprawdza, czy to już jego kolej. Ikona postaci czyta się
+              szybciej niż tekst i jest tym samym znakiem, który dziecko
+              wybrało dla siebie na starcie. */}
+          <div className="flex items-center gap-2">
+            {activeCharacter && (
+              <span
+                className="eter-pulse flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-bg"
+                style={{ background: 'var(--eter-accent)' }}
+              >
+                <Icon name={activeCharacter.icon as IconName} size={20} />
+              </span>
+            )}
+            <p className="min-w-0 truncate font-display text-xl font-bold text-accent sm:text-2xl">
+              {activePlayer.name}
+            </p>
+          </div>
         </div>
         {/* Oba paski zajmują pełną szerokość na telefonie: w kolumnie 162 px
             kropki postępu i rund zawijały się do trzech rzędów, przez co

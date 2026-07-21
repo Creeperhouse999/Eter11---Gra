@@ -1,4 +1,4 @@
-import type { CardCategory } from '../engine/types';
+import type { CardCategory, SlotKey } from '../engine/types';
 import type { IconName } from '../ui/icons/Icon';
 
 /**
@@ -42,7 +42,9 @@ export const DEFAULT_CATEGORIES: CategoryMap = {
  * Osobno od mapy, bo obiekty w JavaScripcie nie gwarantują kolejności kluczy
  * po przejściu przez Firestore, a układ ścianek wokół problemu jest stały.
  */
-export const CATEGORY_ORDER: CardCategory[] = [
+// Typ `SlotKey`, nie `CardCategory`: ta lista to ścianki wokół problemu,
+// a ETER11 i Czarny Łabędź do żadnej nie pasują.
+export const CATEGORY_ORDER: SlotKey[] = [
   'psychological',
   'digital',
   'social',
