@@ -120,6 +120,12 @@ export function AdminApp() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // Celowo bez tablicy zależności. Handler czyta `dirty`, `saving` i
+    // `validation`, które zmieniają się przy każdej edycji — z pustą tablicą
+    // domknięcie zamroziłoby je na wartościach z pierwszego renderu i skrót
+    // zapisywałby nieaktualny stan. Wymienienie ich w tablicy dałoby to samo
+    // co brak tablicy, bo `save` i tak powstaje na nowo w każdym renderze.
+    // Rejestracja listenera jest tania, a cleanup zdejmuje poprzedni.
   });
 
   const discard = async () => {
