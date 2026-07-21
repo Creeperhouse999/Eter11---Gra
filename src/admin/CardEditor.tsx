@@ -12,7 +12,6 @@ import { IconPicker } from './IconPicker';
 
 interface CardEditorProps {
   cards: Card[];
-  problemBonusIds: Set<string>;
   onChange: (cards: Card[]) => void;
 }
 
@@ -38,7 +37,7 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
   color: categoryColorVar(category),
 }));
 
-export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps) {
+export function CardEditor({ cards, onChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
@@ -72,12 +71,18 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
 
   const remove = async (id: string) => {
     const card = cards.find((c) => c.id === id);
-    // Karta użyta jako bonus zablokowałaby zapis — ostrzegamy zawczasu.
-    const usedAsBonus = problemBonusIds.has(id);
+    // Ostrzegamy, gdy karta jest ostatnią, która potrafi zamknąć swoją
+    // kombinację kategorii i rodziny — bez niej ścianka byłaby nie do domknięcia.
+    const lastOfKind =
+      card !== undefined &&
+      card.family !== undefined &&
+      cards.filter((c) => c.category === card.category && c.family === card.family)
+        .length === 1;
+
     const confirmed = await confirm({
       title: 'Usunąć kartę?',
-      message: usedAsBonus
-        ? `„${card?.name}" jest kartą bonusową jednego z problemów. Usuń ją najpierw z listy bonusów — inaczej zapis zostanie odrzucony.`
+      message: lastOfKind
+        ? `„${card?.name}" to jedyna karta tej kategorii w tym kolorze. Bez niej ścianki wymagające tej kombinacji będą nie do zamknięcia — zapis zostanie odrzucony.`
         : `„${card?.name}" zniknie z talii. Zmiana wejdzie w życie po zapisaniu.`,
       confirmLabel: 'Usuń',
       tone: 'danger',
@@ -187,9 +192,6 @@ export function CardEditor({ cards, problemBonusIds, onChange }: CardEditorProps
                 Wymaga weryfikacji merytorycznej
               </Checkbox>
 
-              {problemBonusIds.has(card.id) && (
-                <span className="font-mono text-[10px] text-accent">karta bonusowa</span>
-              )}
             </div>
           </li>
         ))}

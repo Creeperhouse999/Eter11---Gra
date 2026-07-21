@@ -41,7 +41,7 @@ const idle: TutorialContext = {
   swapMode: false,
   swapSelected: 0,
   targetSlot: null,
-  handChanged: false,
+  swapCount: 0,
 };
 
 beforeEach(() => {
@@ -259,7 +259,7 @@ describe('useTutorial — kroki', () => {
     expect(result.current.done).toBe(false);
 
     // Ręka zmieniona = wymiana się odbyła, choć licznik rundy już się zresetował.
-    rerender({ ctx: { ...idle, handChanged: true } });
+    rerender({ ctx: { ...idle, swapCount: 1 } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
     expect(result.current.done).toBe(true);
   });

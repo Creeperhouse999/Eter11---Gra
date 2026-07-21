@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isIconName } from '../ui/icons/Icon';
 import { ALL_PROBLEMS } from './problems';
-import { ALL_CARDS } from './cards';
 
 describe('ALL_PROBLEMS', () => {
   it('ma unikalne identyfikatory', () => {
@@ -36,36 +35,8 @@ describe('ALL_PROBLEMS', () => {
     }
   });
 
-  it('karty bonusowe wskazują na istniejące karty', () => {
-    const cardIds = new Set(ALL_CARDS.map((c) => c.id));
-    for (const problem of ALL_PROBLEMS) {
-      for (const slot of problem.slots) {
-        for (const bonusId of slot.bonusCardIds) {
-          expect(cardIds.has(bonusId), `${problem.id}: nieznana karta ${bonusId}`).toBe(true);
-        }
-      }
-    }
+  
   });
-
-  it('karty bonusowe pasują kategorią do swojej ścianki', () => {
-    const byId = new Map(ALL_CARDS.map((c) => [c.id, c]));
-    for (const problem of ALL_PROBLEMS) {
-      for (const slot of problem.slots) {
-        for (const bonusId of slot.bonusCardIds) {
-          const card = byId.get(bonusId)!;
-          expect(
-            card.category === slot.key,
-            `${problem.id}: ${bonusId} (${card.category}) nie pasuje do ścianki ${slot.key}`,
-          ).toBe(true);
-          expect(
-            card.family === slot.family,
-            `${problem.id}: ${bonusId} (rodzina ${card.family}) nie pasuje do rodziny ${slot.family}`,
-          ).toBe(true);
-        }
-      }
-    }
-  });
-});
 
 describe('komplet talii problemów', () => {
   it('zawiera 13 problemów', () => {

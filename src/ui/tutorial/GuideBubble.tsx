@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../controls/Button';
 import { Icon } from '../icons/Icon';
+import { pickPlacement, BUBBLE_WIDTH, BUBBLE_GAP, type Placement } from './placement';
 
 interface GuideBubbleProps {
   /** Treść wypowiedzi ETER11. */
@@ -17,14 +18,6 @@ interface GuideBubbleProps {
   /** Selektor podświetlonego elementu — bąbel ustawia się obok niego. */
   anchor: string | null;
 }
-
-interface Placement {
-  top: number;
-  left: number;
-}
-
-const WIDTH = 320;
-const GAP = 14;
 
 /**
  * ETER11 mówiący do gracza podczas samouczka.
@@ -84,51 +77,8 @@ export function GuideBubble({
 
       const target = element.getBoundingClientRect();
       const height = bubbleRef.current?.offsetHeight ?? 190;
-      const { innerWidth: vw, innerHeight: vh } = window;
 
-      const clampX = (x: number) => Math.min(Math.max(GAP, x), vw - WIDTH - GAP);
-      const clampY = (y: number) => Math.min(Math.max(GAP, y), vh - height - GAP);
-
-      // Kandydaci w kolejności preferencji: pod, nad, obok.
-      const candidates: Array<Placement & { fits: boolean }> = [
-        {
-          top: target.bottom + GAP,
-          left: clampX(target.left + target.width / 2 - WIDTH / 2),
-          fits: target.bottom + GAP + height <= vh,
-        },
-        {
-          top: target.top - height - GAP,
-          left: clampX(target.left + target.width / 2 - WIDTH / 2),
-          fits: target.top - height - GAP >= 0,
-        },
-        {
-          top: clampY(target.top + target.height / 2 - height / 2),
-          left: target.right + GAP,
-          fits: target.right + GAP + WIDTH <= vw,
-        },
-        {
-          top: clampY(target.top + target.height / 2 - height / 2),
-          left: target.left - WIDTH - GAP,
-          fits: target.left - WIDTH - GAP >= 0,
-        },
-      ];
-
-      const chosen = candidates.find((candidate) => candidate.fits);
-
-      if (chosen) {
-        setPlacement({ top: chosen.top, left: chosen.left });
-        return;
-      }
-
-      // Nic się nie mieści obok — idziemy do rogu po przeciwnej stronie
-      // ekranu niż podświetlenie, żeby go nie przykryć.
-      const targetOnLeft = target.left + target.width / 2 < vw / 2;
-      const targetOnTop = target.top + target.height / 2 < vh / 2;
-
-      setPlacement({
-        top: targetOnTop ? vh - height - GAP : GAP,
-        left: targetOnLeft ? vw - WIDTH - GAP : GAP,
-      });
+      setPlacement(pickPlacement(target, height, window.innerWidth, window.innerHeight));
     };
 
     place();
@@ -141,7 +91,10 @@ export function GuideBubble({
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [anchor, typed]);
+    // Celowo bez `typed`: tekst dopisuje się co 16 ms, a przeliczanie pozycji
+    // przy każdej literze to kilkadziesiąt pomiarów układu na sekundę.
+    // Rosnącą wysokość dymka dogania cykliczne `place()` poniżej.
+  }, [anchor]);
 
   const typing = typed.length < message.length;
 
@@ -151,9 +104,9 @@ export function GuideBubble({
       className="eter-pop fixed z-40 max-w-[calc(100vw-1.75rem)]"
       style={
         placement
-          ? { top: placement.top, left: placement.left, width: WIDTH }
+          ? { top: placement.top, left: placement.left, width: BUBBLE_WIDTH }
           : // Bez podświetlenia: dół ekranu, gdzie nie zasłania stołu.
-            { bottom: GAP, left: '50%', transform: 'translateX(-50%)', width: WIDTH }
+            { bottom: BUBBLE_GAP, left: '50%', transform: 'translateX(-50%)', width: BUBBLE_WIDTH }
       }
       role="dialog"
       aria-label="Samouczek"

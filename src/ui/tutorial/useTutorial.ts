@@ -14,8 +14,15 @@ export interface TutorialContext {
    * Podświetlamy ją zamiast całej planszy, żeby gracz wiedział, gdzie ciągnąć.
    */
   targetSlot: string | null;
-  /** Ręka zmieniła się od startu misji — dowód, że wymiana się odbyła. */
-  handChanged: boolean;
+  /**
+   * Ile razy gracz potwierdził wymianę w tej misji.
+   *
+   * Zliczane przez MissionScreen, bo `swappedThisRound` gaśnie razem z rundą,
+   * a wymiana kończy turę. Wcześniej dowodem była zmiana zawartości ręki, ale
+   * przy jednym graczu każdy ruch kończy rundę i dobiera kartę — więc krok
+   * „wymień karty" zaliczał się sam, bez wymiany.
+   */
+  swapCount: number;
 }
 
 /**
@@ -25,12 +32,29 @@ export interface TutorialContext {
  * potem karty do zaznaczenia, na końcu przycisk potwierdzenia. Bez tego
  * podświetlenie zostawałoby na przycisku, który znika po włączeniu trybu.
  */
-function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null {
+export function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null {
   // Po wybraniu karty celujemy w konkretną ściankę, nie w całą planszę:
   // przy pięciu ściankach wokół karty „gdzieś tam" nie wystarcza.
-  if (context.targetSlot && (goal === 'selectCard' || goal === 'playFirst' ||
-      goal === 'playSecond' || goal === 'playAfterSwap' || goal === 'finish')) {
+  //
+  // Dopóki gracz karty NIE wybrał, podświetlamy rękę — nawet jeśli
+  // `targetSlot` jest już policzony. MissionScreen wylicza go skanując całą
+  // rękę, więc bywa niepusty od pierwszej chwili; bez tego warunku samouczek
+  // mówił „kliknij kartę", a świeciła ścianka na planszy.
+  if (
+    context.cardSelected &&
+    context.targetSlot &&
+    (goal === 'selectCard' || goal === 'playFirst' ||
+      goal === 'playSecond' || goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish')
+  ) {
     return `[data-slot="${context.targetSlot}"]`;
+  }
+
+  // Kroki „połóż kartę" bez wyboru: wskazujemy rękę, z której ma ją wziąć.
+  if (
+    !context.cardSelected &&
+    (goal === 'playFirst' || goal === 'playSecond' || goal === 'playThird')
+  ) {
+    return '[data-tour="playable-card"]';
   }
 
   if (goal === 'swapCards') {
@@ -43,6 +67,7 @@ function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null 
     selectCard: '[data-tour="playable-card"]',
     playFirst: '[data-tour="problem"]',
     playSecond: '[data-tour="problem"]',
+    playThird: '[data-tour="problem"]',
     playAfterSwap: '[data-tour="playable-card"]',
     finish: '[data-tour="problem"]',
     takeCard: '[data-tour="take-card"]',
@@ -56,7 +81,7 @@ function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null 
  * Warunki czytane są ze stanu gry, nie z kliknięć — samouczek nie da się
  * oszukać ani zablokować, gdy gracz zrobi coś we własnej kolejności.
  */
-function isGoalMet(
+export function isGoalMet(
   goal: TutorialGoal,
   state: GameState,
   context: TutorialContext,
@@ -77,13 +102,16 @@ function isGoalMet(
       return played >= 1;
     case 'playSecond':
       return played >= 2;
-    case 'swapCards':
-      // `swappedThisRound` czyści się z nową rundą, a wymiana kończy turę —
-      // więc sama flaga zgasłaby, zanim krok zostałby zaliczony. Liczy się
-      // też ręka: po wymianie gracz ma karty, których wcześniej nie miał.
-      return swapped > 0 || played >= 3 || context.handChanged;
-    case 'playAfterSwap':
+    case 'playThird':
       return played >= 3;
+    case 'swapCards':
+      // Wyłącznie faktyczna wymiana. `swappedThisRound` gaśnie z nową rundą,
+      // dlatego obok niej liczymy potwierdzone wymiany. Zagranie karty tego
+      // kroku NIE zalicza — krok ma nauczyć wymiany, a nie dać się ominąć.
+      return swapped > 0 || context.swapCount > 0;
+    case 'playAfterSwap':
+      // Czwarta karta: trzy czerwone plus jedna zagrana po wymianie.
+      return played >= 4;
     case 'finish':
       // Tylko wygrana: `phase === 'missionSummary'` obejmuje też porażkę,
       // a pochwała mówi „problem rozwiązany".
@@ -103,7 +131,7 @@ function isGoalMet(
  */
 function wrongCardMessage(goal: TutorialGoal, context: TutorialContext): string | null {
   const picking = goal === 'selectCard' || goal === 'playFirst' ||
-    goal === 'playSecond' || goal === 'playAfterSwap' || goal === 'finish';
+    goal === 'playSecond' || goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish';
 
   if (!picking || !context.cardSelected || context.targetSlot !== null) return null;
 

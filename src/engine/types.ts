@@ -52,8 +52,6 @@ export interface ProblemSlot {
   family: FamilyId;
   /** Podpowiedź dla graczy, np. "Ktoś, kto uspokoi emocje". */
   hint: string;
-  /** Id kart dających bonus (wymienione wprost w opisie problemu). */
-  bonusCardIds: string[];
 }
 
 export interface Problem {

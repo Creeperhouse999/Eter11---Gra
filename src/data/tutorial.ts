@@ -15,6 +15,7 @@ export type TutorialGoal =
   | 'selectCard'
   | 'playFirst'
   | 'playSecond'
+  | 'playThird'
   | 'swapCards'
   | 'playAfterSwap'
   | 'finish'
@@ -80,10 +81,20 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     nudge: 'Kliknij kartę, a zobaczysz, która ścianka się zapali.',
   },
   {
+    // Trzecia czerwona karta musi zejść z ręki, zanim ETER11 powie
+    // „nic nie pasuje" — inaczej mówiłby to, mając w ręku pasującą kartę.
+    id: 'third',
+    goal: 'playThird',
+    allow: ['play'],
+    say: 'Została Ci jeszcze jedna czerwona karta. Połóż ją na ostatniej czerwonej ściance.',
+    praise: 'Trzy ścianki zamknięte. Zostały dwie niebieskie.',
+    nudge: 'Czerwona karta pasuje do czerwonej ścianki — kliknij ją.',
+  },
+  {
     id: 'swap',
     goal: 'swapCards',
     allow: ['swap'],
-    say: 'Zostały Ci karty zielone — one nie pasują do żadnej ścianki tego problemu. Tak też bywa. Wtedy wymieniasz je na nowe: naciśnij „Wymieniam karty", zaznacz zielone i potwierdź.',
+    say: 'W ręku zostały same karty zielone — żadna nie pasuje do niebieskich ścianek. Tak też bywa. Wtedy wymieniasz karty na nowe: naciśnij „Wymieniam karty", zaznacz wszystkie i potwierdź.',
     praise: 'Właśnie tak. Wymiana kosztuje Twój ruch w tej rundzie, ale daje nowe karty.',
     nudge: 'Przycisk „Wymieniam karty" jest na dole, obok „Pasuję". Zaznacz karty zielone.',
   },
@@ -130,11 +141,11 @@ export const TUTORIAL_PROBLEM: Problem = {
   consequence: 'Nic. Spróbujesz jeszcze raz.',
   goal: 'Poznać zasady gry.',
   slots: [
-    { key: 'mentor', family: 'red', hint: 'Ktoś, kto weźmie odpowiedzialność', bonusCardIds: [] },
-    { key: 'talent', family: 'red', hint: 'Odwaga albo wytrwałość', bonusCardIds: [] },
-    { key: 'psychological', family: 'red', hint: 'Siła, żeby się nie poddać', bonusCardIds: [] },
-    { key: 'social', family: 'blue', hint: 'Ktoś, kto zapyta „skąd to wiesz?"', bonusCardIds: [] },
-    { key: 'digital', family: 'blue', hint: 'Ktoś, kto przeanalizuje dane', bonusCardIds: [] },
+    { key: 'mentor', family: 'red', hint: 'Ktoś, kto weźmie odpowiedzialność' },
+    { key: 'talent', family: 'red', hint: 'Odwaga albo wytrwałość' },
+    { key: 'psychological', family: 'red', hint: 'Siła, żeby się nie poddać' },
+    { key: 'social', family: 'blue', hint: 'Ktoś, kto zapyta „skąd to wiesz?"' },
+    { key: 'digital', family: 'blue', hint: 'Ktoś, kto przeanalizuje dane' },
   ],
 };
 
@@ -152,9 +163,9 @@ const card = (
  * zielone, które nie pasują nigdzie.
  *
  * Uwaga na mechanikę: przy jednym graczu każdy ruch kończy rundę, więc po
- * każdym zagraniu gracz dobiera kartę. Talia samouczka jest dlatego pusta
- * (patrz TUTORIAL_DECK) — inaczej po dwóch zagraniach miałby już karty
- * niebieskie i krok „nic nie pasuje" byłby kłamstwem.
+ * każdym zagraniu gracz dobiera kartę. Dlatego talia zaczyna się od kart
+ * zielonych (patrz TUTORIAL_DECK) — po zagraniu trzech czerwonych w ręku
+ * zostaje sama zieleń i krok „nic nie pasuje, wymień" mówi prawdę.
  */
 export const TUTORIAL_HAND: Card[] = [
   card('tut-men-red', 'Lider', 'mentor', 'red', 'flag', 'Bierze odpowiedzialność, gdy inni się wahają.'),
@@ -165,16 +176,23 @@ export const TUTORIAL_HAND: Card[] = [
 ];
 
 /**
- * Talia samouczka: karty niebieskie na dwie ostatnie ścianki.
+ * Talia samouczka. Kolejność jest częścią scenariusza, nie ozdobą.
  *
- * Kolejność ma znaczenie. Przy jednym graczu każdy ruch kończy rundę,
- * a koniec rundy rozdaje po karcie — więc gracz dobiera z tej talii także
- * między zagraniami, nie tylko przy wymianie. Same karty niebieskie
- * gwarantują, że dwie ostatnie ścianki da się zamknąć, a żadna dobrana
- * karta nie unieważni kroku o wymianie: zielone z ręki i tak nie pasują
- * do niczego, a niebieskie pasują dopiero do ścianek odsłoniętych na końcu.
+ * Przy jednym graczu każdy ruch kończy rundę, a koniec rundy rozdaje po
+ * karcie — gracz dobiera więc także między zagraniami, nie tylko przy
+ * wymianie. Gdyby na wierzchu leżały karty niebieskie, po trzech zagraniach
+ * miałby czym zamknąć kolejne ścianki i krok „nic nie pasuje, wymień je"
+ * byłby nieprawdą: ETER11 kazałby wymieniać karty, które pasują.
+ *
+ * Dlatego pierwsze trzy karty są zielone — bezużyteczne przy tym problemie.
+ * Po zagraniu trzech czerwonych ręka jest sama zieleń, wymiana staje się
+ * jedynym sensownym ruchem, a niebieskie przychodzą dopiero z niej i
+ * zamykają dwie ostatnie ścianki.
  */
 export const TUTORIAL_DECK: Card[] = [
+  card('tut-soc-green-2', 'Uważne słuchanie', 'social', 'green', 'ear', 'Słyszy, co ktoś mówi między słowami.'),
+  card('tut-dig-green-2', 'Naprawianie rzeczy', 'digital', 'green', 'wrench', 'Woli naprawić, niż wyrzucić.'),
+  card('tut-psy-green-1', 'Cierpliwość', 'psychological', 'green', 'mountain', 'Czeka, aż nadejdzie właściwy moment.'),
   card('tut-soc-blue-1', 'Krytyczne myślenie', 'social', 'blue', 'puzzle', 'Pyta „skąd to wiesz?" zanim uwierzy.'),
   card('tut-dig-blue-1', 'Analiza danych', 'digital', 'blue', 'chart', 'Znajduje wzory tam, gdzie inni widzą chaos.'),
   card('tut-soc-blue-2', 'Myślenie przyszłościowe', 'social', 'blue', 'telescope', 'Przewiduje skutki decyzji.'),

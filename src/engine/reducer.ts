@@ -546,26 +546,17 @@ function endMissionSummary(state: GameState): ReducerResult {
   }
 
   const won = mission.phase === 'won';
-  const bonusCardIds = new Set(
-    mission.problems.flatMap((p) => p.slots.flatMap((s) => s.bonusCardIds)),
-  );
 
   let players = state.players;
 
   if (won) {
-    players = players.map((player) => {
-      const extra = mission.played.filter(
-        (p) => p.playerId === player.id && bonusCardIds.has(p.card.id),
-      ).length;
-      const awards = [
+    players = players.map((player) => ({
+      ...player,
+      experience: [
+        ...player.experience,
         { id: `exp-solve-${state.missionNumber}-${player.id}`, kind: 'solve' as const },
-        ...Array.from({ length: extra }, (_, i) => ({
-          id: `exp-bonus-${state.missionNumber}-${player.id}-${i}`,
-          kind: 'solve' as const,
-        })),
-      ];
-      return { ...player, experience: [...player.experience, ...awards] };
-    });
+      ],
+    }));
   }
 
   // Karty niezabrane i nieprzekazane idą na stos odrzuconych.

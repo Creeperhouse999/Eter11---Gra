@@ -23,11 +23,11 @@ const problem: Problem = {
   type: 'action',
   icon: 'earth',
   slots: [
-    { key: 'psychological', family: 'red', hint: '', bonusCardIds: [] },
-    { key: 'digital', family: 'blue', hint: '', bonusCardIds: [] },
-    { key: 'social', family: 'yellow', hint: '', bonusCardIds: [] },
-    { key: 'mentor', family: 'green', hint: '', bonusCardIds: [] },
-    { key: 'talent', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'psychological', family: 'red', hint: '' },
+    { key: 'digital', family: 'blue', hint: '' },
+    { key: 'social', family: 'yellow', hint: '' },
+    { key: 'mentor', family: 'green', hint: '' },
+    { key: 'talent', family: 'red', hint: '' },
   ],
 };
 

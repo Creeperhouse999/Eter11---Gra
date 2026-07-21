@@ -111,7 +111,7 @@ describe('CharacterEditor', () => {
 describe('CardEditor', () => {
   it('filtruje karty po kategorii', async () => {
     render(
-      <CardEditor cards={ALL_CARDS} problemBonusIds={new Set()} onChange={vi.fn()} />,
+      <CardEditor cards={ALL_CARDS} onChange={vi.fn()} />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
 
@@ -128,7 +128,7 @@ describe('CardEditor', () => {
 
   it('lista kategorii obsługuje klawiaturę', async () => {
     render(
-      <CardEditor cards={ALL_CARDS} problemBonusIds={new Set()} onChange={vi.fn()} />,
+      <CardEditor cards={ALL_CARDS} onChange={vi.fn()} />,
     );
     const trigger = screen.getByRole('button', { name: 'Filtruj kategorię' });
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
@@ -139,33 +139,8 @@ describe('CardEditor', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 
-  it('oznacza karty używane jako bonus', () => {
-    const bonusId = ALL_CARDS[0].id;
-    render(
-      <CardEditor
-        cards={ALL_CARDS.slice(0, 3)}
-        problemBonusIds={new Set([bonusId])}
-        onChange={vi.fn()}
-      />,
-    );
-    expect(screen.getAllByText('karta bonusowa')).toHaveLength(1);
+  
   });
-
-  it('ostrzega przed usunięciem karty bonusowej', async () => {
-    const card = ALL_CARDS[0];
-    render(
-      <CardEditor
-        cards={[card]}
-        problemBonusIds={new Set([card.id])}
-        onChange={vi.fn()}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Usuń' }));
-
-    const dialog = await screen.findByRole('dialog', { name: 'Usunąć kartę?' });
-    expect(dialog.textContent).toContain('bonusową');
-  });
-});
 
 describe('TextEditor', () => {
   it('zmiana tytułu gry wywołuje onChange', () => {
@@ -219,16 +194,7 @@ describe('DeckOverview', () => {
     expect(screen.getByText(/mniej niż misji/)).toBeDefined();
   });
 
-  it('ostrzega o problemach bez kart bonusowych', () => {
-    const data = content();
-    data.problems = data.problems.map((p) => ({
-      ...p,
-      slots: p.slots.map((s) => ({ ...s, bonusCardIds: [] })),
-    }));
-    render(<DeckOverview content={data} />);
-    expect(screen.getByText(/bez żadnej karty bonusowej/)).toBeDefined();
-  });
-
+  
   it('wypisuje treści oznaczone do weryfikacji', () => {
     render(<DeckOverview content={content()} />);
     expect(screen.getByText(/Do weryfikacji merytorycznej/)).toBeDefined();

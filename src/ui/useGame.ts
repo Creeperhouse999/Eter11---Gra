@@ -23,6 +23,42 @@ export interface GameContentInput {
 }
 
 /**
+ * Stan początkowy gry.
+ *
+ * Wydzielone z hooka, żeby testy mogły rozegrać partię dokładnie tym samym
+ * kodem, którym gra aplikacja — zrekonstruowany stan potrafiłby przechodzić
+ * testy mimo błędu w prawdziwej ścieżce.
+ */
+export function setupGame(
+  players: PlayerSetup[],
+  seed: number,
+  config: RulesConfig = DEFAULT_CONFIG,
+  content: GameContentInput = {},
+): GameState {
+  const base = createGame({
+    players,
+    deck: content.orderedDeck ?? buildDeck(content.cards),
+    problems: content.problems ?? ALL_PROBLEMS,
+    seed,
+    config,
+  });
+
+  if (!content.fixedHand && !content.orderedDeck) return base;
+
+  // Samouczek: ustawiona ręka i talia w zadanej kolejności. Tasowanie
+  // z createGame zostaje pominięte, żeby scenariusz był powtarzalny.
+  return {
+    ...base,
+    players: base.players.map((player) => ({
+      ...player,
+      hand: content.fixedHand ? [...content.fixedHand] : player.hand,
+    })),
+    drawPile: content.orderedDeck ? [...content.orderedDeck] : base.drawPile,
+    discardPile: [],
+  };
+}
+
+/**
  * Opakowanie silnika gry dla React.
  *
  * Karty i problemy można podać z zewnątrz (dane z Firestore); brak argumentu
@@ -38,29 +74,9 @@ export function useGame(
   config: RulesConfig = DEFAULT_CONFIG,
   content: GameContentInput = {},
 ) {
-  const [state, setState] = useState<GameState>(() => {
-    const base = createGame({
-      players,
-      deck: content.orderedDeck ?? buildDeck(content.cards),
-      problems: content.problems ?? ALL_PROBLEMS,
-      seed,
-      config,
-    });
-
-    if (!content.fixedHand && !content.orderedDeck) return base;
-
-    // Samouczek: ustawiona ręka i talia w zadanej kolejności. Tasowanie
-    // z createGame zostaje pominięte, żeby scenariusz był powtarzalny.
-    return {
-      ...base,
-      players: base.players.map((player) => ({
-        ...player,
-        hand: content.fixedHand ? [...content.fixedHand] : player.hand,
-      })),
-      drawPile: content.orderedDeck ? [...content.orderedDeck] : base.drawPile,
-      discardPile: [],
-    };
-  });
+  const [state, setState] = useState<GameState>(() =>
+    setupGame(players, seed, config, content),
+  );
   const [history, setHistory] = useState<GameState[]>([]);
   const [rejection, setRejection] = useState<string | null>(null);
 

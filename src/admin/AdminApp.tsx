@@ -119,11 +119,6 @@ export function AdminApp() {
     toast('Wrócono do ostatnio zapisanej wersji.');
   };
 
-  const problemBonusIds = useMemo(
-    () => new Set(content.problems.flatMap((p) => p.slots.flatMap((s) => s.bonusCardIds))),
-    [content.problems],
-  );
-
   if (auth.checking) {
     return <main className="p-8 text-sm text-ink-dim">Sprawdzanie sesji…</main>;
   }
@@ -240,16 +235,11 @@ export function AdminApp() {
         {tab === 'problems' && (
           <ProblemEditor
             problems={content.problems}
-            cards={content.cards}
             onChange={(problems) => update({ problems })}
           />
         )}
         {tab === 'cards' && (
-          <CardEditor
-            cards={content.cards}
-            problemBonusIds={problemBonusIds}
-            onChange={(cards) => update({ cards })}
-          />
+          <CardEditor cards={content.cards} onChange={(cards) => update({ cards })} />
         )}
         {tab === 'families' && (
           <FamilyEditor

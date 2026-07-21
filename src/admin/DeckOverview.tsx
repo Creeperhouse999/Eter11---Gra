@@ -33,7 +33,7 @@ const CATEGORIES: CardCategory[] = [
  * Przegląd talii — statystyki i ostrzeżenia o balansie.
  *
  * Wyłapuje problemy, które inaczej wyszłyby dopiero przy stole: za mało kart
- * na liczbę graczy, problemy bez podpowiedzi, karty nieużywane jako bonus.
+ * na liczbę graczy, problemy bez podpowiedzi, ścianki nie do domknięcia.
  */
 export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
   const deck = buildDeck(content.cards);
@@ -43,10 +43,6 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
   const cardsDealt = rules.handSize * maxPlayers;
   // Każda runda to jedno dobranie na gracza; misja może trwać pełne rundy.
   const cardsPerGame = cardsDealt + rules.roundsPerMission * maxPlayers * rules.missionsPerGame;
-
-  const bonusIds = new Set(
-    problems.flatMap((p) => p.slots.flatMap((s) => s.bonusCardIds)),
-  );
 
   const warnings: string[] = [];
 
@@ -69,10 +65,18 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
     );
   }
 
-  const noBonus = problems.filter((p) => p.slots.every((s) => s.bonusCardIds.length === 0));
-  if (noBonus.length > 0) {
+  // Ścianka wymaga kategorii ORAZ rodziny. Jeśli talia nie ma takiej karty,
+  // problemu nie da się domknąć — to blokuje całą misję, więc ostrzegamy.
+  const deadSlots = problems.flatMap((p) =>
+    p.slots
+      .filter(
+        (s) => !cards.some((c) => c.category === s.key && c.family === s.family),
+      )
+      .map((s) => `${p.name} → ${slotLabel(s.key)} (${s.family})`),
+  );
+  if (deadSlots.length > 0) {
     warnings.push(
-      `Problemy bez żadnej karty bonusowej: ${noBonus.map((p) => p.name).join(', ')}. Gracze nie mają jak zdobyć dodatkowego doświadczenia.`,
+      `Ścianki bez ani jednej pasującej karty w talii: ${deadSlots.join(', ')}. Tych problemów nie da się rozwiązać.`,
     );
   }
 
@@ -185,22 +189,13 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
         ))}
       </div>
 
-      <h3 className="eter-label mt-6">Karty bonusowe w ściankach</h3>
+      <h3 className="eter-label mt-6">Karty pasujące do ścianek</h3>
       <div className="mt-2 flex flex-wrap gap-2">
-        {(['mentor', 'talent', 'psychological', 'social', 'digital'] as const).map((slot) => {
-          const total = problems.reduce(
-            (sum, p) => sum + (p.slots.find((s) => s.key === slot)?.bonusCardIds.length ?? 0),
-            0,
-          );
-          return (
-            <span key={slot} className="rounded border border-edge px-3 py-1.5 text-xs">
-              {slotLabel(slot)}: {total}
-            </span>
-          );
-        })}
-        <span className="rounded border border-edge px-3 py-1.5 text-xs text-ink-dim">
-          kart użytych jako bonus: {bonusIds.size} z {cards.length}
-        </span>
+        {(['mentor', 'talent', 'psychological', 'social', 'digital'] as const).map((slot) => (
+          <span key={slot} className="rounded border border-edge px-3 py-1.5 text-xs">
+            {slotLabel(slot)}: {cards.filter((c) => c.category === slot).length}
+          </span>
+        ))}
       </div>
 
       {drafts.length > 0 && (

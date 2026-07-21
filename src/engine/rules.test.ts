@@ -26,11 +26,11 @@ const problem: Problem = {
   type: 'action',
   icon: 'star',
   slots: [
-    { key: 'psychological', family: 'red', hint: '', bonusCardIds: [] },
-    { key: 'digital', family: 'red', hint: '', bonusCardIds: [] },
-    { key: 'social', family: 'red', hint: '', bonusCardIds: [] },
-    { key: 'mentor', family: 'red', hint: '', bonusCardIds: [] },
-    { key: 'talent', family: 'red', hint: '', bonusCardIds: [] },
+    { key: 'psychological', family: 'red', hint: '' },
+    { key: 'digital', family: 'red', hint: '' },
+    { key: 'social', family: 'red', hint: '' },
+    { key: 'mentor', family: 'red', hint: '' },
+    { key: 'talent', family: 'red', hint: '' },
   ],
 };
 

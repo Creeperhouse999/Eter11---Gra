@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { pendingBlackSwan } from '../../engine/reducer';
@@ -14,6 +14,7 @@ import { RoundFuel } from '../components/RoundFuel';
 import { useCardDrag } from '../components/useCardDrag';
 import { Alert } from '../controls/Alert';
 import { Button } from '../controls/Button';
+import type { TutorialContext } from '../tutorial/useTutorial';
 import type { Game } from '../useGame';
 
 interface MissionScreenProps {
@@ -21,14 +22,7 @@ interface MissionScreenProps {
   text?: UiText;
   characters?: Character[];
   /** Samouczek obserwuje, co gracz widzi na ekranie. */
-  onContext?: (context: {
-    handRevealed: boolean;
-    cardSelected: boolean;
-    swapMode: boolean;
-    swapSelected: number;
-    targetSlot: string | null;
-    handChanged: boolean;
-  }) => void;
+  onContext?: (context: TutorialContext) => void;
   /**
    * Samouczek blokuje ruchy spoza bieżącego kroku, żeby gracz nie wyprzedził
    * scenariusza. Brak funkcji = wszystko dozwolone.
@@ -70,11 +64,13 @@ export function MissionScreen({
 
   const activePlayer = state.players[state.activePlayerIndex];
 
-  // Ręka z początku misji — po wymianie pojawią się karty spoza tego zbioru.
-  const startingHand = useRef<Set<string> | null>(null);
-  if (startingHand.current === null && activePlayer) {
-    startingHand.current = new Set(activePlayer.hand.map((c) => c.id));
-  }
+  // Ile razy potwierdzono wymianę w tej misji — dowód dla samouczka.
+  //
+  // Celowo NIE zerowany przy zmianie rundy ani gracza: wymiana sama kończy
+  // rundę, więc reset skasowałby dowód w tej samej chwili, w której powstaje.
+  // Nowa misja to nowy licznik.
+  const [swapCount, setSwapCount] = useState(0);
+  useEffect(() => setSwapCount(0), [state.missionNumber]);
 
   // Zmiana gracza zakrywa karty — bez tego następny gracz zobaczyłby cudzą rękę.
   useEffect(() => {
@@ -117,11 +113,12 @@ export function MissionScreen({
       swapMode,
       swapSelected: toSwap.length,
       targetSlot: findTarget(),
-      handChanged: startingHand.current
-        ? activePlayer?.hand.some((c) => !startingHand.current!.has(c.id)) ?? false
-        : false,
+      swapCount,
     });
-  }, [onContext, handRevealed, selected, swapMode, toSwap.length, state.mission, activePlayer]);
+  }, [
+    onContext, handRevealed, selected, swapMode, toSwap.length,
+    state.mission, activePlayer, swapCount,
+  ]);
 
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
@@ -164,6 +161,9 @@ export function MissionScreen({
 
   const confirmSwap = () => {
     dispatch({ type: 'SWAP_HAND', playerId: activePlayer.id, cardIds: toSwap });
+    // Samouczek potrzebuje trwałego dowodu wymiany: `swappedThisRound` gaśnie
+    // razem z rundą, którą ta wymiana właśnie kończy.
+    setSwapCount((n) => n + 1);
     setSelected(null);
     setSwapMode(false);
     setToSwap([]);

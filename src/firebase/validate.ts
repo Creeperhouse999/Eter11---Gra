@@ -37,7 +37,7 @@ const NUMERIC_RULES: Array<[keyof RulesConfig, number, number]> = [
  * Walidacja zawartości przed zapisem do Firestore i po odczycie.
  *
  * Uszkodzone dane zablokowałyby grę wszystkim graczom, dlatego sprawdzane są
- * także zależności między sekcjami — na przykład czy karty bonusowe problemów
+ * także zależności między sekcjami — na przykład czy ścianki problemów
  * wskazują na istniejące karty.
  *
  * Zwraca wszystkie błędy naraz, a nie pierwszy napotkany: administrator
@@ -134,12 +134,6 @@ export function validateContent(content: unknown): ValidationResult {
             `Problem ${problem.id}, ścianka ${slot.key}: w talii nie ma żadnej karty ` +
               `kategorii ${slot.key} w rodzinie ${slot.family} — misji nie da się ukończyć.`,
           );
-        }
-      }
-
-      for (const bonusId of slot.bonusCardIds ?? []) {
-        if (!cardIds.has(bonusId)) {
-          add(`Problem ${problem.id}: karta bonusowa ${bonusId} nie istnieje w talii.`);
         }
       }
     }

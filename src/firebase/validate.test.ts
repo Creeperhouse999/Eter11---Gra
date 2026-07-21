@@ -73,12 +73,16 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('brakuje ścianki');
   });
 
-  it('odrzuca kartę bonusową wskazującą na nieistniejącą kartę', () => {
+  it('odrzuca ściankę, której nie da się zamknąć żadną kartą z talii', () => {
     const content = validContent();
-    content.problems[0].slots[0].bonusCardIds = ['nie-ma-takiej-karty'];
+    const slot = content.problems[0].slots[0];
+    // Zabieramy z talii wszystkie karty pasujące do tej ścianki.
+    content.cards = content.cards.filter(
+      (c) => !(c.category === slot.key && c.family === slot.family),
+    );
     const result = validateContent(content);
     expect(result.ok).toBe(false);
-    expect(result.errors.join(' ')).toContain('nie-ma-takiej-karty');
+    expect(result.errors.join(' ')).toContain('misji nie da się ukończyć');
   });
 
   it('odrzuca liczbę rund poniżej 1', () => {

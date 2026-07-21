@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { FAMILY_IDS, FAMILY_COLORS, FAMILY_LABELS } from '../data/families';
-import type {
-  Card,
-  FamilyId,
-  Problem,
-  ProblemSlot,
-  ProblemType,
-  SlotKey,
-} from '../engine/types';
+import type { Problem, ProblemSlot, ProblemType, SlotKey } from '../engine/types';
 import {
   problemTypeColorVar,
   problemTypeLabel,
@@ -16,7 +9,6 @@ import {
 } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Checkbox } from '../ui/controls/Checkbox';
-import { Chip } from '../ui/controls/Chip';
 import { TextArea, TextField } from '../ui/controls/Field';
 import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
@@ -26,7 +18,6 @@ import { IconPicker } from './IconPicker';
 
 interface ProblemEditorProps {
   problems: Problem[];
-  cards: Card[];
   onChange: (problems: Problem[]) => void;
 }
 
@@ -44,12 +35,7 @@ function emptyProblem(): Problem {
     type: 'action',
     icon: 'earth',
     draft: true,
-    slots: SLOT_KEYS.map((key) => ({
-      key,
-      family: 'red' as const,
-      hint: '',
-      bonusCardIds: [],
-    })),
+    slots: SLOT_KEYS.map((key) => ({ key, family: 'red' as const, hint: '' })),
   };
 }
 
@@ -65,8 +51,8 @@ const TYPE_OPTIONS = PROBLEM_TYPES.map((type) => ({
   color: problemTypeColorVar(type),
 }));
 
-/** Edytor kart problemów: treść, typ, cztery ścianki z podpowiedziami i bonusami. */
-export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps) {
+/** Edytor kart problemów: treść, typ, ścianki z wymaganą rodziną i podpowiedzią. */
+export function ProblemEditor({ problems, onChange }: ProblemEditorProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
@@ -99,9 +85,6 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
     }
   };
 
-  /** Karty pasujące kategorią do ścianki — tylko one mogą być bonusem. */
-  const cardsForSlot = (slotKey: SlotKey, family: FamilyId) =>
-    cards.filter((c) => c.category === slotKey && c.family === family);
 
   return (
     <section>
@@ -216,7 +199,7 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                   </div>
 
                   <div className="space-y-3">
-                    <h3 className="eter-label">Cztery ścianki</h3>
+                    <h3 className="eter-label">Pięć ścianek</h3>
                     {problem.slots.map((slot) => (
                       <div key={slot.key} className="rounded-lg border border-edge p-3">
                         <span className="flex items-center gap-2 text-sm font-bold">
@@ -229,9 +212,7 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                           className="mt-2 w-56"
                           value={slot.family}
                           options={FAMILY_OPTIONS}
-                          onChange={(family) =>
-                            updateSlot(problem.id, slot.key, { family, bonusCardIds: [] })
-                          }
+                          onChange={(family) => updateSlot(problem.id, slot.key, { family })}
                         />
 
                         <TextField
@@ -243,32 +224,6 @@ export function ProblemEditor({ problems, cards, onChange }: ProblemEditorProps)
                           }
                         />
 
-                        <fieldset className="mt-3">
-                          <legend className="text-xs text-ink-dim">
-                            Karty bonusowe — zagranie ich daje dodatkową kartę doświadczenia
-                          </legend>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {cardsForSlot(slot.key, slot.family).map((card) => {
-                              const checked = slot.bonusCardIds.includes(card.id);
-                              return (
-                                <Chip
-                                  key={card.id}
-                                  checked={checked}
-                                  icon={card.icon as IconName}
-                                  onChange={(next) =>
-                                    updateSlot(problem.id, slot.key, {
-                                      bonusCardIds: next
-                                        ? [...slot.bonusCardIds, card.id]
-                                        : slot.bonusCardIds.filter((id) => id !== card.id),
-                                    })
-                                  }
-                                >
-                                  {card.name}
-                                </Chip>
-                              );
-                            })}
-                          </div>
-                        </fieldset>
                       </div>
                     ))}
                   </div>

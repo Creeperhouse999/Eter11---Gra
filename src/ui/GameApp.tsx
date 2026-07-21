@@ -83,7 +83,7 @@ function RunningGame({
     swapMode: false,
     swapSelected: 0,
     targetSlot: null,
-    handChanged: false,
+    swapCount: 0,
   });
 
   const tour = useTutorial(tutorial, state, tourContext, () => setTutorialDone(true));
