@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickPlacement, BUBBLE_WIDTH, BUBBLE_GAP } from './placement';
+import { pickPlacement, bubbleWidth, BUBBLE_WIDTH, BUBBLE_GAP } from './placement';
 
 /**
  * Dymek samouczka nie może zasłaniać tego, co podświetla — gracz zgłosił
@@ -95,5 +95,35 @@ describe('umiejscowienie dymka', () => {
     const target = rect(20, 20, 1400, 860);
     const p = pickPlacement(target, H, VW, VH);
     expect(p.top === BUBBLE_GAP || p.top === VH - H - BUBBLE_GAP).toBe(true);
+  });
+
+  it('mieści się na każdym typowym telefonie', () => {
+    // Zgłoszone z telefonu: dymek wychodził poza prawą krawędź i przycisk
+    // „Dalej" był nie do kliknięcia, więc samouczka nie dało się dokończyć.
+    // Przyczyną było liczenie pozycji z docelowych 320 px, choć CSS ścinał
+    // szerokość do okna.
+    const ekrany: Array<[number, number]> = [
+      [320, 568],
+      [360, 640],
+      [375, 667],
+      [390, 844],
+      [414, 896],
+    ];
+    const cele = [
+      rect(12, 480, 340, 150),
+      rect(12, 60, 340, 120),
+      rect(12, 200, 340, 300),
+      rect(200, 300, 120, 44),
+    ];
+
+    for (const [vw, vh] of ekrany) {
+      const width = bubbleWidth(vw);
+      for (const target of cele) {
+        const placement = pickPlacement(target, H, vw, vh);
+        expect(placement.left, `${vw}x${vh}`).toBeGreaterThanOrEqual(0);
+        expect(placement.left + width, `${vw}x${vh}`).toBeLessThanOrEqual(vw);
+        expect(placement.top + H, `${vw}x${vh}`).toBeLessThanOrEqual(vh);
+      }
+    }
   });
 });
