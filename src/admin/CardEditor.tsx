@@ -9,6 +9,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { IconPicker } from './IconPicker';
+import { CardView } from '../ui/components/CardView';
 import { newId } from './newId';
 
 interface CardEditorProps {
@@ -201,13 +202,23 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
               </Button>
             </div>
 
-            <TextField
-              value={card.description}
-              onChange={(e) => update(card.id, { description: e.target.value })}
-              placeholder="Opis karty"
-              aria-label={`Opis karty ${card.name}`}
-              className="mt-2"
-            />
+            <div className="mt-2 flex items-start gap-3">
+              <TextField
+                value={card.description}
+                onChange={(e) => update(card.id, { description: e.target.value })}
+                placeholder="Opis karty"
+                aria-label={`Opis karty ${card.name}`}
+                className="min-w-0 flex-1"
+              />
+
+              {/* Podgląd tej samej karty, którą zobaczy dziecko.
+                  Formularz nie mówi, czy nazwa się zmieści ani jak wygląda
+                  opis na 112 px — redaktor pisał w ciemno i sprawdzał efekt
+                  dopiero w grze, po zapisie. */}
+              <div className="hidden shrink-0 lg:block">
+                <CardView card={card} />
+              </div>
+            </div>
 
             <div className="mt-2 flex flex-wrap items-end gap-4">
               {/* Rodzina zależy od kategorii, nie od tego, czy karta już ją

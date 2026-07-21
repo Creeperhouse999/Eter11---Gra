@@ -80,6 +80,62 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
     );
   }
 
+  /**
+   * Ile kart w talii pasuje do najrzadszej pary kategoria+rodzina.
+   *
+   * Zero jest już wyłapane wyżej. Ale i jedna karta na ściankę oznacza, że
+   * misja rozstrzyga się losowaniem: jeśli ta jedna karta nie trafi do ręki
+   * przez siedem rund, problemu nie da się domknąć niezależnie od tego, jak
+   * dobrze dzieci grają. Przy rozdaniu pięciu kart i talii ~65 sztuk trzy
+   * karty to próg, poniżej którego trafienie przestaje być prawdopodobne.
+   */
+  const SCARCE = 3;
+  const scarce = problems.flatMap((p) =>
+    p.slots
+      .map((s) => ({
+        slot: s,
+        problem: p,
+        count: cards.filter((c) => c.category === s.key && c.family === s.family).length,
+      }))
+      .filter((entry) => entry.count > 0 && entry.count < SCARCE)
+      .map(
+        (entry) =>
+          `${entry.problem.name} → ${slotLabel(entry.slot.key)} (${entry.slot.family}): ${entry.count}`,
+      ),
+  );
+  if (scarce.length > 0) {
+    warnings.push(
+      `Ścianki, do których pasują mniej niż ${SCARCE} karty: ${scarce.join(', ')}. ` +
+        'Te misje zależą od szczęścia w losowaniu, a nie od decyzji graczy.',
+    );
+  }
+
+  // Rozkład kart między rodzinami. Rodzina decyduje o dopasowaniu do ścianki,
+  // więc talia przechylona w jedną stronę robi część problemów nierozwiązywalną
+  // dużo wcześniej, niż którakolwiek ścianka zostanie bez kart.
+  const familyCounts = new Map<string, number>();
+  for (const card of cards) {
+    if (!card.family) continue;
+    familyCounts.set(card.family, (familyCounts.get(card.family) ?? 0) + 1);
+  }
+  const familyValues = [...familyCounts.values()];
+  if (familyValues.length > 1) {
+    const min = Math.min(...familyValues);
+    const max = Math.max(...familyValues);
+    // Trzykrotna różnica: przy takim przechyle rzadka rodzina praktycznie
+    // nie pojawia się w ręce, choć problemy nadal jej wymagają.
+    if (max >= min * 3) {
+      const breakdown = [...familyCounts.entries()]
+        .sort((a, b) => a[1] - b[1])
+        .map(([family, count]) => `${family}: ${count}`)
+        .join(', ');
+      warnings.push(
+        `Talia jest przechylona między rodzinami (${breakdown}). ` +
+          'Ścianki rzadkiej rodziny będą trudne do domknięcia.',
+      );
+    }
+  }
+
   const drafts = [
     ...problems.filter((p) => p.draft).map((p) => `problem „${p.name}"`),
     ...cards.filter((c) => c.draft).map((c) => `karta „${c.name}"`),
