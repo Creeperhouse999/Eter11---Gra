@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TextField } from '../ui/controls/Field';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { ICON_NAMES, Icon, type IconName } from '../ui/icons/Icon';
 
 interface IconPickerProps {
@@ -60,8 +61,19 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
       if (event.key === 'Escape') setOpen(false);
     };
 
-    // Przewinięcie strony rozjechałoby panel z przyciskiem.
-    const onScroll = () => setOpen(false);
+    /**
+     * Przewinięcie STRONY rozjeżdża panel z przyciskiem, więc go zamykamy.
+     *
+     * Ale nasłuch działa w fazie przechwytywania, więc łapie też przewijanie
+     * siatki ikon w środku panelu — a tam ikon jest kilkadziesiąt i lista ma
+     * własny pasek. Zamykanie na tym zdarzeniu sprawiało, że okno znikało
+     * przy każdej próbie dojechania do dolnych ikon.
+     */
+    const onScroll = (event: Event) => {
+      const target = event.target as Node | null;
+      if (target && panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
 
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -115,19 +127,19 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
 
             <div className="mt-2 grid max-h-64 grid-cols-7 gap-1 overflow-y-auto">
               {matches.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  title={name}
-                  aria-label={name}
-                  onClick={() => choose(name)}
-                  className={[
-                    'flex items-center justify-center rounded p-1.5 transition',
-                    name === value ? 'bg-accent text-bg' : 'text-ink-dim hover:bg-raised',
-                  ].join(' ')}
-                >
-                  <Icon name={name} size={18} />
-                </button>
+                <Tooltip key={name} label={name}>
+                  <button
+                    type="button"
+                    aria-label={name}
+                    onClick={() => choose(name)}
+                    className={[
+                      'flex w-full items-center justify-center rounded p-1.5 transition',
+                      name === value ? 'bg-accent text-bg' : 'text-ink-dim hover:bg-raised',
+                    ].join(' ')}
+                  >
+                    <Icon name={name} size={18} />
+                  </button>
+                </Tooltip>
               ))}
             </div>
 

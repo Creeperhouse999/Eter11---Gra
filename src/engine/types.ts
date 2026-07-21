@@ -132,6 +132,15 @@ export interface RulesConfig {
   missionsPerGame: number;       // 7
   teamWinThreshold: number;      // 5
   maxMatCardsPerMission: number; // 1
+  /**
+   * Górna granica kart w ręce.
+   *
+   * Co rundę każdy dobiera kartę, ale kto pasuje zamiast grać, nie oddaje
+   * żadnej — bez tego limitu ręka rosła w nieskończoność. Dziecko, które
+   * nie ma czym zagrać, pasuje właśnie w kółko, więc trafiało na to
+   * najszybciej.
+   */
+  maxHandSize: number; // 7
   pointsPerExperience: number;   // 1
   pointsPerFulfillment: number;  // 2
 }

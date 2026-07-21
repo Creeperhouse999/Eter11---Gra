@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: RulesConfig = {
   missionsPerGame: 7,
   teamWinThreshold: 5,
   maxMatCardsPerMission: 1,
+  maxHandSize: 7,
   pointsPerExperience: 1,
   pointsPerFulfillment: 2,
 };
@@ -116,6 +117,14 @@ function startMission(state: GameState): ReducerResult {
   }
   if (state.mission && state.mission.phase === 'playing') {
     return reject(state, 'Misja już trwa.');
+  }
+  // Misja w podsumowaniu wciąż trzyma zagrane karty. Nowa misja podmienia
+  // `mission` na świeży obiekt z pustym `played`, więc te karty znikałyby
+  // z gry — nie wracają ani na stos, ani do rąk. Zamknięcie misji
+  // (`END_MISSION_SUMMARY`) rozdziela je z powrotem, więc wymagamy go
+  // wprost, zamiast po cichu gubić po trzy karty na misję.
+  if (state.mission && state.phase === 'missionSummary') {
+    return reject(state, 'Najpierw zamknij podsumowanie poprzedniej misji.');
   }
   // Odłożone problemy wracają normalnie przy zamykaniu misji. Gdy talia
   // pustoszeje, nie ma czego zamykać — bez tego gracz stał na ekranie startu
@@ -226,6 +235,10 @@ function endTurn(state: GameState): GameState {
   let seed = state.rng;
   const players = state.players.map((player) => {
     if (mission.swappedThisRound.includes(player.id)) return player;
+
+    // Pełna ręka nie dobiera. Karta zostaje w talii zamiast trafić do kogoś,
+    // kto i tak nie miałby jej gdzie zagrać.
+    if (player.hand.length >= state.config.maxHandSize) return player;
 
     const result = draw(pile, discard, 1, seed);
     pile = result.pile;

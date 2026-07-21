@@ -30,8 +30,37 @@ service cloud.firestore {
     // żeby nikt z zewnątrz nie zamknął cudzego zgłoszenia.
     match /reports/{report} {
       allow read: if true;
-      allow update, delete: if request.auth != null
-                            && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
+      allow delete: if request.auth != null
+                    && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
+
+      // Zmiana statusu bez logowania.
+      //
+      // Zespół merytoryczny zgłasza błędy i sam sprawdza, czy naprawa
+      // działa — bez tego pętla „zgłoś → napraw → potwierdź" urywa się na
+      // ostatnim kroku, a osoba zgłaszająca dostaje „missing or insufficient
+      // permissions" dokładnie wtedy, gdy chce potwierdzić poprawkę.
+      //
+      // Ruszyć wolno wyłącznie `status` i `notes`; tytuł, opis, rodzaj,
+      // autor i data pozostają takie, jak w chwili zgłoszenia — inaczej
+      // ktoś z zewnątrz mógłby podmienić treść cudzego zgłoszenia.
+      allow update: if request.auth != null
+                       && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2'
+                    || (
+                      request.resource.data.diff(resource.data)
+                        .affectedKeys().hasOnly(['status', 'notes'])
+                      && request.resource.data.status in
+                           ['new', 'fixed', 'rejected', 'done']
+                      // Notatki tylko dopisujemy — kasowanie cudzych
+                      // komentarzy nie jest częścią potwierdzania naprawy.
+                      //
+                      // `get` z wartością domyślną, bo zgłoszenia wysyłane
+                      // przez aplikację nie mają pola `notes` wcale: reguła
+                      // tworzenia dopuszcza dokładnie sześć pól i `notes`
+                      // nie jest jednym z nich.
+                      && request.resource.data.get('notes', []).size()
+                         >= resource.data.get('notes', []).size()
+                      && request.resource.data.get('notes', []).size() <= 50
+                    );
 
       allow create: if request.resource.data.keys().hasOnly(
                          ['kind', 'title', 'description', 'author', 'status', 'createdAt'])

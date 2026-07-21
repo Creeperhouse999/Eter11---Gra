@@ -34,13 +34,18 @@ html {
    * widzi planszę uciętą z prawej i nie ma jak sięgnąć po karty. Ucięcie tu
    * nie ukrywa problemu (elementy przewijane poziomo mają własne kontenery),
    * tylko zatrzymuje jego skutek na krawędzi ekranu.
+   *
+   * Ucięcie siedzi na `body`, nie na `html`: `overflow` inny niż `visible`
+   * na elemencie głównym unieważnia `position: sticky` we wszystkich
+   * potomkach. Pasek zakładek w panelu redakcyjnym odjeżdżał przez to
+   * do góry przy przewijaniu, zamiast zostać przyklejonym.
    */
-  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background: var(--eter-bg);
   color: var(--eter-ink);
   font-family: var(--eter-font-body);
