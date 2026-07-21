@@ -145,8 +145,11 @@ export function SetupScreen({
           onClick={onResume}
           className="eter-rise relative mt-6 flex w-full items-center gap-3 rounded-xl border-2 border-success bg-surface p-4 text-left transition hover:bg-raised"
         >
+          {/* Nie `undo` — ta ikona znaczy w grze „wymiana kart", a strzałka
+              w prawo powtarzałaby tę po prawej stronie przycisku. Chorągiewka
+              czyta się jako „tu stanęliście". */}
           <span className="shrink-0 text-success">
-            <Icon name="undo" size={24} />
+            <Icon name="flag" size={24} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-display font-bold text-success">

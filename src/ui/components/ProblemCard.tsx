@@ -6,7 +6,6 @@ import { CardView } from './CardView';
 import {
   problemTypeColorVar,
   problemTypeLabel,
-  slotColorVar,
   slotIcon,
   slotLabel,
 } from './categoryStyles';
@@ -63,7 +62,6 @@ export function ProblemCard({
     const accepts =
       Boolean(draggedCard) && !filled && canPlayInSlot(draggedCard!, key, slot.family);
     const dropId = `${problem.id}:${key}`;
-    const color = slotColorVar(key);
     const familyColor = `var(--eter-family-${slot.family})`;
 
     return (
@@ -123,9 +121,13 @@ export function ProblemCard({
           <span style={{ color: filled ? familyColor : 'var(--eter-ink-dim)' }}>
             <Icon name={filled ? 'lockedSlot' : slotIcon(key)} size={16} />
           </span>
+          {/* Kolor rodziny, nie kategorii. Zasada gry brzmi „kolor do
+              koloru", więc drugi system kolorów na tej samej ściance jest
+              szumem — po zamknięciu nazwa świeciła innym kolorem niż kropka
+              obok. */}
           <span
             className="eter-label truncate"
-            style={{ color: filled ? color : undefined }}
+            style={{ color: filled ? familyColor : undefined }}
           >
             {slotLabel(key)}
           </span>
