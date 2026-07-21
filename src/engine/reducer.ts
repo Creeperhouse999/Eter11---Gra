@@ -2,6 +2,7 @@ import { draw, shuffle } from './deck';
 import { cardFitsSlot, isMissionSolved, isSlotFilled, slotId } from './rules';
 import type {
   Action,
+  BlackSwanEvent,
   BlackSwanKind,
   Card,
   GameState,
@@ -115,17 +116,31 @@ function startMission(state: GameState): ReducerResult {
     takenToMat: [],
     sharedCardIds: [],
     swappedThisRound: [],
+    pendingSwanEvents: [],
   };
+
+  const started: GameState = {
+    ...state,
+    problemPile: rest,
+    mission,
+    missionNumber: state.missionNumber + 1,
+    activePlayerIndex: 0,
+    phase: 'mission',
+    log: [...state.log, `Misja ${state.missionNumber + 1}: ${problem.name}`],
+  };
+
+  // Łabędź mógł trafić do ręki już przy rozdaniu — misja zaczyna się wtedy
+  // od jego skutku, a nie od zwykłej pierwszej tury.
+  const resolved = resolveDrawnBlackSwans(started);
+  if (resolved.events.length === 0) return { state: resolved.state };
 
   return {
     state: {
-      ...state,
-      problemPile: rest,
-      mission,
-      missionNumber: state.missionNumber + 1,
-      activePlayerIndex: 0,
-      phase: 'mission',
-      log: [...state.log, `Misja ${state.missionNumber + 1}: ${problem.name}`],
+      ...resolved.state,
+      mission: {
+        ...resolved.state.mission!,
+        pendingSwanEvents: resolved.events,
+      },
     },
   };
 }
@@ -179,7 +194,7 @@ function endTurn(state: GameState): GameState {
     return { ...player, hand: [...player.hand, ...result.drawn] };
   });
 
-  return {
+  const dealt: GameState = {
     ...state,
     players,
     drawPile: pile,
@@ -187,6 +202,22 @@ function endTurn(state: GameState): GameState {
     rng: seed,
     activePlayerIndex: 0,
     mission: { ...mission, round: mission.round + 1, swappedThisRound: [] },
+  };
+
+  // Łabędź dobrany na początku rundy działa od razu — nie czeka na ruch
+  // gracza, bo nie jest ruchem gracza.
+  const resolved = resolveDrawnBlackSwans(dealt);
+  if (resolved.events.length === 0) return resolved.state;
+
+  return {
+    ...resolved.state,
+    mission: {
+      ...resolved.state.mission!,
+      pendingSwanEvents: [
+        ...resolved.state.mission!.pendingSwanEvents,
+        ...resolved.events,
+      ],
+    },
   };
 }
 
@@ -204,11 +235,6 @@ function playCard(
 
   const player = state.players.find((p) => p.id === action.playerId);
   if (!player) return reject(state, 'Nieznany gracz.');
-
-  // Dobrany Czarny Łabędź trzeba zagrać, zanim zrobi się cokolwiek innego.
-  if (pendingBlackSwan(player)) {
-    return reject(state, 'Najpierw zagraj Czarnego Łabędzia.');
-  }
 
   const source = action.fromMat ? player.mat : player.hand;
   const card = source.find((c) => c.id === action.cardId);
@@ -273,11 +299,6 @@ function pass(state: GameState, playerId: string): ReducerResult {
   }
   if (!isActivePlayer(state, playerId)) {
     return reject(state, 'To nie Twoja kolej.');
-  }
-
-  const player = state.players.find((p) => p.id === playerId);
-  if (player && pendingBlackSwan(player)) {
-    return reject(state, 'Najpierw zagraj Czarnego Łabędzia.');
   }
 
   return { state: endTurn(state) };
@@ -352,6 +373,70 @@ function swapHand(
  * - doubleRequirements: puste sloty wymagają 2 kart; zapełnione zostają zaliczone
  * - swapHands: ręce wędrują zgodnie z ruchem wskazówek zegara, maty bez zmian
  */
+/**
+ * Czarny Łabędź wchodzi do gry sam, w chwili dobrania.
+ *
+ * Karty nie da się zagrać ani zatrzymać: kto ją wyciągnie, ten od razu
+ * ponosi skutek, a karta idzie na stos odrzuconych. Tak działa łabędź w
+ * grze planszowej — jest zdarzeniem, nie ruchem gracza.
+ *
+ * Zwraca też opis tego, co się stało: gracz musi wiedzieć, dlaczego
+ * plansza nagle wygląda inaczej.
+ */
+export function resolveDrawnBlackSwans(state: GameState): {
+  state: GameState;
+  events: BlackSwanEvent[];
+} {
+  if (!state.mission) return { state, events: [] };
+
+  const events: BlackSwanEvent[] = [];
+  let next = state;
+
+  // Pętla, bo Łabędź typu „wymiana rąk" przesuwa karty między graczami —
+  // kolejne wyciągnięcie może odsłonić następnego Łabędzia.
+  for (let guard = 0; guard < 8; guard += 1) {
+    let found: { player: Player; card: Card } | null = null;
+
+    for (const player of next.players) {
+      const card = player.hand.find((c) => c.category === 'blackswan');
+      if (card) {
+        found = { player, card };
+        break;
+      }
+    }
+
+    if (!found) break;
+
+    const { player, card } = found;
+    const withoutCard: GameState = {
+      ...next,
+      players: next.players.map((p) =>
+        p.id === player.id
+          ? { ...p, hand: p.hand.filter((c) => c.id !== card.id) }
+          : p,
+      ),
+      discardPile: [...next.discardPile, card],
+    };
+
+    const kind = card.blackSwanKind ?? 'extraProblem';
+    const before = withoutCard.mission!.activeBlackSwans.length;
+    next = applyBlackSwan(withoutCard, kind);
+    const applied = next.mission!.activeBlackSwans.length > before;
+
+    events.push({
+      playerId: player.id,
+      playerName: player.name,
+      cardName: card.name,
+      kind,
+      // Ten sam wariant nie kumuluje się drugi raz — gracz ma wiedzieć,
+      // że karta zeszła, ale plansza się nie zmieniła.
+      applied,
+    });
+  }
+
+  return { state: next, events };
+}
+
 export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState {
   const mission = state.mission;
   if (!mission || mission.phase !== 'playing') return state;
@@ -635,46 +720,16 @@ function endMissionSummary(state: GameState): ReducerResult {
 }
 
 /**
- * Zagranie Czarnego Łabędzia.
+ * Gracz przeczytał komunikat o Czarnym Łabędziu.
  *
- * Zgodnie z instrukcją karta nie leży w ręce jako zwykła — gdy gracz ją
- * dobierze, musi ją zagrać, a jej efekt utrudnia bieżącą misję.
+ * Karta odpaliła się sama przy dobraniu; to potwierdzenie tylko czyści
+ * kolejkę, żeby okno nie wracało przy każdym kolejnym renderze.
  */
-function playBlackSwan(
-  state: GameState,
-  action: Extract<Action, { type: 'PLAY_BLACK_SWAN' }>,
-): ReducerResult {
-  const mission = state.mission;
-  if (!mission || mission.phase !== 'playing') {
-    return reject(state, 'Misja nie trwa.');
-  }
-
-  const player = state.players.find((p) => p.id === action.playerId);
-  if (!player) return reject(state, 'Nieznany gracz.');
-
-  const card = player.hand.find((c) => c.id === action.cardId);
-  if (!card) return reject(state, 'Nie masz tej karty.');
-  if (card.category !== 'blackswan' || !card.blackSwanKind) {
-    return reject(state, 'To nie jest karta Czarnego Łabędzia.');
-  }
-
-  // Karta schodzi z ręki na stos odrzuconych, a jej efekt wchodzi w życie.
-  const withoutCard: GameState = {
-    ...state,
-    players: updatePlayer(state, action.playerId, (p) => ({
-      ...p,
-      hand: p.hand.filter((c) => c.id !== action.cardId),
-    })),
-    discardPile: [...state.discardPile, card],
-    log: [...state.log, `${player.name} odkrywa: ${card.name}`],
+function dismissSwanEvents(state: GameState): ReducerResult {
+  if (!state.mission) return { state };
+  return {
+    state: { ...state, mission: { ...state.mission, pendingSwanEvents: [] } },
   };
-
-  return { state: applyBlackSwan(withoutCard, card.blackSwanKind) };
-}
-
-/** Czy gracz trzyma Czarnego Łabędzia — musi go zagrać przed innym ruchem. */
-export function pendingBlackSwan(player: Player): Card | null {
-  return player.hand.find((c) => c.category === 'blackswan') ?? null;
 }
 
 export function reduce(state: GameState, action: Action): ReducerResult {
@@ -687,8 +742,8 @@ export function reduce(state: GameState, action: Action): ReducerResult {
       return pass(state, action.playerId);
     case 'SWAP_HAND':
       return swapHand(state, action.playerId, action.cardIds);
-    case 'PLAY_BLACK_SWAN':
-      return playBlackSwan(state, action);
+    case 'DISMISS_SWAN_EVENTS':
+      return dismissSwanEvents(state);
     case 'TAKE_CARD_TO_MAT':
       return takeCardToMat(state, action);
     case 'SHARE_CARD':

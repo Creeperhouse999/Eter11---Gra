@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
-import type { Card } from '../../engine/types';
+import type { Card, Character } from '../../engine/types';
 import { CardView } from '../components/CardView';
+import { PlayerMat } from '../components/PlayerMat';
+import { TopBanner } from '../controls/TopBanner';
 import type { Game } from '../useGame';
 
 interface SummaryScreenProps {
   game: Game;
   text?: UiText;
+  characters?: Character[];
 }
 
 const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
@@ -18,7 +22,11 @@ const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
  * także po porażce, zgodnie z zasadą „nawet przegrana uczy". Kompetencję
  * można zamiast tego przekazać innemu graczowi.
  */
-export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenProps) {
+export function SummaryScreen({
+  game,
+  text = DEFAULT_UI_TEXT,
+  characters = ALL_CHARACTERS,
+}: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
 
@@ -45,15 +53,7 @@ export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenPro
       </header>
 
       {rejection && (
-        <div
-          role="alert"
-          className="relative mt-4 flex items-center justify-between gap-4 rounded-lg border border-danger bg-surface px-4 py-2 text-sm"
-        >
-          <span>{rejection}</span>
-          <button type="button" onClick={dismissRejection} className="underline underline-offset-2">
-            Rozumiem
-          </button>
-        </div>
+        <TopBanner message={rejection} tone="danger" onDismiss={dismissRejection} />
       )}
 
       <section className="relative mt-6 space-y-4">
@@ -81,7 +81,17 @@ export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenPro
                 </span>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-3">
+              {/* Karta postaci obok wyboru: bez niej gracz decyduje, co
+                  zabrać, nie widząc, co już na niej leży i czego mu brakuje. */}
+              <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,17rem)_1fr]">
+                <PlayerMat
+                  player={player}
+                  character={characters.find((c) => c.id === player.characterId)}
+                  revealed
+                  compact
+                />
+
+              <div className="flex flex-wrap gap-3">
                 {plays.map((play) => {
                   const shared = mission.sharedCardIds.includes(play.card.id);
                   const canShare =
@@ -123,6 +133,7 @@ export function SummaryScreen({ game, text = DEFAULT_UI_TEXT }: SummaryScreenPro
                     </div>
                   );
                 })}
+                </div>
               </div>
 
               {sharing?.fromPlayerId === player.id && (

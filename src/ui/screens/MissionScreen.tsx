@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
-import { pendingBlackSwan } from '../../engine/reducer';
 import { cardFitsSlot } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
+import { BlackSwanBanner } from '../components/BlackSwanBanner';
 import { CardView } from '../components/CardView';
 import { Coach } from '../components/Coach';
 import { DragGhost } from '../components/DragGhost';
@@ -12,8 +12,8 @@ import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
 import { RoundFuel } from '../components/RoundFuel';
 import { useCardDrag } from '../components/useCardDrag';
-import { Alert } from '../controls/Alert';
 import { Button } from '../controls/Button';
+import { TopBanner } from '../controls/TopBanner';
 import type { TutorialContext } from '../tutorial/useTutorial';
 import type { Game } from '../useGame';
 
@@ -123,8 +123,10 @@ export function MissionScreen({
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
 
-  // Dobrany Czarny Łabędź blokuje inne ruchy — trzeba go najpierw zagrać.
-  const swanInHand = pendingBlackSwan(activePlayer);
+  // Czarne Łabędzie, które właśnie weszły do gry i czekają na przeczytanie.
+  const swanEvents = mission.pendingSwanEvents;
+  const dismissSwanEvents = () => dispatch({ type: 'DISMISS_SWAN_EVENTS' });
+
 
   const matUsed = mission.matUsedBy.filter((id) => id === activePlayer.id).length;
   const canUseMat = matUsed < state.config.maxMatCardsPerMission;
@@ -257,34 +259,13 @@ export function MissionScreen({
       )}
 
       {rejection && (
-        <div className="relative mb-4">
-          <Alert tone="danger" onDismiss={dismissRejection}>
-            {rejection}
-          </Alert>
-        </div>
+        <TopBanner message={rejection} tone="danger" onDismiss={dismissRejection} />
       )}
 
-      {swanInHand && handRevealed && (
-        <div className="relative mb-4">
-          <Alert tone="danger" title="Czarny Łabędź!">
-            <p className="leading-relaxed">{swanInHand.description}</p>
-            <Button
-              variant="danger"
-              size="sm"
-              icon="swan"
-              className="mt-2"
-              onClick={() =>
-                dispatch({
-                  type: 'PLAY_BLACK_SWAN',
-                  playerId: activePlayer.id,
-                  cardId: swanInHand.id,
-                })
-              }
-            >
-              Odkrywam Czarnego Łabędzia
-            </Button>
-          </Alert>
-        </div>
+      {/* Czarny Łabędź nie jest ruchem gracza — wchodzi sam przy dobraniu,
+          a okno wyjaśnia, co właśnie zmienił na planszy. */}
+      {swanEvents.length > 0 && (
+        <BlackSwanBanner events={swanEvents} onDismiss={dismissSwanEvents} />
       )}
 
       {/* ── Stół ──────────────────────────────────────────────────────── */}
@@ -331,6 +312,14 @@ export function MissionScreen({
                 ? (cardId) => {
                     const card = activePlayer.mat.find((c) => c.id === cardId);
                     if (card) setSelected({ card, fromMat: true });
+                  }
+                : undefined
+            }
+            onCardDoubleClick={
+              canUseMat && handRevealed
+                ? (cardId) => {
+                    const card = activePlayer.mat.find((c) => c.id === cardId);
+                    if (card) quickPlay(card, true);
                   }
                 : undefined
             }
@@ -413,11 +402,6 @@ export function MissionScreen({
             ) : (
               <p className="mt-3 text-sm text-ink-dim">
                 {text.missionHandHidden} {activePlayer.name}.
-                {swanInHand && (
-                  <span className="mt-1 block text-danger">
-                    Uwaga: w tej ręce jest Czarny Łabędź.
-                  </span>
-                )}
               </p>
             )}
 
@@ -474,13 +458,13 @@ export function MissionScreen({
                 </>
               ) : (
                 <>
-                  <Button onClick={pass} disabled={!allowed('pass') || Boolean(swanInHand)}>
+                  <Button onClick={pass} disabled={!allowed('pass')}>
                     Pasuję
                   </Button>
                   <Button
                     icon="undo"
                     data-tour="swap"
-                    disabled={!handRevealed || !allowed('swap') || Boolean(swanInHand)}
+                    disabled={!handRevealed || !allowed('swap')}
                     title={handRevealed ? undefined : 'Najpierw odkryj karty'}
                     onClick={() => {
                       setSwapMode(true);

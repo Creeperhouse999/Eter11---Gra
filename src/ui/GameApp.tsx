@@ -5,6 +5,7 @@ import type { Card, Character, Problem, RulesConfig } from '../engine/types';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import { FinaleScreen } from './screens/FinaleScreen';
 import { MissionScreen } from './screens/MissionScreen';
+import { IntroScreen } from './screens/IntroScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import {
@@ -162,12 +163,40 @@ function RunningGame({
   );
 }
 
+/** Klucz w localStorage: wstęp pokazujemy raz, nie przy każdym wejściu. */
+const INTRO_SEEN_KEY = 'eter11:intro-seen';
+
 export function GameApp({ content = {}, notice }: GameAppProps) {
   const [session, setSession] = useState<{
     players: PlayerSetup[];
     seed: number;
     tutorial: boolean;
   } | null>(null);
+
+  /**
+   * Wstęp widzi tylko ten, kto go jeszcze nie oglądał.
+   *
+   * Czytane raz przy starcie: gracz wracający do gry chce grać, a nie
+   * przeklikiwać historię, którą już zna. Z menu można go otworzyć
+   * ponownie.
+   */
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return localStorage.getItem(INTRO_SEEN_KEY) === null;
+    } catch {
+      // Tryb prywatny bez localStorage — wstęp po prostu się pokaże.
+      return true;
+    }
+  });
+
+  const closeIntro = () => {
+    try {
+      localStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {
+      // Brak zapisu nic nie psuje: wstęp pojawi się następnym razem.
+    }
+    setShowIntro(false);
+  };
 
   return (
     <>
@@ -176,7 +205,9 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           {notice}
         </p>
       )}
-      {session ? (
+      {showIntro ? (
+        <IntroScreen onDone={closeIntro} onSkip={closeIntro} />
+      ) : session ? (
         <RunningGame
           key={session.seed}
           players={session.players}
@@ -193,6 +224,7 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           onStart={(players, tutorial) =>
             setSession({ players, seed: Date.now(), tutorial })
           }
+          onShowIntro={() => setShowIntro(true)}
         />
       )}
     </>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyBlackSwan, pendingBlackSwan, reduce } from './reducer';
+import { applyBlackSwan, reduce, resolveDrawnBlackSwans } from './reducer';
 import { giveCard, makeCard, newGame } from './testFixtures';
 import type { Card, GameState, SlotKey } from './types';
 
@@ -120,62 +120,51 @@ describe('zagranie Czarnego Łabędzia z ręki', () => {
     icon: 'swan',
   });
 
-  it('pendingBlackSwan wykrywa łabędzia w ręce', () => {
+  it('dobrany łabędź uruchamia efekt sam, bez ruchu gracza', () => {
     const state = giveCard(started(), 'p1', swan('doubleRequirements'));
-    expect(pendingBlackSwan(state.players[0])).not.toBeNull();
-    expect(pendingBlackSwan(state.players[1])).toBeNull();
+    const { state: after, events } = resolveDrawnBlackSwans(state);
+
+    expect(after.mission?.activeBlackSwans).toContain('doubleRequirements');
+    expect(events).toHaveLength(1);
+    expect(events[0].kind).toBe('doubleRequirements');
+    expect(events[0].applied).toBe(true);
   });
 
-  it('zagranie łabędzia uruchamia jego efekt', () => {
-    const state = giveCard(started(), 'p1', swan('doubleRequirements'));
-    const result = reduce(state, {
-      type: 'PLAY_BLACK_SWAN', playerId: 'p1', cardId: 'swan-doubleRequirements',
-    });
-
-    expect(result.rejected).toBeUndefined();
-    expect(result.state.mission?.activeBlackSwans).toContain('doubleRequirements');
-  });
-
-  it('zagrany łabędź schodzi z ręki na stos odrzuconych', () => {
+  it('karta schodzi z ręki na stos odrzuconych', () => {
     const state = giveCard(started(), 'p1', swan('swapHands'));
-    const result = reduce(state, {
-      type: 'PLAY_BLACK_SWAN', playerId: 'p1', cardId: 'swan-swapHands',
-    });
+    const { state: after } = resolveDrawnBlackSwans(state);
 
-    const inAnyHand = result.state.players.some((p) =>
+    const inAnyHand = after.players.some((p) =>
       p.hand.some((c) => c.id === 'swan-swapHands'),
     );
     expect(inAnyHand).toBe(false);
-    expect(result.state.discardPile.map((c) => c.id)).toContain('swan-swapHands');
+    expect(after.discardPile.map((c) => c.id)).toContain('swan-swapHands');
   });
 
-  it('łabędź w ręce blokuje zagranie zwykłej karty', () => {
-    let state = giveCard(started(), 'p1', swan('extraProblem'));
-    const normal = makeCard('zwykla', 'psychological');
-    state = giveCard(state, 'p1', normal);
-
-    const problemId = state.mission!.problems[0].id;
-    const result = reduce(state, {
-      type: 'PLAY_CARD', playerId: 'p1', cardId: normal.id,
-      slotKey: 'psychological', problemId, fromMat: false,
-    });
-
-    expect(result.rejected).toContain('Czarnego Łabędzia');
-  });
-
-  it('łabędź w ręce blokuje pasowanie', () => {
+  it('nie da się go zatrzymać w ręce ani ominąć', () => {
+    // Karta znika w chwili dobrania, więc żaden ruch gracza jej nie dotyczy —
+    // nie ma czego wymienić ani czym zagrać.
     const state = giveCard(started(), 'p1', swan('extraProblem'));
-    const result = reduce(state, { type: 'PASS', playerId: 'p1' });
-    expect(result.rejected).toContain('Czarnego Łabędzia');
+    const { state: after } = resolveDrawnBlackSwans(state);
+    expect(after.players.flatMap((p) => p.hand).some((c) => c.category === 'blackswan')).toBe(false);
   });
 
-  it('odrzuca zagranie karty, która nie jest łabędziem', () => {
-    const normal = makeCard('zwykla', 'psychological');
-    const state = giveCard(started(), 'p1', normal);
-    const result = reduce(state, {
-      type: 'PLAY_BLACK_SWAN', playerId: 'p1', cardId: normal.id,
-    });
-    expect(result.rejected).toContain('nie jest karta');
+  it('zdarzenie niesie nazwę gracza i karty do komunikatu', () => {
+    const state = giveCard(started(), 'p1', swan('extraProblem'));
+    const { events } = resolveDrawnBlackSwans(state);
+
+    expect(events[0].playerId).toBe('p1');
+    expect(events[0].playerName).toBeTruthy();
+    expect(events[0].cardName).toBeTruthy();
+  });
+
+  it('powtórzony wariant schodzi z ręki, ale zdarzenie mówi, że nic się nie zmieniło', () => {
+    let state = applyBlackSwan(started(), 'extraProblem');
+    state = giveCard(state, 'p1', swan('extraProblem'));
+    const { state: after, events } = resolveDrawnBlackSwans(state);
+
+    expect(events[0].applied).toBe(false);
+    expect(after.mission?.problems).toHaveLength(2);
   });
 });
 

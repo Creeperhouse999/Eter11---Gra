@@ -21,6 +21,22 @@ export type ProblemType = 'action' | 'thinking' | 'cooperation' | 'selfchange';
 export type BlackSwanKind = 'extraProblem' | 'doubleRequirements' | 'swapHands';
 
 /**
+ * Czarny Łabędź, który właśnie wszedł do gry.
+ *
+ * Karta odpala się sama przy dobraniu, więc gracz nie klika niczego, co
+ * mogłoby mu to wyjaśnić — komunikat jest jedynym miejscem, w którym
+ * dowiaduje się, co i dlaczego zmieniło się na planszy.
+ */
+export interface BlackSwanEvent {
+  playerId: string;
+  playerName: string;
+  cardName: string;
+  kind: BlackSwanKind;
+  /** Czy efekt zadziałał — ten sam wariant nie kumuluje się dwa razy. */
+  applied: boolean;
+}
+
+/**
  * Rodzina karty — drugi wymiar obok kategorii.
  * Ścianka problemu wymaga konkretnej rodziny, więc dziecko dopasowuje
  * kolor do koloru. Karty specjalne (ETER11, Czarny Łabędź) rodziny nie mają.
@@ -143,6 +159,12 @@ export interface MissionState {
    * Nie dobierają na początku następnej — wymiana była ich dobraniem.
    */
   swappedThisRound: string[];
+  /**
+   * Czarne Łabędzie, które właśnie weszły do gry i nie zostały jeszcze
+   * pokazane graczowi. Karta odpala się sama przy dobraniu, więc bez tej
+   * kolejki plansza zmieniałaby się bez żadnego wyjaśnienia.
+   */
+  pendingSwanEvents: BlackSwanEvent[];
 }
 
 export interface GameState {
@@ -175,7 +197,8 @@ export type Action =
    */
   | { type: 'SWAP_HAND'; playerId: string; cardIds?: string[] }
   /** Zagranie Czarnego Łabędzia z ręki — obowiązkowe, gdy gracz go dobierze. */
-  | { type: 'PLAY_BLACK_SWAN'; playerId: string; cardId: string }
+  /** Gracz przeczytał komunikat o Czarnym Łabędziu — czyści kolejkę. */
+  | { type: 'DISMISS_SWAN_EVENTS' }
   | { type: 'TAKE_CARD_TO_MAT'; playerId: string; cardId: string }
   | { type: 'SHARE_CARD'; fromPlayerId: string; toPlayerId: string; cardId: string }
   | { type: 'END_MISSION_SUMMARY' }

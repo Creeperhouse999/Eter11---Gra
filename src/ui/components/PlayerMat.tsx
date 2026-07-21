@@ -11,6 +11,12 @@ interface PlayerMatProps {
   /** Odkrywa karty na macie — przy stole widoczne są tylko własne. */
   revealed?: boolean;
   onCardClick?: (cardId: string) => void;
+  /**
+   * Podwójne kliknięcie zagrywa kartę z maty od razu, tak samo jak kartę
+   * z ręki — inaczej skrót działałby tylko w połowie miejsc, w których
+   * gracz trzyma karty.
+   */
+  onCardDoubleClick?: (cardId: string) => void;
   selectedCardId?: string | null;
   /** Blokuje karty, gdy gracz użył już karty z postaci w tej misji. */
   cardsDisabled?: boolean;
@@ -39,6 +45,7 @@ export function PlayerMat({
   active,
   revealed,
   onCardClick,
+  onCardDoubleClick,
   selectedCardId,
   cardsDisabled,
   compact,
@@ -125,6 +132,9 @@ export function PlayerMat({
                       title={`${matCard.name} — ${categoryLabel(matCard.category)}`}
                       disabled={cardsDisabled || !onCardClick}
                       onClick={onCardClick ? () => onCardClick(matCard.id) : undefined}
+                      onDoubleClick={
+                        onCardDoubleClick ? () => onCardDoubleClick(matCard.id) : undefined
+                      }
                       className={[
                         'flex aspect-[3/4] w-full flex-col items-center justify-center gap-0.5',
                         'overflow-hidden rounded border p-1 text-center transition',

@@ -45,6 +45,7 @@ const mission = (overrides: Partial<MissionState> = {}): MissionState => ({
   takenToMat: [],
   sharedCardIds: [],
   swappedThisRound: [],
+  pendingSwanEvents: [],
   ...overrides,
 });
 

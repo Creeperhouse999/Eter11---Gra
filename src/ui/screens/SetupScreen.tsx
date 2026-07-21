@@ -11,6 +11,8 @@ interface SetupScreenProps {
   onStart: (players: PlayerSetup[], tutorial: boolean) => void;
   characters?: Character[];
   text?: UiText;
+  /** Ponowne otwarcie wstępu — pokazuje się sam tylko za pierwszym razem. */
+  onShowIntro?: () => void;
 }
 
 interface Draft {
@@ -33,6 +35,7 @@ export function SetupScreen({
   onStart,
   characters = ALL_CHARACTERS,
   text = DEFAULT_UI_TEXT,
+  onShowIntro,
 }: SetupScreenProps) {
   const [drafts, setDrafts] = useState<Draft[]>(() => [
     { name: '', characterId: characters[0].id },
@@ -83,10 +86,25 @@ export function SetupScreen({
 
       <header className="relative">
         <span className="eter-label">Misja ratunkowa</span>
-        <h1 className="font-display text-4xl font-bold tracking-tight text-accent sm:text-5xl">
-          {text.gameTitle}
-        </h1>
-        <p className="font-display text-lg text-ink-dim">{text.gameSubtitle}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-accent sm:text-5xl">
+              {text.gameTitle}
+            </h1>
+            <p className="font-display text-lg text-ink-dim">{text.gameSubtitle}</p>
+          </div>
+
+          {onShowIntro && (
+            <button
+              type="button"
+              onClick={onShowIntro}
+              className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border border-edge px-2.5 py-1.5 text-xs text-ink-dim transition hover:border-accent hover:text-accent"
+            >
+              <Icon name="bulb" size={14} />
+              Wstęp
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Samouczek przed ustawieniami: kto nie zna zasad, ma go pod ręką

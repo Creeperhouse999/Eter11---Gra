@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { GameApp } from './GameApp';
 
-/** Przechodzi ekran startowy: wpisuje imiona i zaczyna grę. */
+/**
+ * Wstęp pokazuje się tylko przy pierwszym wejściu i zapisuje to w
+ * localStorage. Testy sprawdzają menu i rozgrywkę, więc udajemy gracza,
+ * który wstęp już widział — inaczej każdy z nich zaczynałby od historii.
+ */
+beforeEach(() => {
+  localStorage.setItem('eter11:intro-seen', '1');
+});
+
 /** Ekran startowy: imiona i start bez samouczka. */
 function startGame() {
   render(<GameApp />);
