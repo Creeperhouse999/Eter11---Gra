@@ -1,11 +1,20 @@
+import type { MutableRefObject } from 'react';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar } from './categoryStyles';
 
 interface DragGhostProps {
   card: Card;
-  x: number;
-  y: number;
+  /**
+   * Uchwyt, przez który gest przesuwa ducha.
+   *
+   * Pozycja przychodzi jako zapis do stylu, a nie jako właściwość: palec
+   * generuje ~120 zdarzeń na sekundę, a przekazywanie ich przez stan Reacta
+   * przerysowywało całą planszę przy każdym pikselu ruchu.
+   */
+  ghostRef: MutableRefObject<HTMLElement | null>;
+  /** Pozycja startowa — zanim przyjdzie pierwszy ruch. */
+  start: { x: number; y: number };
   /** Czy kursor jest nad ścianką, która przyjmie tę kartę. */
   overValidTarget: boolean;
 }
@@ -17,17 +26,18 @@ interface DragGhostProps {
  * to, co gracz próbuje zobaczyć. Nie przechwytuje zdarzeń, więc szukanie
  * strefy pod kursorem działa poprawnie.
  */
-export function DragGhost({ card, x, y, overValidTarget }: DragGhostProps) {
+export function DragGhost({ card, ghostRef, start, overValidTarget }: DragGhostProps) {
   // Duch świeci kolorem rodziny — to on decyduje, gdzie karta pasuje.
   const color = card.family ? `var(--eter-family-${card.family})` : categoryColorVar(card.category);
 
   return (
     <div
+      ref={(node) => { ghostRef.current = node; }}
       aria-hidden="true"
       className="pointer-events-none fixed z-50"
       style={{
-        left: x,
-        top: y,
+        left: start.x,
+        top: start.y,
         // 60 px w górę: karta ląduje nad palcem, poza jego zasięgiem.
         transform: 'translate(-50%, calc(-100% - 60px))',
       }}

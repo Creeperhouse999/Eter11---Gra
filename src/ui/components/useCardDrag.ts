@@ -1,3 +1,4 @@
+import type { MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Odległość w pikselach, po której ruch palca liczy się jako przeciąganie. */
@@ -11,9 +12,13 @@ export interface DragPayload<T> {
 
 interface DragState<T> {
   payload: DragPayload<T>;
-  x: number;
-  y: number;
-  /** Identyfikator celu pod kursorem, ustawiany przez strefy upuszczenia. */
+  /**
+   * Identyfikator celu pod kursorem, ustawiany przez strefy upuszczenia.
+   *
+   * Bez współrzędnych: te zmieniają się przy każdym ruchu palca i trafiają
+   * prosto do stylu ducha (`ghostRef`). W stanie siedzi wyłącznie to, co
+   * realnie zmienia wygląd planszy.
+   */
   overId: string | null;
 }
 
@@ -43,6 +48,17 @@ export function useCardDrag<T>() {
   const [tracking, setTracking] = useState(false);
 
   const startPoint = useRef<{ x: number; y: number } | null>(null);
+  /**
+   * Bieżąca pozycja palca.
+   *
+   * Celowo w ref, a nie w stanie: `pointermove` sypie zdarzeniami ~120 razy
+   * na sekundę, a jedynym elementem, który zna te współrzędne, jest duch
+   * karty. Trzymanie ich w stanie przerysowywało przy każdym pikselu całą
+   * planszę — kilkaset elementów — żeby przesunąć jeden element.
+   * `ghostRef` zapisuje pozycję prosto do stylu, z pominięciem Reacta.
+   */
+  const point = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const ghostRef: MutableRefObject<HTMLElement | null> = useRef<HTMLElement | null>(null);
   const pending = useRef<DragPayload<T> | null>(null);
   /** Czy próg został przekroczony. W ref, bo czytamy go w tym samym zdarzeniu. */
   const active = useRef(false);
@@ -98,11 +114,21 @@ export function useCardDrag<T>() {
       if (!active.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       active.current = true;
 
-      setDrag({
-        payload: pending.current,
-        x: event.clientX,
-        y: event.clientY,
-        overId: findTarget(event.clientX, event.clientY),
+      point.current = { x: event.clientX, y: event.clientY };
+      // Ruch ducha z pominięciem renderu — to zwykłe przesunięcie warstwy.
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${event.clientX}px`;
+        ghostRef.current.style.top = `${event.clientY}px`;
+      }
+
+      const overId = findTarget(event.clientX, event.clientY);
+      // Render tylko przy wejściu nad inną ściankę: to zmienia wygląd
+      // (obramowanie, podświetlenie strefy), a zdarza się kilka razy na gest,
+      // nie kilkaset.
+      setDrag((prev) => {
+        if (!pending.current) return prev;
+        if (prev && prev.overId === overId) return prev;
+        return { payload: pending.current, overId };
       });
     };
 
@@ -143,6 +169,10 @@ export function useCardDrag<T>() {
         if (event.button > 0) return;
 
         startPoint.current = { x: event.clientX, y: event.clientY };
+        // Duch pojawia się dopiero po przekroczeniu progu, ale ma wtedy stanąć
+        // na palcu, a nie w rogu ekranu — pierwszy `pointermove` może przyjść
+        // po renderze.
+        point.current = { x: event.clientX, y: event.clientY };
         pending.current = payload;
         active.current = false;
 
@@ -177,6 +207,13 @@ export function useCardDrag<T>() {
     dragHandlers,
     dropTargetProps,
     registerDrop,
+    /**
+     * Podpięcie ducha karty. Ruch zapisujemy prosto do jego stylu, więc
+     * przesunięcie palca nie przerysowuje planszy.
+     */
+    ghostRef,
+    /** Pozycja startowa — duch musi stanąć na palcu jeszcze przed ruchem. */
+    startPoint: point,
     isDragging: drag !== null,
   };
 }

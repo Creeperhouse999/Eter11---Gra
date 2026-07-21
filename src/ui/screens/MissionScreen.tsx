@@ -67,7 +67,7 @@ export function MissionScreen({
   /** Karty zaznaczone do wymiany. Pusty zbiór = tryb wymiany wyłączony. */
   const [swapMode, setSwapMode] = useState(false);
   const [toSwap, setToSwap] = useState<string[]>([]);
-  const { drag, dragHandlers, dropTargetProps, registerDrop } = useCardDrag<{
+  const { drag, dragHandlers, dropTargetProps, registerDrop, ghostRef, startPoint } = useCardDrag<{
     card: Card;
     fromMat: boolean;
   }>();
@@ -573,8 +573,8 @@ export function MissionScreen({
       {drag && (
         <DragGhost
           card={drag.payload.data.card}
-          x={drag.x}
-          y={drag.y}
+          ghostRef={ghostRef}
+          start={startPoint.current}
           overValidTarget={Boolean(
             drag.overId &&
               (() => {
