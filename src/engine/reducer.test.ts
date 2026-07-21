@@ -58,9 +58,25 @@ describe('START_MISSION', () => {
     expect(rejected).toBeTruthy();
   });
 
-  it('odrzuca start przy pustym stosie problemów', () => {
-    const empty = { ...newGame(), problemPile: [] };
-    const { rejected } = reduce(empty, { type: 'START_MISSION' });
+  it('kończy grę, gdy nie ma już czego odkryć', () => {
+    // Pusty stos bez odłożonych problemów oznacza, że nic nie wróci.
+    // Odrzucanie ruchu zostawiało graczy na ekranie startu bez wyjścia.
+    const empty = { ...newGame(), problemPile: [], unsolvedProblems: [] };
+    const { state, rejected } = reduce(empty, { type: 'START_MISSION' });
+
+    expect(rejected).toBeUndefined();
+    expect(state.phase).toBe('finale');
+  });
+
+  it('każe czekać, gdy odłożone problemy jeszcze wrócą', () => {
+    const base = newGame();
+    const waiting = {
+      ...base,
+      problemPile: [],
+      // Problem zdjęty ze stosu czeka na powrót po dwóch misjach.
+      unsolvedProblems: [base.problemPile[0]],
+    };
+    const { rejected } = reduce(waiting, { type: 'START_MISSION' });
     expect(rejected).toContain('Brak problemów');
   });
 });

@@ -23,6 +23,25 @@ const REQUIRED_SLOTS: SlotKey[] = [
 ];
 const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'] as const;
 
+/**
+ * Ile znaków mieści się w interfejsie bez rozwalania układu.
+ *
+ * Bez limitów nazwa karty na 200 znaków przechodziła walidację i wychodziła
+ * poza kartę, a opis problemu na 2000 znaków wypychał planszę poza ekran.
+ */
+const MAX_LENGTHS = {
+  cardName: 60,
+  cardDescription: 300,
+  problemName: 80,
+  problemStory: 1200,
+  problemField: 200,
+  slotHint: 120,
+  characterName: 40,
+} as const;
+
+/** Znaki, które w nazwie wyglądają jak błąd, a nie jak treść. */
+const looksLikeMarkup = (value: string) => /[<>]/.test(value);
+
 const NUMERIC_RULES: Array<[keyof RulesConfig, number, number]> = [
   ['roundsPerMission', 1, 30],
   ['handSize', 1, 12],
@@ -80,7 +99,23 @@ export function validateContent(content: unknown): ValidationResult {
     else cardIds.add(card.id);
 
     if (!card.name?.trim()) add(`Karta ${card.id}: brak nazwy.`);
+    else if (card.name.length > MAX_LENGTHS.cardName) {
+      add(
+        `Karta ${card.id}: nazwa ma ${card.name.length} znaków, ` +
+          `a mieści się ${MAX_LENGTHS.cardName} — dłuższa nie zmieści się na karcie.`,
+      );
+    } else if (looksLikeMarkup(card.name)) {
+      add(`Karta ${card.id}: nazwa zawiera znaki < lub >, które wyświetlą się dosłownie.`);
+    }
+
     if (!card.icon?.trim()) add(`Karta ${card.id}: brak ikony.`);
+
+    if ((card.description?.length ?? 0) > MAX_LENGTHS.cardDescription) {
+      add(
+        `Karta ${card.id}: opis ma ${card.description.length} znaków, ` +
+          `a mieści się ${MAX_LENGTHS.cardDescription}.`,
+      );
+    }
     const isSpecial = card.category === 'eter11' || card.category === 'blackswan';
     if (!isSpecial && !card.family) {
       add(`Karta ${card.id}: brak rodziny (koloru).`);
@@ -108,8 +143,21 @@ export function validateContent(content: unknown): ValidationResult {
     else problemIds.add(problem.id);
 
     if (!problem.name?.trim()) add(`Problem ${problem.id}: brak nazwy.`);
+    else if (problem.name.length > MAX_LENGTHS.problemName) {
+      add(`Problem ${problem.id}: nazwa ma ${problem.name.length} znaków, a mieści się ${MAX_LENGTHS.problemName}.`);
+    } else if (looksLikeMarkup(problem.name)) {
+      add(`Problem ${problem.id}: nazwa zawiera znaki < lub >, które wyświetlą się dosłownie.`);
+    }
+
     if (!problem.story?.trim()) add(`Problem ${problem.id}: brak historii.`);
+    else if (problem.story.length > MAX_LENGTHS.problemStory) {
+      add(`Problem ${problem.id}: historia ma ${problem.story.length} znaków, a mieści się ${MAX_LENGTHS.problemStory}.`);
+    }
+
     if (!problem.goal?.trim()) add(`Problem ${problem.id}: brak celu.`);
+    else if (problem.goal.length > MAX_LENGTHS.problemField) {
+      add(`Problem ${problem.id}: cel ma ${problem.goal.length} znaków, a mieści się ${MAX_LENGTHS.problemField}.`);
+    }
 
     const slotKeys = (problem.slots ?? []).map((s) => s.key);
     for (const required of REQUIRED_SLOTS) {
@@ -121,6 +169,11 @@ export function validateContent(content: unknown): ValidationResult {
     for (const slot of problem.slots ?? []) {
       if (!slot.hint?.trim()) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak podpowiedzi.`);
+      } else if (slot.hint.length > MAX_LENGTHS.slotHint) {
+        add(
+          `Problem ${problem.id}, ścianka ${slot.key}: podpowiedź ma ` +
+            `${slot.hint.length} znaków, a mieści się ${MAX_LENGTHS.slotHint}.`,
+        );
       }
       if (!slot.family) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak wymaganej rodziny.`);
@@ -148,6 +201,9 @@ export function validateContent(content: unknown): ValidationResult {
     } else characterIds.add(character.id);
 
     if (!character.name?.trim()) add(`Postać ${character.id}: brak nazwy.`);
+    else if (character.name.length > MAX_LENGTHS.characterName) {
+      add(`Postać ${character.id}: nazwa ma ${character.name.length} znaków, a mieści się ${MAX_LENGTHS.characterName}.`);
+    }
   }
 
   // --- Zasady ---
@@ -156,6 +212,10 @@ export function validateContent(content: unknown): ValidationResult {
     const value = rules[key];
     if (typeof value !== 'number' || Number.isNaN(value)) {
       add(`Zasada ${key}: wartość musi być liczbą.`);
+    } else if (!Number.isInteger(value)) {
+      // Ułamek trafiał do pętli dobierania i do porównań z długością ręki,
+      // przez co ręka rozjeżdżała się z każdą rundą.
+      add(`Zasada ${key}: wartość musi być liczbą całkowitą (jest ${value}).`);
     } else if (value < min || value > max) {
       add(`Zasada ${key}: wartość ${value} poza dozwolonym zakresem ${min}–${max}.`);
     }
@@ -168,6 +228,34 @@ export function validateContent(content: unknown): ValidationResult {
   ) {
     add(
       'Próg zwycięstwa drużynowego jest wyższy niż liczba misji — gra byłaby niemożliwa do wygrania.',
+    );
+  }
+
+  // Misji nie może być więcej niż problemów: gra dobiega wtedy końca
+  // wcześniej, niż zapowiada, a ekran „odkryj problem" zostaje bez treści.
+  if (
+    typeof rules.missionsPerGame === 'number' &&
+    problemList.length > 0 &&
+    rules.missionsPerGame > problemList.length
+  ) {
+    add(
+      `Misji w grze (${rules.missionsPerGame}) jest więcej niż problemów w talii ` +
+        `(${problemList.length}) — gra skończy się przed czasem.`,
+    );
+  }
+
+  // Ręka rośnie o kartę na rundę, dopóki gracz nie zagra. Przy długich
+  // misjach robi się z niej kilkadziesiąt kart, których nie da się objąć
+  // wzrokiem ani zmieścić na ekranie — to psuje grę bardziej niż pomaga.
+  if (
+    typeof rules.handSize === 'number' &&
+    typeof rules.roundsPerMission === 'number' &&
+    rules.handSize + rules.roundsPerMission > 24
+  ) {
+    add(
+      `Ręka może urosnąć do ${rules.handSize + rules.roundsPerMission} kart ` +
+        '(rozdanie plus dobieranie co rundę). Powyżej 24 kart ręka nie mieści się ' +
+        'na ekranie — zmniejsz rozdanie albo liczbę rund.',
     );
   }
 

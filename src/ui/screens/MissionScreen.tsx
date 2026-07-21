@@ -271,11 +271,16 @@ export function MissionScreen({
             {activePlayer.name}
           </p>
         </div>
-        <MissionProgress mission={mission} />
-        {/* Samouczek nie ma limitu rund — licznik tylko myliłby. */}
-        {!alwaysRevealed && (
-          <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
-        )}
+        {/* Oba paski zajmują pełną szerokość na telefonie: w kolumnie 162 px
+            kropki postępu i rund zawijały się do trzech rzędów, przez co
+            nagłówek rósł o kilkadziesiąt pikseli. */}
+        <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2 sm:contents">
+          <MissionProgress mission={mission} />
+          {/* Samouczek nie ma limitu rund — licznik tylko myliłby. */}
+          {!alwaysRevealed && (
+            <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
+          )}
+        </div>
       </header>
 
       {/*
@@ -383,7 +388,14 @@ export function MissionScreen({
 
             {handRevealed ? (
               <>
-                <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2" data-tour="hand">
+                {/* Na telefonie ręka to pasek przewijany w bok, nie zawijana
+                    siatka: pięć kart po dwie w rzędzie zajmowało 450 px, czyli
+                    dwie trzecie ekranu. Od `sm` wraca zawijanie, bo tam karty
+                    mieszczą się w jednym rzędzie. */}
+                <div
+                  className="-mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:mt-3 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:px-0"
+                  data-tour="hand"
+                >
                   {activePlayer.hand.map((card, index) => (
                     <CardView
                       key={card.id}

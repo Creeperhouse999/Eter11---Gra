@@ -80,13 +80,21 @@ export function ProblemCard({
             : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
         }
         data-slot={dropId}
+        // Na wąskim ekranie podpowiedź jest ukryta — tutaj zostaje dostępna
+        // po dotknięciu i przytrzymaniu.
+        title={filled ? undefined : slot.hint}
         {...(dropTargetProps?.(dropId) ?? {})}
         className={[
           'flex flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
           // Pusta ścianka to sam nagłówek i podpowiedź — pełną wysokość
           // potrzebuje dopiero karta, która w niej wyląduje. Pięć ścianek po
           // 8.5rem nie mieściło się na telefonie i wymuszało przewijanie.
-          filled ? 'min-h-[8.5rem]' : 'min-h-[4.5rem] sm:min-h-[5.5rem]',
+          // Zamknięta ścianka nie potrzebuje stałej wysokości — mierzy ją
+          // leżąca w niej karta. Sztywne 8.5rem dawało przy pięciu zamkniętych
+          // ściankach ponad 400 px, przez które plansza nie mieściła się
+          // na telefonie. Od `lg` wracamy do równych rozmiarów, bo tam ścianki
+          // stoją obok siebie i różna wysokość wyglądałaby niechlujnie.
+          filled ? 'lg:min-h-[8.5rem]' : 'min-h-[4.5rem] sm:min-h-[5.5rem]',
           filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
           playable || accepts ? 'bg-raised' : '',
           playable ? 'cursor-pointer' : 'cursor-default',
@@ -143,8 +151,11 @@ export function ProblemCard({
             >
               {FAMILY_LABELS[slot.family]}
             </span>
+            {/* Przy trzech ściankach w rzędzie zostaje ~105 px szerokości —
+                podpowiedź byłaby wtedy dwoma uciętymi słowami. Kolor i
+                kategoria wystarczą do ruchu, a pełną treść niesie `title`. */}
             <span
-              className="mt-1 line-clamp-3 text-xs leading-snug text-ink-dim"
+              className="mt-1 hidden line-clamp-3 text-xs leading-snug text-ink-dim sm:block"
               style={{ overflowWrap: 'anywhere' }}
             >
               {slot.hint}
@@ -256,13 +267,18 @@ export function ProblemCard({
           mieściła się na ekranie telefonu bez przewijania. */}
       <div className="space-y-2.5 lg:hidden">
         {core}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* Pięć ścianek mieści się w dwóch rzędach: trzy i dwie. Dwie w rzędzie
+            dawały trzy rzędy, a każdy rząd to ~80 px, których brakowało na
+            dole ekranu. */}
+        <div className="grid grid-cols-3 gap-2">
           {renderSlot('mentor')}
           {renderSlot('talent')}
           {renderSlot('psychological')}
-          {renderSlot('social')}
-          {/* Piąta ścianka jest nieparzysta — zajmuje cały rząd. */}
-          <div className="col-span-2">{renderSlot('digital')}</div>
+          {/* Dwie pozostałe dzielą rząd po połowie. */}
+          <div className="col-span-3 grid grid-cols-2 gap-2">
+            {renderSlot('social')}
+            {renderSlot('digital')}
+          </div>
         </div>
       </div>
     </section>

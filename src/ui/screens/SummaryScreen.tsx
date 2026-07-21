@@ -161,7 +161,7 @@ export function SummaryScreen({
                         data-tour="take-card"
                         disabled={alreadyTook || shared}
                         title={blockedReason}
-                        className="min-h-11 w-full"
+                        className="w-full"
                         onClick={() =>
                           dispatch({
                             type: 'TAKE_CARD_TO_MAT',
@@ -176,7 +176,7 @@ export function SummaryScreen({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="min-h-11 w-full text-accent"
+                          className="w-full text-accent"
                           onClick={() => setSharing({ card: play.card, fromPlayerId: player.id })}
                         >
                           Uczę kogoś
@@ -220,7 +220,7 @@ export function SummaryScreen({
                           key={other.id}
                           variant="primary"
                           size="sm"
-                          className="min-h-11"
+                          
                           onClick={() => {
                             dispatch({
                               type: 'SHARE_CARD',
@@ -234,7 +234,7 @@ export function SummaryScreen({
                           {other.name}
                         </Button>
                       ))}
-                    <Button variant="ghost" size="sm" className="min-h-11" onClick={() => setSharing(null)}>
+                    <Button variant="ghost" size="sm"  onClick={() => setSharing(null)}>
                       Anuluj
                     </Button>
                   </div>

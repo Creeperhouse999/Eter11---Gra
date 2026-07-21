@@ -87,6 +87,9 @@ export function CardView({
         dealIndex === undefined ? '' : 'eter-deal',
         // Na telefonie karta jest węższa, żeby ręka nie zjadała pół ekranu
         // i cała plansza mieściła się bez przewijania.
+        // `shrink-0`: w pasku przewijanym na telefonie karty inaczej ściskałyby
+        // się do nieczytelnych pasków zamiast wyjechać poza krawędź.
+        'shrink-0 snap-start',
         compact ? 'w-24 p-2 pt-2.5' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
         interactive && !draggable ? 'cursor-pointer' : '',

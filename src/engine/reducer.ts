@@ -101,6 +101,18 @@ function startMission(state: GameState): ReducerResult {
     return reject(state, 'Misja już trwa.');
   }
   if (state.problemPile.length === 0) {
+    // Nie ma czego odkryć — gra dobiega końca zamiast wisieć w fazie startu.
+    // Zdarza się, gdy misji zaplanowano więcej niż problemów w talii:
+    // rozwiązane problemy nie wracają do puli, więc czekanie nic nie zmieni.
+    if (state.unsolvedProblems.length === 0) {
+      return {
+        state: {
+          ...state,
+          phase: 'finale',
+          log: [...state.log, 'Talia problemów wyczerpana — koniec gry.'],
+        },
+      };
+    }
     return reject(state, 'Brak problemów w talii.');
   }
 

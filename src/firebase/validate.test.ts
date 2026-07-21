@@ -85,6 +85,66 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('misji nie da się ukończyć');
   });
 
+  it('odrzuca więcej misji niż problemów w talii', () => {
+    const content = validContent();
+    // Gra deklaruje 20 misji, a problemów jest 13 — skończy się przed czasem,
+    // a ekran „odkryj problem" zostaje bez treści.
+    content.rules = { ...content.rules, missionsPerGame: 20, teamWinThreshold: 20 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('więcej niż problemów');
+  });
+
+  it('odrzuca zasady, przy których ręka nie mieści się na ekranie', () => {
+    const content = validContent();
+    // Ręka rośnie o kartę na rundę: 12 + 30 to ponad czterdzieści kart,
+    // czyli kilka ekranów samego przewijania.
+    content.rules = { ...content.rules, handSize: 12, roundsPerMission: 30 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('nie mieści się na ekranie');
+  });
+
+  it('przepuszcza zasady mieszczące się w granicach', () => {
+    const content = validContent();
+    content.rules = { ...content.rules, handSize: 7, roundsPerMission: 10 };
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
+  it('odrzuca teksty dłuższe niż mieści interfejs', () => {
+    const content = validContent();
+    content.cards[0].name = 'x'.repeat(200);
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('nie zmieści się na karcie');
+  });
+
+  it('odrzuca znaczniki w nazwie, które wyświetlą się dosłownie', () => {
+    const content = validContent();
+    content.cards[0].name = '<script>alert(1)</script>';
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('< lub >');
+  });
+
+  it('odrzuca ułamkowe wartości zasad', () => {
+    const content = validContent();
+    // 5.7 karty na ręce nie znaczy nic, a rozjeżdża dobieranie.
+    content.rules = { ...content.rules, handSize: 5.7 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('całkowitą');
+  });
+
+  it('przepuszcza emoji w nazwach', () => {
+    // Emoji to normalny tekst — blokujemy tylko znaczniki.
+    const content = validContent();
+    content.cards[0].name = 'Odwaga 🦁';
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
   it('odrzuca liczbę rund poniżej 1', () => {
     const content = validContent();
     content.rules = { ...content.rules, roundsPerMission: 0 };

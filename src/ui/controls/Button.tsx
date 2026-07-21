@@ -20,10 +20,18 @@ const VARIANTS: Record<Variant, string> = {
   danger: 'border border-danger text-danger hover:bg-danger hover:text-bg',
 };
 
+/**
+ * Rozmiary przycisków.
+ *
+ * `min-h-11` to 44 px — najmniejszy cel dotyku, w który ośmiolatek trafia
+ * palcem bez pudłowania. Sam padding dawał przy `sm` 32 px, przez co
+ * pojedyncze ekrany dokładały `min-h-11` u siebie; lepiej mieć to w jednym
+ * miejscu niż powtarzać przy każdym użyciu.
+ */
 const SIZES: Record<Size, string> = {
-  sm: 'px-2.5 py-1.5 text-xs gap-1.5',
-  md: 'px-4 py-2 text-sm gap-2',
-  lg: 'px-6 py-3 text-base gap-2',
+  sm: 'min-h-11 px-2.5 py-1.5 text-xs gap-1.5',
+  md: 'min-h-11 px-4 py-2 text-sm gap-2',
+  lg: 'min-h-12 px-6 py-3 text-base gap-2',
 };
 
 const ICON_SIZES: Record<Size, number> = { sm: 13, md: 15, lg: 18 };
