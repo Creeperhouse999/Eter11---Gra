@@ -209,6 +209,23 @@ describe('DeckOverview', () => {
     expect(screen.getByText(/Każdą ściankę da się zamknąć/)).toBeDefined();
   });
 
+  it('pokazuje pokrycie kategoria × rodzina', () => {
+    render(<DeckOverview content={content()} />);
+
+    // Paski kategorii mówią, ile jest kart danego rodzaju, ale ścianka
+    // wymaga kategorii ORAZ rodziny — dziura chowa się w jednej z dwudziestu
+    // kombinacji i nie widać jej w żadnym z pozostałych zestawień.
+    expect(screen.getByText(/Pokrycie: kategoria × rodzina/)).toBeDefined();
+  });
+
+  it('mówi, jak długa będzie partia', () => {
+    render(<DeckOverview content={content()} />);
+
+    // Rundy i misje ustawia się w innej zakładce, bez widoku na to, ile
+    // czasu przy stole z tego wychodzi.
+    expect(screen.getByText(/Ile trwa partia/)).toBeDefined();
+  });
+
   it('wylicza, co jest nie tak, gdy talia ma dziurę', () => {
     const broken = content();
     // Usunięcie wszystkich kart jednej kategorii zostawia ścianki,

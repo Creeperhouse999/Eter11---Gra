@@ -262,7 +262,20 @@ export function AdminApp() {
   };
 
   if (auth.checking) {
-    return <main className="p-8 text-sm text-ink-dim">Sprawdzanie sesji…</main>;
+    // Pierwszy ekran panelu — pokazuje się, zanim cokolwiek innego zdąży
+    // się narysować, więc musi wyglądać jak reszta aplikacji. Gołe `<main>`
+    // dostawało domyślną czcionkę przeglądarki i witało redaktora Times
+    // New Roman na środku ciemnego ekranu.
+    return (
+      <main className="flex min-h-screen items-center justify-center p-8">
+        <div className="eter-fade-in text-center">
+          <span className="eter-pulse inline-flex text-accent">
+            <Icon name="spark" size={28} />
+          </span>
+          <p className="mt-3 font-display text-sm text-ink-dim">Sprawdzanie sesji…</p>
+        </div>
+      </main>
+    );
   }
 
   if (!auth.user) {

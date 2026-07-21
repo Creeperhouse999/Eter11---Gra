@@ -1,6 +1,7 @@
 import { buildDeck } from '../data/cards';
 import type { CardCategory } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
+import { FAMILY_IDS } from '../data/families';
 import { categoryColorVar, categoryLabel, problemTypeLabel, slotLabel } from '../ui/components/categoryStyles';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
@@ -276,13 +277,110 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
         ))}
       </div>
 
-      <h3 className="eter-label mt-6">Karty pasujące do ścianek</h3>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {(['mentor', 'talent', 'psychological', 'social', 'digital'] as const).map((slot) => (
-          <span key={slot} className="rounded border border-edge px-3 py-1.5 text-xs">
-            {slotLabel(slot)}: {cards.filter((c) => c.category === slot).length}
+      {/* Siatka pokrycia: kategoria × rodzina.
+          Powyższe paski mówią, ile jest kart danej kategorii, ale ścianka
+          wymaga kategorii ORAZ rodziny. Dziura w tej siatce to ścianka,
+          której nie ma czym domknąć — a przy pięciu kategoriach i czterech
+          rodzinach jest dwadzieścia miejsc, w których może się schować. */}
+      <h3 className="eter-label mt-6">Pokrycie: kategoria × rodzina</h3>
+      <p className="mt-1 text-xs text-ink-dim">
+        Ile kart pasuje do każdej możliwej ścianki. Zero znaczy, że takiej
+        ścianki nie da się zamknąć.
+      </p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[28rem] border-collapse text-xs">
+          <thead>
+            <tr>
+              <th className="p-1.5 text-left font-normal text-ink-dim">Kategoria</th>
+              {FAMILY_IDS.map((family) => (
+                <th key={family} className="p-1.5 text-center font-normal">
+                  <span
+                    className="inline-block h-3 w-3 rounded-full align-middle"
+                    style={{ background: `var(--eter-family-${family})` }}
+                  />
+                </th>
+              ))}
+              <th className="p-1.5 text-right font-normal text-ink-dim">Razem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CATEGORIES.filter((c) => c !== 'eter11' && c !== 'blackswan').map((category) => {
+              const total = cards.filter((c) => c.category === category).length;
+
+              return (
+                <tr key={category} className="border-t border-edge">
+                  <td className="p-1.5" style={{ color: categoryColorVar(category) }}>
+                    {categoryLabel(category)}
+                  </td>
+
+                  {FAMILY_IDS.map((family) => {
+                    const count = cards.filter(
+                      (c) => c.category === category && c.family === family,
+                    ).length;
+
+                    return (
+                      <td key={family} className="p-1.5 text-center">
+                        <span
+                          className={[
+                            'inline-flex h-6 w-8 items-center justify-center rounded font-mono',
+                            count === 0
+                              ? 'bg-danger/20 font-bold text-danger'
+                              : count < 3
+                                ? 'bg-accent-2/20 text-accent-2'
+                                : 'bg-raised text-ink-dim',
+                          ].join(' ')}
+                          title={
+                            count === 0
+                              ? 'Brak karty — ścianki tej rodziny nie da się zamknąć'
+                              : count < 3
+                                ? 'Mało kart — misja zależy od losowania'
+                                : undefined
+                          }
+                        >
+                          {count}
+                        </span>
+                      </td>
+                    );
+                  })}
+
+                  <td className="p-1.5 text-right font-mono text-ink-dim">{total}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Ile rzeczywiście trwa partia — z parametrów zasad, nie z wyczucia.
+          Redaktor zmienia „rund na misję" i „misji w grze" w innej zakładce,
+          nie widząc, że właśnie zrobił grę na półtorej godziny dla ośmiolatka. */}
+      <h3 className="eter-label mt-6">Ile trwa partia</h3>
+      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-lg border border-edge bg-surface p-3">
+          <span className="eter-label">Tur w partii</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-accent">
+            {rules.missionsPerGame * rules.roundsPerMission}
+          </p>
+          <span className="text-xs text-ink-dim">
+            {rules.missionsPerGame} misji × {rules.roundsPerMission} rund
           </span>
-        ))}
+        </div>
+        <div className="rounded-lg border border-edge bg-surface p-3">
+          <span className="eter-label">Ruchów przy 4 graczach</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-accent">
+            {rules.missionsPerGame * rules.roundsPerMission * 4}
+          </p>
+          <span className="text-xs text-ink-dim">każdy gracz raz na rundę</span>
+        </div>
+        <div className="rounded-lg border border-edge bg-surface p-3">
+          <span className="eter-label">Szacowany czas</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-accent">
+            ~{Math.round((rules.missionsPerGame * rules.roundsPerMission * 4 * 15) / 60)} min
+          </p>
+          <span className="text-xs text-ink-dim">
+            licząc 15 sekund na ruch; dzieci grają wolniej
+          </span>
+        </div>
       </div>
 
       {drafts.length > 0 && (

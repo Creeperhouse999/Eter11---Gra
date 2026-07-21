@@ -63,7 +63,8 @@ describe('szukanie w całej treści', () => {
     const problem = BUILTIN_CONTENT.problems.find((p) => p.story.length > 200);
     if (!problem) return;
 
-    const word = problem.story.split(/\s+/).filter((w) => w.length > 6).at(-1);
+    const long = problem.story.split(/\s+/).filter((w) => w.length > 6);
+    const word = long[long.length - 1];
     if (!word) return;
 
     const hit = searchContent(BUILTIN_CONTENT, word).find((h) => h.tab === 'problems');
