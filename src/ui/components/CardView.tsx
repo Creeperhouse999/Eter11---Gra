@@ -1,4 +1,5 @@
 import type { PointerEventHandler } from 'react';
+import { useLongPress } from './useLongPress';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
@@ -28,6 +29,8 @@ interface CardViewProps {
   beingDragged?: boolean;
   /** Znacznik dla samouczka — podświetla dokładnie tę kartę. */
   'data-tour'?: string;
+  /** Przytrzymanie karty — pokazuje ją na cały ekran. */
+  onZoom?: () => void;
 }
 
 /**
@@ -50,12 +53,14 @@ export function CardView({
   compact,
   dealIndex,
   dragHandlers,
+  onZoom,
   beingDragged,
   ...rest
 }: CardViewProps) {
   const color = categoryColorVar(card.category);
   const interactive = Boolean(onClick) && !disabled;
   const draggable = Boolean(dragHandlers) && !disabled;
+  const hold = useLongPress(() => onZoom?.());
   const familyColor = card.family ? `var(--eter-family-${card.family})` : undefined;
   const accent = familyColor ?? color;
 
@@ -81,6 +86,13 @@ export function CardView({
           }
         : {})}
       {...(draggable ? dragHandlers : {})}
+      {...(onZoom ? hold : {})}
+      // Uchwyty przeciągania i przytrzymania dzielą `onPointerDown`, więc
+      // rozlewane obok siebie jeden by drugi nadpisał. Tu wołamy oba.
+      onPointerDown={(event) => {
+        if (draggable) dragHandlers?.onPointerDown(event);
+        if (onZoom) hold.onPointerDown(event);
+      }}
       {...rest}
       className={[
         'group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',

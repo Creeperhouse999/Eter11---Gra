@@ -1,0 +1,93 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import type { Card } from '../../engine/types';
+import { Icon, type IconName } from '../icons/Icon';
+import { categoryColorVar, categoryLabel } from './categoryStyles';
+
+interface CardZoomProps {
+  card: Card | null;
+  onClose: () => void;
+}
+
+/** Nazwy rodzin — ta sama kolejność co kolory w motywie. */
+const FAMILY_LABELS: Record<string, string> = {
+  red: 'Czerwona',
+  blue: 'Niebieska',
+  yellow: 'Żółta',
+  green: 'Zielona',
+};
+
+/**
+ * Karta na cały ekran.
+ *
+ * Karta w ręce ma około 112 px szerokości, a opisy kompetencji bywają na trzy
+ * linijki drobnym drukiem. Ośmiolatek czyta wolno i literuje — mrużenie oczu
+ * nad kartą, którą właśnie ma zrozumieć, jest dokładnie tym, czego gra
+ * edukacyjna robić nie powinna.
+ *
+ * Otwierane przytrzymaniem, nie kliknięciem: kliknięcie wybiera kartę do
+ * zagrania, a podwójne zagrywa ją od razu. Przytrzymanie jest jedynym gestem,
+ * który był jeszcze wolny.
+ */
+export function CardZoom({ card, onClose }: CardZoomProps) {
+  useEffect(() => {
+    if (!card) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [card, onClose]);
+
+  if (!card) return null;
+
+  const color = card.family
+    ? `var(--eter-family-${card.family})`
+    : categoryColorVar(card.category);
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-label={`Karta ${card.name}`}
+      // Zamyka dowolne dotknięcie: dziecko nie szuka krzyżyka, tylko puka
+      // w ekran, żeby wrócić do gry.
+      onPointerDown={onClose}
+      className="eter-fade-in fixed inset-0 z-50 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-sm"
+    >
+      <div
+        className="eter-pop w-full max-w-xs overflow-hidden rounded-2xl border-2 bg-surface shadow-2xl"
+        style={{ borderColor: color }}
+      >
+        <div className="h-2" style={{ background: color }} />
+
+        <div className="p-5">
+          <span className="eter-label" style={{ color }}>
+            {categoryLabel(card.category)}
+            {card.family && ` · ${FAMILY_LABELS[card.family] ?? card.family}`}
+          </span>
+
+          <div className="mt-3 flex items-center gap-3">
+            <span
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: 'var(--eter-raised)', color }}
+            >
+              <Icon name={card.icon as IconName} size={32} />
+            </span>
+            <h2 className="font-display text-xl font-bold leading-tight" style={{ color }}>
+              {card.name}
+            </h2>
+          </div>
+
+          {card.description && (
+            <p className="mt-4 text-base leading-relaxed text-ink">{card.description}</p>
+          )}
+        </div>
+
+        <p className="border-t border-edge px-5 py-2.5 text-center text-xs text-ink-dim">
+          Dotknij, żeby wrócić do gry
+        </p>
+      </div>
+    </div>,
+    document.body,
+  );
+}

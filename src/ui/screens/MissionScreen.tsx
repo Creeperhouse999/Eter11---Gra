@@ -8,6 +8,7 @@ import { BlackSwanBanner } from '../components/BlackSwanBanner';
 import { CardView } from '../components/CardView';
 import { Coach } from '../components/Coach';
 import { DragGhost } from '../components/DragGhost';
+import { CardZoom } from '../components/CardZoom';
 import { MissionProgress } from '../components/MissionProgress';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
@@ -63,6 +64,8 @@ export function MissionScreen({
 }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
+  /** Karta oglądana na cały ekran. Otwiera ją przytrzymanie. */
+  const [zoomed, setZoomed] = useState<Card | null>(null);
   const [handRevealed, setHandRevealed] = useState(alwaysRevealed);
   /** Karty zaznaczone do wymiany. Pusty zbiór = tryb wymiany wyłączony. */
   const [swapMode, setSwapMode] = useState(false);
@@ -417,6 +420,7 @@ export function MissionScreen({
                       key={card.id}
                       card={card}
                       dealIndex={index}
+                      onZoom={() => setZoomed(card)}
                       // Samouczek podświetla dokładnie tę kartę, którą trzeba
                       // złapać — nie całą rękę.
                       data-tour={
@@ -569,6 +573,8 @@ export function MissionScreen({
           </div>
         </div>
       </section>
+
+      <CardZoom card={zoomed} onClose={() => setZoomed(null)} />
 
       {drag && (
         <DragGhost
