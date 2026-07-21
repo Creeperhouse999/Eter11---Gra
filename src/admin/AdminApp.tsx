@@ -17,6 +17,7 @@ import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
+import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
@@ -34,7 +35,8 @@ type Tab =
   | 'theme'
   | 'test'
   | 'reports'
-  | 'discussions';
+  | 'discussions'
+  | 'account';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -48,6 +50,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
+  { key: 'account', label: 'Konto', icon: 'people' },
 ];
 
 export function AdminApp() {
@@ -378,6 +381,14 @@ export function AdminApp() {
             ma stać podpis, którego nie da się podszyć. */}
         {tab === 'discussions' && (
           <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+        )}
+        {tab === 'account' && (
+          <AccountPanel
+            email={auth.user?.email ?? null}
+            displayName={auth.user?.displayName ?? null}
+            onSaveName={auth.setDisplayName}
+            onChangePassword={auth.changePassword}
+          />
         )}
         </div>
       </main>
