@@ -46,9 +46,39 @@ export function loadGame(seed: number): GameState | null {
     if (payload.seed !== seed) return null;
     if (!payload.state || typeof payload.state !== 'object') return null;
 
-    // Minimalna kontrola kształtu: uszkodzony zapis ma nie wywalić gry.
+    // Kontrola kształtu obejmuje pola, których UI używa bez sprawdzania —
+    // wczytanie stanu bez ręki albo z `mission` innym niż obiekt kończyło się
+    // wyjątkiem w renderze, czyli pustym ekranem zamiast wznowionej partii.
     const state = payload.state as GameState;
-    if (!Array.isArray(state.players) || state.players.length === 0) return null;
+
+    const playersOk =
+      Array.isArray(state.players) &&
+      state.players.length > 0 &&
+      state.players.every(
+        (player) =>
+          typeof player?.id === 'string' &&
+          Array.isArray(player.hand) &&
+          Array.isArray(player.mat) &&
+          Array.isArray(player.experience),
+      );
+    if (!playersOk) return null;
+
+    // `mission` bywa `null` między misjami — ale gdy jest, musi być obiektem
+    // z listą problemów i zagranych kart.
+    if (state.mission !== null) {
+      const mission = state.mission;
+      if (
+        typeof mission !== 'object' ||
+        !Array.isArray(mission?.problems) ||
+        !Array.isArray(mission?.played)
+      ) {
+        return null;
+      }
+    }
+
+    if (!Array.isArray(state.drawPile) || !Array.isArray(state.problemPile)) {
+      return null;
+    }
 
     return state;
   } catch {

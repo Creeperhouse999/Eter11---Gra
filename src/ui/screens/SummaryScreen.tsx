@@ -121,7 +121,9 @@ export function SummaryScreen({
                   compact
                 />
 
-              <div className="flex flex-wrap gap-3">
+              {/* `min-w-0`: bez tego kolumna z kartami rozpycha siatkę
+                  do sumy ich szerokości i wypycha ekran w bok. */}
+              <div className="flex min-w-0 flex-wrap gap-3">
                 {plays.map((play) => {
                   const shared = mission.sharedCardIds.includes(play.card.id);
                   // Odbiorcą może być tylko ktoś, kto nie zabrał jeszcze

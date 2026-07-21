@@ -81,4 +81,37 @@ describe('zapis partii', () => {
     });
     expect(next.rejected).toBeUndefined();
   });
+
+  it('odrzuca gracza bez ręki albo maty', () => {
+    // Takie pola UI czyta bez sprawdzania — wczytanie kończyło się wyjątkiem
+    // w renderze, czyli pustym ekranem zamiast wznowionej partii.
+    localStorage.setItem(
+      'eter11:game',
+      JSON.stringify({ version: 1, seed: 1, state: { players: [{ id: 'a' }] } }),
+    );
+    expect(loadGame(1)).toBeNull();
+  });
+
+  it('odrzuca misję, która nie jest obiektem', () => {
+    localStorage.setItem(
+      'eter11:game',
+      JSON.stringify({
+        version: 1,
+        seed: 1,
+        state: {
+          players: [{ id: 'a', hand: [], mat: [], experience: [] }],
+          mission: 'zepsute',
+          drawPile: [],
+          problemPile: [],
+        },
+      }),
+    );
+    expect(loadGame(1)).toBeNull();
+  });
+
+  it('przyjmuje stan między misjami, gdzie mission jest null', () => {
+    const state = started();
+    saveGame(1, { ...state, mission: null });
+    expect(loadGame(1)).not.toBeNull();
+  });
 });
