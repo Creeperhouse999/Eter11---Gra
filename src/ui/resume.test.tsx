@@ -84,5 +84,9 @@ describe('wznowienie partii', () => {
     // dopiero w kolejnym cyklu — czekamy na ekran ustawień.
     await screen.findAllByPlaceholderText('Imię');
     expect(hasSavedGame()).toBe(false);
+
+    // Przycisk powrotu musi zniknąć razem z zapisem — inaczej prowadziłby
+    // do partii, której już nie ma.
+    expect(screen.queryByRole('button', { name: /Wróć do gry/ })).toBeNull();
   });
 });

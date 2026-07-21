@@ -217,8 +217,19 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
    * Świadomie NIE wznawiamy automatycznie. Automat zabierał drogę do
    * samouczka i do nowej gry: ekran ustawień w ogóle się nie pokazywał,
    * a jedynym wyjściem było porzucenie partii. Menu pyta, zamiast decydować.
+   *
+   * Sprawdzane po każdym powrocie do menu, nie raz na starcie: po zakończeniu
+   * partii zapis znika, a nieodświeżona wartość zostawiała przycisk „Wróć do
+   * gry", który prowadziłby do gry bez graczy.
+   *
+   * W efekcie, a nie w trakcie renderu, bo zapis kasuje sprzątanie ekranu
+   * gry — przy odczycie w renderze menu zdążyłoby zobaczyć jeszcze stary stan.
    */
-  const [resumable] = useState(() => savedSeed());
+  const [resumable, setResumable] = useState<number | null>(() => savedSeed());
+
+  useEffect(() => {
+    if (session === null) setResumable(savedSeed());
+  }, [session]);
 
   /**
    * Wstęp widzi tylko ten, kto go jeszcze nie oglądał.
