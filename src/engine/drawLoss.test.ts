@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reduce } from './reducer';
+import { reduce, resolveDrawnBlackSwans } from './reducer';
 import { makeCard, newGame } from './testFixtures';
 import type { Card, GameState } from './types';
 
@@ -101,5 +101,32 @@ describe('wymiana przy krótkiej talii', () => {
 
     const after = result.state.players.find((p) => p.id === player.id)!;
     expect(after.hand.length).toBe(before);
+  });
+});
+
+describe('wiele Łabędzi naraz', () => {
+  it('żaden nie zostaje w ręce, choćby było ich więcej niż graczy', () => {
+    let state = started();
+
+    // Skrajny przypadek: dziewięć Łabędzi rozdanych po rękach. Sztywny limit
+    // ośmiu obiegów zostawiał ostatnie karty w grze.
+    const swans = Array.from({ length: 9 }, (_, i) => swan(`s-many-${i}`));
+    state = {
+      ...state,
+      players: state.players.map((p, index) => ({
+        ...p,
+        hand: [
+          ...p.hand,
+          ...swans.filter((_, i) => i % state.players.length === index),
+        ],
+      })),
+    };
+
+    const { state: after } = resolveDrawnBlackSwans(state);
+    const left = after.players.flatMap((p) => p.hand).filter(
+      (c) => c.category === 'blackswan',
+    );
+
+    expect(left, 'wszystkie Łabędzie schodzą z rąk').toHaveLength(0);
   });
 });

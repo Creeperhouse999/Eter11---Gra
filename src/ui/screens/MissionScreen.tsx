@@ -30,6 +30,12 @@ interface MissionScreenProps {
    */
   allows?: (action: 'play' | 'swap' | 'pass') => boolean;
   /**
+   * Wyjście do menu. Odkąd partia przeżywa odświeżenie strony, przeładowanie
+   * przestało być ucieczką — bez tego przycisku gracz nie ma jak porzucić
+   * rozpoczętej gry.
+   */
+  onQuit?: () => void;
+  /**
    * Ręka odkryta od startu. Samouczek gra jedna osoba, więc chowanie kart
    * przed samym sobą nie ma sensu i tylko dokłada krok.
    */
@@ -51,6 +57,7 @@ export function MissionScreen({
   onContext,
   allows,
   alwaysRevealed = false,
+  onQuit,
 }: MissionScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [selected, setSelected] = useState<{ card: Card; fromMat: boolean } | null>(null);
@@ -247,7 +254,16 @@ export function MissionScreen({
           </p>
         </div>
         <div className="text-right sm:order-last">
-          <span className="eter-label">Teraz gra</span>
+          {onQuit && (
+            <button
+              type="button"
+              onClick={onQuit}
+              className="mb-0.5 text-[11px] text-ink-dim underline underline-offset-2 transition hover:text-danger"
+            >
+              Zakończ grę
+            </button>
+          )}
+          <span className="eter-label block">Teraz gra</span>
           <p
             className="truncate font-display text-xl font-bold text-accent sm:text-2xl"
             title={activePlayer.name}

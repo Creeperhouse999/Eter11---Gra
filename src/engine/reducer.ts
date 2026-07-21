@@ -429,9 +429,20 @@ export function resolveDrawnBlackSwans(state: GameState): {
   const events: BlackSwanEvent[] = [];
   let next = state;
 
-  // Pętla, bo Łabędź typu „wymiana rąk" przesuwa karty między graczami —
-  // kolejne wyciągnięcie może odsłonić następnego Łabędzia.
-  for (let guard = 0; guard < 8; guard += 1) {
+  // Pętla, bo Łabędź typu „wymiana rąk" przesuwa karty między graczami,
+  // a karta dobrana w zamian też bywa Łabędziem.
+  //
+  // Limit liczony z liczby kart w grze, nie zgadywany: sztywna ósemka
+  // zostawiała Łabędzie w rękach, gdy trafiło się ich więcej. Każdy obieg
+  // usuwa dokładnie jedną kartę z ręki, więc tyle obiegów wystarczy
+  // z zapasem, a pętla i tak kończy się sama, gdy nie ma czego szukać.
+  const maxRounds =
+    state.players.reduce((sum, p) => sum + p.hand.length, 0) +
+    state.drawPile.length +
+    state.discardPile.length +
+    1;
+
+  for (let guard = 0; guard < maxRounds; guard += 1) {
     let found: { player: Player; card: Card } | null = null;
 
     for (const player of next.players) {

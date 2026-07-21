@@ -17,6 +17,7 @@ import {
 import { TutorialDone } from './tutorial/TutorialDone';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
+import { useConfirm } from './controls/useConfirm';
 import { clearSavedGame, savedSeed } from './savedGame';
 import { useGame, type PlayerSetup } from './useGame';
 
@@ -48,6 +49,19 @@ function RunningGame({
   tutorial: boolean;
   onRestart: () => void;
 }) {
+  const { confirm, dialog } = useConfirm();
+
+  /** Porzucenie partii jest nieodwracalne — pytamy, zanim skasujemy zapis. */
+  const quit = async () => {
+    const confirmed = await confirm({
+      title: 'Zakończyć grę?',
+      message:
+        'Wrócicie do menu, a rozpoczęta partia przepadnie — nie da się do niej wrócić.',
+      confirmLabel: 'Zakończ',
+      tone: 'danger',
+    });
+    if (confirmed) onRestart();
+  };
   const text = content.text ?? DEFAULT_UI_TEXT;
   // Samouczek gra na własnym scenariuszu: jeden gracz, ustawiona ręka
   // i talia, więc przebieg jest identyczny za każdym razem.
@@ -126,8 +140,11 @@ function RunningGame({
           onContext={setTourContext}
           allows={tour.active ? tour.allows : undefined}
           alwaysRevealed={tutorial}
+          // Samouczek ma własne „Pomiń", więc drugie wyjście tylko myliłoby.
+          onQuit={tutorial ? undefined : () => void quit()}
         />
         <TutorialLayer tutorial={tour} />
+        {dialog}
       </>
     );
   }
