@@ -10,6 +10,7 @@ import { DragGhost } from '../components/DragGhost';
 import { MissionProgress } from '../components/MissionProgress';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
+import { ScrollHint } from '../components/ScrollHint';
 import { RoundFuel } from '../components/RoundFuel';
 import { useCardDrag } from '../components/useCardDrag';
 import { Button } from '../controls/Button';
@@ -281,6 +282,10 @@ export function MissionScreen({
       {rejection && (
         <TopBanner message={rejection} tone="danger" onDismiss={dismissRejection} />
       )}
+
+      {/* Plansza ma się mieścić w całości, ale przy dużej czcionce albo
+          zamkniętych ściankach potrafi urosnąć — wtedy mówimy o tym wprost. */}
+      <ScrollHint />
 
       {/* Czarny Łabędź nie jest ruchem gracza — wchodzi sam przy dobraniu,
           a okno wyjaśnia, co właśnie zmienił na planszy. */}

@@ -75,6 +75,8 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
     playAfterSwap: '[data-tour="playable-card"]',
     finish: '[data-tour="problem"]',
     takeCard: '[data-tour="take-card"]',
+    // Krok podsumowujący nie wskazuje niczego — mówi o grze z innymi.
+    outro: '[data-tour="problem"]',
   };
   return anchors[goal];
 }
@@ -139,6 +141,9 @@ export function isGoalMet(
       return state.mission?.phase === 'won';
     case 'takeCard':
       return (state.mission?.takenToMat.length ?? 0) > 0;
+    // Krok czytany — bez zadania, jak `intro`.
+    case 'outro':
+      return true;
   }
 }
 

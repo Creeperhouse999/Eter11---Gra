@@ -82,7 +82,11 @@ export function ProblemCard({
         data-slot={dropId}
         {...(dropTargetProps?.(dropId) ?? {})}
         className={[
-          'flex min-h-[8.5rem] flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
+          'flex flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
+          // Pusta ścianka to sam nagłówek i podpowiedź — pełną wysokość
+          // potrzebuje dopiero karta, która w niej wyląduje. Pięć ścianek po
+          // 8.5rem nie mieściło się na telefonie i wymuszało przewijanie.
+          filled ? 'min-h-[8.5rem]' : 'min-h-[4.5rem] sm:min-h-[5.5rem]',
           filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
           playable || accepts ? 'bg-raised' : '',
           playable ? 'cursor-pointer' : 'cursor-default',
@@ -180,31 +184,45 @@ export function ProblemCard({
       >
         {problem.name}
       </h2>
+      {/* Cel zostaje zawsze — to on mówi, po co ten ruch. Reszta opisu jest
+          do przeczytania raz i tylko zabiera wysokość, więc na wąskim ekranie
+          chowa się pod rozwijaczem. */}
+      <p className="eter-label mt-3 text-left">Cel</p>
       <p
-        className="mt-2 text-xs leading-relaxed text-ink-dim"
+        className="text-left text-xs text-accent"
         style={{ overflowWrap: 'anywhere' }}
       >
-        {problem.story}
+        {problem.goal}
       </p>
 
-      <dl className="mt-3 space-y-1.5 text-left text-xs">
-        <div>
-          <dt className="eter-label">Cel</dt>
-          <dd className="text-accent" style={{ overflowWrap: 'anywhere' }}>
-            {problem.goal}
-          </dd>
-        </div>
-        <div>
-          <dt className="eter-label">Przeciwnik</dt>
-          <dd style={{ overflowWrap: 'anywhere' }}>{problem.antagonist}</dd>
-        </div>
-        <div>
-          <dt className="eter-label">Jeśli się nie uda</dt>
-          <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
-            {problem.consequence}
-          </dd>
-        </div>
-      </dl>
+      <details className="group mt-3 text-left">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-ink-dim transition hover:text-ink">
+          <span className="transition-transform group-open:rotate-180">
+            <Icon name="chevronDown" size={14} />
+          </span>
+          Cała historia
+        </summary>
+
+        <p
+          className="mt-2 text-xs leading-relaxed text-ink-dim"
+          style={{ overflowWrap: 'anywhere' }}
+        >
+          {problem.story}
+        </p>
+
+        <dl className="mt-2 space-y-1.5 text-xs">
+          <div>
+            <dt className="eter-label">Przeciwnik</dt>
+            <dd style={{ overflowWrap: 'anywhere' }}>{problem.antagonist}</dd>
+          </div>
+          <div>
+            <dt className="eter-label">Jeśli się nie uda</dt>
+            <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
+              {problem.consequence}
+            </dd>
+          </div>
+        </dl>
+      </details>
     </div>
   );
 
@@ -224,15 +242,18 @@ export function ProblemCard({
         <div className="col-span-3">{renderSlot('digital')}</div>
       </div>
 
-      {/* Układ wąski — ta sama kolejność, jedna kolumna. */}
-      <div className="space-y-3 lg:hidden">
+      {/* Układ wąski — ta sama kolejność, dwie ścianki w rzędzie.
+          Jedna kolumna dawała ponad 700 px samych ścianek i plansza nie
+          mieściła się na ekranie telefonu bez przewijania. */}
+      <div className="space-y-2.5 lg:hidden">
         {core}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5">
           {renderSlot('mentor')}
           {renderSlot('talent')}
           {renderSlot('psychological')}
           {renderSlot('social')}
-          {renderSlot('digital')}
+          {/* Piąta ścianka jest nieparzysta — zajmuje cały rząd. */}
+          <div className="col-span-2">{renderSlot('digital')}</div>
         </div>
       </div>
     </section>

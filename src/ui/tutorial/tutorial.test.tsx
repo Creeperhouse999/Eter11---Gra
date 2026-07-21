@@ -276,10 +276,19 @@ describe('useTutorial — kroki', () => {
     expect(result.current.anchor).toBe('[data-slot="tutorial-1:mentor"]');
   });
 
-  it('ostatni krok uczy zabierania karty na postać', () => {
+  it('przedostatni krok uczy zabierania karty na postać', () => {
+    const takeStep = TUTORIAL_STEPS[TUTORIAL_STEPS.length - 2];
+    expect(takeStep.goal).toBe('takeCard');
+    expect(takeStep.say).toMatch(/kartę postaci/i);
+  });
+
+  it('kończy wyjaśnieniem gry z innymi', () => {
+    // Przekazywanie kart wymaga drugiego gracza, więc samouczek nie może go
+    // pokazać — mówi o nim na koniec, bez zadania do wykonania.
     const last = TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1];
-    expect(last.goal).toBe('takeCard');
-    expect(last.say).toMatch(/kartę postaci/i);
+    expect(last.goal).toBe('outro');
+    expect(last.readOnly).toBe(true);
+    expect(last.say).toMatch(/oddać|przekaz/i);
   });
 
   it('podświetlenie zostaje na czas pochwały', () => {

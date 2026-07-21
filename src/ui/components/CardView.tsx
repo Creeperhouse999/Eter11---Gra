@@ -71,7 +71,9 @@ export function CardView({
       className={[
         'group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',
         dealIndex === undefined ? '' : 'eter-deal',
-        compact ? 'w-24 p-2 pt-2.5' : 'w-36 p-3 pt-3.5',
+        // Na telefonie karta jest węższa, żeby ręka nie zjadała pół ekranu
+        // i cała plansza mieściła się bez przewijania.
+        compact ? 'w-24 p-2 pt-2.5' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
         interactive && !draggable ? 'cursor-pointer' : '',
         interactive && !beingDragged ? 'hover:-translate-y-1' : '',

@@ -19,7 +19,8 @@ export type TutorialGoal =
   | 'swapCards'
   | 'playAfterSwap'
   | 'finish'
-  | 'takeCard';
+  | 'takeCard'
+  | 'outro';
 
 export interface TutorialStep {
   id: string;
@@ -122,6 +123,16 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     say: 'Za rozwiązanie problemu zabierasz jedną ze swoich kart na kartę postaci — zostaje z Tobą na całą grę. Wybierz kartę i naciśnij „Zabieram na postać".',
     praise: 'Gotowe. Ta karta jest teraz Twoja — możesz jej użyć w kolejnych misjach.',
     nudge: 'Pod każdą zagraną kartą jest przycisk „Zabieram na postać".',
+  },
+  {
+    // Ostatni krok tłumaczy to, czego samouczek nie może pokazać: dawanie
+    // kart i trzy poziomy wygranej wymagają drugiego gracza przy stole.
+    id: 'outro',
+    goal: 'outro',
+    readOnly: true,
+    allow: [],
+    say: 'Grając z kimś, zamiast brać kartę dla siebie możesz ją oddać innemu graczowi. Dostajesz wtedy punkt doświadczenia za uczenie innych — dzielenie się opłaca się tak samo jak zbieranie.',
+    praise: 'Zostało ostatnie.',
   },
 ];
 
