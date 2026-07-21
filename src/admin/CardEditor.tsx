@@ -41,6 +41,8 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
 
 export function CardEditor({ cards, onChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
+  const [family, setFamily] = useState<string>('all');
+  const [sort, setSort] = useState<'order' | 'name' | 'category'>('order');
   const [search, setSearch] = useState('');
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
@@ -62,17 +64,56 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
   // Sześćdziesiąt kilka kart w jednej liście: bez szukania poprawa literówki
   // w nazwie oznacza przewijanie kilkunastu ekranów na oślep.
   const needle = search.trim().toLowerCase();
-  const visible = cards.filter((card) => {
-    if (filter !== 'all' && card.category !== filter) return false;
-    if (!needle) return true;
-    return (
-      card.name.toLowerCase().includes(needle) ||
-      card.description.toLowerCase().includes(needle)
-    );
-  });
+
+  /**
+   * Szukanie po słowach, nie po całej frazie.
+   *
+   * „krytyczne myślenie" nie znajdowało karty „Myślenie krytyczne" — a to
+   * dokładnie ten przypadek, w którym redaktor sprawdza, czy taka karta już
+   * istnieje. Każde słowo musi wystąpić, ale kolejność nie ma znaczenia.
+   */
+  const terms = needle.split(/\s+/).filter(Boolean);
+
+  const visible = cards
+    .filter((card) => {
+      if (filter !== 'all' && card.category !== filter) return false;
+      if (family !== 'all' && card.family !== family) return false;
+      if (terms.length === 0) return true;
+
+      const haystack = `${card.name} ${card.description} ${card.category}`.toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    })
+    .sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name, 'pl');
+      if (sort === 'category') {
+        return (
+          a.category.localeCompare(b.category) || a.name.localeCompare(b.name, 'pl')
+        );
+      }
+      // `order` zostawia kolejność z pliku — tak, jak karty leżą w talii.
+      return 0;
+    });
 
   const update = (id: string, patch: Partial<Card>) => {
     onChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  };
+
+  /**
+   * Kopia karty tuż pod oryginałem.
+   *
+   * Większość kart to warianty istniejących — ta sama kategoria i rodzina,
+   * inna nazwa i opis. Bez tego redaktor zaczynał od pustej karty i ustawiał
+   * te same cztery pola od nowa przy każdym wariancie.
+   */
+  const duplicate = (card: Card) => {
+    const copy: Card = { ...card, id: newId('card'), name: `${card.name} (kopia)` };
+    const index = cards.findIndex((c) => c.id === card.id);
+
+    // Wstawiamy obok oryginału, nie na koniec listy: kopia dopisana na
+    // sześćdziesiątej pozycji ginie z oczu i trzeba jej szukać.
+    onChange([...cards.slice(0, index + 1), copy, ...cards.slice(index + 1)]);
+    setJustAddedId(copy.id);
+    toast('Skopiowano. Zmień nazwę i opis.');
   };
 
   const add = () => {
@@ -145,6 +186,30 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
             ]}
             onChange={setFilter}
           />
+          <Select
+            value={family}
+            ariaLabel="Filtruj rodzinę"
+            className="w-full sm:w-44"
+            options={[
+              { value: 'all', label: 'Wszystkie rodziny' },
+              ...FAMILY_OPTIONS.map((option) => ({
+                value: option.value as string,
+                label: option.label,
+              })),
+            ]}
+            onChange={setFamily}
+          />
+          <Select
+            value={sort}
+            ariaLabel="Sortowanie"
+            className="w-full sm:w-44"
+            options={[
+              { value: 'order' as const, label: 'Kolejność w talii' },
+              { value: 'name' as const, label: 'Alfabetycznie' },
+              { value: 'category' as const, label: 'Po kategorii' },
+            ]}
+            onChange={setSort}
+          />
           <Button icon="plus" onClick={add}>
             Dodaj kartę
           </Button>
@@ -191,15 +256,26 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
                   });
                 }}
               />
-              <Button
-                variant="ghost"
-                size="sm"
-                icon="trash"
-                onClick={() => remove(card.id)}
-                className="self-start text-danger"
-              >
-                Usuń
-              </Button>
+              <div className="flex gap-1 self-start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="plus"
+                  aria-label={`Skopiuj kartę ${card.name}`}
+                  onClick={() => duplicate(card)}
+                >
+                  Kopiuj
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="trash"
+                  onClick={() => remove(card.id)}
+                  className="text-danger"
+                >
+                  Usuń
+                </Button>
+              </div>
             </div>
 
             <div className="mt-2 flex items-start gap-3">

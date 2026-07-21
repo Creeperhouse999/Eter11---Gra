@@ -69,6 +69,16 @@ describe('statystyki treści', () => {
     expect(entry(BUILTIN_CONTENT, 'Powtórzone nazwy').value).toBe('0');
   });
 
+  it('pokazuje nazwy kategorii, nie klucze silnika', () => {
+    // `psychological` i `action` to identyfikatory, których redaktor nie widzi
+    // nigdzie indziej w panelu — na ekranie mają stać polskie nazwy.
+    const tight = entry(BUILTIN_CONTENT, 'Najbardziej napięta kategoria');
+    expect(tight.value).not.toMatch(/^[a-z]+$/);
+
+    const types = entry(BUILTIN_CONTENT, 'Typy problemów');
+    expect(types.note).not.toMatch(/action|thinking|cooperation/);
+  });
+
   it('liczy słowa do przeczytania', () => {
     const total = Number(entry(BUILTIN_CONTENT, 'Razem').value);
     expect(total).toBeGreaterThan(0);

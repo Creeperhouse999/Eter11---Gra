@@ -21,6 +21,8 @@ export interface ThemeColors {
   typeCooperation: string;
   typeSelfchange: string;
   catPsychological: string;
+  catEter11: string;
+  catBlackswan: string;
   catDigital: string;
   catSocial: string;
   catTalent: string;
@@ -47,6 +49,8 @@ export const DEFAULT_THEME: ThemeColors = {
   typeCooperation: '#ffc94d',
   typeSelfchange: '#5ce08f',
   catPsychological: '#ff8fb3',
+  catEter11: '#ffffff',
+  catBlackswan: '#7c8db0',
   catDigital: '#5bc8ff',
   catSocial: '#ffc94d',
   catTalent: '#a97cff',
@@ -74,6 +78,8 @@ const CSS_VARIABLES: Record<keyof ThemeColors, string> = {
   typeCooperation: '--eter-type-cooperation',
   typeSelfchange: '--eter-type-selfchange',
   catPsychological: '--eter-cat-psychological',
+  catEter11: '--eter-cat-eter11',
+  catBlackswan: '--eter-cat-blackswan',
   catDigital: '--eter-cat-digital',
   catSocial: '--eter-cat-social',
   catTalent: '--eter-cat-talent',
@@ -146,6 +152,11 @@ export const THEME_GROUPS: Array<{
       { key: 'catSocial', label: 'Społeczne' },
       { key: 'catTalent', label: 'Talenty' },
       { key: 'catMentor', label: 'Mentorzy' },
+      // Karty specjalne miały swoje zmienne w CSS, ale nie miały ich
+      // w motywie — kolor był ustawiony na sztywno i panel go nie pokazywał,
+      // więc jako jedyny w grze nie dawał się zmienić.
+      { key: 'catEter11', label: 'ETER11' },
+      { key: 'catBlackswan', label: 'Czarny Łabędź' },
     ],
   },
 ];

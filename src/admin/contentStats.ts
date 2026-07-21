@@ -1,4 +1,5 @@
 import { CATEGORY_ORDER } from '../data/categories';
+import { categoryLabel, problemTypeLabel } from '../ui/components/categoryStyles';
 import { FAMILY_IDS } from '../data/families';
 import { ICON_NAMES } from '../ui/icons/Icon';
 import type { GameContent } from '../firebase/validate';
@@ -133,7 +134,11 @@ export function contentStats(content: GameContent): StatGroup[] {
         {
           label: 'Typy problemów',
           value: String(problemTypes.size),
-          note: [...problemTypes.entries()].map(([k, v]) => `${k}: ${v}`).join(', '),
+          // Też nazwy, nie klucze: `action` i `thinking` to identyfikatory,
+          // których redaktor nigdzie indziej w panelu nie widzi.
+          note: [...problemTypes.entries()]
+            .map(([kind, count]) => `${problemTypeLabel(kind as never)}: ${count}`)
+            .join(', '),
         },
       ],
     },
@@ -182,7 +187,9 @@ export function contentStats(content: GameContent): StatGroup[] {
         },
         {
           label: 'Najbardziej napięta kategoria',
-          value: tightest ? tightest.key : '—',
+          // Nazwa, nie klucz: `psychological` to identyfikator dla silnika,
+          // a redaktor zna tę kategorię jako „Psychologiczna".
+          value: tightest ? categoryLabel(tightest.key) : '—',
           note: tightest
             ? `${demand.get(tightest.key) ?? 0} ścianek na ${supply.get(tightest.key) ?? 0} kart`
             : undefined,
