@@ -10,6 +10,8 @@ import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
 import { Select } from '../ui/controls/Select';
+import { TextField } from '../ui/controls/Field';
+import { searchContent } from './globalSearch';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
@@ -85,6 +87,12 @@ export function AdminApp() {
   );
 
   const validation = useMemo(() => validateContent(content), [content]);
+
+  const [hunt, setHunt] = useState('');
+  const found = useMemo(
+    () => (hunt.trim().length > 1 ? searchContent(content, hunt) : []),
+    [content, hunt],
+  );
 
   /** Które sekcje różnią się od ostatniego zapisu — po ludzku. */
   const pendingChanges = useMemo(
@@ -333,6 +341,55 @@ export function AdminApp() {
             Szesnaście zakładek w pasku przewijanym w bok znaczy, że połowa
             jest poza ekranem i trzeba do niej dojechać na oślep — a nazwy
             zakładek to jedyne, po czym da się w tym panelu nawigować. */}
+        {/* Szukanie w całej zawartości — dostępne z każdej zakładki, bo
+            pytanie „gdzie ja to wpisałem" pada właśnie wtedy, gdy redaktor
+            jest w innej sekcji. */}
+        <div className="mx-auto max-w-6xl px-4 pb-2">
+          <TextField
+            value={hunt}
+            onChange={(e) => setHunt(e.target.value)}
+            placeholder="Szukaj w kartach, problemach, tekstach i wstępie"
+            aria-label="Szukaj w całej zawartości"
+            className="w-full"
+          />
+
+          {hunt.trim().length > 1 && (
+            <div className="eter-rise mt-2 max-h-72 overflow-y-auto rounded-lg border border-edge bg-surface">
+              {found.length === 0 ? (
+                <p className="p-3 text-sm text-ink-dim">Nic takiego nie ma w treści.</p>
+              ) : (
+                <ul className="divide-y divide-edge">
+                  {found.slice(0, 40).map((hit, index) => (
+                    <li key={index}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTab(hit.tab as Tab);
+                          setHunt('');
+                        }}
+                        className="w-full px-3 py-2 text-left transition hover:bg-raised"
+                      >
+                        <span className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="text-sm font-semibold">{hit.title}</span>
+                          <span className="font-mono text-[10px] text-accent">{hit.where}</span>
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
+                          {hit.excerpt}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {found.length > 40 && (
+                    <li className="px-3 py-2 text-xs text-ink-dim">
+                      …i {found.length - 40} więcej. Dopisz słowo, żeby zawęzić.
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="mx-auto max-w-6xl px-4 pb-2 sm:hidden">
           <Select
             value={tab}
