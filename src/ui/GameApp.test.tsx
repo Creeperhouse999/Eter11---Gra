@@ -35,12 +35,11 @@ describe('GameApp — ekran startowy', () => {
     render(<GameApp />);
 
     // Zwykła gra czeka na imiona, samouczek nie — gra w nim jedna osoba.
-    expect(
-      screen.getByRole('button', { name: /Zaczynamy misję/ }).hasAttribute('disabled'),
-    ).toBe(true);
-    expect(
-      screen.getByRole('button', { name: /Naucz mnie grać/ }).hasAttribute('disabled'),
-    ).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: /Zaczynamy misję/ }));
+    expect(screen.queryByRole('button', { name: 'Odkryj problem' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Naucz mnie grać/ }));
+    expect(screen.getByText(/ETER11/)).toBeDefined();
   });
 
   it('samouczek startuje od razu, bez pytania o misję', () => {
@@ -63,10 +62,15 @@ describe('GameApp — ekran startowy', () => {
     expect(screen.queryByText(/Karty są zakryte/)).toBeNull();
   });
 
-  it('blokuje start bez imion graczy', () => {
+  it('nie zaczyna gry bez imion i mówi, czego brakuje', () => {
     render(<GameApp />);
-    const start = screen.getByRole('button', { name: /Zaczynamy misję/ });
-    expect(start.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: /Zaczynamy misję/ }));
+
+    // Gra się nie zaczyna — nadal widać ekran ustawień, nie planszę.
+    expect(screen.queryByRole('button', { name: 'Odkryj problem' })).toBeNull();
+    // Puste pola są oznaczone, żeby gracz wiedział, gdzie kliknąć.
+    const inputs = screen.getAllByPlaceholderText('Imię');
+    expect(inputs[0].className).toContain('border-danger');
   });
 
   it('pozwala zacząć po wpisaniu imion', () => {

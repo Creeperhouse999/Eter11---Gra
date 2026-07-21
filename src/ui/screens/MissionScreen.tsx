@@ -123,6 +123,18 @@ export function MissionScreen({
   const mission = state.mission;
   if (!mission || !activePlayer) return null;
 
+  // Czy gracz ma czym zagrać — używane w podpowiedzi przy „Pasuję".
+  const hasPlayableCard = activePlayer.hand.some((card) =>
+    mission.problems.some((problem) =>
+      problem.slots.some(
+        (slot) =>
+          !mission.played.some(
+            (p) => p.problemId === problem.id && p.slotKey === slot.key,
+          ) && cardFitsSlot(card, slot.key, slot.family),
+      ),
+    ),
+  );
+
   // Czarne Łabędzie, które właśnie weszły do gry i czekają na przeczytanie.
   const swanEvents = mission.pendingSwanEvents;
   const dismissSwanEvents = () => dispatch({ type: 'DISMISS_SWAN_EVENTS' });
@@ -223,11 +235,23 @@ export function MissionScreen({
     <main className="eter-fade-in relative mx-auto max-w-7xl px-4 py-6">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
 
-      <header className="relative mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
+      {/* Na wąskim ekranie cztery bloki zawijały się w cztery rzędy, a ostatni
+          wyrównany do prawej wyglądał jak błąd układu. Siatka 2×2 na telefonie,
+          rząd od `sm` wzwyż. */}
+      <header className="relative mb-5 grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <span className="eter-label">Misja {state.missionNumber}</span>
-          <p className="font-display text-lg font-bold">
-            Rozwiązane problemy: {state.solvedProblems.length}
+          <p className="truncate font-display text-base font-bold sm:text-lg">
+            Rozwiązane: {state.solvedProblems.length}
+          </p>
+        </div>
+        <div className="text-right sm:order-last">
+          <span className="eter-label">Teraz gra</span>
+          <p
+            className="truncate font-display text-xl font-bold text-accent sm:text-2xl"
+            title={activePlayer.name}
+          >
+            {activePlayer.name}
           </p>
         </div>
         <MissionProgress mission={mission} />
@@ -235,10 +259,6 @@ export function MissionScreen({
         {!alwaysRevealed && (
           <RoundFuel round={mission.round} total={state.config.roundsPerMission} />
         )}
-        <div className="text-right">
-          <span className="eter-label">Teraz gra</span>
-          <p className="font-display text-2xl font-bold text-accent">{activePlayer.name}</p>
-        </div>
       </header>
 
       {/*
@@ -458,7 +478,18 @@ export function MissionScreen({
                 </>
               ) : (
                 <>
-                  <Button onClick={pass} disabled={!allowed('pass')}>
+                  <Button
+                    onClick={pass}
+                    disabled={!allowed('pass')}
+                    // Spasowanie oddaje ruch bezpowrotnie, a przycisk sąsiaduje
+                    // z wymianą — dziecko klikające na próbę traci turę i nie
+                    // wie dlaczego. Tytuł mówi to, zanim kliknie.
+                    title={
+                      hasPlayableCard
+                        ? 'Oddasz ruch następnemu graczowi. Masz jeszcze kartę, którą da się zagrać.'
+                        : 'Oddasz ruch następnemu graczowi.'
+                    }
+                  >
                     Pasuję
                   </Button>
                   <Button

@@ -105,6 +105,23 @@ export function AdminApp() {
     }
   };
 
+  /**
+   * Ctrl+S zapisuje, tak jak w każdym edytorze.
+   *
+   * Redaktor poprawiający kilkadziesiąt kart inaczej po każdej zmianie wraca
+   * myszą na górę strony. Przeglądarkowe „zapisz stronę" jest tu bezużyteczne,
+   * więc przechwycenie skrótu niczego nie zabiera.
+   */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key !== 's') return;
+      event.preventDefault();
+      if (dirty && !saving && validation.ok) void save();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   const discard = async () => {
     const confirmed = await confirm({
       title: 'Odrzucić zmiany?',
@@ -152,7 +169,13 @@ export function AdminApp() {
               size="sm"
               onClick={save}
               disabled={!dirty || saving || !validation.ok}
-              title={!validation.ok ? 'Popraw błędy, żeby zapisać' : undefined}
+              title={
+                !validation.ok
+                  ? 'Popraw błędy, żeby zapisać'
+                  : !dirty
+                    ? 'Nie ma czego zapisywać — wszystko jest aktualne'
+                    : 'Zapisz zmiany (Ctrl+S)'
+              }
             >
               {saving ? 'Zapisywanie…' : 'Zapisz'}
             </Button>

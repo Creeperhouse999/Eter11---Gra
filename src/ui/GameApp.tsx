@@ -154,9 +154,21 @@ function RunningGame({
           {text.missionRevealButton}
         </button>
         {state.problemPile.length === 0 && (
-          <p className="mt-3 text-sm text-ink-dim">
-            Talia problemów jest pusta. Odłożone problemy wracają po dwóch misjach.
-          </p>
+          <>
+            <p className="mt-3 text-sm text-ink-dim">
+              Talia problemów jest pusta. Odłożone problemy wracają po dwóch
+              misjach — tutaj nie ma już czego odkryć.
+            </p>
+            {/* Bez tego ekran jest ślepym zaułkiem: przycisk wyłączony,
+                a gracz nie ma jak wrócić do menu. */}
+            <button
+              type="button"
+              onClick={onRestart}
+              className="mt-4 rounded-lg border border-edge px-5 py-2.5 text-sm transition hover:border-accent hover:text-accent"
+            >
+              Wróć do menu
+            </button>
+          </>
         )}
       </div>
     </main>

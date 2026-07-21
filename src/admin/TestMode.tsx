@@ -60,8 +60,14 @@ export function TestMode({ content }: TestModeProps) {
             <span className="text-ink-dim">Ziarno</span>
             <input
               type="number"
+              min={1}
               value={seed}
-              onChange={(e) => setSeed(Number(e.target.value))}
+              // Puste pole dawało NaN, a ono po cichu przestawiało partię
+              // w trakcie wpisywania nowej liczby.
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (Number.isFinite(value) && value >= 1) setSeed(value);
+              }}
               className="ml-2 w-24 rounded border border-edge bg-bg px-2 py-1 font-mono text-sm"
             />
           </label>

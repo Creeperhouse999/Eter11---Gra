@@ -4,6 +4,7 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Card, Character } from '../../engine/types';
 import { CardView } from '../components/CardView';
 import { PlayerMat } from '../components/PlayerMat';
+import { Button } from '../controls/Button';
 import { TopBanner } from '../controls/TopBanner';
 import type { Game } from '../useGame';
 
@@ -100,13 +101,30 @@ export function SummaryScreen({
                     COMPETENCE_CATEGORIES.includes(play.card.category) &&
                     state.players.length > 1;
 
+                  // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej
+                  // gracz widzi cztery przygaszone kafle i nie wie, czy to
+                  // jego kolej się skończyła, czy coś zepsuł.
+                  const blockedReason = shared
+                    ? 'Ta karta poszła do innego gracza.'
+                    : alreadyTook
+                      ? 'W tej misji zabrałeś już kartę na postać.'
+                      : undefined;
+
                   return (
-                    <div key={play.card.id} className="flex w-36 flex-col gap-1">
+                    <div
+                      key={play.card.id}
+                      // Sztywne w-36 przy 360px mieściło jedną kartę w rzędzie
+                      // i robiło z listy długą kolumnę. Dwie na wąskim ekranie.
+                      className="flex w-[calc(50%-0.375rem)] max-w-36 flex-col gap-1.5"
+                    >
                       <CardView card={play.card} disabled={shared || alreadyTook} />
-                      <button
-                        type="button"
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         data-tour="take-card"
                         disabled={alreadyTook || shared}
+                        title={blockedReason}
+                        className="min-h-11 w-full"
                         onClick={() =>
                           dispatch({
                             type: 'TAKE_CARD_TO_MAT',
@@ -114,18 +132,18 @@ export function SummaryScreen({
                             cardId: play.card.id,
                           })
                         }
-                        className="rounded border border-edge px-2 py-1 text-xs transition hover:border-ink-dim disabled:opacity-40"
                       >
                         Zabieram na postać
-                      </button>
+                      </Button>
                       {canShare && (
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="min-h-11 w-full text-accent"
                           onClick={() => setSharing({ card: play.card, fromPlayerId: player.id })}
-                          className="rounded border border-accent px-2 py-1 text-xs text-accent transition hover:bg-accent hover:text-bg"
                         >
                           Uczę kogoś
-                        </button>
+                        </Button>
                       )}
                       {shared && (
                         <span className="text-center text-xs text-success">Przekazana</span>
@@ -145,9 +163,11 @@ export function SummaryScreen({
                     {state.players
                       .filter((other) => other.id !== player.id)
                       .map((other) => (
-                        <button
+                        <Button
                           key={other.id}
-                          type="button"
+                          variant="primary"
+                          size="sm"
+                          className="min-h-11"
                           onClick={() => {
                             dispatch({
                               type: 'SHARE_CARD',
@@ -157,18 +177,13 @@ export function SummaryScreen({
                             });
                             setSharing(null);
                           }}
-                          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-bg"
                         >
                           {other.name}
-                        </button>
+                        </Button>
                       ))}
-                    <button
-                      type="button"
-                      onClick={() => setSharing(null)}
-                      className="rounded-lg border border-edge px-3 py-1.5 text-sm"
-                    >
+                    <Button variant="ghost" size="sm" className="min-h-11" onClick={() => setSharing(null)}>
                       Anuluj
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -177,13 +192,11 @@ export function SummaryScreen({
         })}
       </section>
 
-      <button
-        type="button"
-        onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}
-        className="relative mt-8 rounded-lg bg-accent px-6 py-3 font-display font-bold text-bg"
-      >
-        Dalej
-      </button>
+      <div className="relative mt-8">
+        <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}>
+          Dalej
+        </Button>
+      </div>
     </main>
   );
 }

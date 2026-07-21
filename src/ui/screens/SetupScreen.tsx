@@ -60,6 +60,12 @@ export function SetupScreen({
   };
 
   const namesFilled = drafts.every((d) => d.name.trim().length > 0);
+  /**
+   * Puste pola podświetlamy dopiero po próbie startu.
+   * Czerwone ramki na świeżo otwartym ekranie wyglądałyby jak błąd, którego
+   * gracz jeszcze nie popełnił.
+   */
+  const [triedStart, setTriedStart] = useState(false);
 
   const start = (tutorial: boolean) => {
     // Samouczek gra jedna osoba na ustawionym scenariuszu — nie wymaga
@@ -153,7 +159,13 @@ export function SetupScreen({
                   onChange={(e) => update(index, { name: e.target.value })}
                   placeholder="Imię"
                   aria-label={`Imię gracza ${index + 1}`}
-                  className="min-w-0 flex-1 rounded-lg border border-edge bg-bg px-3 py-2 text-ink placeholder:text-ink-dim/50 focus:border-accent focus:outline-none"
+                  className={[
+                    'min-w-0 flex-1 rounded-lg border bg-bg px-3 py-2 text-ink',
+                    'placeholder:text-ink-dim/50 focus:border-accent focus:outline-none',
+                    triedStart && draft.name.trim().length === 0
+                      ? 'border-danger'
+                      : 'border-edge',
+                  ].join(' ')}
                 />
 
                 {drafts.length > MIN_PLAYERS && (
@@ -230,16 +242,26 @@ export function SetupScreen({
         variant="primary"
         size="lg"
         icon="rocket"
-        onClick={() => start(false)}
-        disabled={!namesFilled}
+        onClick={() => {
+          setTriedStart(true);
+          start(false);
+        }}
+        // Świadomie NIE wyłączony: kliknięcie podświetla brakujące imiona,
+        // zamiast zostawiać gracza z martwym przyciskiem bez wyjaśnienia.
+        title={!namesFilled ? text.setupNamesHint : undefined}
         className="relative mt-4 w-full"
       >
         {text.setupStartButton}
       </Button>
 
       {!namesFilled && (
-        <p className="relative mt-2 text-center text-xs text-ink-dim">
-          {text.setupNamesHint}
+        <p
+          className="relative mt-2 text-center text-xs"
+          style={{ color: triedStart ? 'var(--eter-danger)' : undefined }}
+        >
+          <span className={triedStart ? '' : 'text-ink-dim'}>
+            {text.setupNamesHint}
+          </span>
         </p>
       )}
 

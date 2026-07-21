@@ -6,6 +6,7 @@ import {
   setReportStatus,
   type Report,
   type ReportKind,
+  type ReportStatus,
 } from '../firebase/reports';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
@@ -13,7 +14,7 @@ import { TextArea, TextField } from '../ui/controls/Field';
 import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
-import { Icon } from '../ui/icons/Icon';
+import { Icon, type IconName } from '../ui/icons/Icon';
 
 const KIND_OPTIONS = [
   { value: 'bug' as const, label: 'Błąd', icon: 'warning' as const, color: 'var(--eter-danger)' },
@@ -21,6 +22,63 @@ const KIND_OPTIONS = [
 ];
 
 const KIND_LABELS: Record<ReportKind, string> = { bug: 'Błąd', idea: 'Pomysł' };
+
+/**
+ * Obieg zgłoszenia: zgłaszający pisze, programista naprawia, zgłaszający
+ * sprawdza. Rozdzielenie „naprawione" od „potwierdzone" jest tu sednem —
+ * naprawiający nie zamyka własnego zgłoszenia, bo to on właśnie uznał, że
+ * działa. Zamyka je ten, kto zgłosił.
+ */
+const STATUS_TABS: Array<{
+  id: ReportStatus;
+  label: string;
+  icon: IconName;
+  color: string;
+  hint: string;
+}> = [
+  {
+    id: 'new',
+    label: 'Nowe',
+    icon: 'bulb',
+    color: 'var(--eter-accent)',
+    hint: 'Czekają na programistę.',
+  },
+  {
+    id: 'fixed',
+    label: 'Do sprawdzenia',
+    icon: 'flask',
+    color: 'var(--eter-cat-social)',
+    hint: 'Programista twierdzi, że naprawione. Sprawdź i potwierdź albo odeślij z komentarzem.',
+  },
+  {
+    id: 'rejected',
+    label: 'Wróciły',
+    icon: 'undo',
+    color: 'var(--eter-danger)',
+    hint: 'Sprawdzone i dalej nie działa — czekają na kolejną poprawkę.',
+  },
+  {
+    id: 'done',
+    label: 'Potwierdzone',
+    icon: 'tick',
+    color: 'var(--eter-success)',
+    hint: 'Zgłaszający sprawdził i potwierdził, że działa.',
+  },
+];
+
+const EMPTY_MESSAGE: Record<ReportStatus, string> = {
+  new: 'Brak nowych zgłoszeń.',
+  fixed: 'Nic nie czeka na sprawdzenie.',
+  rejected: 'Nic nie wróciło do poprawki.',
+  done: 'Nic jeszcze nie zostało potwierdzone.',
+};
+
+const STATUS_TOAST: Record<ReportStatus, string> = {
+  new: 'Zgłoszenie wróciło do listy nowych.',
+  fixed: 'Oznaczono jako naprawione — czeka na sprawdzenie.',
+  rejected: 'Odesłane do poprawki.',
+  done: 'Potwierdzone. Dziękujemy za sprawdzenie!',
+};
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -52,7 +110,15 @@ export function ReportsPanel() {
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
   const [sending, setSending] = useState(false);
-  const [showDone, setShowDone] = useState(false);
+  /**
+   * Zgłoszenie przechodzi przez cztery stany, nie dwa. Wcześniej panel
+   * znał tylko „nowe" i „załatwione", więc zgłoszenia oznaczone jako
+   * naprawione znikały z obu list — nikt ich już nie widział.
+   */
+  const [tab, setTab] = useState<ReportStatus>('new');
+  /** Zgłoszenie z otwartym polem komentarza. */
+  const [commenting, setCommenting] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -86,12 +152,40 @@ export function ReportsPanel() {
     void refresh();
   };
 
-  const toggleStatus = async (report: Report) => {
-    const next = report.status === 'new' ? 'done' : 'new';
-    await setReportStatus(report.id, next);
-    setReports((prev) =>
-      prev.map((r) => (r.id === report.id ? { ...r, status: next } : r)),
-    );
+  /**
+   * Zmiana statusu z opcjonalnym komentarzem.
+   *
+   * Komentarz jest wymagany przy odesłaniu do poprawki: „dalej nie działa"
+   * bez opisu nie mówi programiście nic, czego by już nie wiedział.
+   */
+  const changeStatus = async (
+    report: Report,
+    next: ReportStatus,
+    from: 'dev' | 'reporter' = 'reporter',
+  ) => {
+    const text = commenting === report.id ? comment.trim() : '';
+
+    try {
+      await setReportStatus(report.id, next, text ? { from, text } : undefined);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === report.id
+            ? {
+                ...r,
+                status: next,
+                notes: text
+                  ? [...(r.notes ?? []), { from, text, at: new Date().toISOString() }]
+                  : r.notes,
+              }
+            : r,
+        ),
+      );
+      setCommenting(null);
+      setComment('');
+      toast(STATUS_TOAST[next]);
+    } catch {
+      toast('Nie udało się zapisać. Sprawdź, czy jesteś zalogowany.', 'danger');
+    }
   };
 
   const remove = async (report: Report) => {
@@ -112,9 +206,13 @@ export function ReportsPanel() {
     }
   };
 
-  const open = reports.filter((r) => r.status === 'new');
-  const done = reports.filter((r) => r.status === 'done');
-  const visible = showDone ? done : open;
+  const counts: Record<ReportStatus, number> = {
+    new: reports.filter((r) => r.status === 'new').length,
+    fixed: reports.filter((r) => r.status === 'fixed').length,
+    rejected: reports.filter((r) => r.status === 'rejected').length,
+    done: reports.filter((r) => r.status === 'done').length,
+  };
+  const visible = reports.filter((r) => r.status === tab);
 
   return (
     <section>
@@ -178,14 +276,35 @@ export function ReportsPanel() {
       </div>
 
       {/* Lista */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="eter-label">
-          {showDone ? `Załatwione (${done.length})` : `Otwarte (${open.length})`}
-        </h3>
-        <Button size="sm" variant="ghost" onClick={() => setShowDone((v) => !v)}>
-          {showDone ? 'Pokaż otwarte' : `Pokaż załatwione (${done.length})`}
-        </Button>
+      <div className="mt-6 flex flex-wrap gap-1.5">
+        {STATUS_TABS.map((item) => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              aria-current={active ? 'page' : undefined}
+              className={[
+                'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition',
+                active ? 'border-accent bg-raised' : 'border-edge hover:border-ink-dim',
+              ].join(' ')}
+            >
+              <span style={{ color: active ? item.color : undefined }}>
+                <Icon name={item.icon} size={14} />
+              </span>
+              <span className={active ? 'font-semibold text-accent' : ''}>
+                {item.label}
+              </span>
+              <span className="font-mono text-[11px] text-ink-dim">
+                {counts[item.id]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      <p className="mt-2 text-xs text-ink-dim">{STATUS_TABS.find((s) => s.id === tab)?.hint}</p>
 
       {error && (
         <div className="mt-3">
@@ -195,10 +314,10 @@ export function ReportsPanel() {
 
       {loading ? (
         <p className="mt-3 text-sm text-ink-dim">Wczytywanie…</p>
-      ) : visible.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-dim">
-          {showDone ? 'Nic jeszcze nie zostało załatwione.' : 'Brak otwartych zgłoszeń.'}
-        </p>
+      ) : /* Przy błędzie nie mówimy „brak zgłoszeń" — to sugerowałoby pustą
+             bazę, a lista po prostu się nie wczytała. */
+      error ? null : visible.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-dim">{EMPTY_MESSAGE[tab]}</p>
       ) : (
         <ul className="eter-stagger mt-3 space-y-2">
           {visible.map((report) => (
@@ -233,15 +352,56 @@ export function ReportsPanel() {
                   </span>
                 </div>
 
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    size="sm"
-                    variant={report.status === 'new' ? 'secondary' : 'ghost'}
-                    icon={report.status === 'new' ? 'tick' : 'undo'}
-                    onClick={() => void toggleStatus(report)}
-                  >
-                    {report.status === 'new' ? 'Załatwione' : 'Otwórz ponownie'}
-                  </Button>
+                <div className="flex shrink-0 flex-wrap gap-1">
+                  {/* Nowe i odesłane: programista oznacza, że poprawił. */}
+                  {(report.status === 'new' || report.status === 'rejected') && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon="flask"
+                      onClick={() => void changeStatus(report, 'fixed', 'dev')}
+                    >
+                      Naprawione
+                    </Button>
+                  )}
+
+                  {/* Do sprawdzenia: decyduje zgłaszający, nie programista. */}
+                  {report.status === 'fixed' && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        icon="tick"
+                        onClick={() => void changeStatus(report, 'done')}
+                      >
+                        Działa
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon="undo"
+                        className="text-danger"
+                        onClick={() => {
+                          setCommenting(report.id);
+                          setComment('');
+                        }}
+                      >
+                        Dalej nie działa
+                      </Button>
+                    </>
+                  )}
+
+                  {report.status === 'done' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon="undo"
+                      onClick={() => void changeStatus(report, 'new')}
+                    >
+                      Otwórz ponownie
+                    </Button>
+                  )}
+
                   <Button
                     size="sm"
                     variant="ghost"
@@ -260,6 +420,67 @@ export function ReportsPanel() {
                 >
                   {report.description}
                 </p>
+              )}
+
+              {/* Historia rozmowy — bez niej druga próba naprawy zaczyna
+                  się od zera, bo nikt nie pamięta, co już sprawdzano. */}
+              {(report.notes?.length ?? 0) > 0 && (
+                <ul className="mt-3 space-y-1.5 border-l-2 border-edge pl-3">
+                  {report.notes!.map((note, index) => (
+                    <li key={index} className="text-xs">
+                      <span
+                        className="font-mono font-bold"
+                        style={{
+                          color:
+                            note.from === 'dev'
+                              ? 'var(--eter-accent)'
+                              : 'var(--eter-cat-social)',
+                        }}
+                      >
+                        {note.from === 'dev' ? 'programista' : 'zgłaszający'}
+                      </span>
+                      <span className="ml-2 text-ink-dim">{formatDate(note.at)}</span>
+                      <p
+                        className="mt-0.5 whitespace-pre-wrap leading-snug"
+                        style={{ overflowWrap: 'anywhere' }}
+                      >
+                        {note.text}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {commenting === report.id && (
+                <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
+                  <TextArea
+                    label="Co dokładnie nadal nie działa?"
+                    value={comment}
+                    rows={3}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={comment.trim().length === 0}
+                      onClick={() => void changeStatus(report, 'rejected')}
+                    >
+                      Odeślij do poprawki
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setCommenting(null);
+                        setComment('');
+                      }}
+                    >
+                      Anuluj
+                    </Button>
+                  </div>
+                </div>
               )}
             </li>
           ))}

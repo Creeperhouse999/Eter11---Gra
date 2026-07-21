@@ -120,7 +120,7 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
                   </div>
                 ) : (
                   <p className="mt-1 text-sm text-ink-dim">
-                    Ten sam efekt już działał w tej misji — plansza się nie zmienia.
+                    Tym razem bez skutku — plansza zostaje bez zmian.
                   </p>
                 )}
               </li>

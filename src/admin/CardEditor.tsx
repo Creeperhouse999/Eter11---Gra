@@ -39,11 +39,22 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
 
 export function CardEditor({ cards, onChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
+  const [search, setSearch] = useState('');
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
-  const visible = filter === 'all' ? cards : cards.filter((c) => c.category === filter);
+  // Sześćdziesiąt kilka kart w jednej liście: bez szukania poprawa literówki
+  // w nazwie oznacza przewijanie kilkunastu ekranów na oślep.
+  const needle = search.trim().toLowerCase();
+  const visible = cards.filter((card) => {
+    if (filter !== 'all' && card.category !== filter) return false;
+    if (!needle) return true;
+    return (
+      card.name.toLowerCase().includes(needle) ||
+      card.description.toLowerCase().includes(needle)
+    );
+  });
 
   const update = (id: string, patch: Partial<Card>) => {
     onChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -66,6 +77,9 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
     // kilkudziesięciu pozycji i trzeba by jej szukać przewijaniem.
     onChange([created, ...cards]);
     setJustAddedId(created.id);
+    // Wyróżnienie gaśnie po chwili. Bez tego po dodaniu kilku kart świeci
+    // się kilka wierszy naraz i „nowa" przestaje cokolwiek znaczyć.
+    window.setTimeout(() => setJustAddedId((id) => (id === created.id ? null : id)), 4000);
     toast('Dodano kartę na górze listy.');
   };
 
@@ -99,9 +113,16 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-display text-lg font-bold">
           Karty ({visible.length}
-          {filter !== 'all' && ` z ${cards.length}`})
+          {visible.length !== cards.length && ` z ${cards.length}`})
         </h2>
         <div className="flex flex-wrap items-end gap-2">
+          <TextField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Szukaj w nazwach i opisach"
+            aria-label="Szukaj karty"
+            className="w-56"
+          />
           <Select
             value={filter}
             ariaLabel="Filtruj kategorię"

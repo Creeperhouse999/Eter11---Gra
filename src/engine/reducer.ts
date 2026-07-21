@@ -387,7 +387,11 @@ export function resolveDrawnBlackSwans(state: GameState): {
   state: GameState;
   events: BlackSwanEvent[];
 } {
-  if (!state.mission) return { state, events: [] };
+  // Tylko w trwającej misji. Po rozwiązaniu problemu karta nie ma czego
+  // utrudnić, a okno z utrudnieniem nad ekranem zwycięstwa myliłoby graczy.
+  if (!state.mission || state.mission.phase !== 'playing') {
+    return { state, events: [] };
+  }
 
   const events: BlackSwanEvent[] = [];
   let next = state;
