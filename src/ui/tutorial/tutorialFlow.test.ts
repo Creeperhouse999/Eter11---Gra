@@ -120,6 +120,13 @@ describe('pełne przejście samouczka', () => {
         expect(result.rejected, 'wymiana przechodzi').toBeUndefined();
         state = result.state;
         swapCount += 1;
+
+        // Wymiana ma oddać tyle kart, ile gracz oddał. Za krótka talia
+        // cicho zwracała mniej i samouczek kończył się na styk.
+        const after = state.players.find((p) => p.id === playerId)!;
+        expect(after.hand, 'wymiana oddaje tyle kart, ile zabrała').toHaveLength(
+          useless.length,
+        );
         expect(isGoalMet(step.goal, state, ctx({ swapCount }))).toBe(true);
         continue;
       }
@@ -142,7 +149,10 @@ describe('pełne przejście samouczka', () => {
       // Kroki „połóż kartę": zagrywamy aż warunek kroku będzie spełniony.
       expect(before, `krok ${step.id} nie zalicza się sam`).toBe(false);
       let guard = 0;
-      while (!isGoalMet(step.goal, state, ctx({ swapCount })) && guard < 10) {
+      while (!isGoalMet(step.goal, state, ctx({ swapCount }))) {
+        // Twardy limit: bez niego nieosiągalny krok kręciłby się w kółko,
+        // a komunikat mówiłby o czymkolwiek innym niż prawdziwa przyczyna.
+        expect(guard, `krok ${step.id}: zapętlił się bez postępu`).toBeLessThan(10);
         const move = firstPlayable(state);
         expect(move, `krok ${step.id}: jest czym zagrać`).not.toBeNull();
         const result = reduce(state, {

@@ -110,7 +110,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'finish',
     goal: 'finish',
     allow: ['play', 'swap'],
-    say: 'Zostały dwie ścianki. Dokończ problem — masz w ręku wszystko, czego trzeba.',
+    say: 'Została ostatnia ścianka. Dokończ problem — masz w ręku wszystko, czego trzeba.',
     praise: 'Problem rozwiązany! Zostało jeszcze jedno.',
   },
   {
@@ -197,6 +197,11 @@ export const TUTORIAL_DECK: Card[] = [
   card('tut-dig-blue-1', 'Analiza danych', 'digital', 'blue', 'chart', 'Znajduje wzory tam, gdzie inni widzą chaos.'),
   card('tut-soc-blue-2', 'Myślenie przyszłościowe', 'social', 'blue', 'telescope', 'Przewiduje skutki decyzji.'),
   card('tut-dig-blue-2', 'Projektant AI', 'digital', 'blue', 'network', 'Tworzy systemy, które pomagają ludziom.'),
+  // Zapas. Wymiana pięciu kart pobiera pięć, a wcześniejsze dobierania
+  // zjadają wierzch talii — bez tej karty gracz dostawałby cztery i kończył
+  // samouczek dokładnie na styk, bez marginesu na własną kolejność ruchów.
+  card('tut-soc-blue-3', 'Rozwiązywanie konfliktów', 'social', 'blue', 'dove', 'Szuka wyjścia, które da się przyjąć obu stronom.'),
+  card('tut-dig-blue-3', 'Bezpieczeństwo w sieci', 'digital', 'blue', 'lock', 'Wie, czego nie klikać i komu nie ufać.'),
 ];
 
 /** Gracz samouczka. Jedna osoba — nikt nie czeka na swoją kolej. */
