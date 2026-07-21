@@ -112,7 +112,7 @@ export function AccountPanel({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && nameChanged) void saveName();
             }}
-            placeholder="np. Alan"
+            placeholder="Imię"
             aria-label="Twoje imię"
             maxLength={40}
             className="flex-1"
