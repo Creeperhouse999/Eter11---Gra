@@ -161,7 +161,14 @@ describe('GameApp — misja', () => {
     startGame();
     fireEvent.click(screen.getByRole('button', { name: 'Odkryj problem' }));
 
-    // Pięć ścianek problemu, żadna jeszcze niezamknięta.
-    expect(screen.getByLabelText(/Zamknięte ścianki: 0 z 5/)).toBeDefined();
+    // Żadna ścianka nie jest jeszcze zamknięta.
+    //
+    // Liczba ścianek celowo nie jest wpisana na sztywno: gra losuje ziarno
+    // z zegara, a Czarny Łabędź „dodatkowy problem" wykłada drugą kartę
+    // problemu i ścianek robi się dziesięć. Test sprawdzający „0 z 5"
+    // przewracał się mniej więcej raz na pięć uruchomień — z powodu zasady
+    // gry, nie usterki.
+    const progress = screen.getByLabelText(/Zamknięte ścianki: \d+ z \d+/);
+    expect(progress.getAttribute('aria-label')).toMatch(/Zamknięte ścianki: 0 z \d+/);
   });
 });
