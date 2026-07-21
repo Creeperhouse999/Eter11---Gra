@@ -15,6 +15,23 @@ interface Rect {
 }
 
 /**
+ * Pierwszy WIDOCZNY element pasujący do selektora.
+ *
+ * Plansza renderuje ścianki dwa razy — układ stołowy i wąski — a przełącza
+ * je CSS. `querySelector` brał zawsze pierwszy w kodzie, czyli desktopowy,
+ * który na telefonie ma `display: none` i zerowe wymiary. Efekt: ETER11
+ * mówił „ścianka zaświeciła", a nic się nie świeciło.
+ */
+export function findVisible(selector: string): Element | null {
+  const all = document.querySelectorAll(selector);
+  for (const element of all) {
+    const box = element.getBoundingClientRect();
+    if (box.width > 0 && box.height > 0) return element;
+  }
+  return null;
+}
+
+/**
  * Przyciemnienie ekranu z wyciętym otworem na wskazany element.
  *
  * Otwór robiony jest ogromnym cieniem wokół małego prostokąta, a nie maską
@@ -33,7 +50,7 @@ export function Spotlight({ target, padding = 8 }: SpotlightProps) {
     }
 
     const measure = () => {
-      const element = document.querySelector(target);
+      const element = findVisible(target);
       if (!element) {
         setRect(null);
         return;

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../controls/Button';
 import { Icon } from '../icons/Icon';
 import { pickPlacement, BUBBLE_WIDTH, BUBBLE_GAP, type Placement } from './placement';
+import { findVisible } from './Spotlight';
 
 interface GuideBubbleProps {
   /** Treść wypowiedzi ETER11. */
@@ -69,7 +70,9 @@ export function GuideBubble({
         return;
       }
 
-      const element = document.querySelector(anchor);
+      // Ten sam powód co w Spotlight: ścianki istnieją w DOM podwójnie,
+      // a tylko jeden układ jest widoczny.
+      const element = findVisible(anchor);
       if (!element) {
         setPlacement(null);
         return;
