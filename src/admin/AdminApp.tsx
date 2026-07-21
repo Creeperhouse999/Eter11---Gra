@@ -21,6 +21,7 @@ import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
+import { StoryEditor } from './StoryEditor';
 import { ThemeEditor } from './ThemeEditor';
 import { useAdminAuth } from './useAdminAuth';
 
@@ -32,6 +33,7 @@ type Tab =
   | 'characters'
   | 'rules'
   | 'text'
+  | 'story'
   | 'theme'
   | 'test'
   | 'reports'
@@ -46,6 +48,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
+  { key: 'story', label: 'Wstęp i ETER11', icon: 'spark' },
   { key: 'theme', label: 'Kolory', icon: 'palette' },
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
@@ -371,6 +374,13 @@ export function AdminApp() {
         )}
         {tab === 'text' && (
           <TextEditor text={content.text} onChange={(text) => update({ text })} />
+        )}
+        {tab === 'story' && (
+          <StoryEditor
+            intro={content.intro}
+            tutorial={content.tutorial}
+            onChange={update}
+          />
         )}
         {tab === 'theme' && (
           <ThemeEditor theme={content.theme} onChange={(theme) => update({ theme })} />

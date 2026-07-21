@@ -7,6 +7,9 @@ import type { FamilyMap } from '../data/families';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
+import type { IntroContent } from '../data/intro';
+import type { TutorialStep } from '../data/tutorial';
+
 export interface GameContent {
   cards: Card[];
   problems: Problem[];
@@ -15,6 +18,15 @@ export interface GameContent {
   text: UiText;
   theme: ThemeColors;
   families: FamilyMap;
+  /**
+   * Wstęp przed grą i kwestie ETER11 w samouczku.
+   *
+   * Opcjonalne, bo zapisy sprzed dodania tych pól ich nie mają — gra
+   * podstawia wtedy teksty wbudowane. Bez tego wczytanie starszej wersji
+   * zawartości zostawiłoby dziecko z pustym ekranem wstępu.
+   */
+  intro?: IntroContent;
+  tutorial?: TutorialStep[];
 }
 
 export interface ValidationResult {

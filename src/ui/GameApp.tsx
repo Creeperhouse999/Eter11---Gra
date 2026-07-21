@@ -22,12 +22,19 @@ import { savedSeed } from './savedGame';
 import { useScreenTitle } from './useScreenTitle';
 import { useGame, type PlayerSetup } from './useGame';
 
+import type { IntroContent } from '../data/intro';
+import type { TutorialStep } from '../data/tutorial';
+
 export interface GameAppContent {
   cards?: Card[];
   problems?: Problem[];
   characters?: Character[];
   rules?: RulesConfig;
   text?: UiText;
+  /** Wstęp z panelu. Brak = wersja wbudowana w kod. */
+  intro?: IntroContent;
+  /** Kroki samouczka z panelu. Brak = wersja wbudowana. */
+  tutorial?: TutorialStep[];
 }
 
 interface GameAppProps {
@@ -112,7 +119,13 @@ function RunningGame({
     swapCount: 0,
   });
 
-  const tour = useTutorial(tutorial, state, tourContext, () => setTutorialDone(true));
+  const tour = useTutorial(
+    tutorial,
+    state,
+    tourContext,
+    () => setTutorialDone(true),
+    content.tutorial,
+  );
 
   if (state.phase === 'finale') {
     return (
@@ -266,7 +279,7 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
         </p>
       )}
       {showIntro ? (
-        <IntroScreen onDone={closeIntro} onSkip={closeIntro} />
+        <IntroScreen onDone={closeIntro} onSkip={closeIntro} intro={content.intro} />
       ) : session ? (
         <RunningGame
           key={session.seed}

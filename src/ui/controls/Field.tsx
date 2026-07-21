@@ -1,3 +1,4 @@
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
 interface CommonProps {
@@ -47,18 +48,50 @@ export function TextField({ label, hint, error, className, ...rest }: TextFieldP
 type TextAreaProps = CommonProps &
   Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'className'>;
 
+/**
+ * Pole wielolinijkowe rosnące razem z treścią.
+ *
+ * Uchwyt zmiany rozmiaru w rogu jest natywnym elementem przeglądarki:
+ * wygląda obco przy resztą kontrolek, a przeciągnięty w bok rozjeżdża układ
+ * kolumny. Rośnięcie samoczynne rozwiązuje to, co uchwyt miał rozwiązywać —
+ * długi opis nie utyka w trzech linijkach i nikt nic nie musi ciągnąć.
+ */
 export function TextArea({ label, hint, error, className, rows = 3, ...rest }: TextAreaProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * Wysokość liczona od zera: bez wyzerowania `scrollHeight` nigdy nie zmaleje,
+   * więc pole rosłoby przy kasowaniu tekstu zamiast się kurczyć.
+   */
+  const fit = useCallback(() => {
+    const element = ref.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+
+  // Dopasowanie przed pierwszym malowaniem — treść wczytana z bazy ma się
+  // pokazać w pełnej wysokości, bez przeskoku po renderze.
+  useLayoutEffect(fit, [fit, rest.value]);
+
   return (
     <label className={`block ${className ?? ''}`}>
       {label && <span className="text-sm text-ink-dim">{label}</span>}
       <textarea
+        ref={ref}
         aria-label={label}
         {...rest}
+        onInput={(event) => {
+          fit();
+          rest.onInput?.(event);
+        }}
         rows={rows}
         aria-invalid={error ? true : undefined}
         className={[
           base,
-          'resize-y',
+          // `overflow-hidden` usuwa pasek przewijania, który przy własnym
+          // dopasowaniu wysokości i tak nie ma czego przewijać.
+          'resize-none overflow-hidden',
           label ? 'mt-1' : '',
           error ? 'border-danger' : 'border-edge focus:border-accent',
         ].join(' ')}

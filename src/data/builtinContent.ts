@@ -1,4 +1,6 @@
 import { ALL_CARDS } from './cards';
+import { DEFAULT_INTRO } from './intro';
+import { TUTORIAL_STEPS } from './tutorial';
 import { ALL_CHARACTERS } from './characters';
 import { DEFAULT_FAMILIES } from './families';
 import { ALL_PROBLEMS } from './problems';
@@ -24,4 +26,6 @@ export const BUILTIN_CONTENT: GameContent = {
   text: DEFAULT_UI_TEXT,
   theme: DEFAULT_THEME,
   families: DEFAULT_FAMILIES,
+  intro: DEFAULT_INTRO,
+  tutorial: TUTORIAL_STEPS,
 };

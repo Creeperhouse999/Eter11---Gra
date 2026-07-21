@@ -18,6 +18,13 @@ function migrate(raw: Record<string, unknown>): GameContent {
     text: { ...BUILTIN_CONTENT.text, ...(raw.text as object) },
     theme: { ...BUILTIN_CONTENT.theme, ...(raw.theme as object) },
     families: { ...BUILTIN_CONTENT.families, ...(raw.families as object) },
+    // Wstęp i samouczek: zapisy sprzed dodania tych pól ich nie mają, a bez
+    // podstawienia gra pokazałaby pusty ekran powitalny. Pusta lista jest
+    // traktowana jak brak — redaktor mógł skasować wszystkie sceny.
+    intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
+    tutorial: (raw.tutorial as GameContent['tutorial'])?.length
+      ? (raw.tutorial as GameContent['tutorial'])
+      : BUILTIN_CONTENT.tutorial,
   };
 }
 
@@ -136,7 +143,7 @@ export async function saveContent(
       ok: false,
       errors: [
         `Zapis nie powiódł się: ${message}. ` +
-          'Sprawdź, czy jesteś zalogowany i czy reguły Firestore zawierają UID Twojego konta.',
+          'Sprawdź, czy nadal jesteś zalogowany — sesja mogła wygasnąć.',
       ],
     };
   }

@@ -32,6 +32,21 @@ export interface IntroScene {
  * przymiotników na siłę. Żadnego morału na końcu: gra ma go pokazać,
  * a nie zapowiedzieć.
  */
+/**
+ * Wstęp w trzech częściach, tak jak widzi go gracz.
+ *
+ * Trzymamy je razem, bo w panelu redakcyjnym edytuje się je jako jedną
+ * całość, a do gry trafiają jednym zapisem.
+ */
+export interface IntroContent {
+  /** Wstęp narracyjny — wprowadza w historię. */
+  story: IntroScene[];
+  /** Wstęp techniczny — uczy zasad. */
+  rules: IntroScene[];
+  /** Część dla dorosłych — po co ta gra powstała. */
+  adults: IntroScene[];
+}
+
 export const INTRO_STORY: IntroScene[] = [
   {
     icon: 'earth',
@@ -157,3 +172,10 @@ export const INTRO_FOR_ADULTS: IntroScene[] = [
       'Wiek 8–13 lat, od dwóch do czterech osób, jedna misja to około piętnastu minut. Gra jest zaprojektowana dla mieszanych drużyn: dziecko z rodzicem, klasa z nauczycielem.\n\nRola dorosłego nie jest tu dekoracją — karty mentorów działają wyłącznie wtedy, gdy ktoś naprawdę usiądzie do stołu.',
   },
 ];
+
+/** Komplet wstępu zaszyty w kodzie — punkt wyjścia dla panelu. */
+export const DEFAULT_INTRO: IntroContent = {
+  story: INTRO_STORY,
+  rules: INTRO_RULES,
+  adults: INTRO_FOR_ADULTS,
+};

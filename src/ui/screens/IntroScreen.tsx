@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { INTRO_STORY, INTRO_RULES, INTRO_FOR_ADULTS, type IntroScene } from '../../data/intro';
+import {
+  INTRO_STORY,
+  INTRO_RULES,
+  INTRO_FOR_ADULTS,
+  type IntroContent,
+  type IntroScene,
+} from '../../data/intro';
 import { Button } from '../controls/Button';
 import { Icon, type IconName } from '../icons/Icon';
 
@@ -8,6 +14,13 @@ interface IntroScreenProps {
   onDone: () => void;
   /** Wstęp da się pominąć w każdej chwili — nie każdy czyta go raz drugi. */
   onSkip: () => void;
+  /**
+   * Sceny z panelu redakcyjnego. Brak = teksty wbudowane w kod.
+   *
+   * Zapas jest istotny: zawartość zapisana przed dodaniem wstępu nie ma
+   * tego pola, a pusty ekran powitalny byłby gorszy niż tekst domyślny.
+   */
+  intro?: IntroContent;
 }
 
 type Tab = 'story' | 'rules' | 'adults';
@@ -18,7 +31,7 @@ const TABS: Array<{ id: Tab; label: string; icon: IconName; hint: string }> = [
   { id: 'adults', label: 'Dla dorosłych', icon: 'sage', hint: 'Rodzice i nauczyciele' },
 ];
 
-const CONTENT: Record<Tab, IntroScene[]> = {
+const BUILTIN: Record<Tab, IntroScene[]> = {
   story: INTRO_STORY,
   rules: INTRO_RULES,
   adults: INTRO_FOR_ADULTS,
@@ -35,12 +48,15 @@ const CONTENT: Record<Tab, IntroScene[]> = {
  * konkretnej informacji, a nie przeżycia, więc przewijanie jest lepsze
  * od przeklikiwania.
  */
-export function IntroScreen({ onDone, onSkip }: IntroScreenProps) {
+export function IntroScreen({ onDone, onSkip, intro }: IntroScreenProps) {
   const [tab, setTab] = useState<Tab>('story');
   const [scene, setScene] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const scenes = CONTENT[tab];
+  // Pusta lista scen z panelu też liczy się jako brak — redaktor mógł
+  // wyczyścić jedną część wstępu, a wtedy pokazujemy wersję wbudowaną
+  // zamiast pustki.
+  const scenes = intro?.[tab]?.length ? intro[tab] : BUILTIN[tab];
   const current = scenes[Math.min(scene, scenes.length - 1)];
   const storyMode = tab === 'story';
   const last = scene >= scenes.length - 1;

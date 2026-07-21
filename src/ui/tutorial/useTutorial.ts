@@ -235,12 +235,21 @@ export function useTutorial(
   state: GameState,
   context: TutorialContext,
   onFinish: () => void,
+  /**
+   * Kroki z panelu redakcyjnego. Brak albo pusta lista = wersja wbudowana.
+   *
+   * Pusta lista jest równie ważna co brak pola: redaktor mógł skasować
+   * wszystkie kroki, a samouczek bez kroków wysypałby się na pierwszym
+   * odczycie `step.say`.
+   */
+  steps?: TutorialStep[],
 ): TutorialControl | { active: false } {
+  const script = steps?.length ? steps : TUTORIAL_STEPS;
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(false);
   const [stuck, setStuck] = useState(false);
 
-  const step = TUTORIAL_STEPS[index];
+  const step = script[index];
 
   // Raz oznaczony jako zrobiony, zostaje zrobiony — inaczej cofnięcie stanu
   // (np. odznaczenie karty) odbierałoby pochwałę.
@@ -264,7 +273,7 @@ export function useTutorial(
   if (!active || !step) return { active: false };
 
   const next = () => {
-    if (index + 1 >= TUTORIAL_STEPS.length) {
+    if (index + 1 >= script.length) {
       markSeen();
       onFinish();
       return;
@@ -277,7 +286,7 @@ export function useTutorial(
 
   // Cofnięcie działa tylko na krokach czytanych — przy zadaniach karta jest
   // już zagrana i nie da się jej wziąć z powrotem.
-  const canGoBack = index > 0 && TUTORIAL_STEPS[index - 1].readOnly === true;
+  const canGoBack = index > 0 && script[index - 1].readOnly === true;
 
   const back = () => {
     doneRef.current = false;
@@ -295,7 +304,7 @@ export function useTutorial(
     active: true,
     step,
     stepNumber: index + 1,
-    total: TUTORIAL_STEPS.length,
+    total: script.length,
     done,
     // Krok czytany nie ma czego chwalić — gracz jeszcze nic nie zrobił,
     // więc pokazujemy treść wyjaśnienia aż do naciśnięcia „Dalej".
