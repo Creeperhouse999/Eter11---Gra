@@ -16,6 +16,7 @@ import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel } from './ReportsPanel';
+import { DiscussionsPanel } from './DiscussionsPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
@@ -32,7 +33,8 @@ type Tab =
   | 'text'
   | 'theme'
   | 'test'
-  | 'reports';
+  | 'reports'
+  | 'discussions';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -45,6 +47,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'theme', label: 'Kolory', icon: 'palette' },
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
+  { key: 'discussions', label: 'Dyskusja', icon: 'message' },
 ];
 
 export function AdminApp() {
@@ -371,6 +374,11 @@ export function AdminApp() {
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
         {tab === 'reports' && <ReportsPanel />}
+        {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
+            ma stać podpis, którego nie da się podszyć. */}
+        {tab === 'discussions' && (
+          <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+        )}
         </div>
       </main>
     </div>

@@ -3,16 +3,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /**
+     * Czy piszący ma konto w tym projekcie.
+     *
+     * Konta zakłada wyłącznie właściciel projektu w Firebase Console —
+     * rejestracji z aplikacji nie ma. Posiadanie konta JEST więc
+     * uprawnieniem: zespół redakcyjny ma równe prawa, a osoba z ulicy
+     * nie założy sobie konta sama.
+     *
+     * Wcześniej reguły uznawały jeden UID. Skutek: coworkerzy widzieli
+     * „missing or insufficient permissions" przy każdej zmianie statusu
+     * zgłoszenia, więc pętla „zgłoś → napraw → potwierdź" urywała się na
+     * ostatnim kroku.
+     */
+    function zalogowany() {
+      return request.auth != null;
+    }
+
     // Zawartość gry: karty, problemy, postacie, parametry zasad.
-    // Odczyt publiczny — gra ładuje dane bez logowania.
-    // Zapis wyłącznie z konta administracyjnego.
-    //
-    // UID konta info@eter11.pl (Firebase Console → Authentication → Users).
-    // Zmiana konta wymaga podmiany tego UID i ponownego wdrożenia reguł.
+    // Odczyt publiczny — gra ładuje dane bez logowania, także u dzieci,
+    // które kont nie mają i mieć nie będą.
     match /content/{document} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
+      allow write: if zalogowany();
     }
 
     // Zgłoszenia błędów i pomysłów od zespołu.
@@ -22,45 +35,18 @@ service cloud.firestore {
     // o działaniu gry, więc nie wpisujemy tu danych osobowych ani haseł —
     // każdy, kto zna adres projektu, może je przeczytać.
     //
-    // Tworzyć może każdy: zespół merytoryczny nie ma kont, a wymaganie
-    // logowania zniechęciłoby do zgłaszania. Ograniczenia pól i długości
-    // chronią przed zalewaniem bazy.
-    //
-    // Zmiana statusu i usuwanie pozostają przy koncie administracyjnym,
-    // żeby nikt z zewnątrz nie zamknął cudzego zgłoszenia.
+    // Tworzyć może każdy, także bez konta: zgłoszenie potrafi wysłać osoba
+    // testująca grę z dziećmi, której nie zakładamy konta na jedno popołudnie.
+    // Ograniczenia pól i długości chronią przed zalewaniem bazy.
     match /reports/{report} {
       allow read: if true;
-      allow delete: if request.auth != null
-                    && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2';
+      allow delete: if zalogowany();
 
-      // Zmiana statusu bez logowania.
-      //
-      // Zespół merytoryczny zgłasza błędy i sam sprawdza, czy naprawa
-      // działa — bez tego pętla „zgłoś → napraw → potwierdź" urywa się na
-      // ostatnim kroku, a osoba zgłaszająca dostaje „missing or insufficient
-      // permissions" dokładnie wtedy, gdy chce potwierdzić poprawkę.
-      //
-      // Ruszyć wolno wyłącznie `status` i `notes`; tytuł, opis, rodzaj,
-      // autor i data pozostają takie, jak w chwili zgłoszenia — inaczej
-      // ktoś z zewnątrz mógłby podmienić treść cudzego zgłoszenia.
-      allow update: if request.auth != null
-                       && request.auth.uid == 'N8KRfRuZmpf3ccHhKXXuPaPBKId2'
-                    || (
-                      request.resource.data.diff(resource.data)
-                        .affectedKeys().hasOnly(['status', 'notes'])
-                      && request.resource.data.status in
-                           ['new', 'fixed', 'rejected', 'done']
-                      // Notatki tylko dopisujemy — kasowanie cudzych
-                      // komentarzy nie jest częścią potwierdzania naprawy.
-                      //
-                      // `get` z wartością domyślną, bo zgłoszenia wysyłane
-                      // przez aplikację nie mają pola `notes` wcale: reguła
-                      // tworzenia dopuszcza dokładnie sześć pól i `notes`
-                      // nie jest jednym z nich.
-                      && request.resource.data.get('notes', []).size()
-                         >= resource.data.get('notes', []).size()
-                      && request.resource.data.get('notes', []).size() <= 50
-                    );
+      // Zmianę statusu i komentarze robi zespół redakcyjny, czyli każdy,
+      // kto ma konto. Rozdzielenie „naprawiłem" od „potwierdzam, że działa"
+      // jest sednem obiegu zgłoszeń: naprawiający nie zamyka własnego
+      // zgłoszenia — zamyka je ten, kto je napisał.
+      allow update: if zalogowany();
 
       allow create: if request.resource.data.keys().hasOnly(
                          ['kind', 'title', 'description', 'author', 'status', 'createdAt'])
@@ -71,6 +57,32 @@ service cloud.firestore {
                     && request.resource.data.title.size() <= 120
                     && request.resource.data.description is string
                     && request.resource.data.description.size() <= 4000;
+    }
+
+    /**
+     * Dyskusje zespołu.
+     *
+     * Zgłoszenia są o tym, co nie działa — mają status i domykają się.
+     * Dyskusja jest o tym, czego jeszcze nie ma: nowa mechanika, pomysł na
+     * misję, spór o zasadę.
+     *
+     * Zakładać i pisać może tylko zalogowany, w przeciwieństwie do zgłoszeń:
+     * pod wypowiedzią stoi imię z konta, więc musi być czym je potwierdzić.
+     */
+    match /discussions/{thread} {
+      allow read: if true;
+      allow create, delete: if zalogowany();
+
+      // Wypowiedzi tylko przybywa. Wątek jest zapisem trwałym — skasowanie
+      // cudzej wypowiedzi zmieniłoby sens ustaleń zapadłych wcześniej.
+      // Pozostałe pola (temat, autor, data) zostają nietknięte; `closed`
+      // wolno przełączać, bo zamknięcie chowa ustalony wątek z listy.
+      allow update: if zalogowany()
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['messages', 'closed'])
+                    && request.resource.data.messages.size()
+                       >= resource.data.messages.size()
+                    && request.resource.data.messages.size() <= 200;
     }
 
     // Wszystkie pozostałe ścieżki zamknięte.

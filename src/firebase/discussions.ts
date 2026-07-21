@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   updateDoc,
@@ -19,7 +20,11 @@ import { db } from './client';
  * statusu ani właściciela, bo nie ma czego domykać.
  */
 export interface DiscussionMessage {
-  /** Imię wpisane przez piszącego. Bez kont — zespół nie ma logowania. */
+  /**
+   * Kto pisze. Imię bierze się z konta (`displayName`, w zapasie e-mail),
+   * a nie z pola wpisywanego ręcznie — pod wypowiedzią w dyskusji musi stać
+   * nazwisko, którego nie da się podszyć.
+   */
   author: string;
   text: string;
   at: string;
@@ -33,6 +38,8 @@ export interface Discussion {
   author: string;
   createdAt: string;
   messages: DiscussionMessage[];
+  /** Wątek ustalony — schodzi z listy, ale zostaje do wglądu. */
+  closed?: boolean;
 }
 
 const COLLECTION = 'discussions';
@@ -58,6 +65,7 @@ export async function addDiscussion(input: {
       author,
       createdAt: new Date().toISOString(),
       messages: [],
+      closed: false,
     });
     return { ok: true };
   } catch (error) {
@@ -80,8 +88,45 @@ export async function loadDiscussions(): Promise<Discussion[]> {
       author: data.author ?? '',
       createdAt: data.createdAt,
       messages: data.messages ?? [],
+      closed: data.closed ?? false,
     };
   });
+}
+
+/**
+ * Podgląd na żywo — nowe wypowiedzi wchodzą same.
+ *
+ * Dyskusja czyta się jak czat: odpowiedź pojawiająca się dopiero po
+ * kliknięciu „odśwież" zamienia rozmowę w wymianę listów. Firestore liczy
+ * każdy odczyt, ale wątków są dziesiątki, nie tysiące, a nasłuch dostaje
+ * wyłącznie zmiany, nie całą kolekcję za każdym razem.
+ *
+ * Zwraca funkcję odłączającą — wywołanie jej kończy nasłuch i naliczanie.
+ */
+export function watchDiscussions(
+  onChange: (discussions: Discussion[]) => void,
+  onError?: (message: string) => void,
+): () => void {
+  return onSnapshot(
+    query(collection(db, COLLECTION), orderBy('createdAt', 'desc')),
+    (snapshot) => {
+      onChange(
+        snapshot.docs.map((entry) => {
+          const data = entry.data() as Omit<Discussion, 'id'>;
+          return {
+            id: entry.id,
+            title: data.title,
+            description: data.description ?? '',
+            author: data.author ?? '',
+            createdAt: data.createdAt,
+            messages: data.messages ?? [],
+            closed: data.closed ?? false,
+          };
+        }),
+      );
+    },
+    (error) => onError?.(error.message),
+  );
 }
 
 /**
@@ -121,7 +166,17 @@ export async function addMessage(
   }
 }
 
-/** Usunięcie wątku. Reguły dopuszczają to wyłącznie z konta redakcyjnego. */
+/**
+ * Zamknięcie wątku albo jego ponowne otwarcie.
+ *
+ * Ustalone tematy schodzą z listy, ale nie znikają: wracamy do nich, gdy
+ * ktoś pyta „czemu zdecydowaliśmy tak?".
+ */
+export async function setDiscussionClosed(id: string, closed: boolean): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), { closed });
+}
+
+/** Usunięcie wątku. Reguły dopuszczają to wyłącznie zalogowanym. */
 export async function deleteDiscussion(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
 }
