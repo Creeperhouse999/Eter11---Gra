@@ -145,6 +145,16 @@ describe('validateContent', () => {
     expect(result.ok, result.errors.join('; ')).toBe(true);
   });
 
+  it('odrzuca motyw z brakującymi kolorami', () => {
+    const content = validContent();
+    // Brakujące pole wpisywało się do CSS jako `undefined` i element tracił
+    // tło albo tekst — bez żadnego komunikatu.
+    content.theme = { bg: '#000000' } as typeof content.theme;
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('brakuje kolorów');
+  });
+
   it('odrzuca liczbę rund poniżej 1', () => {
     const content = validContent();
     content.rules = { ...content.rules, roundsPerMission: 0 };

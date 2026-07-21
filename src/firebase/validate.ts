@@ -1,6 +1,6 @@
 import type { Card, Character, Problem, RulesConfig, SlotKey } from '../engine/types';
 import type { FamilyMap } from '../data/families';
-import type { ThemeColors } from '../data/theme';
+import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
 export interface GameContent {
@@ -268,6 +268,14 @@ export function validateContent(content: unknown): ValidationResult {
       if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
         add(`Motyw, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
       }
+    }
+
+    // Brakujący kolor wpisywał się do zmiennych CSS jako `undefined`, więc
+    // element tracił tło albo tekst — a błąd był nie do namierzenia, bo
+    // walidacja sprawdzała tylko te pola, które akurat były.
+    const missing = Object.keys(DEFAULT_THEME).filter((key) => !(key in theme));
+    if (missing.length > 0) {
+      add(`Motyw: brakuje kolorów: ${missing.join(', ')}.`);
     }
   }
 

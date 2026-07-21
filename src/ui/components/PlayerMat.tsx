@@ -150,7 +150,11 @@ export function PlayerMat({
                       }}
                     >
                       <Icon name={matCard.icon as IconName} size={compact ? 13 : 16} />
-                      <span className="line-clamp-2 text-[8px] leading-tight">
+                      {/* Przy pięciu kolumnach na telefonie slot ma ~52 px,
+                          więc nazwa schodziła do 8 px — nieczytelnej plamy.
+                          Zostaje ikona i kolor, a pełna nazwa jest w `title`
+                          przycisku wyżej. */}
+                      <span className="hidden line-clamp-2 text-[8px] leading-tight sm:line-clamp-2 sm:block">
                         {matCard.name}
                       </span>
                     </button>
