@@ -173,7 +173,9 @@ export function ProblemCard({
 
         <div className="mt-auto flex flex-wrap gap-1 pt-2">
           {placed.map((p) => (
-            <CardView key={p.card.id} card={p.card} compact />
+            <span key={p.card.id} className="eter-land block">
+              <CardView card={p.card} compact />
+            </span>
           ))}
         </div>
       </button>

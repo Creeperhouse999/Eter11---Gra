@@ -170,6 +170,50 @@
 }
 .eter-pulse { animation: eter-pulse 1.6s ease-in-out infinite; }
 
+/*
+ * Reakcja na dotknięcie.
+ *
+ * Przycisk, który nic nie robi między kliknięciem a odpowiedzią, na wolnym
+ * telefonie czyta się jak niedziałający — dziecko klika drugi raz. Wciśnięcie
+ * musi być widać natychmiast, niezależnie od tego, jak długo zajmie skutek.
+ */
+.eter-press {
+  transition: transform var(--eter-fast) var(--eter-ease);
+}
+.eter-press:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/*
+ * Karta odkładana na stół.
+ *
+ * Zagrana karta pojawiała się w ściance natychmiast, jakby tam była od
+ * początku. Krótkie opadnięcie łączy gest gracza ze skutkiem — dziecko widzi,
+ * że to JEGO karta tam wylądowała.
+ */
+@keyframes eter-land {
+  from { opacity: 0; transform: translateY(-12px) scale(1.08); }
+  to { opacity: 1; transform: none; }
+}
+.eter-land {
+  animation: eter-land var(--eter-normal) var(--eter-ease) both;
+}
+
+/*
+ * Liczba, która się zmieniła.
+ *
+ * W panelu statystyk i na licznikach rund nowa wartość podmienia się
+ * bezszelestnie. Podbicie mówi, że to nie ta sama liczba co przed chwilą.
+ */
+@keyframes eter-bump {
+  0% { transform: none; }
+  35% { transform: translateY(-3px) scale(1.08); }
+  100% { transform: none; }
+}
+.eter-bump {
+  animation: eter-bump var(--eter-normal) var(--eter-ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

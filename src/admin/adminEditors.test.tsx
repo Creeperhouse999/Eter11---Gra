@@ -202,6 +202,22 @@ describe('DeckOverview', () => {
 
   it('potwierdza spójność przy domyślnej zawartości', () => {
     render(<DeckOverview content={content()} />);
-    expect(screen.getByText(/Zawartość jest spójna/)).toBeDefined();
+
+    // Pierwsze pytanie redaktora brzmi „czy da się w to grać", więc
+    // odpowiedź stoi na górze zakładki, przed liczbami i skrótami.
+    expect(screen.getByText(/Gra jest gotowa/)).toBeDefined();
+    expect(screen.getByText(/Każdą ściankę da się zamknąć/)).toBeDefined();
+  });
+
+  it('wylicza, co jest nie tak, gdy talia ma dziurę', () => {
+    const broken = content();
+    // Usunięcie wszystkich kart jednej kategorii zostawia ścianki,
+    // których nie ma czym domknąć.
+    broken.cards = broken.cards.filter((card) => card.category !== 'digital');
+
+    render(<DeckOverview content={broken} />);
+
+    expect(screen.getByText(/do sprawdzenia/i)).toBeDefined();
+    expect(screen.queryByText(/Gra jest gotowa/)).toBeNull();
   });
 });

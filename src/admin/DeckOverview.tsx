@@ -2,7 +2,6 @@ import { buildDeck } from '../data/cards';
 import type { CardCategory } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { categoryColorVar, categoryLabel, problemTypeLabel, slotLabel } from '../ui/components/categoryStyles';
-import { Alert } from '../ui/controls/Alert';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
 interface DeckOverviewProps {
@@ -149,6 +148,58 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
         zobaczą je po odświeżeniu strony.
       </p>
 
+      {/* Stan zdrowia na samej górze i na całą szerokość.
+          Wcześniej wszystko na tej zakładce wyglądało jednakowo ważne:
+          skróty, ostrzeżenia i liczby stały równo obok siebie, więc
+          „czegoś brakuje w talii" ginęło między „kart w talii: 130".
+          Pierwsze pytanie brzmi „czy da się w to grać", więc odpowiedź
+          na nie idzie przed wszystkim innym. */}
+      <div
+        className={[
+          'eter-rise mt-4 flex items-start gap-3 rounded-xl border-2 p-4',
+          warnings.length > 0 ? 'border-accent-2' : 'border-success',
+        ].join(' ')}
+        style={{ background: 'var(--eter-surface)' }}
+      >
+        <span
+          className="mt-0.5 shrink-0"
+          style={{
+            color: warnings.length > 0 ? 'var(--eter-accent-2)' : 'var(--eter-success)',
+          }}
+        >
+          <Icon name={warnings.length > 0 ? 'bulb' : 'tick'} size={24} />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p
+            className="font-display text-lg font-bold"
+            style={{
+              color: warnings.length > 0 ? 'var(--eter-accent-2)' : 'var(--eter-success)',
+            }}
+          >
+            {warnings.length > 0
+              ? `${warnings.length} ${warnings.length === 1 ? 'rzecz' : 'rzeczy'} do sprawdzenia`
+              : 'Gra jest gotowa'}
+          </p>
+
+          {warnings.length === 0 ? (
+            <p className="mt-1 text-sm text-ink-dim">
+              Każdą ściankę da się zamknąć kartą z talii, nic nie czeka
+              w wersji roboczej.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5 text-sm leading-relaxed">
+              {warnings.map((warning, index) => (
+                <li key={index} className="flex gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-2" />
+                  <span>{warning}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {onGoTo && (
         <div className="eter-stagger mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((shortcut) => (
@@ -167,26 +218,6 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
               </span>
             </button>
           ))}
-        </div>
-      )}
-
-      {warnings.length > 0 && (
-        <div className="mt-4">
-          <Alert tone="warning" title={`Do sprawdzenia (${warnings.length})`}>
-            <ul className="list-inside list-disc space-y-1">
-              {warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
-              ))}
-            </ul>
-          </Alert>
-        </div>
-      )}
-
-      {warnings.length === 0 && (
-        <div className="mt-4">
-          <Alert tone="success">
-            Zawartość jest spójna — każdą ściankę da się zamknąć kartą z talii.
-          </Alert>
         </div>
       )}
 

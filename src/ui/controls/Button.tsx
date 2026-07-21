@@ -51,6 +51,8 @@ export function Button({
       type={type}
       className={[
         'inline-flex items-center justify-center rounded-lg font-display transition',
+        // Wciśnięcie widać natychmiast, nawet gdy skutek przyjdzie za sekundę.
+        'eter-press',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100',
         VARIANTS[variant],
         SIZES[size],
