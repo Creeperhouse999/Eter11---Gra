@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { reduce } from './reducer';
 import { giveCard, makeCard, newGame } from './testFixtures';
-import type { GameState } from './types';
+import type { Card, GameState } from './types';
 
 /**
  * Limit kart zabieranych na kartę postaci.
@@ -73,5 +73,43 @@ describe('limit kart na macie w jednej misji', () => {
 
     const after = result.state.players.find((p) => p.id === 'p2')!.mat.length;
     expect(after - before, 'mata rośnie najwyżej o jedną kartę na misję').toBe(1);
+  });
+});
+
+describe('karty specjalne nie trafiają na kartę postaci', () => {
+  it('odrzuca zabranie ETER11', () => {
+    // Karta postaci ma pięć miejsc na kategorie i żadne nie pasuje do
+    // ETER11. Zabranie przechodziło, karta znikała bez śladu, a gracz tracił
+    // swój jedyny wybór w tej misji.
+    let state = reduce(newGame(), { type: 'START_MISSION' }).state;
+    const problem = state.mission!.problems[0];
+    const slot = problem.slots[0];
+
+    const eter: Card = {
+      id: 'eter-test',
+      name: 'ETER11',
+      category: 'eter11',
+      description: '',
+      icon: 'spark',
+    };
+    state = giveCard(state, 'p1', eter);
+    state = reduce(state, {
+      type: 'PLAY_CARD',
+      playerId: 'p1',
+      cardId: eter.id,
+      slotKey: slot.key,
+      problemId: problem.id,
+      fromMat: false,
+    }).state;
+
+    state = { ...state, phase: 'missionSummary' };
+    const result = reduce(state, {
+      type: 'TAKE_CARD_TO_MAT',
+      playerId: 'p1',
+      cardId: eter.id,
+    });
+
+    expect(result.rejected).toContain('ETER11');
+    expect(result.state.players.find((p) => p.id === 'p1')!.mat).toHaveLength(0);
   });
 });

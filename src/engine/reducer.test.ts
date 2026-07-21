@@ -86,4 +86,30 @@ describe('START_MISSION', () => {
     // Problem nie może zostać na liście odłożonych, skoro leży na stole.
     expect(state.unsolvedProblems).toHaveLength(0);
   });
+
+  it('nie sprowadza tego samego problemu dwa razy', () => {
+    // Recykling przenosi całą listę odłożonych do talii. Usuwanie z niej
+    // tylko problemu wziętego na stół zostawiało resztę w dwóch miejscach
+    // naraz, więc ten sam problem wracał ponownie.
+    const base = newGame();
+    const [first, second] = base.problemPile;
+    const waiting = {
+      ...base,
+      problemPile: [],
+      unsolvedProblems: [first, second],
+      unsolvedSince: { [first.id]: 1, [second.id]: 1 },
+    };
+
+    const { state } = reduce(waiting, { type: 'START_MISSION' });
+
+    const onTable = state.mission!.problems[0].id;
+    const inPile = state.problemPile.map((p) => p.id);
+    const deferred = state.unsolvedProblems.map((p) => p.id);
+
+    expect(inPile).not.toContain(onTable);
+    expect(deferred).toHaveLength(0);
+    // Licznik odłożenia też znika — inaczej problem wróciłby natychmiast
+    // przy kolejnej porażce, bez dwóch misji przerwy.
+    expect(Object.keys(state.unsolvedSince)).toHaveLength(0);
+  });
 });

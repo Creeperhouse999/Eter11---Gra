@@ -141,11 +141,20 @@ export function SummaryScreen({
                   // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej
                   // gracz widzi cztery przygaszone kafle i nie wie, czy to
                   // jego kolej się skończyła, czy coś zepsuł.
-                  const blockedReason = shared
-                    ? 'Ta karta poszła do innego gracza.'
-                    : alreadyTook
-                      ? 'W tej misji zabrałeś już kartę na postać.'
-                      : undefined;
+                  // ETER11 i Czarny Łabędź nie mają miejsca na karcie postaci —
+                  // przycisk prowadziłby do odrzucenia i zabierał graczowi
+                  // jedyny wybór w tej misji.
+                  const keepable =
+                    play.card.category !== 'eter11' &&
+                    play.card.category !== 'blackswan';
+
+                  const blockedReason = !keepable
+                    ? 'Ta karta zostaje w grze — na postać zabierasz kompetencje, talenty i mentorów.'
+                    : shared
+                      ? 'Ta karta poszła do innego gracza.'
+                      : alreadyTook
+                        ? 'W tej misji zabrałeś już kartę na postać.'
+                        : undefined;
 
                   return (
                     <div
@@ -159,7 +168,7 @@ export function SummaryScreen({
                         size="sm"
                         variant="secondary"
                         data-tour="take-card"
-                        disabled={alreadyTook || shared}
+                        disabled={alreadyTook || shared || !keepable}
                         title={blockedReason}
                         className="w-full"
                         onClick={() =>

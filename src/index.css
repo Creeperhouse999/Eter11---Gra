@@ -13,6 +13,17 @@
 
 html {
   color-scheme: dark;
+
+  /*
+   * Strona nigdy nie przewija się w bok.
+   *
+   * Poziomy pasek zawsze oznacza błąd układu — jakiś element rozepchnął
+   * rodzica ponad szerokość okna. Na telefonie skutek jest dotkliwy: gracz
+   * widzi planszę uciętą z prawej i nie ma jak sięgnąć po karty. Ucięcie tu
+   * nie ukrywa problemu (elementy przewijane poziomo mają własne kontenery),
+   * tylko zatrzymuje jego skutek na krawędzi ekranu.
+   */
+  overflow-x: hidden;
 }
 
 body {

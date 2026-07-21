@@ -1,7 +1,20 @@
-/** Szerokość dymka samouczka. */
+/** Preferowana szerokość dymka samouczka. */
 export const BUBBLE_WIDTH = 320;
+
 /** Odstęp od krawędzi ekranu i od podświetlonego elementu. */
 export const BUBBLE_GAP = 14;
+
+/**
+ * Szerokość, którą dymek naprawdę zajmie na tym ekranie.
+ *
+ * Na wąskim telefonie 320 px z marginesami nie mieści się w oknie, a element
+ * i tak jest ścinany CSS-em (`max-w`). Pozycję trzeba liczyć z realnej
+ * szerokości — inaczej wyliczenia mówią „mieści się", a przycisk „Dalej"
+ * ląduje poza krawędzią i samouczka nie da się przejść.
+ */
+export function bubbleWidth(vw: number): number {
+  return Math.min(BUBBLE_WIDTH, vw - BUBBLE_GAP * 2);
+}
 
 export interface Placement {
   top: number;
@@ -43,25 +56,26 @@ export function pickPlacement(
    */
   avoid: Box[] = [],
 ): Placement {
-  const clampX = (x: number) => Math.min(Math.max(BUBBLE_GAP, x), vw - BUBBLE_WIDTH - BUBBLE_GAP);
+  const width = bubbleWidth(vw);
+  const clampX = (x: number) => Math.min(Math.max(BUBBLE_GAP, x), vw - width - BUBBLE_GAP);
   const clampY = (y: number) => Math.min(Math.max(BUBBLE_GAP, y), vh - height - BUBBLE_GAP);
 
-  const centeredX = clampX(target.left + target.width / 2 - BUBBLE_WIDTH / 2);
+  const centeredX = clampX(target.left + target.width / 2 - width / 2);
   const centeredY = clampY(target.top + target.height / 2 - height / 2);
 
   const candidates: Placement[] = [
     { top: target.bottom + BUBBLE_GAP, left: centeredX },
     { top: target.top - height - BUBBLE_GAP, left: centeredX },
     { top: centeredY, left: target.right + BUBBLE_GAP },
-    { top: centeredY, left: target.left - BUBBLE_WIDTH - BUBBLE_GAP },
+    { top: centeredY, left: target.left - width - BUBBLE_GAP },
   ];
 
   const onScreen = (p: Placement) =>
-    p.top >= 0 && p.left >= 0 && p.top + height <= vh && p.left + BUBBLE_WIDTH <= vw;
+    p.top >= 0 && p.left >= 0 && p.top + height <= vh && p.left + width <= vw;
 
   const hits = (p: Placement, box: Box) =>
     p.left < box.right &&
-    p.left + BUBBLE_WIDTH > box.left &&
+    p.left + width > box.left &&
     p.top < box.bottom &&
     p.top + height > box.top;
 
@@ -81,13 +95,13 @@ export function pickPlacement(
 
   const corners: Placement[] = [
     { top: BUBBLE_GAP, left: BUBBLE_GAP },
-    { top: BUBBLE_GAP, left: vw - BUBBLE_WIDTH - BUBBLE_GAP },
+    { top: BUBBLE_GAP, left: vw - width - BUBBLE_GAP },
     { top: vh - height - BUBBLE_GAP, left: BUBBLE_GAP },
-    { top: vh - height - BUBBLE_GAP, left: vw - BUBBLE_WIDTH - BUBBLE_GAP },
+    { top: vh - height - BUBBLE_GAP, left: vw - width - BUBBLE_GAP },
   ];
 
   const areaOver = (p: Placement, box: Box) => {
-    const w = Math.min(p.left + BUBBLE_WIDTH, box.right) - Math.max(p.left, box.left);
+    const w = Math.min(p.left + width, box.right) - Math.max(p.left, box.left);
     const h = Math.min(p.top + height, box.bottom) - Math.max(p.top, box.top);
     return w > 0 && h > 0 ? w * h : 0;
   };
@@ -106,6 +120,6 @@ export function pickPlacement(
   // było początek tekstu. Ucięty koniec jest lepszy niż ucięty początek.
   return {
     top: Math.max(0, Math.min(best.top, vh - height - BUBBLE_GAP)),
-    left: Math.max(0, Math.min(best.left, vw - BUBBLE_WIDTH - BUBBLE_GAP)),
+    left: Math.max(0, Math.min(best.left, vw - width - BUBBLE_GAP)),
   };
 }

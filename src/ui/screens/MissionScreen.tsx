@@ -383,7 +383,10 @@ export function MissionScreen({
             }
           />
 
-          <div>
+          {/* `min-w-0`: element siatki domyślnie nie kurczy się poniżej swojej
+              zawartości, więc pasek kart rozpychał kolumnę do sumy szerokości
+              wszystkich kart i wypychał całą planszę poza ekran telefonu. */}
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="eter-label">Karty na ręce</span>
               {!alwaysRevealed && (

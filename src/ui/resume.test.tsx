@@ -89,4 +89,22 @@ describe('wznowienie partii', () => {
     // do partii, której już nie ma.
     expect(screen.queryByRole('button', { name: /Wróć do gry/ })).toBeNull();
   });
+
+  it('pozwala zacząć drugą grę po powrocie do menu', async () => {
+    // Blokada podwójnego kliknięcia mogłaby zostać włączona na stałe —
+    // wtedy druga partia nie ruszyłaby wcale.
+    startAndLeave();
+    render(<GameApp />);
+    fireEvent.click(screen.getByRole('button', { name: /Wróć do gry/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Zakończ grę/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zakończ' }));
+    await screen.findAllByPlaceholderText('Imię');
+
+    const inputs = screen.getAllByPlaceholderText('Imię');
+    fireEvent.change(inputs[0], { target: { value: 'Cela' } });
+    fireEvent.change(inputs[1], { target: { value: 'Dawid' } });
+    fireEvent.click(screen.getByRole('button', { name: /Zaczynamy misję/ }));
+
+    expect(screen.getByRole('button', { name: 'Odkryj problem' })).toBeDefined();
+  });
 });

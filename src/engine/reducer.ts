@@ -155,11 +155,13 @@ function startMission(state: GameState): ReducerResult {
   const started: GameState = {
     ...state,
     problemPile: rest,
-    // Problem wrócił do gry — znika z listy odłożonych, żeby nie trafił
-    // na stół dwa razy.
-    unsolvedProblems: recycled
-      ? state.unsolvedProblems.filter((p) => p.id !== problem.id)
-      : state.unsolvedProblems,
+    // Recykling przenosi CAŁĄ listę odłożonych do talii, nie tylko problem
+    // wzięty na stół. Usuwanie samego wylosowanego zostawiało resztę
+    // w dwóch miejscach naraz — ten sam problem wracał wtedy drugi raz.
+    unsolvedProblems: recycled ? [] : state.unsolvedProblems,
+    // Licznik odłożenia też musi zniknąć: zostawiony sprawiłby, że przy
+    // kolejnej porażce problem wróciłby natychmiast, bez dwóch misji przerwy.
+    unsolvedSince: recycled ? {} : state.unsolvedSince,
     mission,
     missionNumber: state.missionNumber + 1,
     activePlayerIndex: 0,
@@ -657,6 +659,17 @@ function takeCardToMat(
     (p) => p.card.id === action.cardId && p.playerId === action.playerId,
   );
   if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
+
+  // ETER11 jest jokerem do zagrania, nie kompetencją do zebrania: karta
+  // postaci ma pięć miejsc na kategorie i żadne z nich do niego nie pasuje.
+  // Wcześniej zabranie przechodziło, a karta znikała bez śladu — gracz tracił
+  // swój jedyny wybór w tej misji i nic w zamian nie dostawał.
+  if (play.card.category === 'eter11' || play.card.category === 'blackswan') {
+    return reject(
+      state,
+      'ETER11 i Czarny Łabędź zostają w grze — na kartę postaci zabierasz kompetencje, talenty i mentorów.',
+    );
+  }
   if (mission.sharedCardIds.includes(action.cardId)) {
     return reject(state, 'Ta karta została już przekazana innemu graczowi.');
   }
@@ -697,6 +710,17 @@ function shareCard(
     (p) => p.card.id === action.cardId && p.playerId === action.fromPlayerId,
   );
   if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
+
+  // ETER11 jest jokerem do zagrania, nie kompetencją do zebrania: karta
+  // postaci ma pięć miejsc na kategorie i żadne z nich do niego nie pasuje.
+  // Wcześniej zabranie przechodziło, a karta znikała bez śladu — gracz tracił
+  // swój jedyny wybór w tej misji i nic w zamian nie dostawał.
+  if (play.card.category === 'eter11' || play.card.category === 'blackswan') {
+    return reject(
+      state,
+      'ETER11 i Czarny Łabędź zostają w grze — na kartę postaci zabierasz kompetencje, talenty i mentorów.',
+    );
+  }
 
   // Karta już zabrana na matę nie może zostać przekazana — inaczej ta sama
   // karta leżałaby na dwóch matach naraz i liczyła się obu graczom.
