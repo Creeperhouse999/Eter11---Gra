@@ -189,12 +189,34 @@ export function PlayerMat({
           <span className="eter-label">za uczenie</span>
         </span>
 
-        {progress.sharedWithOthers && progress.receivedFromOthers && (
-          <span className="ml-auto flex items-center gap-1 text-xs text-success">
-            <Icon name="tick" size={12} />
-            wymiana
-          </span>
-        )}
+        {/* Postęp do spełnienia. Bez niego cel był niewidzialny: gracz nie
+            wiedział, ilu warunków mu brakuje ani których, więc trafiał w
+            spełnienie przypadkiem albo wcale. */}
+        {(() => {
+          const done = Object.values(progress).filter(Boolean).length;
+          const total = Object.values(progress).length;
+          const complete = done === total;
+
+          return (
+            <span
+              className="ml-auto flex items-center gap-1 text-xs"
+              style={{ color: complete ? 'var(--eter-success)' : 'var(--eter-ink-dim)' }}
+              title={
+                complete
+                  ? 'Spełnienie osiągnięte'
+                  : `Do spełnienia brakuje ${total - done} z ${total} warunków: ` +
+                    'karta z każdej kategorii, karta oddana i otrzymana, ' +
+                    'doświadczenie za misję i za uczenie.'
+              }
+            >
+              <Icon name={complete ? 'tick' : 'heart'} size={12} />
+              <span className="font-mono">
+                {done}/{total}
+              </span>
+              <span className="eter-label">spełnienie</span>
+            </span>
+          );
+        })()}
       </div>
     </section>
   );

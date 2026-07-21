@@ -103,4 +103,15 @@ describe('PlayerMat', () => {
     const cardButton = screen.getByRole('button', { name: /Odwaga/ });
     expect(cardButton.hasAttribute('disabled')).toBe(true);
   });
+
+  it('pokazuje, ilu warunków brakuje do spełnienia', () => {
+    // Bez licznika cel był niewidzialny — gracz nie wiedział, czy jest
+    // blisko, więc spełnienie osiągało się przypadkiem albo wcale.
+    render(<PlayerMat player={player([])} character={character} revealed />);
+
+    const counter = screen.getByText('spełnienie');
+    expect(counter).toBeDefined();
+    // Świeży gracz nie ma jeszcze żadnego warunku.
+    expect(screen.getByText('0/9')).toBeDefined();
+  });
 });
