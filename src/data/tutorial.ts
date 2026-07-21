@@ -60,9 +60,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'look',
     goal: 'selectCard',
     allow: [],
-    say: 'To Twoje karty. Każda ma kolor w górnym pasku. Kliknij dowolną, a pokażę Ci, gdzie pasuje.',
+    // Bez „dowolną": dwie karty w ręku nie pasują nigdzie i klikając je
+    // gracz dostałby wyjaśnienie zamiast obiecanej świecącej ścianki.
+    say: 'To Twoje karty. Każda ma kolor w górnym pasku. Kliknij czerwoną, a pokażę Ci, gdzie pasuje.',
     praise: 'Widzisz? Ścianka w tym samym kolorze zaświeciła.',
-    nudge: 'Kliknij którąkolwiek kartę na dole ekranu.',
+    nudge: 'Kliknij kartę z czerwonym paskiem u góry.',
   },
   {
     id: 'play',
