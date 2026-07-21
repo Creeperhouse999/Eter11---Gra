@@ -26,13 +26,6 @@ export interface TutorialContext {
 }
 
 /**
- * Element podświetlany na danym kroku.
- *
- * Krok wymiany zmienia cel w trakcie: najpierw przycisk otwierający wymianę,
- * potem karty do zaznaczenia, na końcu przycisk potwierdzenia. Bez tego
- * podświetlenie zostawałoby na przycisku, który znika po włączeniu trybu.
- */
-/**
  * Cele, na których gracz kładzie kartę.
  *
  * Lista sterowała trzema rzeczami naraz — podświetleniem celu, źródłem
@@ -49,6 +42,13 @@ const PLAY_GOALS: TutorialGoal[] = [
   'finish',
 ];
 
+/**
+ * Element podświetlany na danym kroku.
+ *
+ * Krok wymiany zmienia cel w trakcie: najpierw przycisk otwierający wymianę,
+ * potem karty do zaznaczenia, na końcu przycisk potwierdzenia. Bez tego
+ * podświetlenie zostawałoby na przycisku, który znika po włączeniu trybu.
+ */
 export function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null {
   // Po wybraniu karty celujemy w konkretną ściankę, nie w całą planszę:
   // przy pięciu ściankach wokół karty „gdzieś tam" nie wystarcza.
@@ -82,7 +82,12 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
       : '[data-tour="swap-card"]';
   }
 
-  const anchors: Record<Exclude<TutorialGoal, 'swapCards'>, string> = {
+  // Krok podsumowujący mówi o grze z innymi — nie ma czego pokazać na
+  // ekranie, a po zakończonej misji plansza już nie istnieje. Bez tego
+  // Spotlight szukał znikniętego elementu i nic się nie podświetlało.
+  if (goal === 'outro') return null;
+
+  const anchors: Record<Exclude<TutorialGoal, 'swapCards' | 'outro'>, string> = {
     intro: '[data-tour="problem"]',
     selectCard: '[data-tour="playable-card"]',
     playFirst: '[data-tour="problem"]',
@@ -91,9 +96,6 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
     playAfterSwap: '[data-tour="playable-card"]',
     finish: '[data-tour="problem"]',
     takeCard: '[data-tour="take-card"]',
-    // Krok podsumowujący mówi o grze z innymi, więc nie ma własnego celu —
-    // podświetlamy stół, żeby dymek miał się przy czym ustawić.
-    outro: '[data-tour="problem"]',
   };
   return anchors[goal];
 }
