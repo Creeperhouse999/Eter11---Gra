@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { applyTheme } from '../data/theme';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
-import { recordVersion } from '../firebase/history';
+import { describeChanges, recordVersion } from '../firebase/history';
 import { HistoryPanel } from './HistoryPanel';
 import { StatsPanel } from './StatsPanel';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
+import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
@@ -84,6 +85,12 @@ export function AdminApp() {
   );
 
   const validation = useMemo(() => validateContent(content), [content]);
+
+  /** Które sekcje różnią się od ostatniego zapisu — po ludzku. */
+  const pendingChanges = useMemo(
+    () => describeChanges(content, savedContent),
+    [content, savedContent],
+  );
 
   /**
    * Wczytanie zawartości po zalogowaniu.
@@ -280,9 +287,16 @@ export function AdminApp() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Co dokładnie się zmieniło, nie tylko „coś".
+                Redaktor wraca do panelu po godzinie i widzi ostrzeżenie
+                o niezapisanych zmianach, nie pamiętając, czy sam coś ruszył,
+                czy przypadkiem skasował literę w cudzym tekście. */}
             {dirty && (
-              <span className="rounded bg-accent-2 px-2 py-1 font-mono text-[10px] font-bold text-bg">
-                niezapisane zmiany
+              <span
+                className="rounded bg-accent-2 px-2 py-1 font-mono text-[10px] font-bold text-bg"
+                title={`Zmienione: ${pendingChanges}`}
+              >
+                niezapisane: {pendingChanges}
               </span>
             )}
             {dirty && (
@@ -315,7 +329,24 @@ export function AdminApp() {
           </div>
         </div>
 
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2" aria-label="Sekcje panelu">
+        {/* Na telefonie lista zamiast paska.
+            Szesnaście zakładek w pasku przewijanym w bok znaczy, że połowa
+            jest poza ekranem i trzeba do niej dojechać na oślep — a nazwy
+            zakładek to jedyne, po czym da się w tym panelu nawigować. */}
+        <div className="mx-auto max-w-6xl px-4 pb-2 sm:hidden">
+          <Select
+            value={tab}
+            ariaLabel="Sekcja panelu"
+            className="w-full"
+            options={TABS.map((item) => ({ value: item.key, label: item.label }))}
+            onChange={setTab}
+          />
+        </div>
+
+        <nav
+          className="mx-auto hidden max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:flex"
+          aria-label="Sekcje panelu"
+        >
           {TABS.map((item) => (
             <button
               key={item.key}

@@ -44,6 +44,8 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
   const [family, setFamily] = useState<string>('all');
   const [sort, setSort] = useState<'order' | 'name' | 'category'>('order');
   const [search, setSearch] = useState('');
+  /** Karty zaznaczone do zmiany hurtem. */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -93,6 +95,27 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
       // `order` zostawia kolejność z pliku — tak, jak karty leżą w talii.
       return 0;
     });
+
+  const toggle = (id: string) => {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /**
+   * Zmiana wspólnej cechy wielu kart naraz.
+   *
+   * Przestawienie rodziny dziesięciu kart to było dziesięć kliknięć
+   * w dziesięciu wierszach, z przewijaniem między nimi — a przy porządkach
+   * w talii to najczęstsza czynność w tym edytorze.
+   */
+  const updatePicked = (patch: Partial<Card>) => {
+    onChange(cards.map((c) => (picked.has(c.id) ? { ...c, ...patch } : c)));
+    toast(`Zmieniono ${picked.size} ${picked.size === 1 ? 'kartę' : 'kart'}.`);
+  };
 
   const update = (id: string, patch: Partial<Card>) => {
     onChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -216,6 +239,46 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
         </div>
       </div>
 
+      {picked.size > 0 && (
+        <div className="eter-rise mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-accent bg-raised p-3">
+          <span className="text-sm font-semibold text-accent">
+            Zaznaczono {picked.size}
+          </span>
+
+          <Select
+            value=""
+            ariaLabel="Zmień rodzinę zaznaczonym"
+            className="w-full sm:w-48"
+            options={[
+              { value: '', label: 'Zmień rodzinę…' },
+              ...FAMILY_OPTIONS.map((option) => ({
+                value: option.value as string,
+                label: option.label,
+              })),
+            ]}
+            onChange={(family) => {
+              if (!family) return;
+              updatePicked({ family: family as Card['family'] });
+            }}
+          />
+
+          <Select
+            value=""
+            ariaLabel="Zmień kategorię zaznaczonym"
+            className="w-full sm:w-52"
+            options={[{ value: '', label: 'Zmień kategorię…' }, ...CATEGORY_OPTIONS]}
+            onChange={(category) => {
+              if (!category) return;
+              updatePicked({ category: category as Card['category'] });
+            }}
+          />
+
+          <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>
+            Odznacz
+          </Button>
+        </div>
+      )}
+
       <ul className="mt-4 space-y-2">
         {visible.map((card) => (
           <li
@@ -226,7 +289,16 @@ export function CardEditor({ cards, onChange }: CardEditorProps) {
             ].join(' ')}
             style={{ borderLeftColor: categoryColorVar(card.category) }}
           >
-            <div className="grid gap-2 sm:grid-cols-[9rem_1fr_10rem_auto]">
+            <div className="grid gap-2 sm:grid-cols-[auto_9rem_1fr_10rem_auto]">
+              <label className="flex items-start pt-2">
+                <input
+                  type="checkbox"
+                  checked={picked.has(card.id)}
+                  onChange={() => toggle(card.id)}
+                  aria-label={`Zaznacz kartę ${card.name}`}
+                  className="h-4 w-4 accent-[var(--eter-accent)]"
+                />
+              </label>
               <IconPicker
                 value={card.icon}
                 label=""
