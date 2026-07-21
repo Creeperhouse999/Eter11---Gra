@@ -801,6 +801,11 @@ function shareCard(
       players,
       mission: {
         ...mission,
+        // Karta schodzi z listy zagranych: przestała leżeć przy problemie,
+        // a leży na karcie postaci odbiorcy. Zostawiona tu liczyła się dwa
+        // razy — podsumowanie pokazywało ją i u dającego, i u biorącego,
+        // a spis kart w grze widział o jedną kartę za dużo.
+        played: mission.played.filter((p) => p.card.id !== action.cardId),
         sharedCardIds: [...mission.sharedCardIds, action.cardId],
         // Otrzymana karta wyczerpuje limit odbiorcy na tę misję — inaczej
         // dostałby po karcie od każdego chętnego gracza przy stole.

@@ -3,6 +3,7 @@ import { createGame, reduce, DEFAULT_CONFIG } from './reducer';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { ALL_CHARACTERS } from '../data/characters';
+import { requiredCountForSlot } from './rules';
 import type { Action, GameState } from './types';
 
 /**
@@ -124,11 +125,29 @@ function checkInvariants(state: GameState, totalCards: number): string | null {
     }
   }
 
-  // 5. Jedna ścianka przyjmuje jedną kartę.
+  // 5. Ścianka nie przyjmuje więcej kart, niż wymaga.
+  //
+  // Zwykle jedną, ale Czarny Łabędź „podwójne wymagania" podnosi próg do
+  // dwóch — dlatego liczymy przez `requiredCountForSlot`, a nie sprawdzamy
+  // powtórzeń. Sztywne „jedna karta na ściankę" zgłaszało tę zasadę gry
+  // jako błąd silnika.
   if (state.mission) {
-    const slots = state.mission.played.map((p) => `${p.problemId}:${p.slotKey}`);
-    if (new Set(slots).size !== slots.length) {
-      return 'dwie karty w tej samej ściance';
+    const counts = new Map<string, number>();
+    for (const play of state.mission.played) {
+      const key = `${play.problemId}:${play.slotKey}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    for (const [key, count] of counts) {
+      const [problemId, slotKey] = key.split(':');
+      const limit = requiredCountForSlot(
+        state.mission,
+        problemId,
+        slotKey as Parameters<typeof requiredCountForSlot>[2],
+      );
+      if (count > limit) {
+        return `ścianka ${key} ma ${count} kart przy wymaganych ${limit}`;
+      }
     }
   }
 
