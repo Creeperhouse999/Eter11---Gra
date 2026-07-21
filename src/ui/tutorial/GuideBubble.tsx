@@ -81,19 +81,31 @@ export function GuideBubble({
       const target = element.getBoundingClientRect();
       const height = bubbleRef.current?.offsetHeight ?? 190;
 
-      setPlacement(pickPlacement(target, height, window.innerWidth, window.innerHeight));
+      // Ręka nie jest podświetlona, ale gracz sięga po nią w każdym kroku —
+      // dymek stojący na kartach blokuje ruch, choć „nie zasłania celu".
+      const hand = findVisible('[data-tour="hand"]');
+      const avoid = hand ? [hand.getBoundingClientRect()] : [];
+
+      const next = pickPlacement(target, height, window.innerWidth, window.innerHeight, avoid);
+      // Render tylko przy realnym przesunięciu — inaczej 60 renderów na
+      // sekundę, a dymek i tak stoi w miejscu.
+      setPlacement((prev) =>
+        prev && Math.abs(prev.top - next.top) < 0.5 && Math.abs(prev.left - next.left) < 0.5
+          ? prev
+          : next,
+      );
     };
 
-    place();
-    const interval = window.setInterval(place, 200);
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('resize', place);
-      window.removeEventListener('scroll', place, true);
+    // Pozycja liczona w każdej klatce, jak w Spotlight. Interwał 200 ms
+    // sprawiał, że przy przewijaniu dymek doganiał podświetlenie skokami.
+    let frame = 0;
+    const loop = () => {
+      place();
+      frame = requestAnimationFrame(loop);
     };
+    loop();
+
+    return () => cancelAnimationFrame(frame);
     // Celowo bez `typed`: tekst dopisuje się co 16 ms, a przeliczanie pozycji
     // przy każdej literze to kilkadziesiąt pomiarów układu na sekundę.
     // Rosnącą wysokość dymka dogania cykliczne `place()` poniżej.

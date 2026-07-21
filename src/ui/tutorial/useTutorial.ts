@@ -59,7 +59,11 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
 
   if (goal === 'swapCards') {
     if (!context.swapMode) return '[data-tour="swap"]';
-    return context.swapSelected > 0 ? '[data-tour="swap-confirm"]' : '[data-tour="hand"]';
+    // Zanim gracz cokolwiek zaznaczy, świecą karty do wyboru — sama ramka
+    // wokół całej ręki nie pokazywała, w co kliknąć.
+    return context.swapSelected > 0
+      ? '[data-tour="swap-confirm"]'
+      : '[data-tour="swap-card"]';
   }
 
   const anchors: Record<Exclude<TutorialGoal, 'swapCards'>, string> = {
@@ -73,6 +77,23 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
     takeCard: '[data-tour="take-card"]',
   };
   return anchors[goal];
+}
+
+/**
+ * Element, SKĄD gracz ma przeciągnąć kartę.
+ *
+ * Przy przeciąganiu podświetlenie samego celu nie wystarcza: gracz widzi,
+ * dokąd, ale nie widzi czym. Zwracamy rękę tylko wtedy, gdy karta jest już
+ * wybrana — wcześniej to ona jest celem, a druga ramka byłaby szumem.
+ */
+export function sourceFor(goal: TutorialGoal, context: TutorialContext): string | null {
+  if (!context.cardSelected || !context.targetSlot) return null;
+
+  const dragging =
+    goal === 'selectCard' || goal === 'playFirst' || goal === 'playSecond' ||
+    goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish';
+
+  return dragging ? '[data-tour="selected-card"]' : null;
 }
 
 /**
@@ -176,6 +197,8 @@ export interface TutorialControl {
   done: boolean;
   message: string;
   anchor: string | null;
+  /** Drugi podświetlony element — źródło ruchu. */
+  source: string | null;
   /** Czy dany ruch jest teraz dozwolony. Poza scenariuszem wszystko blokujemy. */
   allows: (action: 'play' | 'swap' | 'pass') => boolean;
   next: () => void;
@@ -262,6 +285,7 @@ export function useTutorial(
     // Podświetlenie zostaje także przy pochwale: ETER11 mówi „ścianka
     // zaświeciła", więc musi być co pokazać, gdy to mówi.
     anchor: anchorFor(step.goal, context),
+    source: sourceFor(step.goal, context),
     // Po wykonaniu kroku nie blokujemy niczego — gracz czeka na „Dalej".
     allows: (action) => done || step.allow.includes(action),
     next,

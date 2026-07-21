@@ -194,10 +194,11 @@ describe('useTutorial — kroki', () => {
     // Etap 1: przycisk otwierający wymianę.
     expect(result.current.anchor).toBe('[data-tour="swap"]');
 
-    // Etap 2: tryb włączony, nic nie zaznaczono — podświetlamy karty.
+    // Etap 2: tryb włączony, nic nie zaznaczono — świecą same karty, nie
+    // ramka wokół całej ręki: gracz ma wiedzieć, w co kliknąć.
     rerender({ ctx: { ...idle, swapMode: true } });
     if (!result.current.active) throw new Error('samouczek nieaktywny');
-    expect(result.current.anchor).toBe('[data-tour="hand"]');
+    expect(result.current.anchor).toBe('[data-tour="swap-card"]');
     expect(result.current.message).toMatch(/kliknij karty/i);
 
     // Etap 3: coś zaznaczone — podświetlamy potwierdzenie.

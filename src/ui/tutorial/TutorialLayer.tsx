@@ -17,7 +17,7 @@ export function TutorialLayer({ tutorial }: TutorialLayerProps) {
 
   return (
     <>
-      <Spotlight target={tutorial.anchor} />
+      <Spotlight target={tutorial.anchor} from={tutorial.source} />
       <GuideBubble
         message={tutorial.message}
         step={tutorial.stepNumber}

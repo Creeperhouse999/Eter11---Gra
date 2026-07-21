@@ -371,19 +371,29 @@ export function MissionScreen({
                       // Samouczek podświetla dokładnie tę kartę, którą trzeba
                       // złapać — nie całą rękę.
                       data-tour={
-                        !swapMode &&
-                        !selected &&
-                        mission.problems.some((problem) =>
-                          problem.slots.some(
-                            (slot) =>
-                              cardFitsSlot(card, slot.key, slot.family) &&
-                              mission.played.filter(
-                                (p) => p.problemId === problem.id && p.slotKey === slot.key,
-                              ).length === 0,
-                          ),
-                        )
-                          ? 'playable-card'
-                          : undefined
+                        // W trybie wymiany świecą karty do zaznaczenia — bez
+                        // tego gracz widział tylko ramkę wokół całej ręki.
+                        swapMode
+                          ? toSwap.includes(card.id)
+                            ? 'swap-picked'
+                            : 'swap-card'
+                          : // Wybrana karta to źródło ruchu — samouczek rysuje od
+                            // niej strzałkę do ścianki, więc musi wiedzieć, która to.
+                            !swapMode && selected?.card.id === card.id && !selected.fromMat
+                          ? 'selected-card'
+                          : !swapMode &&
+                              !selected &&
+                              mission.problems.some((problem) =>
+                                problem.slots.some(
+                                  (slot) =>
+                                    cardFitsSlot(card, slot.key, slot.family) &&
+                                    mission.played.filter(
+                                      (p) => p.problemId === problem.id && p.slotKey === slot.key,
+                                    ).length === 0,
+                                ),
+                              )
+                            ? 'playable-card'
+                            : undefined
                       }
                       selected={
                         swapMode
