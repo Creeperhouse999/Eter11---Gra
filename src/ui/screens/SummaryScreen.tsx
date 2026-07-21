@@ -203,8 +203,19 @@ export function SummaryScreen({
                           className="w-full text-accent"
                           onClick={() => setSharing({ card: play.card, fromPlayerId: player.id })}
                         >
-                          Oddaję koledze
+                          Przekaż graczowi
                         </Button>
+                      )}
+                      {/* Brak przycisku „przekaż" przy talencie i mentorze
+                          wyglądał jak usterka: gracz widział kartę z jedną
+                          opcją zamiast dwóch i nie miał skąd wiedzieć, że tak
+                          ma być. Cisza jest gorsza niż odmowa z powodem. */}
+                      {!shared && !canShare && keepable && !isCompetence(play.card.category) && (
+                        <span className="text-center text-[11px] leading-snug text-ink-dim">
+                          {play.card.category === 'mentor'
+                            ? 'Mentor zostaje przy Tobie — nie da się go przekazać.'
+                            : 'Talent jest Twój — nie da się go przekazać.'}
+                        </span>
                       )}
                       {shared && (
                         <span className="text-center text-xs text-success">Przekazana</span>

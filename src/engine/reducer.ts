@@ -1,5 +1,8 @@
 import { draw, shuffle } from './deck';
 import { cardFitsSlot, isMissionSolved, isSlotFilled, slotId } from './rules';
+// Jedno źródło reguły dzielenia się. Silnik miał własną kopię listy —
+// dokładnie ten rozjazd, przed którym ostrzega komentarz przy oryginale.
+import { isCompetence } from '../ui/components/categoryStyles';
 import type {
   Action,
   BlackSwanEvent,
@@ -653,8 +656,7 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
   };
 }
 
-/** Kompetencje — tylko nimi można dzielić się z innymi graczami. */
-const COMPETENCE_CATEGORIES: Card['category'][] = ['psychological', 'digital', 'social'];
+
 
 /**
  * Zabranie karty na matę postaci.
@@ -751,7 +753,7 @@ function shareCard(
 
   // Karty specjalne zostają u tego, kto je zagrał: ETER11 jest jokerem,
   // a Czarny Łabędź utrudnieniem — żadna nie jest kompetencją do nauczenia.
-  if (!COMPETENCE_CATEGORIES.includes(play.card.category)) {
+  if (!isCompetence(play.card.category)) {
     return reject(state, 'Przekazywać można tylko karty kompetencji.');
   }
 

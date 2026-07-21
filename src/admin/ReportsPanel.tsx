@@ -98,7 +98,17 @@ function formatDate(iso: string): string {
  * przekazywać uwagi mailem. Zgłoszenia trafiają do osobnej kolekcji, którą
  * odczytuje programista.
  */
-export function ReportsPanel() {
+interface ReportsPanelProps {
+  /**
+   * Imię zalogowanego — podpisuje zgłoszenie.
+   *
+   * Wcześniej było tu pole tekstowe oznaczone „opcjonalnie", więc większość
+   * zgłoszeń przychodziła bez podpisu i nie było kogo dopytać o szczegóły.
+   */
+  author: string;
+}
+
+export function ReportsPanel({ author }: ReportsPanelProps) {
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
@@ -108,7 +118,6 @@ export function ReportsPanel() {
   const [kind, setKind] = useState<ReportKind>('bug');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [author, setAuthor] = useState('');
   const [sending, setSending] = useState(false);
   /**
    * Zgłoszenie przechodzi przez cztery stany, nie dwa. Wcześniej panel
@@ -261,14 +270,10 @@ export function ReportsPanel() {
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <TextField
-            label="Kto zgłasza (opcjonalnie)"
-            value={author}
-            maxLength={60}
-            placeholder="Imię"
-            onChange={(e) => setAuthor(e.target.value)}
-          />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs text-ink-dim">
+            Podpiszesz się jako <span className="text-ink">{author}</span>
+          </span>
           <Button
             variant="primary"
             icon="upload"

@@ -386,7 +386,9 @@ export function AdminApp() {
           <ThemeEditor theme={content.theme} onChange={(theme) => update({ theme })} />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
-        {tab === 'reports' && <ReportsPanel />}
+        {tab === 'reports' && (
+          <ReportsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+        )}
         {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
             ma stać podpis, którego nie da się podszyć. */}
         {tab === 'discussions' && (
