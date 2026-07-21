@@ -17,6 +17,7 @@ import {
 import { TutorialDone } from './tutorial/TutorialDone';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
+import { clearSavedGame, savedSeed } from './savedGame';
 import { useGame, type PlayerSetup } from './useGame';
 
 export interface GameAppContent {
@@ -61,6 +62,9 @@ function RunningGame({
           orderedDeck: TUTORIAL_DECK,
         }
       : { cards: content.cards, problems: content.problems },
+    // Samouczek zaczyna się od zera przy każdym uruchomieniu — wznawianie
+    // ćwiczenia w połowie kroku tylko myliłoby.
+    !tutorial,
   );
   const { state, dispatch } = game;
 
@@ -179,11 +183,21 @@ function RunningGame({
 const INTRO_SEEN_KEY = 'eter11:intro-seen';
 
 export function GameApp({ content = {}, notice }: GameAppProps) {
+  /**
+   * Rozpoczęta partia wraca po odświeżeniu.
+   *
+   * Sam stan gry zapisuje `useGame`, ale bez wznowienia sesji gracz lądował
+   * w menu i nie miał jak do niej wrócić. Ziarno wystarcza: `useGame` po nim
+   * rozpozna właściwy zapis, a gracze i tak siedzą w zapisanym stanie.
+   */
   const [session, setSession] = useState<{
     players: PlayerSetup[];
     seed: number;
     tutorial: boolean;
-  } | null>(null);
+  } | null>(() => {
+    const seed = savedSeed();
+    return seed === null ? null : { players: [], seed, tutorial: false };
+  });
 
   /**
    * Wstęp widzi tylko ten, kto go jeszcze nie oglądał.
@@ -226,7 +240,12 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           seed={session.seed}
           content={content}
           tutorial={session.tutorial}
-          onRestart={() => setSession(null)}
+          onRestart={() => {
+            // Powrót do menu kończy partię — inaczej „Nowa gra" wznawiałaby
+            // tę samą rozgrywkę, którą gracz właśnie zostawił.
+            clearSavedGame();
+            setSession(null);
+          }}
         />
       ) : (
         <SetupScreen

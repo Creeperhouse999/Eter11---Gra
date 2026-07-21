@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { buildDeck } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
 import type { Action, Card, GameState, Problem, RulesConfig } from '../engine/types';
+import { clearSavedGame, loadGame, saveGame } from './savedGame';
 
 export interface PlayerSetup {
   id: string;
@@ -73,10 +74,33 @@ export function useGame(
   seed: number,
   config: RulesConfig = DEFAULT_CONFIG,
   content: GameContentInput = {},
+  /**
+   * Czy zapisywać partię między odświeżeniami. Samouczek i tryb testowy
+   * mają zaczynać od zera za każdym razem — wznawianie ćwiczenia albo
+   * partii testowej tylko myliłoby.
+   */
+  persist = true,
 ) {
-  const [state, setState] = useState<GameState>(() =>
-    setupGame(players, seed, config, content),
+  /**
+   * Partia przeżywa odświeżenie strony.
+   *
+   * Rozgrywka trwa do siedmiu misji, a przeglądarka na telefonie potrafi
+   * odświeżyć kartę sama — bez zapisu przepadała cała gra przy stole.
+   * Zapis rozpoznajemy po ziarnie, więc nowa partia nigdy nie wczyta
+   * cudzego stanu.
+   */
+  const [state, setState] = useState<GameState>(
+    () =>
+      (persist ? loadGame(seed) : null) ?? setupGame(players, seed, config, content),
   );
+
+  useEffect(() => {
+    if (!persist) return;
+    // Faza końcowa nie ma czego wznawiać — zapis tylko przeszkadzałby
+    // przy rozpoczynaniu kolejnej gry.
+    if (state.phase === 'finale') clearSavedGame();
+    else saveGame(seed, state);
+  }, [persist, seed, state]);
   const [history, setHistory] = useState<GameState[]>([]);
   const [rejection, setRejection] = useState<string | null>(null);
 

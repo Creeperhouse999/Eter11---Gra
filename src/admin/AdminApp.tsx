@@ -93,6 +93,22 @@ export function AdminApp() {
     };
   }, [uid]);
 
+  /**
+   * Podgląd motywu nie może przeżyć panelu.
+   *
+   * Edytor kolorów przestawia zmienne CSS całego dokumentu, żeby było widać
+   * efekt bez zapisywania. Po wylogowaniu te zmienne zostawały — ekran
+   * logowania i gra dostawały kolory, których nikt nie zapisał, łącznie
+   * z takimi, na których nie da się nic przeczytać.
+   */
+  const savedTheme = savedContent?.theme;
+  useEffect(
+    () => () => {
+      applyTheme(savedTheme);
+    },
+    [savedTheme],
+  );
+
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
   useEffect(() => {
     if (!dirty) return;

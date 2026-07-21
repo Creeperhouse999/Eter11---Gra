@@ -49,10 +49,15 @@ function TestGame({
     characterId: character.id,
   }));
 
-  const game = useGame(players, seed, content.rules, {
-    cards: content.cards,
-    problems: content.problems,
-  });
+  const game = useGame(
+    players,
+    seed,
+    content.rules,
+    { cards: content.cards, problems: content.problems },
+    // Partia testowa nie zapisuje się: tester ma zaczynać od czystego stanu,
+    // a zapis kolidowałby z prawdziwą grą tej samej osoby.
+    false,
+  );
   const { state, dispatch, undo, history, overrideState } = game;
 
   const triggerSwan = (kind: BlackSwanKind) => {

@@ -8,6 +8,9 @@ import { GameApp } from './GameApp';
  * który wstęp już widział — inaczej każdy z nich zaczynałby od historii.
  */
 beforeEach(() => {
+  // Każdy test zaczyna od czystego stanu: bez wstępu i bez zapisanej partii,
+  // inaczej gra wznawiałaby rozgrywkę z poprzedniego testu.
+  localStorage.clear();
   localStorage.setItem('eter11:intro-seen', '1');
 });
 
