@@ -17,6 +17,7 @@ import { Button } from '../controls/Button';
 import { TopBanner } from '../controls/TopBanner';
 import type { TutorialContext } from '../tutorial/useTutorial';
 import type { Game } from '../useGame';
+import { useScreenTitle } from '../useScreenTitle';
 
 interface MissionScreenProps {
   game: Game;
@@ -71,6 +72,7 @@ export function MissionScreen({
   }>();
 
   const activePlayer = state.players[state.activePlayerIndex];
+  const titleRef = useScreenTitle<HTMLParagraphElement>();
 
   // Ile razy potwierdzono wymianę w tej misji — dowód dla samouczka.
   //
@@ -249,7 +251,10 @@ export function MissionScreen({
       <header className="relative mb-5 grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <span className="eter-label">Misja {state.missionNumber}</span>
-          <p className="truncate font-display text-base font-bold sm:text-lg">
+          <p
+            ref={titleRef}
+            className="truncate font-display text-base font-bold outline-none sm:text-lg"
+          >
             Rozwiązane: {state.solvedProblems.length}
           </p>
         </div>

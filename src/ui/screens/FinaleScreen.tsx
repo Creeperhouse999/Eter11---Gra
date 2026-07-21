@@ -11,6 +11,7 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { PlayerMat } from '../components/PlayerMat';
 import type { Game } from '../useGame';
+import { useScreenTitle } from '../useScreenTitle';
 
 interface FinaleScreenProps {
   game: Game;
@@ -39,6 +40,7 @@ export function FinaleScreen({
   characters = ALL_CHARACTERS,
 }: FinaleScreenProps) {
   const { state } = game;
+  const titleRef = useScreenTitle();
   const jobExamples = text.finaleJobExamples
     .split(',')
     .map((example) => example.trim())
@@ -53,7 +55,12 @@ export function FinaleScreen({
 
       <header className="relative">
         <span className="eter-label">Koniec gry</span>
-        <h1 className="font-display text-4xl font-bold text-accent">{text.finaleHeading}</h1>
+        <h1
+          ref={titleRef}
+          className="font-display text-4xl font-bold text-accent outline-none"
+        >
+          {text.finaleHeading}
+        </h1>
       </header>
 
       <section

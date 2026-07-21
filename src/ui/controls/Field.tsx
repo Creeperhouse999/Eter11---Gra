@@ -11,7 +11,7 @@ type TextFieldProps = CommonProps &
   Omit<InputHTMLAttributes<HTMLInputElement>, 'className'>;
 
 const base =
-  'w-full rounded-lg border bg-bg px-3 py-2 text-sm text-ink transition placeholder:text-ink-dim/50 ' +
+  'w-full rounded-lg border bg-bg px-3 py-2 text-sm text-ink transition placeholder:text-ink-dim/80 ' +
   'focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50';
 
 /**

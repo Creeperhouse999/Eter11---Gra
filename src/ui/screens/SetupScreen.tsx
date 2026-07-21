@@ -5,6 +5,7 @@ import type { Character } from '../../engine/types';
 import { Button } from '../controls/Button';
 import { Icon, type IconName } from '../icons/Icon';
 import type { PlayerSetup } from '../useGame';
+import { useScreenTitle } from '../useScreenTitle';
 
 interface SetupScreenProps {
   /** `tutorial` uruchamia grę z ETER11 prowadzącym krok po kroku. */
@@ -73,6 +74,7 @@ export function SetupScreen({
    * gracz jeszcze nie popełnił.
    */
   const [triedStart, setTriedStart] = useState(false);
+  const titleRef = useScreenTitle();
 
   const start = (tutorial: boolean) => {
     // Samouczek gra jedna osoba na ustawionym scenariuszu — nie wymaga
@@ -101,7 +103,10 @@ export function SetupScreen({
         <span className="eter-label">Misja ratunkowa</span>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="font-display text-4xl font-bold tracking-tight text-accent sm:text-5xl">
+            <h1
+              ref={titleRef}
+              className="font-display text-4xl font-bold tracking-tight text-accent outline-none sm:text-5xl"
+            >
               {text.gameTitle}
             </h1>
             <p className="font-display text-lg text-ink-dim">{text.gameSubtitle}</p>
@@ -193,7 +198,7 @@ export function SetupScreen({
                   aria-label={`Imię gracza ${index + 1}`}
                   className={[
                     'min-w-0 flex-1 rounded-lg border bg-bg px-3 py-2 text-ink',
-                    'placeholder:text-ink-dim/50 focus:border-accent focus:outline-none',
+                    'placeholder:text-ink-dim/80 focus:border-accent focus:outline-none',
                     triedStart && draft.name.trim().length === 0
                       ? 'border-danger'
                       : 'border-edge',

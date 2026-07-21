@@ -8,6 +8,7 @@ import { PlayerMat } from '../components/PlayerMat';
 import { Button } from '../controls/Button';
 import { TopBanner } from '../controls/TopBanner';
 import type { Game } from '../useGame';
+import { useScreenTitle } from '../useScreenTitle';
 
 interface SummaryScreenProps {
   game: Game;
@@ -40,6 +41,7 @@ export function SummaryScreen({
 }: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
+  const titleRef = useScreenTitle();
 
   const mission = state.mission;
   if (!mission) return null;
@@ -53,7 +55,8 @@ export function SummaryScreen({
       <header className="relative">
         <span className="eter-label">Misja {state.missionNumber} — podsumowanie</span>
         <h1
-          className="font-display text-4xl font-bold"
+          ref={titleRef}
+          className="font-display text-4xl font-bold outline-none"
           style={{ color: won ? 'var(--eter-success)' : 'var(--eter-danger)' }}
         >
           {won ? text.summaryWonHeading : text.summaryLostHeading}

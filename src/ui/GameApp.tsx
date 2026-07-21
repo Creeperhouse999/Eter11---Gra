@@ -19,6 +19,7 @@ import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
 import { useConfirm } from './controls/useConfirm';
 import { savedSeed } from './savedGame';
+import { useScreenTitle } from './useScreenTitle';
 import { useGame, type PlayerSetup } from './useGame';
 
 export interface GameAppContent {
@@ -69,6 +70,7 @@ function RunningGame({
     !tutorial,
   );
   const { state, dispatch } = game;
+  const titleRef = useScreenTitle();
 
   /** Porzucenie partii jest nieodwracalne — pytamy, zanim skasujemy zapis. */
   const quit = async () => {
@@ -163,7 +165,7 @@ function RunningGame({
         <span className="eter-label">
           {first ? 'Start' : `Misja ${state.missionNumber + 1}`}
         </span>
-        <h1 className="font-display text-3xl font-bold text-accent">
+        <h1 ref={titleRef} className="font-display text-3xl font-bold text-accent outline-none">
           {first ? text.missionFirstHeading : text.missionNextHeading}
         </h1>
         <p className="mt-3 font-mono text-sm text-ink-dim">
