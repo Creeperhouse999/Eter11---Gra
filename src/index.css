@@ -1,9 +1,21 @@
-/* Fonty self-hosted — gra działa offline, bez zapytań do CDN. */
-@import '@fontsource/space-grotesk/500.css';
-@import '@fontsource/space-grotesk/700.css';
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/jetbrains-mono/500.css';
+/*
+ * Fonty self-hosted — gra działa offline, bez zapytań do CDN.
+ *
+ * Tylko subsety `latin` i `latin-ext`: polskie znaki diakrytyczne siedzą
+ * w `latin-ext`, a pełne rodziny dokładały cyrylicę i grekę, których gra
+ * po polsku nie użyje ani razu. Same pliki fontów ważyły 761 KB w 49
+ * plikach — więcej niż cała reszta aplikacji razem wzięta.
+ */
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-ext-500.css';
+@import '@fontsource/space-grotesk/latin-700.css';
+@import '@fontsource/space-grotesk/latin-ext-700.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-ext-400.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-ext-600.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+@import '@fontsource/jetbrains-mono/latin-ext-500.css';
 
 @import './styles/theme.css';
 
