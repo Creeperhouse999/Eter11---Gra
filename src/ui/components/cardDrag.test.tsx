@@ -201,8 +201,10 @@ describe('CardView z przeciąganiem', () => {
   });
 
   it('pokazuje kategorię nad nazwą karty', () => {
+    // Karta bez akcji renderuje się jako zwykły element, nie przycisk —
+    // przycisk w przycisku ścianki był nieprawidłowym HTML-em.
     render(<CardView card={card} />);
-    const cardEl = screen.getByRole('button', { name: /Odwaga/ });
+    const cardEl = screen.getByText('Odwaga').closest('div')!;
     // Kategoria poprzedza nazwę — mówi, do której ścianki karta należy.
     expect(cardEl.textContent?.indexOf('Talent')).toBeLessThan(
       cardEl.textContent?.indexOf('Odwaga') ?? -1,

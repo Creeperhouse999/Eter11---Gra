@@ -59,13 +59,27 @@ export function CardView({
   const familyColor = card.family ? `var(--eter-family-${card.family})` : undefined;
   const accent = familyColor ?? color;
 
+  /**
+   * Karta bez akcji nie jest przyciskiem.
+   *
+   * Karty leżące na zamkniętej ściance renderowały się jako `<button>`
+   * wewnątrz `<button>` samej ścianki. To nieprawidłowy HTML: przeglądarki
+   * radzą sobie z nim różnie, a wewnętrzny przycisk potrafił połykać
+   * kliknięcia kierowane do ścianki.
+   */
+  const Element = onClick || draggable ? 'button' : 'div';
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      disabled={disabled || !onClick}
-      aria-pressed={onClick ? Boolean(selected) : undefined}
+    <Element
+      {...(Element === 'button'
+        ? {
+            type: 'button' as const,
+            onClick,
+            onDoubleClick,
+            disabled: disabled || !onClick,
+            'aria-pressed': onClick ? Boolean(selected) : undefined,
+          }
+        : {})}
       {...(draggable ? dragHandlers : {})}
       {...rest}
       className={[
@@ -129,6 +143,6 @@ export function CardView({
           {card.description}
         </span>
       )}
-    </button>
+    </Element>
   );
 }

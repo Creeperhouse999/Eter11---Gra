@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Card, Character } from '../../engine/types';
+import { categoryLabel } from '../components/categoryStyles';
 import { CardView } from '../components/CardView';
 import { PlayerMat } from '../components/PlayerMat';
 import { Button } from '../controls/Button';
@@ -15,6 +16,15 @@ interface SummaryScreenProps {
 }
 
 const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
+
+/** Kategorie, których komplet na karcie postaci daje spełnienie. */
+const MAT_CATEGORIES = [
+  'psychological',
+  'digital',
+  'social',
+  'talent',
+  'mentor',
+] as const;
 
 /**
  * Podsumowanie misji.
@@ -81,6 +91,25 @@ export function SummaryScreen({
                   {alreadyTook ? 'Karta zabrana' : 'Wybierz jedną kartę'}
                 </span>
               </div>
+
+              {/* Do spełnienia trzeba karty z każdej kategorii, a gracz
+                  wybierał na ślepo — bez tej listy nie wiedział, czego mu
+                  brakuje, i cel był w praktyce nieosiągalny. */}
+              {(() => {
+                const missing = MAT_CATEGORIES.filter(
+                  (category) => !player.mat.some((c) => c.category === category),
+                );
+                if (missing.length === 0) return null;
+
+                return (
+                  <p className="mt-1 text-xs text-ink-dim">
+                    Do spełnienia brakuje Ci:{' '}
+                    <span className="text-accent">
+                      {missing.map((c) => categoryLabel(c).toLowerCase()).join(', ')}
+                    </span>
+                  </p>
+                );
+              })()}
 
               {/* Karta postaci obok wyboru: bez niej gracz decyduje, co
                   zabrać, nie widząc, co już na niej leży i czego mu brakuje. */}

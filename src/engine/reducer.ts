@@ -340,7 +340,18 @@ function swapHand(
   const swapIds = new Set(toSwap.map((card) => card.id));
   const kept = player.hand.filter((card) => !swapIds.has(card.id));
 
-  const result = draw(state.drawPile, state.discardPile, toSwap.length, state.rng);
+  // Oddane karty wracają do obiegu PRZED dobraniem.
+  //
+  // Wcześniej trafiały na stos dopiero po dobraniu, więc przy krótkiej talii
+  // nie było ich z czego przetasować: gracz oddawał pięć kart i dostawał
+  // dwie, a przy pustej talii zostawał z niczym. Wymiana ma oddać tyle,
+  // ile zabrała — te same karty w najgorszym razie wrócą do ręki.
+  const result = draw(
+    state.drawPile,
+    [...state.discardPile, ...toSwap],
+    toSwap.length,
+    state.rng,
+  );
 
   const mission = state.mission;
   const label =
@@ -348,20 +359,42 @@ function swapHand(
       ? 'jedną kartę'
       : `${toSwap.length} ${toSwap.length < 5 ? 'karty' : 'kart'}`;
 
+  const swapped: GameState = {
+    ...state,
+    players: updatePlayer(state, playerId, (p) => ({
+      ...p,
+      hand: [...kept, ...result.drawn],
+    })),
+    drawPile: result.pile,
+    discardPile: result.discard,
+    rng: result.seed,
+    mission: { ...mission, swappedThisRound: [...mission.swappedThisRound, playerId] },
+    log: [...state.log, `${player.name} wymienia ${label}.`],
+  };
+
+  // Łabędź dociągnięty przy wymianie działa natychmiast. Bez tego zostawał
+  // martwą kartą w ręce: zagrać się nie da, wymienić też nie, więc gracz
+  // grał do końca misji o jedną kartę mniej.
+  return { state: endTurn(withResolvedSwans(swapped)) };
+}
+
+/**
+ * Stan po odpaleniu wszystkich świeżo dobranych Czarnych Łabędzi.
+ * Zdarzenia dopisujemy do kolejki, żeby gracz zobaczył, co się stało.
+ */
+function withResolvedSwans(state: GameState): GameState {
+  const resolved = resolveDrawnBlackSwans(state);
+  if (resolved.events.length === 0) return resolved.state;
+
   return {
-    state: endTurn({
-      ...state,
-      players: updatePlayer(state, playerId, (p) => ({
-        ...p,
-        hand: [...kept, ...result.drawn],
-      })),
-      drawPile: result.pile,
-      // Oddane karty dopiero teraz wracają do obiegu.
-      discardPile: [...result.discard, ...toSwap],
-      rng: result.seed,
-      mission: { ...mission, swappedThisRound: [...mission.swappedThisRound, playerId] },
-      log: [...state.log, `${player.name} wymienia ${label}.`],
-    }),
+    ...resolved.state,
+    mission: {
+      ...resolved.state.mission!,
+      pendingSwanEvents: [
+        ...resolved.state.mission!.pendingSwanEvents,
+        ...resolved.events,
+      ],
+    },
   };
 }
 
@@ -412,14 +445,25 @@ export function resolveDrawnBlackSwans(state: GameState): {
     if (!found) break;
 
     const { player, card } = found;
+
+    // Łabędź nie zjada miejsca w ręce: schodzi na stos, a gracz dobiera
+    // w zamian zwykłą kartę. Bez tego ten, kto go wyciągnął, grał do końca
+    // misji o kartę mniej niż reszta stołu — a wyciągnięcie jest losowe.
+    const replacement = draw(next.drawPile, next.discardPile, 1, next.rng);
+
     const withoutCard: GameState = {
       ...next,
       players: next.players.map((p) =>
         p.id === player.id
-          ? { ...p, hand: p.hand.filter((c) => c.id !== card.id) }
+          ? {
+              ...p,
+              hand: [...p.hand.filter((c) => c.id !== card.id), ...replacement.drawn],
+            }
           : p,
       ),
-      discardPile: [...next.discardPile, card],
+      drawPile: replacement.pile,
+      discardPile: [...replacement.discard, card],
+      rng: replacement.seed,
     };
 
     const kind = card.blackSwanKind ?? 'extraProblem';
@@ -450,6 +494,23 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     // mówią o jednym dodatkowym.
     if (mission.activeBlackSwans.includes('extraProblem')) return state;
     if (state.problemPile.length === 0) return state;
+
+    // Ten sam warunek co przy podwojeniu, tylko z drugiej strony: dokładanie
+    // problemu, którego nie da się zamknąć w pozostałych rundach, robi
+    // z misji przegraną bez ruchu gracza.
+    const perCard = mission.activeBlackSwans.includes('doubleRequirements') ? 2 : 1;
+    const movesLeft =
+      (state.config.roundsPerMission - mission.round + 1) * state.players.length;
+    const openSlots = mission.problems.reduce(
+      (sum, problem) =>
+        sum +
+        problem.slots.filter((slot) => !isSlotFilled(mission, problem.id, slot.key))
+          .length,
+      0,
+    );
+    const extraSlots = state.problemPile[0].slots.length;
+    if ((openSlots + extraSlots) * perCard > movesLeft) return state;
+
     const [extra, ...rest] = state.problemPile;
     return {
       ...state,
@@ -465,6 +526,21 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
 
   if (kind === 'doubleRequirements') {
     if (mission.activeBlackSwans.includes('doubleRequirements')) return state;
+
+    // Dwa utrudnienia naraz potrafią zabrać matematyczną możliwość wygranej:
+    // dwa problemy po podwojeniu wymagają 20 kart, a dwóch graczy ma w całej
+    // misji 14 ruchów. Drugie utrudnienie odpuszczamy — misja ma być trudna,
+    // a nie przegrana w chwili wylosowania karty.
+    const movesLeft =
+      (state.config.roundsPerMission - mission.round + 1) * state.players.length;
+    const needed = mission.problems.reduce(
+      (sum, problem) =>
+        sum +
+        problem.slots.filter((slot) => !isSlotFilled(mission, problem.id, slot.key))
+          .length,
+      0,
+    );
+    if (needed * 2 > movesLeft) return state;
     const alreadyFilled = mission.problems.flatMap((problem) =>
       problem.slots
         .filter((slot) => isSlotFilled(mission, problem.id, slot.key))
