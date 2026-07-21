@@ -4,6 +4,7 @@ import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
 import { recordVersion } from '../firebase/history';
 import { HistoryPanel } from './HistoryPanel';
+import { StatsPanel } from './StatsPanel';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
@@ -44,7 +45,8 @@ type Tab =
   | 'reports'
   | 'discussions'
   | 'account'
-  | 'history';
+  | 'history'
+  | 'stats';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -62,6 +64,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'account', label: 'Konto', icon: 'people' },
   { key: 'history', label: 'Historia', icon: 'undo' },
+  { key: 'stats', label: 'Statystyki', icon: 'chart' },
 ];
 
 export function AdminApp() {
@@ -431,6 +434,7 @@ export function AdminApp() {
         {tab === 'discussions' && (
           <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
         )}
+        {tab === 'stats' && <StatsPanel content={content} />}
         {tab === 'history' && (
           <HistoryPanel
             currentVersion={baseVersion}

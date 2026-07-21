@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../data/uiText';
 import type { Card, Character, Problem, RulesConfig } from '../engine/types';
@@ -126,6 +126,40 @@ function RunningGame({
     () => setTutorialDone(true),
     content.tutorial,
   );
+
+  /**
+   * Zliczenie zakończonej partii — raz, przy wejściu na ekran końcowy.
+   *
+   * Ref, nie stan: ponowne wejście w ten sam finał (przerysowanie, zmiana
+   * rozmiaru okna) nie może liczyć partii drugi raz, a zmiana stanu wywołałaby
+   * kolejny render bez żadnego skutku na ekranie.
+   *
+   * Import dynamiczny, bo cały pakiet Firestore waży więcej niż reszta gry —
+   * partia rozegrana bez sieci ma się skończyć tak samo, tylko bez wpisu.
+   */
+  const counted = useRef(false);
+  useEffect(() => {
+    if (state.phase !== 'finale' || counted.current || tutorial) return;
+    counted.current = true;
+
+    void import('../firebase/playStats').then(({ recordFinishedGame }) =>
+      recordFinishedGame({
+        won: state.solvedProblems.length >= state.config.teamWinThreshold,
+        missionsSolved: state.solvedProblems.length,
+      }),
+    );
+  }, [state.phase, state.solvedProblems.length, state.config.teamWinThreshold, tutorial]);
+
+  // Samouczek liczymy osobno: mówi, ile osób w ogóle nauczyło się grać.
+  const countedTutorial = useRef(false);
+  useEffect(() => {
+    if (!tutorialDone || countedTutorial.current) return;
+    countedTutorial.current = true;
+
+    void import('../firebase/playStats').then(({ recordFinishedTutorial }) =>
+      recordFinishedTutorial(),
+    );
+  }, [tutorialDone]);
 
   if (state.phase === 'finale') {
     return (

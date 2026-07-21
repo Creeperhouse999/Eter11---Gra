@@ -100,6 +100,40 @@ service cloud.firestore {
       allow write: if zalogowany();
     }
 
+    /**
+     * Licznik rozegranych partii.
+     *
+     * Pisze go gra, a gra działa bez logowania — dzieci kont nie mają
+     * i mieć nie będą. Zapis jest więc otwarty, ale wyłącznie dla czterech
+     * liczników i tylko w górę: `increment` po stronie serwera nie pozwala
+     * podstawić dowolnej wartości, a warunek niżej odrzuca próbę zmniejszenia
+     * albo dopisania własnych pól.
+     *
+     * Nie ma tu nic o graczach: żadnych imion, postaci ani identyfikatorów.
+     * Cztery liczby zbiorcze i nic więcej.
+     */
+    match /stats/play {
+      allow read: if true;
+
+      // Tylko te cztery pola, tylko liczby, tylko w górę. Każdy z warunków
+      // niżej blokuje inny sposób popsucia licznika: dopisanie własnego pola,
+      // wstawienie tekstu zamiast liczby i cofnięcie wyniku do zera.
+      allow write: if request.resource.data.keys().hasOnly(
+                        ['finished', 'won', 'missionsSolved', 'tutorialsFinished'])
+                   && request.resource.data.finished is int
+                   && request.resource.data.won is int
+                   && request.resource.data.missionsSolved is int
+                   && request.resource.data.tutorialsFinished is int
+                   && request.resource.data.finished >=
+                        (resource == null ? 0 : resource.data.get('finished', 0))
+                   && request.resource.data.won >=
+                        (resource == null ? 0 : resource.data.get('won', 0))
+                   && request.resource.data.missionsSolved >=
+                        (resource == null ? 0 : resource.data.get('missionsSolved', 0))
+                   && request.resource.data.tutorialsFinished >=
+                        (resource == null ? 0 : resource.data.get('tutorialsFinished', 0));
+    }
+
     // Wszystkie pozostałe ścieżki zamknięte.
     // Bez tej reguły kolekcje dodane w przyszłości (pokoje gier w fazie 2)
     // mogłyby zostać otwarte przez przeoczenie.
