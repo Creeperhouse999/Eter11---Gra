@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Card, Character } from '../../engine/types';
-import { categoryLabel } from '../components/categoryStyles';
+import {
+  categoryLabel,
+  isCompetence,
+  SLOT_ORDER,
+} from '../components/categoryStyles';
 import { CardView } from '../components/CardView';
 import { PlayerMat } from '../components/PlayerMat';
 import { Button } from '../controls/Button';
@@ -16,16 +20,9 @@ interface SummaryScreenProps {
   characters?: Character[];
 }
 
-const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'];
-
-/** Kategorie, których komplet na karcie postaci daje spełnienie. */
-const MAT_CATEGORIES = [
-  'psychological',
-  'digital',
-  'social',
-  'talent',
-  'mentor',
-] as const;
+// Kategorie do spełnienia to te same ścianki co na karcie problemu —
+// wcześniej ta lista miała tu własną, inną kolejność.
+const MAT_CATEGORIES = SLOT_ORDER;
 
 /**
  * Podsumowanie misji.
@@ -138,7 +135,7 @@ export function SummaryScreen({
                   const canShare =
                     !shared &&
                     !alreadyTook &&
-                    COMPETENCE_CATEGORIES.includes(play.card.category) &&
+                    isCompetence(play.card.category) &&
                     hasReceiver;
 
                   // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej

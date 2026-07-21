@@ -36,20 +36,14 @@ export function slotLabel(slot: SlotKey): string {
  * Układ ustalony przez zespół: psychologiczna po lewej, cyfrowa na dole,
  * społeczna po prawej, mentor w lewym górnym rogu, talent w prawym górnym.
  */
-export type SlotSide = 'left' | 'bottom' | 'right' | 'topLeft' | 'topRight';
-
-export function slotSide(slot: SlotKey): SlotSide {
-  const sides: Record<SlotKey, SlotSide> = {
-    psychological: 'left',
-    digital: 'bottom',
-    social: 'right',
-    mentor: 'topLeft',
-    talent: 'topRight',
-  };
-  return sides[slot];
-}
-
-/** Kolejność ścianek zgodna z układem karty problemu. */
+/**
+ * Kolejność ścianek zgodna z układem karty problemu.
+ *
+ * Jedno źródło dla całej aplikacji: silnik, walidacja, edytor problemów
+ * i podsumowanie muszą wymieniać ścianki tak samo. Wcześniej ta sama lista
+ * żyła w czterech kopiach, a jedna z nich zdążyła się już rozjechać
+ * kolejnością — walidacja sprawdzałaby wtedy co innego, niż pokazuje UI.
+ */
 export const SLOT_ORDER: SlotKey[] = [
   'mentor',
   'talent',
@@ -57,6 +51,21 @@ export const SLOT_ORDER: SlotKey[] = [
   'social',
   'digital',
 ];
+
+/**
+ * Kategorie, którymi wolno się dzielić z innym graczem.
+ *
+ * Mentor i talent zostają u tego, kto je zagrał — dzielić się można
+ * kompetencjami, nie osobami ani cechami charakteru. Reguła siedziała
+ * w trzech miejscach naraz, w tym raz bez typu, więc TypeScript nie
+ * ostrzegłby przy rozjeździe.
+ */
+export const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'] as const;
+
+/** Czy kartą tej kategorii wolno się podzielić z innym graczem. */
+export function isCompetence(category: string): boolean {
+  return (COMPETENCE_CATEGORIES as readonly string[]).includes(category);
+}
 
 export function slotIcon(slot: SlotKey): IconName {
   const icons: Record<SlotKey, IconName> = {

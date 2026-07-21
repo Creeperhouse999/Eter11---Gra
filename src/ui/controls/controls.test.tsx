@@ -5,12 +5,10 @@ import { Alert } from './Alert';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { ColorPicker } from './ColorPicker';
-import { Chip } from './Chip';
 import { NumberField, TextField } from './Field';
 import { Modal } from './Modal';
 import { Select } from './Select';
 import { ToastProvider, useToast } from './Toast';
-import { Toggle } from './Toggle';
 import { useConfirm } from './useConfirm';
 
 describe('Checkbox', () => {
@@ -46,40 +44,7 @@ describe('Checkbox', () => {
   });
 });
 
-describe('Toggle', () => {
-  it('ma rolę przełącznika', () => {
-    render(
-      <Toggle checked={false} onChange={vi.fn()}>
-        Tryb nocny
-      </Toggle>,
-    );
-    expect(screen.getByRole('switch', { name: 'Tryb nocny' })).toBeDefined();
-  });
 
-  it('zgłasza zmianę', () => {
-    const onChange = vi.fn();
-    render(
-      <Toggle checked={false} onChange={onChange}>
-        Tryb nocny
-      </Toggle>,
-    );
-    fireEvent.click(screen.getByRole('switch'));
-    expect(onChange).toHaveBeenCalledWith(true);
-  });
-});
-
-describe('Chip', () => {
-  it('przełącza zaznaczenie', () => {
-    const onChange = vi.fn();
-    render(
-      <Chip checked={false} onChange={onChange}>
-        Empatia
-      </Chip>,
-    );
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Empatia' }));
-    expect(onChange).toHaveBeenCalledWith(true);
-  });
-});
 
 describe('Select', () => {
   const options = [

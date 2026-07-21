@@ -75,7 +75,7 @@ export function isSlotFilled(
   );
 }
 
-export function isProblemSolved(mission: MissionState, problem: Problem): boolean {
+function isProblemSolved(mission: MissionState, problem: Problem): boolean {
   return problem.slots.every((slot) => isSlotFilled(mission, problem.id, slot.key));
 }
 

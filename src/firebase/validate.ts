@@ -1,4 +1,8 @@
-import type { Card, Character, Problem, RulesConfig, SlotKey } from '../engine/types';
+import type { Card, Character, Problem, RulesConfig } from '../engine/types';
+import {
+  COMPETENCE_CATEGORIES,
+  SLOT_ORDER,
+} from '../ui/components/categoryStyles';
 import type { FamilyMap } from '../data/families';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
@@ -18,10 +22,9 @@ export interface ValidationResult {
   errors: string[];
 }
 
-const REQUIRED_SLOTS: SlotKey[] = [
-  'mentor', 'talent', 'psychological', 'social', 'digital',
-];
-const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'] as const;
+// Obie listy pochodzą z jednego miejsca — walidacja musi sprawdzać
+// dokładnie to, co pokazuje interfejs i egzekwuje silnik.
+const REQUIRED_SLOTS = SLOT_ORDER;
 
 /**
  * Ile znaków mieści się w interfejsie bez rozwalania układu.

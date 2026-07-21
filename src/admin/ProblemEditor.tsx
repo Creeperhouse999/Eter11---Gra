@@ -6,6 +6,7 @@ import {
   problemTypeLabel,
   slotIcon,
   slotLabel,
+  SLOT_ORDER,
 } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Checkbox } from '../ui/controls/Checkbox';
@@ -23,7 +24,7 @@ interface ProblemEditorProps {
 }
 
 const PROBLEM_TYPES: ProblemType[] = ['action', 'thinking', 'cooperation', 'selfchange'];
-const SLOT_KEYS: SlotKey[] = ['mentor', 'talent', 'psychological', 'social', 'digital'];
+
 
 function emptyProblem(): Problem {
   return {
@@ -36,7 +37,7 @@ function emptyProblem(): Problem {
     type: 'action',
     icon: 'earth',
     draft: true,
-    slots: SLOT_KEYS.map((key) => ({ key, family: 'red' as const, hint: '' })),
+    slots: SLOT_ORDER.map((key) => ({ key, family: 'red' as const, hint: '' })),
   };
 }
 

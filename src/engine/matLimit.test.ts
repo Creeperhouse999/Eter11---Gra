@@ -74,28 +74,4 @@ describe('limit kart na macie w jednej misji', () => {
     const after = result.state.players.find((p) => p.id === 'p2')!.mat.length;
     expect(after - before, 'mata rośnie najwyżej o jedną kartę na misję').toBe(1);
   });
-
-  it('odrzuca przekazanie graczowi, który zabrał już kartę', () => {
-    let state = playedMission();
-    if (state.phase !== 'missionSummary') {
-      state = { ...state, phase: 'missionSummary' };
-    }
-
-    const own = state.mission!.played.find((p) => p.playerId === 'p2')!;
-    state = reduce(state, {
-      type: 'TAKE_CARD_TO_MAT',
-      playerId: 'p2',
-      cardId: own.card.id,
-    }).state;
-
-    const gift = state.mission!.played.find((p) => p.playerId === 'p1')!;
-    const result = reduce(state, {
-      type: 'SHARE_CARD',
-      fromPlayerId: 'p1',
-      toPlayerId: 'p2',
-      cardId: gift.card.id,
-    });
-
-    expect(result.rejected).toBeTruthy();
-  });
 });

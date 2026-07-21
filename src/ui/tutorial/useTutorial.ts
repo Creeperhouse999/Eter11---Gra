@@ -32,6 +32,23 @@ export interface TutorialContext {
  * potem karty do zaznaczenia, na końcu przycisk potwierdzenia. Bez tego
  * podświetlenie zostawałoby na przycisku, który znika po włączeniu trybu.
  */
+/**
+ * Cele, na których gracz kładzie kartę.
+ *
+ * Lista sterowała trzema rzeczami naraz — podświetleniem celu, źródłem
+ * przeciągania i komunikatem o niepasującej karcie — i była przepisana
+ * w każdym z tych miejsc osobno. Rozjazd byłby niewidoczny do pierwszego
+ * zgłoszenia od gracza.
+ */
+const PLAY_GOALS: TutorialGoal[] = [
+  'selectCard',
+  'playFirst',
+  'playSecond',
+  'playThird',
+  'playAfterSwap',
+  'finish',
+];
+
 export function anchorFor(goal: TutorialGoal, context: TutorialContext): string | null {
   // Po wybraniu karty celujemy w konkretną ściankę, nie w całą planszę:
   // przy pięciu ściankach wokół karty „gdzieś tam" nie wystarcza.
@@ -43,8 +60,7 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
   if (
     context.cardSelected &&
     context.targetSlot &&
-    (goal === 'selectCard' || goal === 'playFirst' ||
-      goal === 'playSecond' || goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish')
+    PLAY_GOALS.includes(goal)
   ) {
     return `[data-slot="${context.targetSlot}"]`;
   }
@@ -75,7 +91,8 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
     playAfterSwap: '[data-tour="playable-card"]',
     finish: '[data-tour="problem"]',
     takeCard: '[data-tour="take-card"]',
-    // Krok podsumowujący nie wskazuje niczego — mówi o grze z innymi.
+    // Krok podsumowujący mówi o grze z innymi, więc nie ma własnego celu —
+    // podświetlamy stół, żeby dymek miał się przy czym ustawić.
     outro: '[data-tour="problem"]',
   };
   return anchors[goal];
@@ -91,9 +108,9 @@ export function anchorFor(goal: TutorialGoal, context: TutorialContext): string 
 export function sourceFor(goal: TutorialGoal, context: TutorialContext): string | null {
   if (!context.cardSelected || !context.targetSlot) return null;
 
-  const dragging =
-    goal === 'selectCard' || goal === 'playFirst' || goal === 'playSecond' ||
-    goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish';
+  // `selectCard` odpada: na tym kroku przeciąganie jest zablokowane
+  // (`allow: []`), więc wskazywanie źródła ruchu byłoby szumem.
+  const dragging = PLAY_GOALS.includes(goal) && goal !== 'selectCard';
 
   return dragging ? '[data-tour="selected-card"]' : null;
 }
@@ -148,22 +165,21 @@ export function isGoalMet(
 }
 
 /**
- * Wymiana ma trzy etapy i na każdym trzeba powiedzieć co innego.
- * Zwraca null, gdy krok nie dotyczy wymiany — wtedy używamy tekstu z kroku.
- */
-/**
  * Gracz wybrał kartę, która nie pasuje do żadnej wolnej ścianki.
  * Bez tego komunikatu samouczek stałby w miejscu bez wyjaśnienia dlaczego.
  */
 function wrongCardMessage(goal: TutorialGoal, context: TutorialContext): string | null {
-  const picking = goal === 'selectCard' || goal === 'playFirst' ||
-    goal === 'playSecond' || goal === 'playThird' || goal === 'playAfterSwap' || goal === 'finish';
+  const picking = PLAY_GOALS.includes(goal);
 
   if (!picking || !context.cardSelected || context.targetSlot !== null) return null;
 
   return 'Ta karta nie pasuje do żadnej wolnej ścianki — jej kolor nie zgadza się z żadnym. Wybierz inną.';
 }
 
+/**
+ * Wymiana ma trzy etapy i na każdym trzeba powiedzieć co innego.
+ * Zwraca null, gdy krok nie dotyczy wymiany — wtedy używamy tekstu z kroku.
+ */
 function swapStageMessage(goal: TutorialGoal, context: TutorialContext): string | null {
   if (goal !== 'swapCards' || !context.swapMode) return null;
 

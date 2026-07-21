@@ -5,9 +5,10 @@ import type { Card, Problem } from '../engine/types';
  *
  * To nie jest zwykła gra z podpowiedziami. Talia, ręka i problem są ustawione
  * tak, żeby każdy krok dało się wykonać — inaczej ETER11 kazałby położyć
- * kartę, której gracz nie ma. Scenariusz prowadzi przez cztery rzeczy:
- * dopasowanie koloru, zagranie karty, wymianę przy braku ruchu i domknięcie
- * problemu.
+ * kartę, której gracz nie ma. Scenariusz prowadzi przez sześć rzeczy:
+ * dopasowanie koloru, zagranie karty, wymianę przy braku ruchu, domknięcie
+ * problemu, zabranie karty na postać i to, czego solo pokazać się nie da —
+ * dawanie kart innym graczom.
  */
 
 export type TutorialGoal =
