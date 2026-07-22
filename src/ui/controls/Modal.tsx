@@ -10,6 +10,12 @@ interface ModalProps {
   footer?: ReactNode;
   /** Wariant ostrzegawczy — dla operacji nieodwracalnych. */
   tone?: 'default' | 'danger';
+  /**
+   * Warstwa nakładania. Zwykły modal to `modal`; okno potwierdzenia otwierane
+   * z wnętrza innego modalu bierze `confirm`, żeby je przykryć, a nie
+   * schować się pod nim.
+   */
+  layer?: 'modal' | 'confirm';
 }
 
 /**
@@ -19,7 +25,7 @@ interface ModalProps {
  * obco i nie da się go stylować. Tutaj mamy fokus uwięziony w oknie,
  * zamykanie Escape'em i wygląd spójny z resztą aplikacji.
  */
-export function Modal({ open, title, children, onClose, footer, tone = 'default' }: ModalProps) {
+export function Modal({ open, title, children, onClose, footer, tone = 'default', layer = 'modal' }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
@@ -76,7 +82,10 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
   const accent = tone === 'danger' ? 'var(--eter-danger)' : 'var(--eter-accent)';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: layer === 'confirm' ? 'var(--z-confirm)' : 'var(--z-modal)' }}
+    >
       <div
         className="eter-fade-in absolute inset-0 bg-bg/80 backdrop-blur-sm"
         onClick={onClose}

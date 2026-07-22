@@ -56,8 +56,8 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
         createPortal(
           <span
             role="tooltip"
-            className="eter-pop pointer-events-none fixed z-[60] -translate-x-1/2 whitespace-nowrap rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
-            style={{ top: box.top, left: box.left }}
+            className="eter-pop pointer-events-none fixed -translate-x-1/2 whitespace-nowrap rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
+            style={{ top: box.top, left: box.left, zIndex: 'var(--z-tooltip)' }}
           >
             {label}
           </span>,

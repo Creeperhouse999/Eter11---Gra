@@ -149,8 +149,8 @@ export function ColorPicker({ value, onChange, label, presets = [] }: ColorPicke
         createPortal(
           <div
             ref={panelRef}
-            className="eter-pop fixed z-50 w-58 rounded-lg border border-edge bg-surface p-3 shadow-2xl"
-            style={{ top: position.top, left: position.left, width: PANEL_WIDTH }}
+            className="eter-pop fixed w-58 rounded-lg border border-edge bg-surface p-3 shadow-2xl"
+            style={{ top: position.top, left: position.left, width: PANEL_WIDTH, zIndex: 'var(--z-dropdown)' }}
           >
             {/* Pole nasycenia i jasności */}
             <div

@@ -55,7 +55,8 @@ export function TopBanner({
   }, [autoHideMs, onDismiss, message]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center p-3">
+    <div className="pointer-events-none fixed inset-x-0 top-0 flex justify-center p-3"
+      style={{ zIndex: 'var(--z-toast)' }}>
       <div
         role={tone === 'danger' || tone === 'warning' ? 'alert' : 'status'}
         onClick={onDismiss}

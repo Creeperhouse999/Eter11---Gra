@@ -305,7 +305,10 @@ export function AdminApp() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-10 border-b border-edge bg-bg/95 backdrop-blur">
+      <header
+        className="sticky top-0 border-b border-edge bg-bg/95 backdrop-blur"
+        style={{ zIndex: 'var(--z-sticky)' }}
+      >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
             <span className="eter-label">Panel redakcyjny</span>

@@ -11,7 +11,6 @@ import { addReport } from '../firebase/reports';
 import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
-import { Modal } from '../ui/controls/Modal';
 import { Avatar } from './Avatar';
 import { ImageUpload } from './ImageUpload';
 import { useConfirm } from '../ui/controls/useConfirm';
@@ -162,6 +161,175 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
   // w otwartym oknie, czyli dokładnie tam, gdzie ktoś właśnie patrzy.
   const openThread = discussions.find((d) => d.id === openId) ?? null;
 
+  const renderThread = (thread: Discussion) => (
+          <div>
+            {/* Pierwsza wypowiedź — to, od czego wątek się zaczął —
+                jako zwykły wpis z awatarem, żeby rozmowa czytała się od góry
+                jednym ciągiem, a nie „nagłówek, potem czat". */}
+            <div className="flex gap-2.5 border-b border-edge pb-3">
+              <Avatar name={thread.author} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-bold">{thread.author}</span>
+                  <span className="font-mono text-[10px] text-ink-dim">
+                    {shortDate(thread.createdAt)}
+                  </span>
+                </div>
+                {thread.description && (
+                  <p
+                    className="whitespace-pre-wrap text-sm leading-relaxed"
+                    style={{ overflowWrap: 'anywhere' }}
+                  >
+                    {thread.description}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Na pełnym ekranie rozmowa przewija się razem ze stroną —
+                nie potrzebuje własnego okienka z paskiem. */}
+            <div className="mt-3 space-y-0.5">
+              {thread.messages.map((message, index) => {
+                // Grupowanie jak na Slacku: kolejne wypowiedzi tej samej osoby
+                // pod rząd dostają jeden awatar i nagłówek. Ściana powtórzonych
+                // imion i godzin męczy oko, a rozmowa czyta się jako bloki
+                // „kto mówił", nie jako lista osobnych karteczek.
+                const previous = thread.messages[index - 1];
+                const grouped = previous?.author === message.author;
+
+                return (
+                  <div key={index} className="flex gap-2.5 py-1">
+                    {grouped ? (
+                      <span className="w-8 shrink-0" />
+                    ) : (
+                      <Avatar name={message.author} size={32} />
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      {!grouped && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-bold">{message.author}</span>
+                          <span className="font-mono text-[10px] text-ink-dim">
+                            {shortDate(message.at)}
+                          </span>
+                        </div>
+                      )}
+
+                      {message.text && (
+                        <p
+                          className="whitespace-pre-wrap text-sm leading-relaxed"
+                          style={{ overflowWrap: 'anywhere' }}
+                        >
+                          {message.text}
+                        </p>
+                      )}
+
+                      {message.image && (
+                        <a
+                          href={message.image}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                        >
+                          <img src={message.image} alt="" className="w-full" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {!thread.closed && (
+              <div className="mt-3">
+                <TextArea
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  placeholder="Dopisz się do rozmowy…"
+                  aria-label="Twoja odpowiedź"
+                  rows={2}
+                />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <ImageUpload
+                    value={replyImages}
+                    onChange={setReplyImages}
+                    folder="discussions"
+                    max={1}
+                    namePrefix={`msg-${thread.id}-${author}`}
+                  />
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon="rocket"
+                    onClick={() => void send(thread)}
+                    // Sam obrazek bez słowa też jest wypowiedzią.
+                    disabled={replying || (reply.trim().length === 0 && replyImages.length === 0)}
+                  >
+                    {replying ? 'Wysyłam…' : 'Wyślij'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-edge pt-3">
+              <Button size="sm" icon="megaphone" onClick={() => void toReport(thread)}>
+                Zrób z tego zgłoszenie
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={thread.closed ? 'undo' : 'tick'}
+                onClick={() => void setDiscussionClosed(thread.id, !thread.closed)}
+              >
+                {thread.closed ? 'Otwórz ponownie' : 'Ustalone'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="trash"
+                className="text-danger"
+                onClick={() => void remove(thread)}
+              >
+                Usuń
+              </Button>
+            </div>
+          </div>
+  );
+
+  const back = () => {
+    setOpenId(null);
+    setReply('');
+    setReplyImages([]);
+  };
+
+  // Otwarty wątek zajmuje cały ekran, nie okno.
+  //
+  // Modal na telefonie miał sztywną wysokość i długa rozmowa nie mieściła się
+  // w nim — dolne wypowiedzi i przyciski wychodziły poza krawędź. Pełny ekran
+  // z paskiem „Wróć" na górze przewija się naturalnie i daje polu odpowiedzi
+  // całą dostępną szerokość.
+  if (openThread) {
+    return (
+      <section aria-label={`Wątek: ${openThread.title}`}>
+        {dialog}
+
+        <div
+          className="sticky top-0 -mx-4 mb-3 flex items-center gap-2 border-b border-edge bg-bg/95 px-4 py-2 backdrop-blur"
+          style={{ zIndex: 'var(--z-sticky)' }}
+        >
+          <Button variant="ghost" size="sm" icon="chevronDown" className="rotate-90" onClick={back}>
+            Wróć
+          </Button>
+          <span className="min-w-0 flex-1 truncate font-display font-bold">
+            {openThread.title}
+          </span>
+        </div>
+
+        {renderThread(openThread)}
+      </section>
+    );
+  }
+
   return (
     <section aria-label="Dyskusje">
       {/* Okno potwierdzenia usunięcia — własne, nie systemowe `confirm`. */}
@@ -268,152 +436,6 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
         ))}
       </div>
 
-      {/* Wątek w oknie, nie rozwijany na liście: rozmowa potrafi mieć
-          kilkadziesiąt wypowiedzi, a rozwinięta spychała pozostałe wątki
-          poza ekran i gubiła miejsce, w którym się było. */}
-      <Modal
-        open={openThread !== null}
-        title={openThread?.title ?? ''}
-        onClose={() => {
-          setOpenId(null);
-          setReply('');
-        }}
-      >
-        {openThread && (
-          <div>
-            {/* Pierwsza wypowiedź — to, od czego wątek się zaczął —
-                jako zwykły wpis z awatarem, żeby rozmowa czytała się od góry
-                jednym ciągiem, a nie „nagłówek, potem czat". */}
-            <div className="flex gap-2.5 border-b border-edge pb-3">
-              <Avatar name={openThread.author} size={32} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-bold">{openThread.author}</span>
-                  <span className="font-mono text-[10px] text-ink-dim">
-                    {shortDate(openThread.createdAt)}
-                  </span>
-                </div>
-                {openThread.description && (
-                  <p
-                    className="whitespace-pre-wrap text-sm leading-relaxed"
-                    style={{ overflowWrap: 'anywhere' }}
-                  >
-                    {openThread.description}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Długa rozmowa przewija się w oknie, a nie całą stroną —
-                pole odpowiedzi i przyciski zostają widoczne. */}
-            <div className="mt-3 max-h-[40vh] space-y-0.5 overflow-y-auto">
-              {openThread.messages.map((message, index) => {
-                // Grupowanie jak na Slacku: kolejne wypowiedzi tej samej osoby
-                // pod rząd dostają jeden awatar i nagłówek. Ściana powtórzonych
-                // imion i godzin męczy oko, a rozmowa czyta się jako bloki
-                // „kto mówił", nie jako lista osobnych karteczek.
-                const previous = openThread.messages[index - 1];
-                const grouped = previous?.author === message.author;
-
-                return (
-                  <div key={index} className="flex gap-2.5 py-1">
-                    {grouped ? (
-                      <span className="w-8 shrink-0" />
-                    ) : (
-                      <Avatar name={message.author} size={32} />
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      {!grouped && (
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-bold">{message.author}</span>
-                          <span className="font-mono text-[10px] text-ink-dim">
-                            {shortDate(message.at)}
-                          </span>
-                        </div>
-                      )}
-
-                      {message.text && (
-                        <p
-                          className="whitespace-pre-wrap text-sm leading-relaxed"
-                          style={{ overflowWrap: 'anywhere' }}
-                        >
-                          {message.text}
-                        </p>
-                      )}
-
-                      {message.image && (
-                        <a
-                          href={message.image}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
-                        >
-                          <img src={message.image} alt="" className="w-full" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {!openThread.closed && (
-              <div className="mt-3">
-                <TextArea
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  placeholder="Dopisz się do rozmowy…"
-                  aria-label="Twoja odpowiedź"
-                  rows={2}
-                />
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <ImageUpload
-                    value={replyImages}
-                    onChange={setReplyImages}
-                    folder="discussions"
-                    max={1}
-                    namePrefix={`msg-${openThread.id}-${author}`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    icon="rocket"
-                    onClick={() => void send(openThread)}
-                    // Sam obrazek bez słowa też jest wypowiedzią.
-                    disabled={replying || (reply.trim().length === 0 && replyImages.length === 0)}
-                  >
-                    {replying ? 'Wysyłam…' : 'Wyślij'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-edge pt-3">
-              <Button size="sm" icon="megaphone" onClick={() => void toReport(openThread)}>
-                Zrób z tego zgłoszenie
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={openThread.closed ? 'undo' : 'tick'}
-                onClick={() => void setDiscussionClosed(openThread.id, !openThread.closed)}
-              >
-                {openThread.closed ? 'Otwórz ponownie' : 'Ustalone'}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon="trash"
-                className="text-danger"
-                onClick={() => void remove(openThread)}
-              >
-                Usuń
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
     </section>
   );

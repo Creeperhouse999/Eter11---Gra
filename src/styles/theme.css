@@ -110,6 +110,25 @@
  * prefers-reduced-motion.
  */
 :root {
+  /*
+   * Warstwy nakładających się elementów, od najniższej.
+   *
+   * Wszystko leżało wcześniej na z-50, więc kolejność decydowała o tym, co
+   * w DOM jest później — a to znaczyło, że okno potwierdzenia usunięcia
+   * potrafiło wylądować POD treścią, którą przykrywało. Klik w „Usuń" trafiał
+   * wtedy w niewidoczną warstwę nad nim i nic nie robił.
+   *
+   * Potwierdzenie stoi nad modalem specjalnie: bywa otwierane z jego wnętrza
+   * („usunąć ten wątek?") i musi je przykryć. Toast i podpowiedź nad
+   * wszystkim, bo są chwilowe i nie da się w nie kliknąć.
+   */
+  --z-sticky: 10;
+  --z-dropdown: 40;
+  --z-modal: 50;
+  --z-confirm: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+
   --eter-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --eter-fast: 160ms;
   --eter-normal: 260ms;

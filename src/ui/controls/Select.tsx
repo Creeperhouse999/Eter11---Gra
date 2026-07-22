@@ -199,8 +199,8 @@ export function Select<T extends string>({
             ref={listRef}
             role="listbox"
             aria-label={ariaLabel ?? label}
-            className="eter-pop fixed z-50 max-h-64 overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
-            style={{ top: position.top, left: position.left, width: position.width }}
+            className="eter-pop fixed max-h-64 overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
+            style={{ top: position.top, left: position.left, width: position.width, zIndex: 'var(--z-dropdown)' }}
           >
             {options.map((option, index) => {
               const isSelected = option.value === value;

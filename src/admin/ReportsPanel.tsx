@@ -15,7 +15,6 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { ImageUpload } from './ImageUpload';
-import { Modal } from '../ui/controls/Modal';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
 const KIND_OPTIONS = [
@@ -241,6 +240,213 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
   // odświeżać na miejscu.
   const openReport = reports.find((r) => r.id === openId) ?? null;
 
+  const back = () => {
+    setOpenId(null);
+    setCommenting(null);
+    setComment('');
+  };
+
+  const renderReport = (report: Report) => (
+          <div>
+            <p className="font-mono text-[11px] text-ink-dim">
+              {KIND_LABELS[report.kind]} ·{' '}
+              {STATUS_TABS.find((s) => s.id === report.status)?.label ?? report.status}
+              {' · '}
+              {formatDate(report.createdAt)}
+              {report.author && ` · ${report.author}`}
+            </p>
+
+            {report.description && (
+              <p
+                className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
+                style={{ overflowWrap: 'anywhere' }}
+              >
+                {report.description}
+              </p>
+            )}
+
+            {(report.images?.length ?? 0) > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {report.images!.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="h-24 w-24 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                  >
+                    <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Rozmowa: naprawiam → sprawdzam → potwierdzam albo odsyłam.
+                Bez niej druga próba naprawy zaczyna od zera. */}
+            {(report.notes?.length ?? 0) > 0 && (
+              <div className="mt-4 space-y-2">
+                {report.notes!.map((note, index) => {
+                  // Dwie strony rozmowy po przeciwnych krawędziach, jak w
+                  // komunikatorze: programista po lewej, zgłaszający po prawej.
+                  // Kierunek niesie sens obiegu — „naprawiłem" wychodzi od
+                  // programisty, „dalej nie działa" wraca od zgłaszającego —
+                  // więc widać go, zanim przeczyta się podpis.
+                  const dev = note.from === 'dev';
+                  return (
+                    <div
+                      key={index}
+                      className={dev ? 'flex justify-start' : 'flex justify-end'}
+                    >
+                      <div
+                        className="max-w-[80%] rounded-lg p-2.5"
+                        style={{
+                          background: dev ? 'var(--eter-raised)' : 'var(--eter-surface)',
+                          border: dev ? 'none' : '1px solid var(--eter-edge)',
+                        }}
+                      >
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span
+                            className="text-xs font-bold"
+                            style={{
+                              color: dev
+                                ? 'var(--eter-accent)'
+                                : 'var(--eter-cat-social)',
+                            }}
+                          >
+                            {dev ? 'programista' : 'zgłaszający'}
+                          </span>
+                          <span className="font-mono text-[10px] text-ink-dim">
+                            {formatDate(note.at)}
+                          </span>
+                        </div>
+                        <p
+                          className="mt-1 whitespace-pre-wrap text-sm leading-snug"
+                          style={{ overflowWrap: 'anywhere' }}
+                        >
+                          {note.text}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {commenting === report.id && (
+              <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
+                <TextArea
+                  label="Co dokładnie nadal nie działa?"
+                  value={comment}
+                  rows={3}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
+                />
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={comment.trim().length === 0}
+                    onClick={() => void changeStatus(report, 'rejected')}
+                  >
+                    Odeślij do poprawki
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setCommenting(null);
+                      setComment('');
+                    }}
+                  >
+                    Anuluj
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-edge pt-3">
+              {(report.status === 'new' || report.status === 'rejected') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon="flask"
+                  onClick={() => void changeStatus(report, 'fixed', 'dev')}
+                >
+                  Naprawione
+                </Button>
+              )}
+
+              {report.status === 'fixed' && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon="tick"
+                    onClick={() => void changeStatus(report, 'done')}
+                  >
+                    Działa
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="undo"
+                    className="text-danger"
+                    onClick={() => {
+                      setCommenting(report.id);
+                      setComment('');
+                    }}
+                  >
+                    Dalej nie działa
+                  </Button>
+                </>
+              )}
+
+              {report.status === 'done' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="undo"
+                  onClick={() => void changeStatus(report, 'new')}
+                >
+                  Otwórz ponownie
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="trash"
+                className="ml-auto text-danger"
+                onClick={() => void remove(report)}
+              >
+                Usuń
+              </Button>
+            </div>
+          </div>
+  );
+
+  // Otwarte zgłoszenie na cały ekran, jak wątek dyskusji — modal na
+  // telefonie obcinał długą rozmowę i przyciski statusu.
+  if (openReport) {
+    return (
+      <section aria-label={`Zgłoszenie: ${openReport.title}`}>
+        {dialog}
+        <div
+          className="sticky top-0 -mx-4 mb-3 flex items-center gap-2 border-b border-edge bg-bg/95 px-4 py-2 backdrop-blur"
+          style={{ zIndex: 'var(--z-sticky)' }}
+        >
+          <Button variant="ghost" size="sm" icon="chevronDown" className="rotate-90" onClick={back}>
+            Wróć
+          </Button>
+          <span className="min-w-0 flex-1 truncate font-display font-bold">
+            {openReport.title}
+          </span>
+        </div>
+        {renderReport(openReport)}
+      </section>
+    );
+  }
+
   return (
     <section>
       {dialog}
@@ -405,198 +611,6 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
         </ul>
       )}
 
-      {/* Szczegóły zgłoszenia w oknie: opis, zrzuty, rozmowa
-          programista↔zgłaszający i akcje statusu w jednym miejscu.
-          Na liście zostają same tytuły, żeby dziesięć zgłoszeń mieściło się
-          na ekranie zamiast rozjeżdżać się na całą stronę. */}
-      <Modal
-        open={openReport !== null}
-        title={openReport?.title ?? ''}
-        onClose={() => {
-          setOpenId(null);
-          setCommenting(null);
-          setComment('');
-        }}
-      >
-        {openReport && (
-          <div>
-            <p className="font-mono text-[11px] text-ink-dim">
-              {KIND_LABELS[openReport.kind]} ·{' '}
-              {STATUS_TABS.find((s) => s.id === openReport.status)?.label ?? openReport.status}
-              {' · '}
-              {formatDate(openReport.createdAt)}
-              {openReport.author && ` · ${openReport.author}`}
-            </p>
-
-            {openReport.description && (
-              <p
-                className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ overflowWrap: 'anywhere' }}
-              >
-                {openReport.description}
-              </p>
-            )}
-
-            {(openReport.images?.length ?? 0) > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {openReport.images!.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="h-24 w-24 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
-                  >
-                    <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
-                  </a>
-                ))}
-              </div>
-            )}
-
-            {/* Rozmowa: naprawiam → sprawdzam → potwierdzam albo odsyłam.
-                Bez niej druga próba naprawy zaczyna od zera. */}
-            {(openReport.notes?.length ?? 0) > 0 && (
-              <div className="mt-4 space-y-2">
-                {openReport.notes!.map((note, index) => {
-                  // Dwie strony rozmowy po przeciwnych krawędziach, jak w
-                  // komunikatorze: programista po lewej, zgłaszający po prawej.
-                  // Kierunek niesie sens obiegu — „naprawiłem" wychodzi od
-                  // programisty, „dalej nie działa" wraca od zgłaszającego —
-                  // więc widać go, zanim przeczyta się podpis.
-                  const dev = note.from === 'dev';
-                  return (
-                    <div
-                      key={index}
-                      className={dev ? 'flex justify-start' : 'flex justify-end'}
-                    >
-                      <div
-                        className="max-w-[80%] rounded-lg p-2.5"
-                        style={{
-                          background: dev ? 'var(--eter-raised)' : 'var(--eter-surface)',
-                          border: dev ? 'none' : '1px solid var(--eter-edge)',
-                        }}
-                      >
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span
-                            className="text-xs font-bold"
-                            style={{
-                              color: dev
-                                ? 'var(--eter-accent)'
-                                : 'var(--eter-cat-social)',
-                            }}
-                          >
-                            {dev ? 'programista' : 'zgłaszający'}
-                          </span>
-                          <span className="font-mono text-[10px] text-ink-dim">
-                            {formatDate(note.at)}
-                          </span>
-                        </div>
-                        <p
-                          className="mt-1 whitespace-pre-wrap text-sm leading-snug"
-                          style={{ overflowWrap: 'anywhere' }}
-                        >
-                          {note.text}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {commenting === openReport.id && (
-              <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
-                <TextArea
-                  label="Co dokładnie nadal nie działa?"
-                  value={comment}
-                  rows={3}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
-                />
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    disabled={comment.trim().length === 0}
-                    onClick={() => void changeStatus(openReport, 'rejected')}
-                  >
-                    Odeślij do poprawki
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setCommenting(null);
-                      setComment('');
-                    }}
-                  >
-                    Anuluj
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-edge pt-3">
-              {(openReport.status === 'new' || openReport.status === 'rejected') && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  icon="flask"
-                  onClick={() => void changeStatus(openReport, 'fixed', 'dev')}
-                >
-                  Naprawione
-                </Button>
-              )}
-
-              {openReport.status === 'fixed' && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    icon="tick"
-                    onClick={() => void changeStatus(openReport, 'done')}
-                  >
-                    Działa
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    icon="undo"
-                    className="text-danger"
-                    onClick={() => {
-                      setCommenting(openReport.id);
-                      setComment('');
-                    }}
-                  >
-                    Dalej nie działa
-                  </Button>
-                </>
-              )}
-
-              {openReport.status === 'done' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon="undo"
-                  onClick={() => void changeStatus(openReport, 'new')}
-                >
-                  Otwórz ponownie
-                </Button>
-              )}
-
-              <Button
-                size="sm"
-                variant="ghost"
-                icon="trash"
-                className="ml-auto text-danger"
-                onClick={() => void remove(openReport)}
-              >
-                Usuń
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </section>
   );
 }

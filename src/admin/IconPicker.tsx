@@ -124,8 +124,8 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
         createPortal(
           <div
             ref={panelRef}
-            className="eter-pop fixed z-50 w-72 rounded-lg border border-edge bg-surface p-3 shadow-2xl"
-            style={{ top: position.top, left: position.left }}
+            className="eter-pop fixed w-72 rounded-lg border border-edge bg-surface p-3 shadow-2xl"
+            style={{ top: position.top, left: position.left, zIndex: 'var(--z-dropdown)' }}
           >
             <TextField
               value={query}

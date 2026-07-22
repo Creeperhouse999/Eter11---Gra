@@ -61,6 +61,7 @@ export function useConfirm() {
 
   const dialog = (
     <Modal
+      layer="confirm"
       open={pending !== null}
       title={pending?.title ?? ''}
       tone={pending?.tone ?? 'default'}

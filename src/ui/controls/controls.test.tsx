@@ -46,6 +46,36 @@ describe('Checkbox', () => {
 
 
 
+describe('warstwy z-index', () => {
+  // Wszystko leżało na z-50, więc okno potwierdzenia usunięcia potrafiło
+  // wylądować pod treścią i „Usuń" nie działał. Skala warstw musi zachować
+  // porządek: potwierdzenie nad modalem, toast i podpowiedź nad wszystkim.
+  const css = require('node:fs').readFileSync(
+    require('node:path').join(process.cwd(), 'src/styles/theme.css'),
+    'utf-8',
+  );
+
+  const value = (name: string): number => {
+    // Szukamy `--nazwa: 50;` w arkuszu i zwracamy liczbę.
+    const line = css.split(/\n/).find((l: string) => l.includes(`--${name}:`));
+    const digits = line?.replace(/[^0-9]/g, '');
+    return digits ? Number(digits) : NaN;
+  };
+
+  it('potwierdzenie stoi nad modalem', () => {
+    expect(value('z-confirm')).toBeGreaterThan(value('z-modal'));
+  });
+
+  it('modal stoi nad listą rozwijaną', () => {
+    expect(value('z-modal')).toBeGreaterThan(value('z-dropdown'));
+  });
+
+  it('toast i podpowiedź nad wszystkim', () => {
+    expect(value('z-toast')).toBeGreaterThan(value('z-confirm'));
+    expect(value('z-tooltip')).toBeGreaterThan(value('z-toast'));
+  });
+});
+
 describe('Select', () => {
   const options = [
     { value: 'a', label: 'Pierwsza' },
