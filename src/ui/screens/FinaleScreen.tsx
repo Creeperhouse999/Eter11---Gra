@@ -99,7 +99,9 @@ export function FinaleScreen({
         </div>
       </section>
 
-      <section className="relative mt-6 space-y-4">
+      {/* Wyniki wchodzą jedna karta po drugiej — koniec gry ma być momentem,
+          nie ścianą tekstu naraz. */}
+      <section className="eter-stagger relative mt-6 space-y-4">
         <h2 className="font-display text-xl font-bold">Wyniki indywidualne</h2>
         <LearningSummary state={state} />
 
