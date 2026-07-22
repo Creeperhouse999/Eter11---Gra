@@ -25,7 +25,7 @@ export type IconName =
   | 'flask' | 'crystal' | 'handsOpen' | 'flag' | 'microscope' | 'crane'
   | 'columns' | 'sunrise' | 'elder' | 'rocket'
   // Karty specjalne
-  | 'spark' | 'swan'
+  | 'spark' | 'swan' | 'arrowLeft'
   // Problemy
   | 'park' | 'web' | 'robotFace' | 'gear' | 'plug' | 'phone' | 'planet'
   | 'city' | 'bubbles' | 'clash' | 'wheat' | 'wave' | 'virus'
@@ -156,6 +156,7 @@ const PATHS: Record<IconName, string> = {
   tick: 'm5 13 4.5 4.5L19 7',
   close: 'M6 6l12 12M18 6 6 18',
   chevronDown: 'm6 9 6 6 6-6',
+  arrowLeft: 'M19 12H5m0 0 6-6m-6 6 6 6',
   warning: 'M12 4 2.5 20h19L12 4Zm0 6v5m0 3h.01',
   info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5h.01M11 12h1v5h1',
   dot: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',

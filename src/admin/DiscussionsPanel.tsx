@@ -317,7 +317,7 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
           className="sticky top-0 -mx-4 mb-3 flex items-center gap-2 border-b border-edge bg-bg/95 px-4 py-2 backdrop-blur"
           style={{ zIndex: 'var(--z-sticky)' }}
         >
-          <Button variant="ghost" size="sm" icon="chevronDown" className="rotate-90" onClick={back}>
+          <Button variant="ghost" size="sm" icon="arrowLeft" onClick={back}>
             Wróć
           </Button>
           <span className="min-w-0 flex-1 truncate font-display font-bold">
