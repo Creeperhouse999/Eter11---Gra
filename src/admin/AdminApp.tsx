@@ -88,6 +88,13 @@ export function AdminApp() {
 
   const isTab = (value: string): value is Tab => TABS.some((t) => t.key === value);
   useTabRoute(tab, setTab, isTab);
+
+  // Nowa zakładka zaczyna się od góry. Bez tego przejście z długiej listy
+  // (karty) na krótszą (konto) zostawiało widok przewinięty w połowie, na
+  // pustce pod treścią.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);

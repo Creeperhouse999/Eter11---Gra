@@ -5,7 +5,6 @@ import { useTabRoute } from './useTabRoute';
 
 type Tab = 'overview' | 'reports' | 'discussions';
 const TABS: Tab[] = ['overview', 'reports', 'discussions'];
-const isTab = (v: string): v is Tab => (TABS as string[]).includes(v);
 
 /** Komponent testowy: wystawia setter, żeby test mógł zmienić zakładkę. */
 let setter: (tab: Tab) => void;
