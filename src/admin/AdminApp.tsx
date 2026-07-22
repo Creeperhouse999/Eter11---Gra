@@ -31,6 +31,7 @@ import { StoryEditor } from './StoryEditor';
 import { CategoryEditor } from './CategoryEditor';
 import { IconEditor } from './IconEditor';
 import { setCategoryStyles, setCustomIcons } from '../ui/components/categoryStyles';
+import { useTabRoute } from './useTabRoute';
 import { ThemeEditor } from './ThemeEditor';
 import { useAdminAuth } from './useAdminAuth';
 
@@ -77,7 +78,16 @@ export function AdminApp() {
   const auth = useAdminAuth();
   const [content, setContent] = useState<GameContent>(BUILTIN_CONTENT);
   const [savedContent, setSavedContent] = useState<GameContent>(BUILTIN_CONTENT);
-  const [tab, setTab] = useState<Tab>('overview');
+  // Zakładkę zaczynamy od tej z adresu — wejście na /admin/discussions
+  // otwiera dyskusje, nie przegląd.
+  const initialTab = (): Tab => {
+    const slug = window.location.pathname.replace(/^\/admin\/?/, '').split('/')[0];
+    return TABS.some((t) => t.key === slug) ? (slug as Tab) : 'overview';
+  };
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  const isTab = (value: string): value is Tab => TABS.some((t) => t.key === value);
+  useTabRoute(tab, setTab, isTab);
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
