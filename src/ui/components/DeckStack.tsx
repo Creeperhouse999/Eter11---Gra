@@ -44,6 +44,9 @@ export function DeckStack({ count, label, icon = 'spark' }: DeckStackProps) {
   // kart, ale najwyżej pięć — pełna talia i tak wygląda jak „gruby stos".
   const layers = Math.max(1, Math.min(5, Math.ceil(count / 12)));
   const empty = count === 0;
+  // Ostrzeżenie, gdy kart zostało mało — próg niski, bo talia krąży
+  // (odrzucone wracają), więc realne wyczerpanie jest rzadkie.
+  const low = count > 0 && count <= 5;
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -69,10 +72,15 @@ export function DeckStack({ count, label, icon = 'spark' }: DeckStackProps) {
               />
             ))}
 
-            {/* Wierzch stosu z ikoną — to on „odlatuje" wizualnie. */}
+            {/* Wierzch stosu z ikoną — to on „odlatuje" wizualnie.
+                Gdy kart zostało mało, świeci ostrzegawczo: dziecko widzi, że
+                talia się kończy, zanim się skończy. */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 flex items-center justify-center rounded-md border border-accent/40 text-accent"
+              className={[
+                'absolute inset-0 flex items-center justify-center rounded-md border',
+                low ? 'border-accent-2 text-accent-2' : 'border-accent/40 text-accent',
+              ].join(' ')}
               style={{
                 transform: `translate(${(layers - 1) * 1.5}px, ${-(layers - 1) * 1.5}px)`,
                 background: 'var(--eter-surface)',

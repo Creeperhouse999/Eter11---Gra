@@ -35,6 +35,18 @@ describe('DeckStack', () => {
     expect(container.querySelectorAll('.eter-deck-fly')).toHaveLength(3);
   });
 
+  it('mała talia świeci ostrzegawczo', () => {
+    // Kart zostało mało — wierzch stosu dostaje kolor ostrzegawczy, żeby
+    // dziecko widziało, że talia się kończy.
+    const { container } = render(<DeckStack count={4} label="Talia" />);
+    expect(container.querySelector('.border-accent-2')).not.toBeNull();
+  });
+
+  it('pełna talia nie świeci ostrzegawczo', () => {
+    const { container } = render(<DeckStack count={40} label="Talia" />);
+    expect(container.querySelector('.border-accent-2')).toBeNull();
+  });
+
   it('pusta talia pokazuje etykietę z zerem', () => {
     const { container } = render(<DeckStack count={0} label="Talia" />);
     expect(container.textContent).toContain('Talia · 0');
