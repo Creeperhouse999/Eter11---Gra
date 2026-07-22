@@ -48,15 +48,21 @@ service cloud.firestore {
       // zgłoszenia — zamyka je ten, kto je napisał.
       allow update: if zalogowany();
 
+      // `images` opcjonalne: adresy zrzutów ekranu wgranych do Storage.
+      // Najwyżej pięć, bo tyle mieści formularz zgłoszenia — reszta ograniczeń
+      // jak wcześniej.
       allow create: if request.resource.data.keys().hasOnly(
-                         ['kind', 'title', 'description', 'author', 'status', 'createdAt'])
+                         ['kind', 'title', 'description', 'author', 'status', 'createdAt', 'images'])
                     && request.resource.data.kind in ['bug', 'idea']
                     && request.resource.data.status == 'new'
                     && request.resource.data.title is string
                     && request.resource.data.title.size() > 0
                     && request.resource.data.title.size() <= 120
                     && request.resource.data.description is string
-                    && request.resource.data.description.size() <= 4000;
+                    && request.resource.data.description.size() <= 4000
+                    && (!('images' in request.resource.data)
+                        || (request.resource.data.images is list
+                            && request.resource.data.images.size() <= 5));
     }
 
     /**

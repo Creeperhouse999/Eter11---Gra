@@ -41,6 +41,8 @@ export interface Report {
   status: ReportStatus;
   author?: string;
   createdAt: string;
+  /** Adresy zrzutów ekranu wgranych do Storage. Najwyżej pięć. */
+  images?: string[];
   /** Rozmowa o zgłoszeniu: co naprawiono, co dalej nie działa. */
   notes?: ReportNote[];
 }
@@ -52,6 +54,7 @@ export async function addReport(input: {
   title: string;
   description: string;
   author?: string;
+  images?: string[];
 }): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz tytuł zgłoszenia.' };
@@ -64,6 +67,9 @@ export async function addReport(input: {
       author: input.author?.trim() ?? '',
       status: 'new' satisfies ReportStatus,
       createdAt: new Date().toISOString(),
+      // Puste pole pomijamy: reguły dopuszczają `images`, ale pusta lista
+      // niczego nie wnosi, a odczyt i tak podstawia [].
+      ...(input.images?.length ? { images: input.images.slice(0, 5) } : {}),
       // Bez `notes`: reguły dopuszczają dokładnie sześć pól, a pusta lista
       // niczego nie wnosi — odczyt i tak podstawia `[]`, gdy pola brakuje.
       // Wysyłanie jej odrzucało KAŻDE zgłoszenie z błędem uprawnień, czyli
@@ -91,6 +97,7 @@ export async function loadReports(): Promise<Report[]> {
       status: (data.status as ReportStatus) ?? 'new',
       author: (data.author as string) ?? undefined,
       createdAt: (data.createdAt as string) ?? '',
+      images: (data.images as string[]) ?? [],
       notes: (data.notes as ReportNote[]) ?? [],
     };
   });

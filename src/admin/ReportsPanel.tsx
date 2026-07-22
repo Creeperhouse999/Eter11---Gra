@@ -14,6 +14,7 @@ import { TextArea, TextField } from '../ui/controls/Field';
 import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
+import { ImageUpload } from './ImageUpload';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
 const KIND_OPTIONS = [
@@ -113,6 +114,8 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
   const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Zrzuty ekranu dołączone do nowego zgłoszenia. */
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [kind, setKind] = useState<ReportKind>('bug');
@@ -147,7 +150,7 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
 
   const submit = async () => {
     setSending(true);
-    const result = await addReport({ kind, title, description, author });
+    const result = await addReport({ kind, title, description, author, images });
     setSending(false);
 
     if (!result.ok) {
@@ -157,6 +160,7 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
 
     setTitle('');
     setDescription('');
+    setImages([]);
     toast('Zgłoszenie zapisane.', 'success');
     void refresh();
   };
@@ -269,6 +273,17 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
           placeholder="Co dokładnie, w którym miejscu, co powinno się wydarzyć zamiast tego."
           onChange={(e) => setDescription(e.target.value)}
         />
+
+        <div className="mt-3">
+          <ImageUpload
+            label="Zrzuty ekranu (do 5)"
+            value={images}
+            onChange={setImages}
+            folder="reports"
+            max={5}
+            namePrefix={`report-${author || 'anon'}`}
+          />
+        </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs text-ink-dim">
@@ -436,6 +451,24 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
                 >
                   {report.description}
                 </p>
+              )}
+
+              {/* Zrzuty ekranu. Klik otwiera pełny obraz w nowej karcie —
+                  na miniaturze błąd bywa nieczytelny, a to on jest sednem. */}
+              {(report.images?.length ?? 0) > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {report.images!.map((url) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-20 w-20 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                    >
+                      <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
               )}
 
               {/* Historia rozmowy — bez niej druga próba naprawy zaczyna
