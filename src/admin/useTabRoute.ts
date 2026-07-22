@@ -48,10 +48,26 @@ export function useTabRoute<T extends string>(
 
   // Zakładka → adres. Nowy wpis w historii, żeby „wstecz" wracał do
   // poprzedniej zakładki, a nie wychodził z panelu.
+  const first = useRef(true);
   useEffect(() => {
     const target = `/admin/${tab}`;
-    if (window.location.pathname !== target) {
+    if (window.location.pathname === target) {
+      first.current = false;
+      return;
+    }
+
+    // Pierwsze wyrównanie zastępuje adres, nie dopisuje go.
+    //
+    // Wejście na goły `/admin` ustawia zakładkę „overview" i musi poprawić
+    // adres na `/admin/overview`. Gdyby to był `pushState`, „wstecz" wróciłby
+    // na `/admin`, co natychmiast znów dopisałoby `/admin/overview` — przycisk
+    // wstecz utknąłby w pętli. `replaceState` przy pierwszym wyrównaniu tego
+    // nie robi; kolejne przełączenia zakładek dopisują wpisy normalnie.
+    if (first.current) {
+      window.history.replaceState(null, '', target);
+    } else {
       window.history.pushState(null, '', target);
     }
+    first.current = false;
   }, [tab]);
 }

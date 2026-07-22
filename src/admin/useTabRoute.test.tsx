@@ -68,6 +68,18 @@ describe('routing zakładek', () => {
     expect(window.location.pathname).toBe('/admin/reports');
   });
 
+  it('goły /admin poprawia adres bez dopisywania wpisu', () => {
+    // Wejście na /admin ustawia overview i musi poprawić adres — ale przez
+    // zamianę, nie dopisanie. Inaczej „wstecz" wracałby na /admin i pętlił.
+    window.history.pushState(null, '', '/admin');
+    const before = window.history.length;
+    render(<Probe />);
+
+    expect(window.location.pathname).toBe('/admin/overview');
+    // replaceState nie zwiększa długości historii; pushState by zwiększył.
+    expect(window.history.length).toBe(before);
+  });
+
   it('nieznany slug nie zmienia zakładki', () => {
     window.history.pushState(null, '', '/admin/nie-ma-takiej');
     const { getByTestId } = render(<Probe />);
