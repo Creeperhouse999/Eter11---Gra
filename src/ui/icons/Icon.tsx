@@ -36,7 +36,12 @@ export type IconName =
   | 'tick' | 'close' | 'chevronDown' | 'warning' | 'info' | 'dot' | 'eyeOn';
 
 interface IconProps {
-  name: IconName;
+  /**
+   * Nazwa ikony z zestawu albo `url:…` dla ikony wgranej przez zespół.
+   * Typ dopuszcza dowolny łańcuch, bo własne ikony nie są znane w czasie
+   * kompilacji — Icon sam rozpoznaje, z czym ma do czynienia.
+   */
+  name: IconName | (string & {});
   /** Rozmiar w pikselach. */
   size?: number;
   className?: string;
@@ -156,7 +161,34 @@ const PATHS: Record<IconName, string> = {
   dot: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
 };
 
+/** Prefiks nazwy własnej ikony — po nim odróżniamy URL od klucza z zestawu. */
+export const CUSTOM_ICON_PREFIX = 'url:';
+
 export function Icon({ name, size = 20, className, label }: IconProps) {
+  // Własna ikona: nazwa to `url:https://…`. Renderujemy jako obraz, nie
+  // ścieżkę — to bitmapa albo obcy SVG, którego nie da się wpisać w `path`.
+  // Kolor `currentColor` na niej nie działa, więc własne ikony niosą swój
+  // wygląd same, w przeciwieństwie do wbudowanych.
+  if (typeof name === 'string' && name.startsWith(CUSTOM_ICON_PREFIX)) {
+    return (
+      <img
+        src={name.slice(CUSTOM_ICON_PREFIX.length)}
+        width={size}
+        height={size}
+        alt={label ?? ''}
+        aria-hidden={label ? undefined : true}
+        className={className}
+        style={{ objectFit: 'contain' }}
+      />
+    );
+  }
+
+  // Nieznana nazwa nie może wywalić całego ekranu — brak ikony to pusty
+  // kwadrat, nie biały ekran. Zdarza się, gdy zawartość odwołuje się do
+  // ikony usuniętej z zestawu.
+  const path = PATHS[name as IconName];
+  if (!path) return null;
+
   return (
     <svg
       width={size}
@@ -173,7 +205,7 @@ export function Icon({ name, size = 20, className, label }: IconProps) {
       aria-hidden={label ? undefined : true}
       focusable="false"
     >
-      <path d={PATHS[name]} />
+      <path d={path} />
     </svg>
   );
 }

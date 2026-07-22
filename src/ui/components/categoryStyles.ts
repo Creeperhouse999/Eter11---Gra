@@ -1,6 +1,5 @@
 import { DEFAULT_CATEGORIES, type CategoryMap } from '../../data/categories';
 import type { CardCategory, ProblemType, SlotKey } from '../../engine/types';
-import type { IconName } from '../icons/Icon';
 
 /**
  * Nazwy i ikony kategorii, ustawiane raz po wczytaniu zawartości.
@@ -14,6 +13,23 @@ import type { IconName } from '../icons/Icon';
  * poprawnie także wtedy, gdy Firestore jeszcze nie odpowiedział.
  */
 let categories: CategoryMap = DEFAULT_CATEGORIES;
+
+/**
+ * Własne ikony wgrane przez zespół.
+ *
+ * Rejestr modułowy z tego samego powodu co nazwy kategorii: wybór ikony
+ * jest w kilku edytorach, a przewlekanie listy przez props do każdego
+ * z nich zamieniłoby dodanie ikony w przebudowę połowy panelu.
+ */
+let customIcons: Array<{ name: string; url: string }> = [];
+
+export function setCustomIcons(next?: Array<{ name: string; url: string }>): void {
+  customIcons = next ?? [];
+}
+
+export function getCustomIcons(): Array<{ name: string; url: string }> {
+  return customIcons;
+}
 
 /** Podmienia nazwy i ikony kategorii na te z panelu redakcyjnego. */
 export function setCategoryStyles(next?: Partial<CategoryMap>): void {
@@ -79,7 +95,7 @@ export function isCompetence(category: string): boolean {
   return (COMPETENCE_CATEGORIES as readonly string[]).includes(category);
 }
 
-export function slotIcon(slot: SlotKey): IconName {
+export function slotIcon(slot: SlotKey): string {
   return categories[slot]?.icon ?? DEFAULT_CATEGORIES[slot].icon;
 }
 

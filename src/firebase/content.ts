@@ -27,6 +27,7 @@ function migrate(raw: Record<string, unknown>): GameContent {
       ...BUILTIN_CONTENT.categories,
       ...(raw.categories as object),
     } as GameContent['categories'],
+    customIcons: (raw.customIcons as GameContent['customIcons']) ?? [],
     intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
     tutorial: (raw.tutorial as GameContent['tutorial'])?.length
       ? (raw.tutorial as GameContent['tutorial'])

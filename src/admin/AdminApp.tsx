@@ -29,7 +29,8 @@ import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
 import { StoryEditor } from './StoryEditor';
 import { CategoryEditor } from './CategoryEditor';
-import { setCategoryStyles } from '../ui/components/categoryStyles';
+import { IconEditor } from './IconEditor';
+import { setCategoryStyles, setCustomIcons } from '../ui/components/categoryStyles';
 import { ThemeEditor } from './ThemeEditor';
 import { useAdminAuth } from './useAdminAuth';
 
@@ -39,6 +40,7 @@ type Tab =
   | 'cards'
   | 'families'
   | 'categories'
+  | 'icons'
   | 'characters'
   | 'rules'
   | 'text'
@@ -57,6 +59,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
   { key: 'families', label: 'Rodziny', icon: 'palette' },
   { key: 'categories', label: 'Kategorie', icon: 'clipboard' },
+  { key: 'icons', label: 'Ikony', icon: 'palette' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
@@ -154,6 +157,7 @@ export function AdminApp() {
   // pisałby w ciemno i sprawdzał efekt dopiero po wdrożeniu.
   useEffect(() => {
     setCategoryStyles(content.categories);
+    setCustomIcons(content.customIcons);
   }, [content.categories]);
 
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
@@ -527,6 +531,12 @@ export function AdminApp() {
           <CategoryEditor
             categories={content.categories}
             onChange={(categories) => update({ categories })}
+          />
+        )}
+        {tab === 'icons' && (
+          <IconEditor
+            icons={content.customIcons}
+            onChange={(customIcons) => update({ customIcons })}
           />
         )}
         {tab === 'story' && (

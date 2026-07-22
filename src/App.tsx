@@ -1,4 +1,4 @@
-import { setCategoryStyles } from './ui/components/categoryStyles';
+import { setCategoryStyles, setCustomIcons } from './ui/components/categoryStyles';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { applyTheme } from './data/theme';
 import { BUILTIN_CONTENT } from './data/builtinContent';
@@ -83,6 +83,7 @@ function Game() {
         // w tym funkcje bez dostępu do Reacta — stąd rejestr modułowy
         // ustawiany raz, zamiast właściwości wleczonej przez całe drzewo.
         setCategoryStyles(result.content.categories);
+        setCustomIcons(result.content.customIcons);
         // Pusta baza to stan normalny — gra ma komplet kart w kodzie.
         // Gracza informujemy tylko wtedy, gdy coś naprawdę poszło nie tak.
         if (result.reason === 'unreachable' || result.reason === 'invalid') {

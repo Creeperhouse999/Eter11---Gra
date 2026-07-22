@@ -1,5 +1,4 @@
 import type { CardCategory } from '../engine/types';
-import type { IconName } from '../ui/icons/Icon';
 
 /**
  * Rodziny kart — drugi wymiar obok kategorii.
@@ -22,7 +21,8 @@ export interface Family {
   /** Nazwa rodziny w obrębie kategorii, np. „Siła wewnętrzna". */
   name: string;
   color: string;
-  icon: IconName;
+  /** Nazwa ikony z zestawu albo `url:…` dla ikony wgranej przez zespół. */
+  icon: string;
   /** Jednym zdaniem: co łączy karty tej rodziny. */
   description: string;
 }

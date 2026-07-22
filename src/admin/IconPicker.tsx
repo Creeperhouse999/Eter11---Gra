@@ -2,11 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TextField } from '../ui/controls/Field';
 import { Tooltip } from '../ui/controls/Tooltip';
-import { ICON_NAMES, Icon, type IconName } from '../ui/icons/Icon';
+import { ICON_NAMES, CUSTOM_ICON_PREFIX, Icon } from '../ui/icons/Icon';
+import { getCustomIcons } from '../ui/components/categoryStyles';
 
 interface IconPickerProps {
   value: string;
-  onChange: (icon: IconName) => void;
+  onChange: (icon: string) => void;
   label?: string;
 }
 
@@ -25,9 +26,18 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Własne ikony jako pierwsze — to ich zespół szuka, gdy właśnie je wgrał.
+  // Nazwa własnej ikony to `url:…`; do filtrowania i podpowiedzi bierzemy
+  // etykietę, nie adres.
+  const custom = getCustomIcons();
+  const customNames = custom.map((icon) => `${CUSTOM_ICON_PREFIX}${icon.url}`);
+  const labelOf = (name: string) =>
+    custom.find((icon) => `${CUSTOM_ICON_PREFIX}${icon.url}` === name)?.name ?? name;
+
+  const all = [...customNames, ...ICON_NAMES];
   const matches = query
-    ? ICON_NAMES.filter((name) => name.toLowerCase().includes(query.toLowerCase()))
-    : ICON_NAMES;
+    ? all.filter((name) => labelOf(name).toLowerCase().includes(query.toLowerCase()))
+    : all;
 
   const PANEL_WIDTH = 288;
   const PANEL_HEIGHT = 340;
@@ -86,7 +96,7 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
     };
   }, [open]);
 
-  const choose = (name: IconName) => {
+  const choose = (name: string) => {
     onChange(name);
     setOpen(false);
     setQuery('');
@@ -106,8 +116,8 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
           open ? 'border-accent' : 'border-edge hover:border-ink-dim',
         ].join(' ')}
       >
-        <Icon name={value as IconName} size={20} />
-        <span className="truncate font-mono text-xs text-ink-dim">{value}</span>
+        <Icon name={value} size={20} />
+        <span className="truncate font-mono text-xs text-ink-dim">{labelOf(value)}</span>
       </button>
 
       {open &&
@@ -127,10 +137,10 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
 
             <div className="mt-2 grid max-h-64 grid-cols-7 gap-1 overflow-y-auto">
               {matches.map((name) => (
-                <Tooltip key={name} label={name}>
+                <Tooltip key={name} label={labelOf(name)}>
                   <button
                     type="button"
-                    aria-label={name}
+                    aria-label={labelOf(name)}
                     onClick={() => choose(name)}
                     className={[
                       'flex w-full items-center justify-center rounded p-1.5 transition',

@@ -28,6 +28,7 @@ export const BUILTIN_CONTENT: GameContent = {
   theme: DEFAULT_THEME,
   families: DEFAULT_FAMILIES,
   categories: DEFAULT_CATEGORIES,
+  customIcons: [],
   intro: DEFAULT_INTRO,
   tutorial: TUTORIAL_STEPS,
 };

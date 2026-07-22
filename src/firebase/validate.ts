@@ -8,6 +8,7 @@ import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
 import type { CategoryMap } from '../data/categories';
+import type { CustomIcon } from '../data/customIcons';
 import type { IntroContent } from '../data/intro';
 import type { TutorialStep } from '../data/tutorial';
 
@@ -28,6 +29,11 @@ export interface GameContent {
    */
   /** Nazwy i ikony kategorii. Brak = wartości wbudowane. */
   categories?: CategoryMap;
+  /**
+   * Ikony wgrane przez zespół. Nazwa to etykieta, url wskazuje plik
+   * w Storage. Wybór ikony pokazuje je obok wbudowanych.
+   */
+  customIcons?: CustomIcon[];
   intro?: IntroContent;
   tutorial?: TutorialStep[];
 }

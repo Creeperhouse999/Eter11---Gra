@@ -1,5 +1,4 @@
 import type { CardCategory, SlotKey } from '../engine/types';
-import type { IconName } from '../ui/icons/Icon';
 
 /**
  * Nazwa i ikona kategorii kart.
@@ -14,7 +13,8 @@ import type { IconName } from '../ui/icons/Icon';
  */
 export interface CategoryStyle {
   label: string;
-  icon: IconName;
+  /** Nazwa ikony z zestawu albo `url:…` dla ikony wgranej przez zespół. */
+  icon: string;
 }
 
 export type CategoryMap = Record<CardCategory, CategoryStyle>;

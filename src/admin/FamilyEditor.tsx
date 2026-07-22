@@ -2,7 +2,7 @@ import { FAMILY_LABELS, type FamilyMap } from '../data/families';
 import type { Card, CardCategory } from '../engine/types';
 import { categoryLabel } from '../ui/components/categoryStyles';
 import { TextField } from '../ui/controls/Field';
-import { Icon, type IconName } from '../ui/icons/Icon';
+import { Icon } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
 
 interface FamilyEditorProps {
@@ -32,7 +32,7 @@ export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
   const update = (
     category: CardCategory,
     familyId: string,
-    patch: Partial<{ name: string; icon: IconName; description: string }>,
+    patch: Partial<{ name: string; icon: string; description: string }>,
   ) => {
     onChange({
       ...families,
