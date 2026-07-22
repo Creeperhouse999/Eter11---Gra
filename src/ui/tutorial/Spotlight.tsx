@@ -121,7 +121,8 @@ export function Spotlight({ target, from = null, padding = 8 }: SpotlightProps) 
     return (
       <div
         aria-hidden="true"
-        className="eter-fade-in pointer-events-none fixed inset-0 z-30 bg-bg/70"
+        className="eter-fade-in pointer-events-none fixed inset-0 bg-bg/70"
+        style={{ zIndex: 'var(--z-spotlight)' }}
       />
     );
   }
@@ -134,7 +135,7 @@ export function Spotlight({ target, from = null, padding = 8 }: SpotlightProps) 
   const arrow = fromRect ? arrowBetween(fromRect, rect) : null;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30">
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0" style={{ zIndex: 'var(--z-spotlight)' }}>
       <svg className="absolute inset-0 h-full w-full">
         <defs>
           <mask id="eter-spotlight">

@@ -296,6 +296,15 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
           </div>
   );
 
+  // Otwarcie widoku pełnoekranowego zaczyna od góry.
+  //
+  // Bez tego wejście w zgłoszenie z listy przewiniętej w dół pokazywało od
+  // razu dół rozmowy — okno zajmuje tę samą stronę, więc dziedziczyło jej
+  // pozycję przewinięcia.
+  useEffect(() => {
+    if (openId) window.scrollTo(0, 0);
+  }, [openId]);
+
   const back = () => {
     setOpenId(null);
     setReply('');

@@ -61,7 +61,8 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-4"
+      className="fixed inset-0 flex items-start justify-center p-4"
+      style={{ zIndex: 'var(--z-game-overlay)' }}
       role="alertdialog"
       aria-modal="true"
       aria-label="Czarny Łabędź"

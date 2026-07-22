@@ -34,8 +34,9 @@ export function DragGhost({ card, ghostRef, start, overValidTarget }: DragGhostP
     <div
       ref={(node) => { ghostRef.current = node; }}
       aria-hidden="true"
-      className="pointer-events-none fixed z-50"
+      className="pointer-events-none fixed"
       style={{
+        zIndex: 'var(--z-game-overlay)',
         left: start.x,
         top: start.y,
         // 60 px w górę: karta ląduje nad palcem, poza jego zasięgiem.

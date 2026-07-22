@@ -51,8 +51,8 @@ export function ScrollHint() {
       onClick={() =>
         window.scrollBy({ top: window.innerHeight * 0.7, behavior: 'smooth' })
       }
-      className="eter-fade-in fixed bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-accent bg-surface px-3 py-1.5 text-xs shadow-lg"
-      style={{ boxShadow: '0 6px 24px -8px var(--eter-accent)' }}
+      className="eter-fade-in fixed bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-accent bg-surface px-3 py-1.5 text-xs shadow-lg"
+      style={{ zIndex: 'var(--z-hint)', boxShadow: '0 6px 24px -8px var(--eter-accent)' }}
     >
       <span className="eter-pulse text-accent">
         <Icon name="chevronDown" size={14} />

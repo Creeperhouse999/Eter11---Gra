@@ -123,7 +123,13 @@
    * wszystkim, bo są chwilowe i nie da się w nie kliknąć.
    */
   --z-sticky: 10;
+  /* Warstwy planszy: podpowiedź samouczka pod jego reflektorem, a oba pod
+     nakładkami blokującymi grę (Czarny Łabędź, powiększenie karty). */
+  --z-hint: 20;
+  --z-spotlight: 30;
+  --z-tutorial: 35;
   --z-dropdown: 40;
+  --z-game-overlay: 50;
   --z-modal: 50;
   --z-confirm: 60;
   --z-toast: 70;

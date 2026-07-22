@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../icons/Icon';
 
 interface ModalProps {
@@ -81,7 +82,13 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
 
   const accent = tone === 'danger' ? 'var(--eter-danger)' : 'var(--eter-accent)';
 
-  return (
+  // Portal do body: bez tego modal renderuje się w miejscu wywołania, a gdy
+  // przodek animuje przezroczystość (`eter-fade-in` na zawartości zakładki
+  // czy planszy), przez czas animacji tworzy kontekst nakładania, który
+  // uwięziłby modal pod treścią. Okno potwierdzenia otwierane z pełnego ekranu
+  // wygrywało dotąd tylko dlatego, że animacja zdążyła się skończyć — portal
+  // czyni to pewnym, nie zależnym od czasu.
+  return createPortal(
     <div
       className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: layer === 'confirm' ? 'var(--z-confirm)' : 'var(--z-modal)' }}
@@ -122,6 +129,7 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
           <div className="flex flex-wrap justify-end gap-2 border-t border-edge p-4">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

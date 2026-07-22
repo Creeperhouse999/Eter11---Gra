@@ -52,7 +52,8 @@ export function CardZoom({ card, onClose }: CardZoomProps) {
       // Zamyka dowolne dotknięcie: dziecko nie szuka krzyżyka, tylko puka
       // w ekran, żeby wrócić do gry.
       onPointerDown={onClose}
-      className="eter-fade-in fixed inset-0 z-50 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-sm"
+      className="eter-fade-in fixed inset-0 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-sm"
+      style={{ zIndex: 'var(--z-game-overlay)' }}
     >
       <div
         className="eter-pop w-full max-w-xs overflow-hidden rounded-2xl border-2 bg-surface shadow-2xl"

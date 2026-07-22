@@ -133,12 +133,18 @@ export function GuideBubble({
   return (
     <div
       ref={bubbleRef}
-      className="eter-pop fixed z-40 max-w-[calc(100vw-1.75rem)]"
+      className="eter-pop fixed max-w-[calc(100vw-1.75rem)]"
       style={
         placement
-          ? { top: placement.top, left: placement.left, width: BUBBLE_WIDTH }
+          ? { top: placement.top, left: placement.left, width: BUBBLE_WIDTH, zIndex: 'var(--z-tutorial)' }
           : // Bez podświetlenia: dół ekranu, gdzie nie zasłania stołu.
-            { bottom: BUBBLE_GAP, left: '50%', transform: 'translateX(-50%)', width: BUBBLE_WIDTH }
+            {
+                bottom: BUBBLE_GAP,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: BUBBLE_WIDTH,
+                zIndex: 'var(--z-tutorial)',
+              }
       }
       role="dialog"
       aria-label="Samouczek"

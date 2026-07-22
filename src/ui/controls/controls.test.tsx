@@ -74,6 +74,18 @@ describe('warstwy z-index', () => {
     expect(value('z-toast')).toBeGreaterThan(value('z-confirm'));
     expect(value('z-tooltip')).toBeGreaterThan(value('z-toast'));
   });
+
+  it('warstwy planszy: podpowiedź < reflektor < dymek samouczka', () => {
+    // Reflektor przyciemnia ekran wokół celu; dymek ETER11 stoi nad nim,
+    // a podpowiedź o przewijaniu pod wszystkim.
+    expect(value('z-hint')).toBeLessThan(value('z-spotlight'));
+    expect(value('z-spotlight')).toBeLessThan(value('z-tutorial'));
+  });
+
+  it('nakładki gry nad samouczkiem', () => {
+    // Czarny Łabędź i powiększenie karty muszą przykryć dymek samouczka.
+    expect(value('z-game-overlay')).toBeGreaterThan(value('z-tutorial'));
+  });
 });
 
 describe('Select', () => {
