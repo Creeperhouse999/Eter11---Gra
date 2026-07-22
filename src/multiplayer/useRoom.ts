@@ -27,6 +27,11 @@ export function useRoom(code: string | null, uid: string | null) {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    // Nowy pokój (albo powrót do lobby) zaczyna jako „jeszcze niepołączony".
+    // Bez tego resetu `connected` zostałby `true` z poprzedniego pokoju, a
+    // wołający nie odróżniłby „ładuję" od „pokój zniknął".
+    setRoom(null);
+    setConnected(false);
     if (!code) return;
     const stop = watchRoom(code, (next) => {
       setRoom(next);

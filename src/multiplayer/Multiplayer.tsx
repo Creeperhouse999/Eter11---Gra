@@ -28,6 +28,7 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
 
   const {
     room,
+    connected,
     activeUid,
     myTurn,
     isHost,
@@ -40,12 +41,19 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
   } = useRoom(code, uid);
 
   // Pokój zniknął (host zamknął, albo nas wyrzucono) — wracamy do lobby.
+  //
+  // WARUNEK `connected`: tuż po utworzeniu pokoju `room` jest jeszcze `null`,
+  // bo pierwszy snapshot z bazy nie doszedł. Na wolnej sieci (telefon) ta
+  // chwila trwa na tyle długo, że efekt zdążał zresetować ekran do lobby —
+  // gracz klikał „Załóż pokój", widział „Łączę…" i wracał, jakby nic nie
+  // utworzył. Resetujemy dopiero, gdy nasłuch RAZ się połączył i mimo to
+  // pokoju nie ma — czyli naprawdę zniknął, a nie „jeszcze się nie wczytał".
   useEffect(() => {
-    if (code && room === null) {
+    if (code && connected && room === null) {
       setCode(null);
       setUid(null);
     }
-  }, [code, room]);
+  }, [code, connected, room]);
 
   // Nas wyrzucono z pokoju — nasz wpis zniknął, choć pokój trwa.
   useEffect(() => {
