@@ -577,7 +577,6 @@ export function AdminApp() {
             email={auth.user?.email ?? null}
             displayName={auth.user?.displayName ?? null}
             onSaveName={auth.setDisplayName}
-            onChangePassword={auth.changePassword}
           />
         )}
         </div>

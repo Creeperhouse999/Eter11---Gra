@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-  EmailAuthProvider,
   onAuthStateChanged,
-  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
-  updatePassword,
   updateProfile,
   type User,
 } from 'firebase/auth';
@@ -69,45 +66,6 @@ export function useAdminAuth() {
     }
   };
 
-  /**
-   * Zmiana hasła.
-   *
-   * Firebase wymaga świeżego logowania do operacji na koncie — po godzinie
-   * pracy w panelu sesja jest za stara i zmiana odbiłaby się błędem
-   * `requires-recent-login`. Dlatego prosimy o obecne hasło i logujemy się
-   * nim ponownie tuż przed zmianą. Przy okazji chroni to konto porzucone
-   * przy zalogowanej przeglądarce: bez znajomości starego hasła nikt nie
-   * ustawi nowego.
-   */
-  const changePassword = async (
-    currentPassword: string,
-    nextPassword: string,
-  ): Promise<{ ok: boolean; error?: string }> => {
-    const current = auth.currentUser;
-    if (!current?.email) return { ok: false, error: 'Nie jesteś zalogowany.' };
-
-    if (nextPassword.length < 6) {
-      return { ok: false, error: 'Nowe hasło musi mieć co najmniej 6 znaków.' };
-    }
-
-    try {
-      await reauthenticateWithCredential(
-        current,
-        EmailAuthProvider.credential(current.email, currentPassword),
-      );
-    } catch {
-      return { ok: false, error: 'Obecne hasło się nie zgadza.' };
-    }
-
-    try {
-      await updatePassword(current, nextPassword);
-      return { ok: true };
-    } catch (problem) {
-      const message = problem instanceof Error ? problem.message : String(problem);
-      return { ok: false, error: `Nie udało się zmienić hasła: ${message}` };
-    }
-  };
-
   return {
     user,
     checking,
@@ -116,6 +74,5 @@ export function useAdminAuth() {
     login,
     logout,
     setDisplayName,
-    changePassword,
   };
 }
