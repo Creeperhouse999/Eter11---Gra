@@ -6,13 +6,29 @@ import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
 
+export type StoryPart = 'story' | 'rules' | 'adults' | 'tutorial';
+
 interface StoryEditorProps {
   intro?: IntroContent;
   tutorial?: TutorialStep[];
   onChange: (patch: { intro?: IntroContent; tutorial?: TutorialStep[] }) => void;
+  /**
+   * Pod-zakładka z adresu (`/admin/story/adults`). Steruje widocznym widokiem,
+   * żeby dało się zalinkować wprost do konkretnej części wstępu.
+   */
+  part?: StoryPart;
+  /** Zgłasza zmianę pod-zakładki w górę, żeby trafiła do adresu. */
+  onPartChange?: (part: StoryPart) => void;
 }
 
-type Part = 'story' | 'rules' | 'adults' | 'tutorial';
+type Part = StoryPart;
+
+const PART_IDS: Part[] = ['story', 'rules', 'adults', 'tutorial'];
+
+/** Czy dany slug z adresu to znana pod-zakładka wstępu. */
+export function isStoryPart(value: string): value is StoryPart {
+  return (PART_IDS as string[]).includes(value);
+}
 
 const PARTS: Array<{ id: Part; label: string; hint: string }> = [
   {
@@ -48,8 +64,16 @@ const PARTS: Array<{ id: Part; label: string; hint: string }> = [
  * Kroki samouczka mają trzy kwestie: co ETER11 mówi przed zadaniem, jak
  * chwali po wykonaniu i co podpowiada, gdy gracz stoi bez ruchu.
  */
-export function StoryEditor({ intro, tutorial, onChange }: StoryEditorProps) {
-  const [part, setPart] = useState<Part>('story');
+export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartChange }: StoryEditorProps) {
+  // Pod-zakładka sterowana adresem, gdy podano `part`; inaczej własny stan.
+  // Dzięki temu link `/admin/story/adults` otwiera właściwy widok, a bez
+  // adresu (np. w teście jednostkowym) edytor działa jak dawniej.
+  const [localPart, setLocalPart] = useState<Part>('story');
+  const part = partProp ?? localPart;
+  const setPart = (next: Part) => {
+    setLocalPart(next);
+    onPartChange?.(next);
+  };
 
   const current: IntroContent = intro ?? DEFAULT_INTRO;
   const steps = tutorial?.length ? tutorial : TUTORIAL_STEPS;

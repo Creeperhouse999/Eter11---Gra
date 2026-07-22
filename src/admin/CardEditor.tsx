@@ -23,6 +23,11 @@ interface CardEditorProps {
    * wyszukiwarka „nie przechodzi do niej".
    */
   initialSearch?: string;
+  /**
+   * Zgłasza zmianę frazy w górę, żeby trafiła do adresu (`?filter=…`).
+   * Dzięki temu link do przefiltrowanej listy da się wysłać komuś dalej.
+   */
+  onSearchChange?: (value: string) => void;
 }
 
 const CATEGORIES: CardCategory[] = [
@@ -47,7 +52,7 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
   color: categoryColorVar(category),
 }));
 
-export function CardEditor({ cards, onChange, initialSearch = '' }: CardEditorProps) {
+export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
   const [family, setFamily] = useState<string>('all');
   const [sort, setSort] = useState<'order' | 'name' | 'category'>('order');
@@ -202,7 +207,10 @@ export function CardEditor({ cards, onChange, initialSearch = '' }: CardEditorPr
         <div className="flex flex-wrap items-end gap-2">
           <TextField
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              onSearchChange?.(e.target.value);
+            }}
             placeholder="Szukaj w nazwach i opisach"
             aria-label="Szukaj karty"
             className="w-full sm:w-56"

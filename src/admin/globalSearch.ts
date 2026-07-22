@@ -5,6 +5,15 @@ import type { GameContent } from '../firebase/validate';
 export interface SearchHit {
   /** Zakładka, w której to siedzi. */
   tab: string;
+  /**
+   * Pod-zakładka w obrębie zakładki, jeśli trafienie tam siedzi.
+   *
+   * Zakładka „Wstęp i ETER11" ma cztery pod-widoki (historia, zasady,
+   * dla dorosłych, kwestie ETER11). Bez tego kliknięcie wyniku z „Dla
+   * dorosłych" otwierało domyślną historię — zgłoszone jako „idzie nie tam,
+   * gdzie było".
+   */
+  part?: string;
   /** Nazwa zakładki dla człowieka. */
   where: string;
   /** Co znaleziono — nazwa karty, temat sceny, klucz tekstu. */
@@ -45,9 +54,15 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
     return terms.every((term) => lower.includes(term));
   };
 
-  const add = (tab: string, where: string, title: string, text: string) => {
+  const add = (
+    tab: string,
+    where: string,
+    title: string,
+    text: string,
+    part?: string,
+  ) => {
     if (!text || !matches(text)) return;
-    hits.push({ tab, where, title, excerpt: excerpt(text, terms) });
+    hits.push({ tab, where, title, excerpt: excerpt(text, terms), part });
   };
 
   for (const card of content.cards) {
@@ -86,6 +101,8 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
   }
 
   if (content.intro) {
+    // Klucz pod-zakładki (`part`) prowadzi kliknięcie wprost do właściwego
+    // widoku edytora wstępu, nie do domyślnej historii.
     const parts: Array<[keyof typeof content.intro, string]> = [
       ['story', 'Wstęp → Historia'],
       ['rules', 'Wstęp → Zasady'],
@@ -93,7 +110,13 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
     ];
     for (const [key, label] of parts) {
       content.intro[key].forEach((scene, index) => {
-        add('story', label, scene.heading || `Scena ${index + 1}`, `${scene.heading} ${scene.body}`);
+        add(
+          'story',
+          label,
+          scene.heading || `Scena ${index + 1}`,
+          `${scene.heading} ${scene.body}`,
+          key,
+        );
       });
     }
   }
@@ -104,6 +127,7 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       'Co mówi ETER11',
       step.id,
       `${step.say} ${step.praise} ${step.nudge ?? ''}`,
+      'tutorial',
     );
   }
 

@@ -29,7 +29,7 @@ import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
 import { TextEditor } from './TextEditor';
-import { StoryEditor } from './StoryEditor';
+import { StoryEditor, isStoryPart } from './StoryEditor';
 import { CategoryEditor } from './CategoryEditor';
 import { IconEditor } from './IconEditor';
 import { setCategoryStyles, setCustomIcons } from '../ui/components/categoryStyles';
@@ -102,7 +102,7 @@ export function AdminApp() {
   });
 
   const isTab = (value: string): value is Tab => visibleTabs.some((t) => t.key === value);
-  useTabRoute(tab, setTab, isTab);
+  const route = useTabRoute(tab, setTab, isTab);
 
   // Rola ładuje się asynchronicznie, więc przy pierwszym renderze zakładka
   // z adresu (np. /admin/team) może być widoczna, zanim okaże się, że ta
@@ -133,7 +133,6 @@ export function AdminApp() {
   const validation = useMemo(() => validateContent(content), [content]);
 
   const [hunt, setHunt] = useState('');
-  const [jumpSearch, setJumpSearch] = useState('');
   const found = useMemo(
     () => (hunt.trim().length > 1 ? searchContent(content, hunt) : []),
     [content, hunt],
@@ -426,11 +425,16 @@ export function AdminApp() {
                       <button
                         type="button"
                         onClick={() => {
+                          const phrase = hunt.trim();
+                          // Skok jednym ruchem: zakładka + pod-zakładka + filtr.
                           // Karty otwieramy z frazą, żeby wynik był od razu
-                          // widoczny na przefiltrowanej liście, a nie zgubiony
-                          // wśród sześćdziesięciu innych.
-                          if (hit.tab === 'cards') setJumpSearch(hunt.trim());
-                          setTab(hit.tab as Tab);
+                          // widoczny na przefiltrowanej liście; trafienia we
+                          // wstępie/ETER11 — wprost we właściwej pod-zakładce.
+                          route.navigate(
+                            hit.tab as Tab,
+                            hit.part ?? null,
+                            hit.tab === 'cards' ? { filter: phrase } : {},
+                          );
                           setHunt('');
                         }}
                         className="w-full px-3 py-2 text-left transition hover:bg-raised"
@@ -545,11 +549,13 @@ export function AdminApp() {
           <CardEditor
             cards={content.cards}
             onChange={(cards) => update({ cards })}
-            // `key`, żeby przejście z wyszukiwarki z nową frazą zresetowało
-            // pole szukania edytora — bez tego druga fraza nie zadziałałaby,
-            // bo stan pola żyje dłużej niż jedno kliknięcie wyniku.
-            key={jumpSearch}
-            initialSearch={jumpSearch}
+            // Fraza filtra żyje w adresie (`?filter=…`), więc link do
+            // przefiltrowanej listy da się wysłać dalej. `key` z tej frazy
+            // resetuje pole edytora, gdy adres wskaże nową frazę (np. z
+            // wyszukiwarki albo z wklejonego linku).
+            key={route.params.filter ?? ''}
+            initialSearch={route.params.filter ?? ''}
+            onSearchChange={(value) => route.setParam('filter', value || null)}
           />
         )}
         {tab === 'families' && (
@@ -588,6 +594,10 @@ export function AdminApp() {
             intro={content.intro}
             tutorial={content.tutorial}
             onChange={update}
+            // Pod-zakładka z adresu (`/admin/story/adults`); nieznany slug
+            // zostawia widok domyślny, a klik zapisuje wybór z powrotem do URL.
+            part={route.sub && isStoryPart(route.sub) ? route.sub : undefined}
+            onPartChange={(next) => route.setSub(next)}
           />
         )}
         {tab === 'theme' && (
