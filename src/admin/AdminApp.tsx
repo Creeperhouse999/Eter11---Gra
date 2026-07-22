@@ -5,6 +5,8 @@ import { loadContent, saveContent } from '../firebase/content';
 import { describeChanges, recordVersion } from '../firebase/history';
 import { HistoryPanel } from './HistoryPanel';
 import { StatsPanel } from './StatsPanel';
+import { TeamPanel } from './TeamPanel';
+import { canManageRoles, canDiscuss, canEdit } from '../firebase/roles';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
@@ -52,7 +54,8 @@ type Tab =
   | 'discussions'
   | 'account'
   | 'history'
-  | 'stats';
+  | 'stats'
+  | 'team';
 
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
@@ -72,6 +75,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'account', label: 'Konto', icon: 'people' },
   { key: 'history', label: 'Historia', icon: 'undo' },
   { key: 'stats', label: 'Statystyki', icon: 'chart' },
+  { key: 'team', label: 'Zespół', icon: 'people' },
 ];
 
 export function AdminApp() {
@@ -86,7 +90,18 @@ export function AdminApp() {
   };
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  const isTab = (value: string): value is Tab => TABS.some((t) => t.key === value);
+  // Zakładki widoczne dla tej roli.
+  //
+  // Zespół (nadawanie ról) tylko dla admina. Dyskusja znika dla edytora
+  // i podglądu — pierwszy zgłasza, ale nie dyskutuje; drugi tylko patrzy.
+  // Reszta widoczna dla wszystkich; co wolno w środku, pilnuje już panel.
+  const visibleTabs = TABS.filter((item) => {
+    if (item.key === 'team') return canManageRoles(auth.role);
+    if (item.key === 'discussions') return canDiscuss(auth.role);
+    return true;
+  });
+
+  const isTab = (value: string): value is Tab => visibleTabs.some((t) => t.key === value);
   useTabRoute(tab, setTab, isTab);
 
   // Nowa zakładka zaczyna się od góry. Bez tego przejście z długiej listy
@@ -354,7 +369,7 @@ export function AdminApp() {
               variant="primary"
               size="sm"
               onClick={save}
-              disabled={!dirty || saving || !validation.ok}
+              disabled={!dirty || saving || !validation.ok || !canEdit(auth.role)}
               title={
                 !validation.ok
                   ? 'Popraw błędy, żeby zapisać'
@@ -437,7 +452,7 @@ export function AdminApp() {
             value={tab}
             ariaLabel="Sekcja panelu"
             className="w-full"
-            options={TABS.map((item) => ({ value: item.key, label: item.label }))}
+            options={visibleTabs.map((item) => ({ value: item.key, label: item.label }))}
             onChange={setTab}
           />
         </div>
@@ -446,7 +461,7 @@ export function AdminApp() {
           className="mx-auto hidden max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:flex"
           aria-label="Sekcje panelu"
         >
-          {TABS.map((item) => (
+          {visibleTabs.map((item) => (
             <button
               key={item.key}
               type="button"
@@ -571,7 +586,10 @@ export function AdminApp() {
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
         {tab === 'reports' && (
-          <ReportsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+          <ReportsPanel
+            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            role={auth.role}
+          />
         )}
         {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
             ma stać podpis, którego nie da się podszyć. */}
@@ -579,6 +597,7 @@ export function AdminApp() {
           <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
         )}
         {tab === 'stats' && <StatsPanel content={content} />}
+        {tab === 'team' && auth.user && <TeamPanel currentUid={auth.user.uid} />}
         {tab === 'history' && (
           <HistoryPanel
             currentVersion={baseVersion}

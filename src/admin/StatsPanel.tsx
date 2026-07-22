@@ -74,7 +74,11 @@ export function StatsPanel({ content }: StatsPanelProps) {
   const winRate =
     play.finished > 0 ? Math.round((play.won / play.finished) * 100) : null;
   const messages = discussions.reduce((sum, d) => sum + d.messages.length, 0);
-  const openReports = reports.filter((r) => r.status === 'new' || r.status === 'rejected');
+  // „Czeka na programistę" to zaakceptowane zgłoszenia. Oczekujące na
+  // akceptację (`pending`) jeszcze się nie liczą — nikt ich nie wpuścił do
+  // realizacji. Liczymy je osobno.
+  const openReports = reports.filter((r) => r.status === 'new' || r.status === 'reopened');
+  const pendingReports = reports.filter((r) => r.status === 'pending');
   const doneReports = reports.filter((r) => r.status === 'done');
 
   return (
@@ -146,6 +150,17 @@ export function StatsPanel({ content }: StatsPanelProps) {
             label: 'Zgłoszenia',
             value: String(reports.length),
             note: `${reports.filter((r) => r.kind === 'bug').length} błędów, ${reports.filter((r) => r.kind === 'idea').length} pomysłów`,
+          }}
+        />
+        <Tile
+          entry={{
+            label: 'Czeka na akceptację',
+            value: String(pendingReports.length),
+            warn: pendingReports.length > 0,
+            note:
+              pendingReports.length === 0
+                ? 'nic nie czeka na admina'
+                : 'do zaakceptowania albo odrzucenia',
           }}
         />
         <Tile

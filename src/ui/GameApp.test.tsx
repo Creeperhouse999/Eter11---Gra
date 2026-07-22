@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ToastProvider } from './controls/Toast';
 import { GameApp } from './GameApp';
+
+// GameApp pokazuje powiadomienia (przycisk zgłoszeń), więc potrzebuje dostawcy.
+const render = (ui: ReactElement) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
 
 /**
  * Wstęp pokazuje się tylko przy pierwszym wejściu i zapisuje to w

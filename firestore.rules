@@ -20,6 +20,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    /**
+     * Rola zalogowanego, czytana z kolekcji `roles/<uid>`.
+     *
+     * `info@eter11.pl` jest adminem zawsze — nawet gdy w bazie nic o nim nie
+     * ma — żeby błąd w kolekcji ról nie odciął jedynej osoby, która może ją
+     * naprawić. Brak wpisu = coworker (najniższy poziom, który jeszcze
+     * pracuje), nigdy admin.
+     */
+    function rolaKonta() {
+      return request.auth.token.email == 'info@eter11.pl'
+        ? 'admin'
+        : (exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+            ? get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role
+            : 'coworker');
+    }
+
+    function jestAdmin() {
+      return zalogowany() && rolaKonta() == 'admin';
+    }
+
+    /** Admin i co-admin: moderują zgłoszenia, ale usuwa tylko admin. */
+    function jestModeratorem() {
+      return zalogowany() && (rolaKonta() == 'admin' || rolaKonta() == 'co-admin');
+    }
+
     // Zawartość gry: karty, problemy, postacie, parametry zasad.
     // Odczyt publiczny — gra ładuje dane bez logowania, także u dzieci,
     // które kont nie mają i mieć nie będą.
@@ -40,21 +65,35 @@ service cloud.firestore {
     // Ograniczenia pól i długości chronią przed zalewaniem bazy.
     match /reports/{report} {
       allow read: if true;
-      allow delete: if zalogowany();
 
-      // Zmianę statusu i komentarze robi zespół redakcyjny, czyli każdy,
-      // kto ma konto. Rozdzielenie „naprawiłem" od „potwierdzam, że działa"
-      // jest sednem obiegu zgłoszeń: naprawiający nie zamyka własnego
-      // zgłoszenia — zamyka je ten, kto je napisał.
-      allow update: if zalogowany();
+      // Usuwa tylko admin — ani co-admin, ani coworker, nawet własnych.
+      allow delete: if jestAdmin();
 
-      // `images` opcjonalne: adresy zrzutów ekranu wgranych do Storage.
-      // Najwyżej pięć, bo tyle mieści formularz zgłoszenia — reszta ograniczeń
-      // jak wcześniej.
+      // Zmiana statusu i komentarze.
+      //
+      // Akceptacja i odrzucenie oczekującego zgłoszenia (`pending` → `new`
+      // albo `dismissed`) to moderacja — wolno ją wyłącznie adminowi
+      // i co-adminowi. Pozostałe przejścia obiegu (naprawiłem → sprawdzam →
+      // działa/wróciło) robi każdy zalogowany, bo to normalna praca zespołu.
+      allow update: if zalogowany()
+                    && (
+                      jestModeratorem()
+                      // Nie-moderator nie rusza zgłoszeń czekających na
+                      // akceptację ani nie odrzuca — to należy do moderatora.
+                      || (resource.data.status != 'pending'
+                          && request.resource.data.status != 'pending'
+                          && request.resource.data.status != 'dismissed')
+                    );
+
+      // Tworzenie:
+      // - moderator (admin/co-admin) może wpuścić od razu `new`,
+      // - każdy inny (coworker, edytor, gracz z gry bez konta) tworzy tylko
+      //   `pending` — trafia do akceptacji.
       allow create: if request.resource.data.keys().hasOnly(
                          ['kind', 'title', 'description', 'author', 'status', 'createdAt', 'images'])
                     && request.resource.data.kind in ['bug', 'idea']
-                    && request.resource.data.status == 'new'
+                    && (request.resource.data.status == 'pending'
+                        || (request.resource.data.status == 'new' && jestModeratorem()))
                     && request.resource.data.title is string
                     && request.resource.data.title.size() > 0
                     && request.resource.data.title.size() <= 120
@@ -63,6 +102,22 @@ service cloud.firestore {
                     && (!('images' in request.resource.data)
                         || (request.resource.data.images is list
                             && request.resource.data.images.size() <= 5));
+    }
+
+    /**
+     * Role zespołu.
+     *
+     * Odczyt publiczny: panel i reguły muszą sprawdzić rolę, a nie ma tu nic
+     * wrażliwego — sam adres e-mail i poziom dostępu. Nadaje wyłącznie admin;
+     * co-admin i niżej nie zmieniają ról, także własnej (inaczej ktoś
+     * podniósłby się do admina).
+     */
+    match /roles/{uid} {
+      allow read: if true;
+      allow write: if jestAdmin()
+                   && request.resource.data.keys().hasOnly(['email', 'role'])
+                   && request.resource.data.role in
+                        ['admin', 'co-admin', 'coworker', 'editor', 'viewer'];
     }
 
     /**

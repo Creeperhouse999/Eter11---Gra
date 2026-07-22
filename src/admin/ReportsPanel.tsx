@@ -8,6 +8,7 @@ import {
   type ReportKind,
   type ReportStatus,
 } from '../firebase/reports';
+import { canDelete, canModerate, skipsApproval, type Role } from '../firebase/roles';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
 import { TextArea, TextField } from '../ui/controls/Field';
@@ -38,6 +39,13 @@ const STATUS_TABS: Array<{
   hint: string;
 }> = [
   {
+    id: 'pending',
+    label: 'Czeka na akceptację',
+    icon: 'flask',
+    color: 'var(--eter-accent-2)',
+    hint: 'Zgłoszenia współpracowników i graczy — admin lub co-admin akceptuje albo odrzuca.',
+  },
+  {
     id: 'new',
     label: 'Nowe',
     icon: 'bulb',
@@ -52,11 +60,18 @@ const STATUS_TABS: Array<{
     hint: 'Programista twierdzi, że naprawione. Sprawdź i potwierdź albo odeślij z komentarzem.',
   },
   {
-    id: 'rejected',
+    id: 'reopened',
     label: 'Wróciły',
     icon: 'undo',
     color: 'var(--eter-danger)',
     hint: 'Sprawdzone i dalej nie działa — czekają na kolejną poprawkę.',
+  },
+  {
+    id: 'dismissed',
+    label: 'Odrzucone',
+    icon: 'close',
+    color: 'var(--eter-danger)',
+    hint: 'Odrzucone przez admina lub co-admina z komentarzem. Koniec obiegu.',
   },
   {
     id: 'done',
@@ -68,16 +83,20 @@ const STATUS_TABS: Array<{
 ];
 
 const EMPTY_MESSAGE: Record<ReportStatus, string> = {
+  pending: 'Nic nie czeka na akceptację.',
   new: 'Brak nowych zgłoszeń.',
   fixed: 'Nic nie czeka na sprawdzenie.',
-  rejected: 'Nic nie wróciło do poprawki.',
+  reopened: 'Nic nie wróciło do poprawki.',
+  dismissed: 'Nic nie zostało odrzucone.',
   done: 'Nic jeszcze nie zostało potwierdzone.',
 };
 
 const STATUS_TOAST: Record<ReportStatus, string> = {
+  pending: 'Zgłoszenie czeka na akceptację.',
   new: 'Zgłoszenie wróciło do listy nowych.',
   fixed: 'Oznaczono jako naprawione — czeka na sprawdzenie.',
-  rejected: 'Odesłane do poprawki.',
+  reopened: 'Odesłane do poprawki.',
+  dismissed: 'Zgłoszenie odrzucone.',
   done: 'Potwierdzone. Dziękujemy za sprawdzenie!',
 };
 
@@ -107,9 +126,14 @@ interface ReportsPanelProps {
    * zgłoszeń przychodziła bez podpisu i nie było kogo dopytać o szczegóły.
    */
   author: string;
+  /**
+   * Rola zalogowanego. Decyduje, kto akceptuje/odrzuca zgłoszenia oczekujące
+   * (admin, co-admin) i kto może je usuwać (admin).
+   */
+  role: Role;
 }
 
-export function ReportsPanel({ author }: ReportsPanelProps) {
+export function ReportsPanel({ author, role }: ReportsPanelProps) {
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
@@ -152,7 +176,16 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
 
   const submit = async () => {
     setSending(true);
-    const result = await addReport({ kind, title, description, author, images });
+    const result = await addReport({
+      kind,
+      title,
+      description,
+      author,
+      images,
+      // Admin i co-admin wysyłają od razu do realizacji; reszta czeka na
+      // akceptację.
+      status: skipsApproval(role) ? 'new' : 'pending',
+    });
     setSending(false);
 
     if (!result.ok) {
@@ -229,9 +262,11 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
   };
 
   const counts: Record<ReportStatus, number> = {
+    pending: reports.filter((r) => r.status === 'pending').length,
     new: reports.filter((r) => r.status === 'new').length,
     fixed: reports.filter((r) => r.status === 'fixed').length,
-    rejected: reports.filter((r) => r.status === 'rejected').length,
+    reopened: reports.filter((r) => r.status === 'reopened').length,
+    dismissed: reports.filter((r) => r.status === 'dismissed').length,
     done: reports.filter((r) => r.status === 'done').length,
   };
   const visible = reports.filter((r) => r.status === tab);
@@ -255,7 +290,19 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
     setComment('');
   };
 
-  const renderReport = (report: Report) => (
+  const renderReport = (report: Report) => {
+    // Czy pasek akcji ma cokolwiek pokazać. Bez tego zgłoszenie odrzucone
+    // albo oczekujące oglądane bez uprawnień zostawiałoby pustą kreskę.
+    const canModeratePending = report.status === 'pending' && canModerate(role);
+    const hasStatusActions =
+      canModeratePending ||
+      report.status === 'new' ||
+      report.status === 'reopened' ||
+      report.status === 'fixed' ||
+      report.status === 'done';
+    const hasActions = hasStatusActions || canDelete(role);
+
+    return (
           <div>
             <p className="font-mono text-[11px] text-ink-dim">
               {KIND_LABELS[report.kind]} ·{' '}
@@ -341,40 +388,107 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
               </div>
             )}
 
-            {commenting === report.id && (
-              <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
-                <TextArea
-                  label="Co dokładnie nadal nie działa?"
-                  value={comment}
-                  rows={3}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
-                />
-                <div className="mt-2 flex gap-2">
+            {commenting === report.id &&
+              (report.status === 'pending' ? (
+                // Moderator odrzuca zgłoszenie oczekujące — powód jest wymagany,
+                // bo „odrzucone" bez wyjaśnienia nic nie mówi zgłaszającemu.
+                <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
+                  <TextArea
+                    label="Dlaczego odrzucasz to zgłoszenie?"
+                    value={comment}
+                    rows={3}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Np. to zachowanie jest zgodne z zasadami — karta ma tak działać."
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={comment.trim().length === 0}
+                      onClick={() => void changeStatus(report, 'dismissed', 'dev')}
+                    >
+                      Odrzuć zgłoszenie
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setCommenting(null);
+                        setComment('');
+                      }}
+                    >
+                      Anuluj
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
+                  <TextArea
+                    label="Co dokładnie nadal nie działa?"
+                    value={comment}
+                    rows={3}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={comment.trim().length === 0}
+                      onClick={() => void changeStatus(report, 'reopened')}
+                    >
+                      Odeślij do poprawki
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setCommenting(null);
+                        setComment('');
+                      }}
+                    >
+                      Anuluj
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+            {/* Zgłoszenie oczekujące, którego bieżąca rola nie może moderować:
+                sam podgląd, bez przycisków — czeka na admina lub co-admina. */}
+            {report.status === 'pending' && !canModerate(role) && (
+              <p className="mt-4 border-t border-edge pt-3 text-sm text-ink-dim">
+                Czeka na akceptację admina lub co-admina.
+              </p>
+            )}
+
+            {hasActions && (
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-edge pt-3">
+              {canModeratePending && (
+                <>
                   <Button
                     size="sm"
-                    variant="danger"
-                    disabled={comment.trim().length === 0}
-                    onClick={() => void changeStatus(report, 'rejected')}
+                    variant="primary"
+                    icon="tick"
+                    onClick={() => void changeStatus(report, 'new', 'dev')}
                   >
-                    Odeślij do poprawki
+                    Akceptuj
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
+                    icon="close"
+                    className="text-danger"
                     onClick={() => {
-                      setCommenting(null);
+                      setCommenting(report.id);
                       setComment('');
                     }}
                   >
-                    Anuluj
+                    Odrzuć
                   </Button>
-                </div>
-              </div>
-            )}
+                </>
+              )}
 
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-edge pt-3">
-              {(report.status === 'new' || report.status === 'rejected') && (
+              {(report.status === 'new' || report.status === 'reopened') && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -421,18 +535,22 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
                 </Button>
               )}
 
-              <Button
-                size="sm"
-                variant="ghost"
-                icon="trash"
-                className="ml-auto text-danger"
-                onClick={() => void remove(report)}
-              >
-                Usuń
-              </Button>
+              {canDelete(role) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="trash"
+                  className="ml-auto text-danger"
+                  onClick={() => void remove(report)}
+                >
+                  Usuń
+                </Button>
+              )}
             </div>
+            )}
           </div>
-  );
+    );
+  };
 
   // Otwarte zgłoszenie na cały ekran, jak wątek dyskusji — modal na
   // telefonie obcinał długą rozmowę i przyciski statusu.

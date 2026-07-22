@@ -16,15 +16,28 @@ export type ReportKind = 'bug' | 'idea';
 /**
  * Obieg zgłoszenia.
  *
- * - `new` — zgłoszone, czeka na programistę
- * - `fixed` — programista twierdzi, że naprawione; czeka na sprawdzenie
- * - `rejected` — zgłaszający sprawdził i dalej nie działa; wraca do naprawy
- * - `done` — zgłaszający potwierdził, że działa
+ * - `pending` — czeka na akceptację admina/co-admina. Tu lądują zgłoszenia
+ *   od coworkerów, edytorów i graczy z gry. Programista ich nie rusza.
+ * - `new` — zaakceptowane (albo od razu wysłane przez admina/co-admina),
+ *   czeka na programistę.
+ * - `fixed` — programista twierdzi, że naprawione; czeka na sprawdzenie.
+ * - `reopened` — zgłaszający sprawdził i dalej nie działa; wraca do naprawy.
+ * - `dismissed` — admin/co-admin odrzucił zgłoszenie z komentarzem. Koniec.
+ * - `done` — zgłaszający potwierdził, że działa.
  *
  * Rozdzielenie `fixed` i `done` jest sednem: naprawiający nie zamyka
  * własnego zgłoszenia. Zamyka je ten, kto je napisał.
+ *
+ * `reopened` to dawne `rejected` (zgłaszający: „dalej nie działa"); zmiana
+ * nazwy, bo `dismissed` to co innego — odrzucenie przez moderatora.
  */
-export type ReportStatus = 'new' | 'fixed' | 'rejected' | 'done';
+export type ReportStatus =
+  | 'pending'
+  | 'new'
+  | 'fixed'
+  | 'reopened'
+  | 'dismissed'
+  | 'done';
 
 export interface ReportNote {
   /** Kto pisze: programista czy zgłaszający. */
@@ -55,6 +68,13 @@ export async function addReport(input: {
   description: string;
   author?: string;
   images?: string[];
+  /**
+   * Status startowy. `pending`, gdy zgłasza coworker, edytor albo gracz
+   * z gry — trafia wtedy do akceptacji. `new`, gdy admin lub co-admin, bo
+   * ich zgłoszenia pomijają kolejkę. Domyślnie `pending`: bezpieczniej, żeby
+   * pominięcie roli nie wpuszczało zgłoszenia od razu do realizacji.
+   */
+  status?: 'pending' | 'new';
 }): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz tytuł zgłoszenia.' };
@@ -65,7 +85,7 @@ export async function addReport(input: {
       title,
       description: input.description.trim(),
       author: input.author?.trim() ?? '',
-      status: 'new' satisfies ReportStatus,
+      status: (input.status ?? 'pending') satisfies ReportStatus,
       createdAt: new Date().toISOString(),
       // Puste pole pomijamy: reguły dopuszczają `images`, ale pusta lista
       // niczego nie wnosi, a odczyt i tak podstawia [].

@@ -7,6 +7,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../firebase/client';
+import { loadRole, DEFAULT_ROLE, type Role } from '../firebase/roles';
 
 /**
  * Uwierzytelnianie panelu administracyjnego.
@@ -19,11 +20,22 @@ export function useAdminAuth() {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Rola zalogowanego — decyduje, co widać i wolno w panelu.
+  const [role, setRole] = useState<Role>(DEFAULT_ROLE);
 
-  useEffect(() => onAuthStateChanged(auth, (nextUser) => {
-    setUser(nextUser);
-    setChecking(false);
-  }), []);
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (nextUser) => {
+        setUser(nextUser);
+        setChecking(false);
+        if (nextUser) {
+          void loadRole(nextUser.uid, nextUser.email).then(setRole);
+        } else {
+          setRole(DEFAULT_ROLE);
+        }
+      }),
+    [],
+  );
 
   const login = async (email: string, password: string) => {
     setPending(true);
@@ -74,5 +86,6 @@ export function useAdminAuth() {
     login,
     logout,
     setDisplayName,
+    role,
   };
 }

@@ -5,6 +5,7 @@ import type { Card, Character, Problem, RulesConfig } from '../engine/types';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import { FinaleScreen } from './screens/FinaleScreen';
 import { MissionScreen } from './screens/MissionScreen';
+import { ReportButton } from './components/ReportButton';
 import { IntroScreen } from './screens/IntroScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
@@ -204,6 +205,9 @@ function RunningGame({
           onQuit={tutorial ? undefined : () => void quit()}
         />
         <TutorialLayer tutorial={tour} />
+        {/* Zgłaszanie z gry tylko w normalnej rozgrywce — w samouczku dziecko
+            się uczy, a nie zgłasza. */}
+        {!tutorial && <ReportButton />}
         {dialog}
       </>
     );

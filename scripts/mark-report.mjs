@@ -9,7 +9,7 @@
  * wypisuje, co trzeba ustawić, i kończy.
  *
  * Użycie:
- *   node scripts/mark-report.mjs <fragment-tytułu> [fixed|done|rejected|new]
+ *   node scripts/mark-report.mjs <fragment-tytułu> [pending|new|fixed|reopened|dismissed|done]
  *   node scripts/mark-report.mjs --list
  */
 import { readFileSync } from 'node:fs';
@@ -80,12 +80,12 @@ if (query === '--list' || !query) {
     console.log(`[${field(doc, 'status').padEnd(8)}] ${field(doc, 'title')}`);
   }
   if (!query) {
-    console.log('\nUżycie: node scripts/mark-report.mjs "<fragment tytułu>" [fixed|done|rejected|new]');
+    console.log('\nUżycie: node scripts/mark-report.mjs "<fragment tytułu>" [pending|new|fixed|reopened|dismissed|done]');
   }
   process.exit(0);
 }
 
-const VALID = ['new', 'fixed', 'rejected', 'done'];
+const VALID = ['pending', 'new', 'fixed', 'reopened', 'dismissed', 'done'];
 if (!VALID.includes(status)) {
   console.error(`Nieznany status: ${status}. Dozwolone: ${VALID.join(', ')}.`);
   process.exit(1);

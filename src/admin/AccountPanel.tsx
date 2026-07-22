@@ -88,10 +88,6 @@ export function AccountPanel({ email, displayName, onSaveName }: AccountPanelPro
         </div>
       </div>
 
-      <p className="mt-3 max-w-prose rounded-lg border border-edge bg-surface p-3 text-xs leading-relaxed text-ink-dim">
-        Hasło do konta zmienia właściciel projektu w Firebase Console. To konto
-        jest wspólne dla zespołu — zmiana hasła z panelu wylogowałaby wszystkich.
-      </p>
     </section>
   );
 }
