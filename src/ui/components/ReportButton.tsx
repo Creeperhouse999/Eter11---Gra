@@ -76,7 +76,10 @@ export function ReportButton() {
         onClick={() => setOpen(true)}
         aria-label="Zgłoś błąd"
         title="Zgłoś błąd"
-        className="fixed bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-surface text-ink-dim shadow-lg transition hover:border-accent hover:text-accent"
+        // Prawy dolny róg kolidował z przyciskami „Pasuję"/„Wymień" i paskiem
+        // ręki — na telefonie zasłaniał akcje gry. Lewy dolny róg jest wolny:
+        // akcje są po prawej, ręka przewija się środkiem.
+        className="fixed bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
         style={{ zIndex: 'var(--z-hint)' }}
       >
         <Icon name="megaphone" size={18} />
