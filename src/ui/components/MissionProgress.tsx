@@ -30,7 +30,9 @@ export function MissionProgress({ mission }: MissionProgressProps) {
     <div>
       <div className="flex items-baseline gap-2">
         <span className="eter-label">Ścianki</span>
-        <span className="font-mono text-sm font-bold">
+        {/* `key={closed}`: liczba podbija się przy zamknięciu ścianki —
+            to jedyny moment sukcesu w misji, więc go podkreślamy. */}
+        <span key={closed} className="eter-bump font-mono text-sm font-bold">
           {closed}
           <span className="text-ink-dim">/{slots.length}</span>
         </span>

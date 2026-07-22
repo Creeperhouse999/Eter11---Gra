@@ -16,7 +16,10 @@ export function RoundFuel({ round, total }: RoundFuelProps) {
     <div>
       <div className="flex items-center gap-2">
         <span className="eter-label">Runda</span>
-        <span className="font-mono text-sm font-bold">
+        {/* `key={round}`: przy nowej rundzie React montuje ten element od nowa,
+            więc animacja podbicia odpala się przy każdej zmianie — dziecko
+            widzi, że runda ruszyła, bez wpatrywania się w cyfrę. */}
+        <span key={round} className="eter-bump font-mono text-sm font-bold">
           {round}/{total}
         </span>
       </div>
