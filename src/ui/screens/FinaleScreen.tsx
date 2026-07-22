@@ -83,6 +83,14 @@ export function FinaleScreen({
             {state.config.missionsPerGame}.
             {!team.won && ' Możecie przegrać bitwę, ale nie wojnę.'}
           </p>
+          {/* Marcin pytał wprost, jak rozumieć wynik: ekran pokazywał liczby,
+              ale nie mówił, ile trzeba, żeby wygrać. Próg bierzemy z zasad,
+              nie zaszyty — redaktor może go zmienić w zakładce Zasady. */}
+          <p className="mt-1 text-xs text-ink-dim">
+            {team.won
+              ? `Do wspólnej wygranej wystarczyło rozwiązać ${state.config.teamWinThreshold} — udało się.`
+              : `Do wspólnej wygranej trzeba było rozwiązać ${state.config.teamWinThreshold}.`}
+          </p>
           {state.unsolvedProblems.length > 0 && (
             <p className="mt-2 text-xs text-ink-dim">
               Nierozwiązane: {state.unsolvedProblems.map((p) => p.name).join(', ')}
@@ -110,9 +118,22 @@ export function FinaleScreen({
                 </span>
               </div>
 
-              {hasFulfillment(player) && (
-                <p className="mt-1 text-sm font-bold text-success">
-                  {text.finaleFulfillment}
+              {/* Spełnienie = po jednej karcie z każdej z pięciu kategorii na
+                  karcie postaci. Marcin pytał, co znaczy „spełnienie" i ile
+                  kart trzeba — więc mówimy to wprost, a gdy nie osiągnięte,
+                  pokazujemy ile kategorii brakuje. */}
+              {hasFulfillment(player) ? (
+                <div className="mt-1">
+                  <p className="text-sm font-bold text-success">{text.finaleFulfillment}</p>
+                  <p className="text-xs text-ink-dim">
+                    Zebrał kompetencję z każdej z pięciu kategorii.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-ink-dim">
+                  Spełnienie: brakuje{' '}
+                  {Object.values(progress).filter((done) => !done).length} z pięciu
+                  kategorii do kompletu.
                 </p>
               )}
 
