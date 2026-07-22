@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Synchronizacja zakładki z adresem URL.
@@ -12,7 +12,7 @@ import { useEffect } from 'react';
  * zakładki — jeden zestaw nazw, bez osobnej mapy do utrzymania.
  *
  * @param tab   aktywna zakładka
- * @param setTab ustawia zakładkę (wywoływane przy wejściu z adresu i wstecz)
+ * @param setTab ustawia zakładkę (wywoływane przy „wstecz" i wejściu z adresu)
  * @param isValid czy dany slug jest znaną zakładką
  */
 export function useTabRoute<T extends string>(
@@ -20,21 +20,31 @@ export function useTabRoute<T extends string>(
   setTab: (tab: T) => void,
   isValid: (value: string) => value is T,
 ): void {
-  // Adres → zakładka. Przy pierwszym renderze i przy „wstecz"/„naprzód".
+  // Callbacki w ref, nie w zależnościach efektu.
+  //
+  // `setTab` i `isValid` są tworzone na nowo przy każdym renderze panelu, więc
+  // wpisane w zależności odpalałyby efekt „adres → zakładka" po KAŻDYM
+  // renderze. A ten efekt czyta bieżący adres — który przy kliknięciu nowej
+  // zakładki jest jeszcze STARY (adres zmienia dopiero drugi efekt). Skutek:
+  // kliknięcie zakładki natychmiast cofało się do poprzedniej i panel
+  // wyglądał, jakby nie dało się przełączyć zakładki. Ref utrzymuje aktualne
+  // funkcje, a efekt biegnie tylko na montowaniu i „wstecz".
+  const setTabRef = useRef(setTab);
+  const isValidRef = useRef(isValid);
+  setTabRef.current = setTab;
+  isValidRef.current = isValid;
+
+  // Adres → zakładka: na pierwszym renderze i przy „wstecz"/„naprzód".
   useEffect(() => {
     const apply = () => {
       const slug = window.location.pathname.replace(/^\/admin\/?/, '').split('/')[0];
-      if (slug && isValid(slug) && slug !== tab) setTab(slug);
+      if (slug && isValidRef.current(slug)) setTabRef.current(slug);
     };
 
     apply();
     window.addEventListener('popstate', apply);
     return () => window.removeEventListener('popstate', apply);
-    // Celowo bez `tab`: ten efekt reaguje na zmianę ADRESU, nie zakładki.
-    // Zależność od `tab` odpalałaby go przy każdym przełączeniu i nadpisywała
-    // wpis w historii, który dopisuje efekt niżej.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setTab, isValid]);
+  }, []);
 
   // Zakładka → adres. Nowy wpis w historii, żeby „wstecz" wracał do
   // poprzedniej zakładki, a nie wychodził z panelu.
