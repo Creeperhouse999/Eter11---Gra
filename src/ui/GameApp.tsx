@@ -144,7 +144,13 @@ function RunningGame({
 
     void import('../firebase/playStats').then(({ recordFinishedGame }) =>
       recordFinishedGame({
-        won: state.solvedProblems.length >= state.config.teamWinThreshold,
+        // Wygrana wymaga progu ORAZ choć jednego rozwiązanego problemu.
+        // Sam próg nie wystarcza: redaktor mógł ustawić go na 0 w zasadach,
+        // a wtedy nawet partia bez ani jednego rozwiązania liczyłaby się jako
+        // wygrana — statystyka wygranych skłamałaby.
+        won:
+          state.solvedProblems.length > 0 &&
+          state.solvedProblems.length >= state.config.teamWinThreshold,
         missionsSolved: state.solvedProblems.length,
       }),
     );

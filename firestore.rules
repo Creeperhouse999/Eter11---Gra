@@ -79,16 +79,33 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if zalogowany();
 
-      // Wypowiedzi tylko przybywa. Wątek jest zapisem trwałym — skasowanie
-      // cudzej wypowiedzi zmieniłoby sens ustaleń zapadłych wcześniej.
-      // Pozostałe pola (temat, autor, data) zostają nietknięte; `closed`
-      // wolno przełączać, bo zamknięcie chowa ustalony wątek z listy.
+      // Do wątku wolno WYŁĄCZNIE dopisywać, i tylko jedną wypowiedź naraz.
+      //
+      // Sam warunek „tablica nie krótsza" nie wystarczał: pozwalał podmienić
+      // treść, autora albo datę już istniejącej wypowiedzi, byle długości nie
+      // skrócić. Ktoś mógł przepisać cudzy wpis i dopisać własny w jednym
+      // zapisie. Teraz sprawdzamy, że stare wypowiedzi zostają nietknięte —
+      // nowa tablica bez ostatniego elementu musi być identyczna ze starą —
+      // więc każda edycja historii jest odrzucana, a nie tylko skracanie.
+      //
+      // Pola tematu, autora i daty wątku zostają; `closed` wolno przełączać.
       allow update: if zalogowany()
                     && request.resource.data.diff(resource.data)
                          .affectedKeys().hasOnly(['messages', 'closed'])
-                    && request.resource.data.messages.size()
-                       >= resource.data.messages.size()
-                    && request.resource.data.messages.size() <= 200;
+                    && request.resource.data.messages is list
+                    && request.resource.data.messages.size() <= 200
+                    && (
+                      // Sama zmiana `closed`, bez ruszania wypowiedzi.
+                      request.resource.data.messages == resource.data.messages
+                      // Albo dokładnie jedna nowa wypowiedź na końcu, a cała
+                      // wcześniejsza historia bez zmian.
+                      || (
+                        request.resource.data.messages.size()
+                          == resource.data.messages.size() + 1
+                        && request.resource.data.messages[0:resource.data.messages.size()]
+                             == resource.data.messages
+                      )
+                    );
     }
 
     /**
@@ -111,9 +128,13 @@ service cloud.firestore {
      *
      * Pisze go gra, a gra działa bez logowania — dzieci kont nie mają
      * i mieć nie będą. Zapis jest więc otwarty, ale wyłącznie dla czterech
-     * liczników i tylko w górę: `increment` po stronie serwera nie pozwala
-     * podstawić dowolnej wartości, a warunek niżej odrzuca próbę zmniejszenia
-     * albo dopisania własnych pól.
+     * liczników, tylko w górę i tylko o tyle, ile daje jedna partia.
+     *
+     * Uwaga: `increment` to delta wysyłana przez klienta, nie wartość liczona
+     * po stronie serwera — sam z siebie niczego nie chroni. Jedyną ochroną
+     * jest ta reguła, więc ogranicza nie tylko kierunek zmiany, ale i jej
+     * rozmiar: bez limitu ktoś dopisałby milion jednym zapisem i skłamał
+     * jedyną liczbę, którą zespół się kieruje.
      *
      * Nie ma tu nic o graczach: żadnych imion, postaci ani identyfikatorów.
      * Cztery liczby zbiorcze i nic więcej.
@@ -121,23 +142,26 @@ service cloud.firestore {
     match /stats/play {
       allow read: if true;
 
-      // Tylko te cztery pola, tylko liczby, tylko w górę. Każdy z warunków
-      // niżej blokuje inny sposób popsucia licznika: dopisanie własnego pola,
-      // wstawienie tekstu zamiast liczby i cofnięcie wyniku do zera.
+      // Delta jednej partii dla danego pola — ile najwyżej wolno dodać za
+      // jednym zapisem. `finished` i tutorial rosną o 1; `won` o 0 lub 1;
+      // `missionsSolved` najwyżej o kilkanaście (misji w partii jest ~7,
+      // zapas na wypadek luźniejszych zasad).
+      function przyrost(pole, max) {
+        let stare = resource == null ? 0 : resource.data.get(pole, 0);
+        let nowe = request.resource.data[pole];
+        return nowe >= stare && nowe <= stare + max;
+      }
+
       allow write: if request.resource.data.keys().hasOnly(
                         ['finished', 'won', 'missionsSolved', 'tutorialsFinished'])
                    && request.resource.data.finished is int
                    && request.resource.data.won is int
                    && request.resource.data.missionsSolved is int
                    && request.resource.data.tutorialsFinished is int
-                   && request.resource.data.finished >=
-                        (resource == null ? 0 : resource.data.get('finished', 0))
-                   && request.resource.data.won >=
-                        (resource == null ? 0 : resource.data.get('won', 0))
-                   && request.resource.data.missionsSolved >=
-                        (resource == null ? 0 : resource.data.get('missionsSolved', 0))
-                   && request.resource.data.tutorialsFinished >=
-                        (resource == null ? 0 : resource.data.get('tutorialsFinished', 0));
+                   && przyrost('finished', 1)
+                   && przyrost('won', 1)
+                   && przyrost('missionsSolved', 20)
+                   && przyrost('tutorialsFinished', 1);
     }
 
     // Wszystkie pozostałe ścieżki zamknięte.

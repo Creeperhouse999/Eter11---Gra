@@ -52,10 +52,14 @@ export function ImageUpload({
     const added: string[] = [];
 
     for (let i = 0; i < chosen.length; i += 1) {
-      // Nazwa z prefiksu, pozycji i długości listy — bez zegara i losowości,
-      // które są w tym środowisku zablokowane, a i tak dają kolizje przy
-      // dwóch plikach w tej samej milisekundzie.
-      const name = `${namePrefix}-${value.length + added.length}-${i}`;
+      // Nazwa z losowego identyfikatora, nie z licznika.
+      //
+      // Wcześniej było `${prefix}-${index}`, a prefiks bywał stały
+      // (`report-anon` dla każdego zgłoszenia bez konta). Ścieżka w Storage
+      // jest deterministyczna, a wysyłka nadpisuje — więc dwa zgłoszenia
+      // z obrazkiem pisały pod ten sam adres i drugie kasowało pierwsze.
+      // `randomUUID` daje adres, którego nic innego nie zajmie.
+      const name = `${namePrefix}-${crypto.randomUUID()}`;
       const result = await uploadImage({ file: chosen[i], folder, name });
 
       if (result.ok && result.url) {
