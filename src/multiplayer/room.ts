@@ -174,6 +174,34 @@ export async function setReady(code: string, uid: string, ready: boolean): Promi
   await set(ref(rtdb, `${ROOMS}/${code}/players/${uid}/ready`), ready);
 }
 
+/**
+ * Zmiana postaci w poczekalni.
+ *
+ * Transakcja, bo dwóch graczy mogłoby sięgnąć po tę samą postać w tej samej
+ * chwili — sprawdzamy, że nikt inny jej już nie ma, i odrzucamy, gdy zajęta.
+ */
+export async function setCharacter(
+  code: string,
+  uid: string,
+  characterId: string,
+): Promise<boolean> {
+  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
+  let taken = false;
+  await runTransaction(roomRef, (room: Room | null) => {
+    if (!room?.players) return room;
+    const clash = Object.values(room.players).some(
+      (p) => p.uid !== uid && p.characterId === characterId,
+    );
+    if (clash) {
+      taken = true;
+      return room; // Bez zmiany — postać zajęta.
+    }
+    if (room.players[uid]) room.players[uid].characterId = characterId;
+    return room;
+  });
+  return !taken;
+}
+
 /** Host wyrzuca gracza — trafia na listę `kicked` i nie wróci. */
 export async function kickPlayer(code: string, uid: string): Promise<void> {
   await update(ref(rtdb, `${ROOMS}/${code}`), {

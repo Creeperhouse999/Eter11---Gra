@@ -36,7 +36,7 @@ export type Role =
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
-  programmer: 'Programmer',
+  programmer: 'Programista',
   'co-admin': 'Co-admin',
   coworker: 'Coworker',
   editor: 'Edytor',

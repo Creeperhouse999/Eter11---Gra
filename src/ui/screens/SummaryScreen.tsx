@@ -18,6 +18,15 @@ interface SummaryScreenProps {
   game: Game;
   text?: UiText;
   characters?: Character[];
+  /**
+   * Ukryj własny przycisk „Dalej".
+   *
+   * W samouczku dalej prowadzi ETER11 przez swój dymek — po zabraniu karty
+   * mówi, co dalej, i kończy ćwiczenie ekranem podsumowania. Gdyby obok stał
+   * zwykły „Dalej", dziecko klikało go zamiast słuchać i lądowało na pustej
+   * „Misji 2" bez talii i bez wyjścia — poza scenariuszem, w ślepym zaułku.
+   */
+  hideAdvance?: boolean;
 }
 
 // Kategorie do spełnienia to te same ścianki co na karcie problemu —
@@ -35,6 +44,7 @@ export function SummaryScreen({
   game,
   text = DEFAULT_UI_TEXT,
   characters = ALL_CHARACTERS,
+  hideAdvance = false,
 }: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
@@ -280,11 +290,13 @@ export function SummaryScreen({
         })}
       </section>
 
-      <div className="relative mt-8">
-        <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}>
-          Dalej
-        </Button>
-      </div>
+      {!hideAdvance && (
+        <div className="relative mt-8">
+          <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}>
+            Dalej
+          </Button>
+        </div>
+      )}
     </main>
   );
 }

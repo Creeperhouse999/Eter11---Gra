@@ -4,7 +4,7 @@ import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { useToast } from '../ui/controls/Toast';
-import { playersInOrder } from './room';
+import { playersInOrder, setCharacter } from './room';
 import type { Room } from './types';
 
 interface RoomLobbyProps {
@@ -117,6 +117,48 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
             </div>
           );
         })}
+      </section>
+
+      {/* Wybór postaci — zajęte przez innych są niedostępne, żeby dwie osoby
+          nie grały tą samą. */}
+      <section className="relative mt-4 rounded-xl border border-edge bg-surface p-4">
+        <span className="text-sm text-ink-dim">Twoja postać</span>
+        <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Postać">
+          {ALL_CHARACTERS.map((character) => {
+            const takenBy = players.find(
+              (p) => p.uid !== uid && p.characterId === character.id,
+            );
+            const mine = players.find((p) => p.uid === uid)?.characterId === character.id;
+            return (
+              <button
+                key={character.id}
+                type="button"
+                role="radio"
+                aria-checked={mine}
+                aria-label={character.name}
+                title={
+                  takenBy ? `${character.name} — zajęta przez ${takenBy.name}` : character.name
+                }
+                disabled={Boolean(takenBy)}
+                onClick={() => {
+                  void setCharacter(room.code, uid, character.id).then((ok) => {
+                    if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
+                  });
+                }}
+                className={[
+                  'flex h-11 w-11 items-center justify-center rounded-lg border transition',
+                  mine
+                    ? 'border-accent bg-raised text-accent'
+                    : takenBy
+                      ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
+                      : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
+                ].join(' ')}
+              >
+                <Icon name={character.icon as IconName} size={22} />
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       <div className="relative mt-6 space-y-3">

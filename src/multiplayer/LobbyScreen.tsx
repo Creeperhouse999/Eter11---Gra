@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
-import { Icon, type IconName } from '../ui/icons/Icon';
 import { useToast } from '../ui/controls/Toast';
 import { createRoom, joinRoom } from './room';
 
@@ -22,7 +21,6 @@ interface LobbyScreenProps {
 export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
   const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
   const [name, setName] = useState('');
-  const [characterId, setCharacterId] = useState(ALL_CHARACTERS[0].id);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -36,7 +34,8 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
     try {
       const { code: newCode, uid } = await createRoom({
         hostName: name,
-        characterId,
+        // Postać wybiera się w poczekalni — tu tylko placeholder.
+        characterId: ALL_CHARACTERS[0].id,
       });
       onEnter(newCode, uid);
     } catch (e) {
@@ -55,7 +54,7 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
       return;
     }
     setBusy(true);
-    const result = await joinRoom({ code, name, characterId });
+    const result = await joinRoom({ code, name, characterId: ALL_CHARACTERS[0].id });
     if (result.ok && result.uid) {
       onEnter(code.trim().toUpperCase(), result.uid);
     } else {
@@ -87,31 +86,9 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
             maxLength={40}
           />
 
-          <span className="mt-3 block text-sm text-ink-dim">Twoja postać</span>
-          <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Postać">
-            {ALL_CHARACTERS.map((character) => {
-              const active = characterId === character.id;
-              return (
-                <button
-                  key={character.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  aria-label={character.name}
-                  title={character.name}
-                  onClick={() => setCharacterId(character.id)}
-                  className={[
-                    'flex h-10 w-10 items-center justify-center rounded-lg border transition',
-                    active
-                      ? 'border-accent bg-raised text-accent'
-                      : 'border-edge text-ink-dim hover:border-ink-dim',
-                  ].join(' ')}
-                >
-                  <Icon name={character.icon as IconName} size={20} />
-                </button>
-              );
-            })}
-          </div>
+          <p className="mt-2 text-xs text-ink-dim">
+            Postać wybierzesz w poczekalni — zobaczysz, które są jeszcze wolne.
+          </p>
         </section>
       )}
 

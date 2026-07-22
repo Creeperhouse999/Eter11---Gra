@@ -196,7 +196,9 @@ function RunningGame({
   if (state.phase === 'missionSummary') {
     return (
       <>
-        <SummaryScreen game={game} text={text} />
+        {/* W samouczku dalej prowadzi ETER11, nie własny „Dalej" ekranu —
+            inaczej dziecko wychodziło poza scenariusz na pustą „Misję 2". */}
+        <SummaryScreen game={game} text={text} hideAdvance={tutorial} />
         <TutorialLayer tutorial={tour} />
       </>
     );
@@ -226,6 +228,7 @@ function RunningGame({
   const first = state.missionNumber === 0;
 
   return (
+    <>
     <main className="relative mx-auto max-w-2xl px-4 py-16 text-center">
       <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
       <div className="relative">
@@ -267,6 +270,10 @@ function RunningGame({
         )}
       </div>
     </main>
+    {/* Gdyby samouczek jakąkolwiek drogą dobił tu, jego dymek musi zostać —
+        bez niego ekran bywa ślepym zaułkiem (pusta talia, „Dalej" wyłączony). */}
+    <TutorialLayer tutorial={tour} />
+    </>
   );
 }
 
