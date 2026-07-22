@@ -12,6 +12,7 @@ import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
 import { Select } from '../ui/controls/Select';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { TextField } from '../ui/controls/Field';
 import { searchContent } from './globalSearch';
 import { useToast } from '../ui/controls/Toast';
@@ -23,7 +24,7 @@ import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
-import { ReportsPanel } from './ReportsPanel';
+import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
 import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
@@ -361,24 +362,20 @@ export function AdminApp() {
                 o niezapisanych zmianach, nie pamiętając, czy sam coś ruszył,
                 czy przypadkiem skasował literę w cudzym tekście. */}
             {dirty && (
-              <span
-                className="rounded bg-accent-2 px-2 py-1 font-mono text-[10px] font-bold text-bg"
-                title={`Zmienione: ${pendingChanges}`}
-              >
-                niezapisane: {pendingChanges}
-              </span>
+              // Custom podpowiedź zamiast natywnego `title` (szary systemowy dymek).
+              <Tooltip label={`Zmienione: ${pendingChanges}`}>
+                <span className="rounded bg-accent-2 px-2 py-1 font-mono text-[10px] font-bold text-bg">
+                  niezapisane: {pendingChanges}
+                </span>
+              </Tooltip>
             )}
             {dirty && (
               <Button variant="ghost" size="sm" onClick={discard} className="text-danger">
                 Odrzuć zmiany
               </Button>
             )}
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={save}
-              disabled={!dirty || saving || !validation.ok || !canEdit(auth.role)}
-              title={
+            <Tooltip
+              label={
                 !validation.ok
                   ? 'Popraw błędy, żeby zapisać'
                   : !dirty
@@ -386,8 +383,15 @@ export function AdminApp() {
                     : 'Zapisz zmiany (Ctrl+S)'
               }
             >
-              {saving ? 'Zapisywanie…' : 'Zapisz'}
-            </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={save}
+                disabled={!dirty || saving || !validation.ok || !canEdit(auth.role)}
+              >
+                {saving ? 'Zapisywanie…' : 'Zapisz'}
+              </Button>
+            </Tooltip>
             <Button
               variant="secondary"
               size="sm"
@@ -543,6 +547,10 @@ export function AdminApp() {
           <ProblemEditor
             problems={content.problems}
             onChange={(problems) => update({ problems })}
+            // Rozwinięty problem żyje w adresie (`?open=<id>`), więc link
+            // wprost do konkretnego problemu da się wysłać dalej.
+            openId={route.params.open ?? null}
+            onOpenChange={(id) => route.setParam('open', id)}
           />
         )}
         {tab === 'cards' && (
@@ -608,12 +616,25 @@ export function AdminApp() {
           <ReportsPanel
             author={auth.user?.displayName || auth.user?.email || 'Zespół'}
             role={auth.role}
+            // Filtr statusu to pod-zakładka (`/admin/reports/fixed`); nieznany
+            // slug zostawia widok domyślny. Otwarte zgłoszenie żyje w query
+            // (`?open=<id>`) — link prowadzi wprost do listy i do zgłoszenia.
+            statusTab={route.sub && isReportStatus(route.sub) ? route.sub : undefined}
+            onStatusTabChange={(s) => route.setSub(s)}
+            openId={route.params.open ?? null}
+            onOpenChange={(id) => route.setParam('open', id)}
           />
         )}
         {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
             ma stać podpis, którego nie da się podszyć. */}
         {tab === 'discussions' && (
-          <DiscussionsPanel author={auth.user?.displayName || auth.user?.email || 'Zespół'} />
+          <DiscussionsPanel
+            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            // Przełącznik otwarte/ustalone żyje w adresie (`?closed=1`), więc
+            // link wprost do listy ustalonych da się wysłać dalej.
+            showClosed={route.params.closed === '1'}
+            onShowClosedChange={(v) => route.setParam('closed', v ? '1' : null)}
+          />
         )}
         {tab === 'stats' && <StatsPanel content={content} />}
         {tab === 'team' && auth.user && <TeamPanel currentUid={auth.user.uid} />}

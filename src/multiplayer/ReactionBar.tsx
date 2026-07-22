@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon, type IconName } from '../ui/icons/Icon';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { REACTIONS, type Reaction, type ReactionKind, type RoomPlayer } from './types';
 import { useFreshReactions } from './useRoom';
 
@@ -75,16 +76,18 @@ export function ReactionBar({ reactions, players, uid, onReact }: ReactionBarPro
 
       {/* Przycisk otwierający — lewy dolny róg, jak przycisk zgłoszeń, ale
           po drugiej stronie niż on nie występuje (to online). */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Reakcje"
-        title="Reakcje"
-        className="fixed bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-surface text-ink-dim shadow-lg transition hover:border-accent hover:text-accent"
-        style={{ zIndex: 'var(--z-dropdown)' }}
-      >
-        <Icon name={open ? 'close' : 'message'} size={18} />
-      </button>
+      {/* Custom podpowiedź zamiast natywnego `title`. */}
+      <Tooltip label="Reakcje">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label="Reakcje"
+          className="fixed bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-surface text-ink-dim shadow-lg transition hover:border-accent hover:text-accent"
+          style={{ zIndex: 'var(--z-dropdown)' }}
+        >
+          <Icon name={open ? 'close' : 'message'} size={18} />
+        </button>
+      </Tooltip>
 
       {/* uid używany do przyszłego wyróżnienia własnych reakcji — na razie
           pole zachowane w API, bez efektu wizualnego. */}

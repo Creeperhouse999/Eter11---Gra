@@ -82,6 +82,11 @@ const STATUS_TABS: Array<{
   },
 ];
 
+/** Czy dany slug z adresu to znany status zgłoszenia (pod-zakładka). */
+export function isReportStatus(value: string): value is ReportStatus {
+  return STATUS_TABS.some((s) => s.id === value);
+}
+
 const EMPTY_MESSAGE: Record<ReportStatus, string> = {
   pending: 'Nic nie czeka na akceptację.',
   new: 'Brak nowych zgłoszeń.',
@@ -131,9 +136,30 @@ interface ReportsPanelProps {
    * (admin, co-admin) i kto może je usuwać (admin).
    */
   role: Role;
+  /**
+   * Aktywny filtr statusu — z adresu (`/admin/reports/fixed`). Steruje
+   * widoczną listą, żeby dało się zalinkować wprost do danej pod-zakładki.
+   */
+  statusTab?: ReportStatus;
+  /** Zgłasza zmianę filtra statusu w górę, żeby trafiła do adresu. */
+  onStatusTabChange?: (status: ReportStatus) => void;
+  /**
+   * Id otwartego zgłoszenia — z adresu (`?open=<id>`). Steruje otwartym
+   * oknem, żeby link prowadził wprost do konkretnego zgłoszenia.
+   */
+  openId?: string | null;
+  /** Zgłasza otwarcie/zamknięcie zgłoszenia w górę, żeby trafiło do adresu. */
+  onOpenChange?: (id: string | null) => void;
 }
 
-export function ReportsPanel({ author, role }: ReportsPanelProps) {
+export function ReportsPanel({
+  author,
+  role,
+  statusTab,
+  onStatusTabChange,
+  openId: openIdProp,
+  onOpenChange,
+}: ReportsPanelProps) {
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
@@ -150,13 +176,30 @@ export function ReportsPanel({ author, role }: ReportsPanelProps) {
    * Zgłoszenie przechodzi przez cztery stany, nie dwa. Wcześniej panel
    * znał tylko „nowe" i „załatwione", więc zgłoszenia oznaczone jako
    * naprawione znikały z obu list — nikt ich już nie widział.
+   *
+   * Filtr sterowany adresem, gdy podano `statusTab`; inaczej własny stan.
+   * Dzięki temu link `/admin/reports/fixed` otwiera właściwą listę, a bez
+   * adresu (np. w teście jednostkowym) panel działa jak dawniej.
    */
-  const [tab, setTab] = useState<ReportStatus>('new');
+  const [localTab, setLocalTab] = useState<ReportStatus>('new');
+  const tab = statusTab !== undefined ? statusTab : localTab;
+  const setTab = (next: ReportStatus) => {
+    setLocalTab(next);
+    onStatusTabChange?.(next);
+  };
   /** Zgłoszenie z otwartym polem komentarza. */
   const [commenting, setCommenting] = useState<string | null>(null);
   const [comment, setComment] = useState('');
-  /** Zgłoszenie otwarte w oknie. */
-  const [openId, setOpenId] = useState<string | null>(null);
+  /**
+   * Zgłoszenie otwarte w oknie. Sterowane adresem, gdy podano `openId`;
+   * inaczej własny stan — jak filtr statusu wyżej.
+   */
+  const [localOpenId, setLocalOpenId] = useState<string | null>(null);
+  const openId = openIdProp !== undefined ? openIdProp : localOpenId;
+  const setOpenId = (next: string | null) => {
+    setLocalOpenId(next);
+    onOpenChange?.(next);
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true);

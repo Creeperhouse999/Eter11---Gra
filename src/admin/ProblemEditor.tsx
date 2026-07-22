@@ -21,6 +21,13 @@ import { newId } from './newId';
 interface ProblemEditorProps {
   problems: Problem[];
   onChange: (problems: Problem[]) => void;
+  /**
+   * Id rozwiniętego problemu — z adresu (`/admin/problems?open=<id>`). Steruje
+   * tym, który problem jest otwarty, żeby dało się zalinkować wprost do niego.
+   */
+  openId?: string | null;
+  /** Zgłasza zmianę rozwinięcia w górę, żeby trafiła do adresu. */
+  onOpenChange?: (id: string | null) => void;
 }
 
 const PROBLEM_TYPES: ProblemType[] = ['action', 'thinking', 'cooperation', 'selfchange'];
@@ -54,8 +61,16 @@ const TYPE_OPTIONS = PROBLEM_TYPES.map((type) => ({
 }));
 
 /** Edytor kart problemów: treść, typ, ścianki z wymaganą rodziną i podpowiedzią. */
-export function ProblemEditor({ problems, onChange }: ProblemEditorProps) {
-  const [openId, setOpenId] = useState<string | null>(null);
+export function ProblemEditor({ problems, onChange, openId: openIdProp, onOpenChange }: ProblemEditorProps) {
+  // Rozwinięty problem sterowany adresem, gdy podano `openId`; inaczej własny
+  // stan. Dzięki temu link `?open=<id>` otwiera właściwy problem, a bez adresu
+  // (np. w teście jednostkowym) edytor działa jak dawniej.
+  const [localOpenId, setLocalOpenId] = useState<string | null>(null);
+  const openId = openIdProp !== undefined ? openIdProp : localOpenId;
+  const setOpenId = (next: string | null) => {
+    setLocalOpenId(next);
+    onOpenChange?.(next);
+  };
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
 

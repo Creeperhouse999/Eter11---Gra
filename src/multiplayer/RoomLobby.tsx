@@ -1,6 +1,7 @@
 import { ALL_CHARACTERS } from '../data/characters';
 import { Avatar } from '../admin/Avatar';
 import { Button } from '../ui/controls/Button';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { useToast } from '../ui/controls/Toast';
@@ -56,17 +57,19 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
 
       <header className="relative text-center">
         <span className="eter-label">Poczekalnia</span>
-        <button
-          type="button"
-          onClick={() => void copyCode()}
-          className="mt-2 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-accent bg-surface p-4 transition hover:bg-raised"
-          title="Kliknij, żeby skopiować"
-        >
-          <span className="font-mono text-4xl font-bold tracking-[0.3em] text-accent">
-            {room.code}
-          </span>
-          <Icon name="clipboard" size={20} className="text-ink-dim" />
-        </button>
+        {/* Custom podpowiedź zamiast natywnego `title`. */}
+        <Tooltip label="Kliknij, żeby skopiować" className="mt-2 w-full">
+          <button
+            type="button"
+            onClick={() => void copyCode()}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-accent bg-surface p-4 transition hover:bg-raised"
+          >
+            <span className="font-mono text-4xl font-bold tracking-[0.3em] text-accent">
+              {room.code}
+            </span>
+            <Icon name="clipboard" size={20} className="text-ink-dim" />
+          </button>
+        </Tooltip>
         <p className="mt-2 text-sm text-ink-dim">
           Podaj ten kod znajomym — wpiszą go, żeby dołączyć.
         </p>
@@ -130,32 +133,36 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
             );
             const mine = players.find((p) => p.uid === uid)?.characterId === character.id;
             return (
-              <button
+              // Custom podpowiedź zamiast natywnego `title`.
+              <Tooltip
                 key={character.id}
-                type="button"
-                role="radio"
-                aria-checked={mine}
-                aria-label={character.name}
-                title={
+                label={
                   takenBy ? `${character.name} — zajęta przez ${takenBy.name}` : character.name
                 }
-                disabled={Boolean(takenBy)}
-                onClick={() => {
-                  void setCharacter(room.code, uid, character.id).then((ok) => {
-                    if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
-                  });
-                }}
-                className={[
-                  'flex h-11 w-11 items-center justify-center rounded-lg border transition',
-                  mine
-                    ? 'border-accent bg-raised text-accent'
-                    : takenBy
-                      ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
-                      : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
-                ].join(' ')}
               >
-                <Icon name={character.icon as IconName} size={22} />
-              </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={mine}
+                  aria-label={character.name}
+                  disabled={Boolean(takenBy)}
+                  onClick={() => {
+                    void setCharacter(room.code, uid, character.id).then((ok) => {
+                      if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
+                    });
+                  }}
+                  className={[
+                    'flex h-11 w-11 items-center justify-center rounded-lg border transition',
+                    mine
+                      ? 'border-accent bg-raised text-accent'
+                      : takenBy
+                        ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
+                        : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
+                  ].join(' ')}
+                >
+                  <Icon name={character.icon as IconName} size={22} />
+                </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -163,17 +170,22 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
 
       <div className="relative mt-6 space-y-3">
         {isHost ? (
+          // Custom podpowiedź zamiast natywnego `title`.
+          <Tooltip
+            label={players.length < 2 ? 'Potrzeba co najmniej dwóch graczy' : ''}
+            className="w-full"
+          >
           <Button
             variant="primary"
             size="lg"
             icon="rocket"
             className="w-full"
             disabled={players.length < 2}
-            title={players.length < 2 ? 'Potrzeba co najmniej dwóch graczy' : undefined}
             onClick={onStart}
           >
             {players.length < 2 ? 'Czekamy na graczy…' : `Zaczynamy (${players.length})`}
           </Button>
+          </Tooltip>
         ) : (
           <p className="rounded-lg border border-edge bg-surface p-3 text-center text-sm text-ink-dim">
             Czekamy, aż gospodarz zacznie grę.

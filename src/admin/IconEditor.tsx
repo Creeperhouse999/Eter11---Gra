@@ -3,6 +3,7 @@ import type { CustomIcon } from '../data/customIcons';
 import { uploadImage } from '../firebase/upload';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { Icon, ICON_NAMES } from '../ui/icons/Icon';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
@@ -148,13 +149,15 @@ export function IconEditor({ icons, onChange }: IconEditorProps) {
       </p>
       <div className="mt-2 grid grid-cols-8 gap-1.5 sm:grid-cols-12">
         {ICON_NAMES.map((name) => (
-          <span
-            key={name}
-            title={name}
-            className="flex aspect-square items-center justify-center rounded bg-surface text-ink-dim"
-          >
-            <Icon name={name} size={18} />
-          </span>
+          // Custom podpowiedź zamiast natywnego `title`: szary systemowy dymek
+          // odstawał od panelu, a na telefonie Google Translate tłumaczył nazwy
+          // ikon. `aspect-square` siedzi na owijce, bo to ona jest teraz komórką
+          // siatki i to ona musi trzymać kwadratowy kształt.
+          <Tooltip key={name} label={name} className="aspect-square">
+            <span className="flex h-full w-full items-center justify-center rounded bg-surface text-ink-dim">
+              <Icon name={name} size={18} />
+            </span>
+          </Tooltip>
         ))}
       </div>
     </section>

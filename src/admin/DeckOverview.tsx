@@ -3,6 +3,7 @@ import type { CardCategory } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { FAMILY_IDS } from '../data/families';
 import { categoryColorVar, categoryLabel, problemTypeLabel, slotLabel } from '../ui/components/categoryStyles';
+import { Tooltip } from '../ui/controls/Tooltip';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
 interface DeckOverviewProps {
@@ -320,25 +321,31 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
 
                     return (
                       <td key={family} className="p-1.5 text-center">
-                        <span
-                          className={[
-                            'inline-flex h-6 w-8 items-center justify-center rounded font-mono',
-                            count === 0
-                              ? 'bg-danger/20 font-bold text-danger'
-                              : count < 3
-                                ? 'bg-accent-2/20 text-accent-2'
-                                : 'bg-raised text-ink-dim',
-                          ].join(' ')}
-                          title={
+                        {/* Custom podpowiedź zamiast natywnego `title` — szary
+                            systemowy dymek odstawał od reszty panelu, a na
+                            telefonie Google Translate tłumaczył jego treść. */}
+                        <Tooltip
+                          label={
                             count === 0
                               ? 'Brak karty — ścianki tej rodziny nie da się zamknąć'
                               : count < 3
                                 ? 'Mało kart — misja zależy od losowania'
-                                : undefined
+                                : ''
                           }
                         >
-                          {count}
-                        </span>
+                          <span
+                            className={[
+                              'inline-flex h-6 w-8 items-center justify-center rounded font-mono',
+                              count === 0
+                                ? 'bg-danger/20 font-bold text-danger'
+                                : count < 3
+                                  ? 'bg-accent-2/20 text-accent-2'
+                                  : 'bg-raised text-ink-dim',
+                            ].join(' ')}
+                          >
+                            {count}
+                          </span>
+                        </Tooltip>
                       </td>
                     );
                   })}

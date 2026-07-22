@@ -19,6 +19,13 @@ import { useToast } from '../ui/controls/Toast';
 interface DiscussionsPanelProps {
   /** Imię zalogowanego — podpisuje wypowiedzi. */
   author: string;
+  /**
+   * Czy pokazać ustalone wątki — z adresu (`/admin/discussions?closed=1`).
+   * Steruje przełącznikiem otwarte/ustalone, żeby dało się zalinkować widok.
+   */
+  showClosed?: boolean;
+  /** Zgłasza zmianę przełącznika w górę, żeby trafiła do adresu. */
+  onShowClosedChange?: (value: boolean) => void;
 }
 
 /** Data w formie czytelnej dla człowieka: „21 lip, 14:32". */
@@ -44,11 +51,23 @@ function shortDate(iso: string): string {
  * Wypowiedzi wchodzą na żywo: rozmowa, w której odpowiedź pojawia się
  * dopiero po kliknięciu „odśwież", zamienia się w wymianę listów.
  */
-export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
+export function DiscussionsPanel({
+  author,
+  showClosed: showClosedProp,
+  onShowClosedChange,
+}: DiscussionsPanelProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showClosed, setShowClosed] = useState(false);
+  // Przełącznik sterowany adresem, gdy podano `showClosed`; inaczej własny
+  // stan. Dzięki temu link `?closed=1` otwiera od razu listę ustalonych, a bez
+  // adresu (np. w teście jednostkowym) panel działa jak dawniej.
+  const [localShowClosed, setLocalShowClosed] = useState(false);
+  const showClosed = showClosedProp !== undefined ? showClosedProp : localShowClosed;
+  const setShowClosed = (next: boolean) => {
+    setLocalShowClosed(next);
+    onShowClosedChange?.(next);
+  };
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
