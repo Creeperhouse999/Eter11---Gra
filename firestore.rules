@@ -37,12 +37,16 @@ service cloud.firestore {
     }
 
     function jestAdmin() {
-      return zalogowany() && rolaKonta() == 'admin';
+      return zalogowany()
+        && (rolaKonta() == 'admin' || rolaKonta() == 'programmer');
     }
 
     /** Admin i co-admin: moderują zgłoszenia, ale usuwa tylko admin. */
     function jestModeratorem() {
-      return zalogowany() && (rolaKonta() == 'admin' || rolaKonta() == 'co-admin');
+      return zalogowany()
+        && (rolaKonta() == 'admin'
+            || rolaKonta() == 'programmer'
+            || rolaKonta() == 'co-admin');
     }
 
     // Zawartość gry: karty, problemy, postacie, parametry zasad.
@@ -117,7 +121,7 @@ service cloud.firestore {
       allow write: if jestAdmin()
                    && request.resource.data.keys().hasOnly(['email', 'role'])
                    && request.resource.data.role in
-                        ['admin', 'co-admin', 'coworker', 'editor', 'viewer'];
+                        ['admin', 'programmer', 'co-admin', 'coworker', 'editor', 'viewer'];
     }
 
     /**

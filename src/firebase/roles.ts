@@ -21,10 +21,22 @@ import { db } from './client';
  *   w dyskusjach.
  * - `viewer` — tylko podgląd panelu: nic nie zmienia, nie zgłasza, nie pisze.
  */
-export type Role = 'admin' | 'co-admin' | 'coworker' | 'editor' | 'viewer';
+/**
+ * `programmer` to rola dla mnie (Claude): te same prawa co admin, osobna
+ * nazwa, żeby w rozmowie zgłoszenia było widać, kto odpisał — programista,
+ * nie „admin".
+ */
+export type Role =
+  | 'admin'
+  | 'programmer'
+  | 'co-admin'
+  | 'coworker'
+  | 'editor'
+  | 'viewer';
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
+  programmer: 'Programmer',
   'co-admin': 'Co-admin',
   coworker: 'Coworker',
   editor: 'Edytor',
@@ -33,6 +45,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_HINTS: Record<Role, string> = {
   admin: 'Wszystko, łącznie z usuwaniem i nadawaniem ról.',
+  programmer: 'To samo co admin — rola programisty.',
   'co-admin': 'Jak admin, ale bez usuwania i zmiany ról.',
   coworker: 'Edytuje i dyskutuje; jego zgłoszenia czekają na akceptację.',
   editor: 'Edytuje treść i zgłasza, bez dyskusji.',
@@ -126,22 +139,27 @@ export async function removeRole(uid: string): Promise<void> {
 
 /** Czy rola może usuwać wątki i zgłoszenia. */
 export function canDelete(role: Role): boolean {
-  return role === 'admin';
+  return role === 'admin' || role === 'programmer';
 }
 
 /** Czy rola akceptuje/odrzuca zgłoszenia oczekujące. */
 export function canModerate(role: Role): boolean {
-  return role === 'admin' || role === 'co-admin';
+  return role === 'admin' || role === 'programmer' || role === 'co-admin';
 }
 
 /** Czy zgłoszenie tej roli trafia od razu do realizacji (pomija akceptację). */
 export function skipsApproval(role: Role): boolean {
-  return role === 'admin' || role === 'co-admin';
+  return role === 'admin' || role === 'programmer' || role === 'co-admin';
 }
 
 /** Czy rola może w ogóle pisać w dyskusjach. */
 export function canDiscuss(role: Role): boolean {
-  return role === 'admin' || role === 'co-admin' || role === 'coworker';
+  return (
+    role === 'admin' ||
+    role === 'programmer' ||
+    role === 'co-admin' ||
+    role === 'coworker'
+  );
 }
 
 /** Czy rola może zmieniać treść gry (karty, teksty, zasady…). */
@@ -156,5 +174,5 @@ export function canReport(role: Role): boolean {
 
 /** Czy rola może nadawać role innym. */
 export function canManageRoles(role: Role): boolean {
-  return role === 'admin';
+  return role === 'admin' || role === 'programmer';
 }

@@ -34,8 +34,11 @@ function loadEnv() {
 }
 
 const env = loadEnv();
-const EMAIL = env.ADMIN_EMAIL;
-const PASSWORD = env.ADMIN_PASSWORD;
+// Logujemy się kontem programisty (`claude@code.com`, rola programmer), żeby
+// odpowiedzi w zgłoszeniach były podpisane jako programista. Gdy go nie ma,
+// spadamy na konto admina.
+const EMAIL = env.BOT_EMAIL ?? env.ADMIN_EMAIL;
+const PASSWORD = env.BOT_PASSWORD ?? env.ADMIN_PASSWORD;
 
 if (!EMAIL || !PASSWORD) {
   console.error('Brak ADMIN_EMAIL / ADMIN_PASSWORD w pliku .env.');
