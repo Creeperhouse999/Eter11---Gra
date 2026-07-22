@@ -1,5 +1,3 @@
-import lineClamp from '@tailwindcss/line-clamp';
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -24,9 +22,8 @@ export default {
       },
     },
   },
-  plugins: [
-    // Tailwind 3 nie ma line-clamp w rdzeniu, a bez niego długie nazwy
-    // kart i podpowiedzi ścianek wychodzą poza krawędź.
-    lineClamp,
-  ],
+  // Bez pluginów. `line-clamp` (długie nazwy kart i podpowiedzi ścianek nie
+  // wychodzą poza krawędź) jest wbudowany w Tailwind od 3.3 — osobny plugin
+  // tylko dublował go i sypał ostrzeżeniem przy każdym budowaniu.
+  plugins: [],
 };
