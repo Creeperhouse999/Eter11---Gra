@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /**
+     * Czy wgrywający ma konto w projekcie.
+     *
+     * Konta zakłada właściciel w Firebase Console — tak samo jak przy
+     * Firestore. Posiadanie konta jest uprawnieniem.
+     */
+    function zalogowany() {
+      return request.auth != null;
+    }
+
+    /**
+     * Obrazek, nie cokolwiek.
+     *
+     * Bez tego ktoś wgrałby pod adres z rozszerzeniem .jpg plik wykonywalny
+     * i podał link jako „zrzut ekranu". Typ sprawdzamy po nagłówku, który
+     * ustawia SDK, a rozmiar ucinamy zawczasu — kompresja po stronie klienta
+     * schodzi poniżej 200 KB, więc 5 MB to sufit z dużym zapasem na wypadek
+     * pominięcia kompresji (SVG, przezroczysty PNG).
+     */
+    function obrazek() {
+      return request.resource.contentType.matches('image/.*')
+             && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    /**
+     * Ikony gry.
+     *
+     * Odczyt publiczny: ikony rysują się dzieciom, które kont nie mają.
+     * Wgrywa i usuwa zespół — ikona trafia na karty, więc nie może jej
+     * podmienić ktoś z ulicy.
+     */
+    match /icons/{file} {
+      allow read: if true;
+      allow write: if zalogowany() && obrazek();
+    }
+
+    /**
+     * Załączniki do zgłoszeń.
+     *
+     * Zgłoszenie może wysłać osoba testująca grę z dziećmi bez konta —
+     * tak samo jak samo zgłoszenie w Firestore. Zrzut ekranu z błędem jest
+     * częścią zgłoszenia, więc wgranie jest otwarte, ale ograniczone do
+     * obrazka poniżej limitu. Odczyt publiczny: zespół czyta zgłoszenia
+     * także narzędziami spoza aplikacji.
+     */
+    match /reports/{file} {
+      allow read: if true;
+      allow create: if obrazek();
+      // Skasować może tylko zespół — sprzątanie po testach, nie cudza ręka.
+      allow delete: if zalogowany();
+    }
+
+    /**
+     * Obrazki w dyskusjach.
+     *
+     * Dyskusje są dla zespołu i wymagają logowania — tak samo załączniki.
+     */
+    match /discussions/{file} {
+      allow read: if true;
+      allow write: if zalogowany() && obrazek();
+    }
+
+    // Wszystko inne zamknięte.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

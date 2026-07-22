@@ -51,6 +51,24 @@ describe('szukanie w całej treści', () => {
     expect(hits.some((h) => h.title === card.name)).toBe(true);
   });
 
+  it('znajduje karty po nazwie kategorii, nie po kluczu silnika', () => {
+    // Zgłoszenie Adama: „cyfrowe" pokazywało jeden wynik zamiast wszystkich
+    // kart tej kategorii, bo szukanie sięgało klucza `digital`, nie nazwy.
+    const hits = searchContent(BUILTIN_CONTENT, 'cyfrowa');
+    const cardHits = hits.filter((h) => h.tab === 'cards');
+
+    const digitalCards = BUILTIN_CONTENT.cards.filter((c) => c.category === 'digital');
+    expect(cardHits.length).toBe(digitalCards.length);
+  });
+
+  it('znajduje karty po nazwie rodziny', () => {
+    const hits = searchContent(BUILTIN_CONTENT, 'czerwona');
+    const cardHits = hits.filter((h) => h.tab === 'cards');
+    const redCards = BUILTIN_CONTENT.cards.filter((c) => c.family === 'red');
+
+    expect(cardHits.length).toBe(redCards.length);
+  });
+
   it('podaje zakładkę, w którą trzeba przejść', () => {
     const hits = searchContent(BUILTIN_CONTENT, 'a');
     for (const hit of hits) {

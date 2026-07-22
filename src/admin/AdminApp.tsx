@@ -89,6 +89,7 @@ export function AdminApp() {
   const validation = useMemo(() => validateContent(content), [content]);
 
   const [hunt, setHunt] = useState('');
+  const [jumpSearch, setJumpSearch] = useState('');
   const found = useMemo(
     () => (hunt.trim().length > 1 ? searchContent(content, hunt) : []),
     [content, hunt],
@@ -377,6 +378,10 @@ export function AdminApp() {
                       <button
                         type="button"
                         onClick={() => {
+                          // Karty otwieramy z frazą, żeby wynik był od razu
+                          // widoczny na przefiltrowanej liście, a nie zgubiony
+                          // wśród sześćdziesięciu innych.
+                          if (hit.tab === 'cards') setJumpSearch(hunt.trim());
                           setTab(hit.tab as Tab);
                           setHunt('');
                         }}
@@ -489,7 +494,15 @@ export function AdminApp() {
           />
         )}
         {tab === 'cards' && (
-          <CardEditor cards={content.cards} onChange={(cards) => update({ cards })} />
+          <CardEditor
+            cards={content.cards}
+            onChange={(cards) => update({ cards })}
+            // `key`, żeby przejście z wyszukiwarki z nową frazą zresetowało
+            // pole szukania edytora — bez tego druga fraza nie zadziałałaby,
+            // bo stan pola żyje dłużej niż jedno kliknięcie wyniku.
+            key={jumpSearch}
+            initialSearch={jumpSearch}
+          />
         )}
         {tab === 'families' && (
           <FamilyEditor

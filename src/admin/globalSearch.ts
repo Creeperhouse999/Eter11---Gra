@@ -1,3 +1,5 @@
+import { categoryLabel } from '../ui/components/categoryStyles';
+import { FAMILY_LABELS } from '../data/families';
 import type { GameContent } from '../firebase/validate';
 
 export interface SearchHit {
@@ -49,7 +51,14 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
   };
 
   for (const card of content.cards) {
-    add('cards', 'Karty', card.name, `${card.name} ${card.description}`);
+    // Nazwa kategorii i rodziny, nie klucz silnika: redaktor szuka „cyfrowe"
+    // i „czerwona", a nie `digital` i `red`. Bez tego wpisanie nazwy
+    // kategorii nie znajdowało żadnej z jej kart.
+    const meta = [
+      categoryLabel(card.category),
+      card.family ? FAMILY_LABELS[card.family] : '',
+    ].join(' ');
+    add('cards', 'Karty', card.name, `${card.name} ${card.description} ${meta}`);
   }
 
   for (const problem of content.problems) {
@@ -60,7 +69,10 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       `${problem.name} ${problem.story} ${problem.consequence} ${problem.goal} ${problem.antagonist}`,
     );
     for (const slot of problem.slots) {
-      add('problems', 'Problemy → podpowiedzi', problem.name, slot.hint);
+      // Ścianka wyszukiwana też po nazwie kategorii i rodziny, których
+      // wymaga — „cyfrowa czerwona" ma trafić w problem z taką ścianką.
+      const slotMeta = `${categoryLabel(slot.key)} ${FAMILY_LABELS[slot.family]}`;
+      add('problems', 'Problemy → ścianki', problem.name, `${slot.hint} ${slotMeta}`);
     }
   }
 

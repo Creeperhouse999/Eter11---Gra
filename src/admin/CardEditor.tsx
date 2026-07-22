@@ -15,6 +15,14 @@ import { newId } from './newId';
 interface CardEditorProps {
   cards: Card[];
   onChange: (cards: Card[]) => void;
+  /**
+   * Fraza, z którą otwiera się edytor — przekazuje ją wyszukiwarka panelu.
+   *
+   * Bez tego kliknięcie wyniku „Programowanie" przenosiło na pełną listę
+   * kart bez wskazania, której szukać. Zgłaszający napisał wprost, że
+   * wyszukiwarka „nie przechodzi do niej".
+   */
+  initialSearch?: string;
 }
 
 const CATEGORIES: CardCategory[] = [
@@ -39,11 +47,11 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
   color: categoryColorVar(category),
 }));
 
-export function CardEditor({ cards, onChange }: CardEditorProps) {
+export function CardEditor({ cards, onChange, initialSearch = '' }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
   const [family, setFamily] = useState<string>('all');
   const [sort, setSort] = useState<'order' | 'name' | 'category'>('order');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   /** Karty zaznaczone do zmiany hurtem. */
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const { confirm, dialog } = useConfirm();
