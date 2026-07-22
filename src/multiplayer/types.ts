@@ -29,8 +29,37 @@ export interface RoomPlayer {
   joinedAt: number;
 }
 
-/** Gotowa reakcja, którą gracz może wysłać zamiast czatu. */
-export type ReactionKind = 'brawo' | 'daj-karte' | 'zrob-to';
+/**
+ * Gotowe reakcje zamiast czatu — bezpieczne dla dzieci, bez wpisywania.
+ *
+ * `daj-karte` niesie cel (uid gracza) i pokazuje mu prośbę; reszta to zwykłe
+ * zawołania na wspólny widok.
+ */
+export type ReactionKind =
+  | 'brawo'
+  | 'daj-karte'
+  | 'zrob-to'
+  | 'twoja-kolej'
+  | 'super'
+  | 'dziekuje'
+  | 'pomysl'
+  | 'ojej'
+  | 'czekam'
+  | 'gramy';
+
+/** Tekst i ikona każdej reakcji — jedno źródło dla przycisków i dymków. */
+export const REACTIONS: Record<ReactionKind, { label: string; icon: string }> = {
+  brawo: { label: 'Brawo!', icon: 'tick' },
+  super: { label: 'Super!', icon: 'spark' },
+  dziekuje: { label: 'Dziękuję!', icon: 'heart' },
+  'daj-karte': { label: 'Daj mi kartę', icon: 'clipboard' },
+  'zrob-to': { label: 'Zrób to', icon: 'bulb' },
+  'twoja-kolej': { label: 'Twoja kolej!', icon: 'rocket' },
+  pomysl: { label: 'Mam pomysł', icon: 'bulb' },
+  ojej: { label: 'Ojej…', icon: 'swan' },
+  czekam: { label: 'Czekam', icon: 'flag' },
+  gramy: { label: 'Gramy?', icon: 'people' },
+};
 
 export interface Reaction {
   from: string; // uid nadawcy

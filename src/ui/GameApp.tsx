@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../data/uiText';
 import type { Card, Character, Problem, RulesConfig } from '../engine/types';
@@ -8,6 +8,11 @@ import { MissionScreen } from './screens/MissionScreen';
 import { ReportButton } from './components/ReportButton';
 import { IntroScreen } from './screens/IntroScreen';
 import { SetupScreen } from './screens/SetupScreen';
+// Multiplayer leniwie: ściąga RTDB i cały pakiet online tylko wtedy, gdy
+// gracz klika „Zagraj przez internet" — gra przy stole go nie pobiera.
+const Multiplayer = lazy(() =>
+  import('../multiplayer/Multiplayer').then((m) => ({ default: m.Multiplayer })),
+);
 import { SummaryScreen } from './screens/SummaryScreen';
 import {
   TUTORIAL_DECK,
@@ -290,6 +295,8 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
    * gry — przy odczycie w renderze menu zdążyłoby zobaczyć jeszcze stary stan.
    */
   const [resumable, setResumable] = useState<number | null>(() => savedSeed());
+  /** Tryb gry przez internet — osobny od gry przy stole. */
+  const [online, setOnline] = useState(false);
 
   useEffect(() => {
     if (session === null) setResumable(savedSeed());
@@ -342,10 +349,30 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           // przywrócić.
           onRestart={() => setSession(null)}
         />
+      ) : online ? (
+        <Suspense
+          fallback={
+            <main className="flex min-h-screen items-center justify-center p-8">
+              <p className="font-display text-sm text-ink-dim">Wczytuję grę online…</p>
+            </main>
+          }
+        >
+        <Multiplayer
+          content={{
+            cards: content.cards,
+            problems: content.problems,
+            rules: content.rules,
+            text: content.text,
+            characters: content.characters,
+          } as never}
+          onExit={() => setOnline(false)}
+        />
+        </Suspense>
       ) : (
         <SetupScreen
           text={content.text ?? DEFAULT_UI_TEXT}
           characters={content.characters ?? ALL_CHARACTERS}
+          onPlayOnline={() => setOnline(true)}
           // Ziarno z zegara — każda rozgrywka tasuje talię inaczej.
           onStart={(players, tutorial) =>
             setSession({ players, seed: Date.now(), tutorial })

@@ -13,4 +13,7 @@ export const firebaseConfig = {
   messagingSenderId: '488354466236',
   appId: '1:488354466236:web:c6a7e22c991220660d43b9',
   measurementId: 'G-58QQ6MJN0F',
+  // Realtime Database — gra wieloosobowa na żywo. Region europe-west1.
+  databaseURL:
+    'https://savetheworld-eter11-default-rtdb.europe-west1.firebasedatabase.app',
 };

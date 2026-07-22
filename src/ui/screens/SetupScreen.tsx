@@ -14,6 +14,8 @@ interface SetupScreenProps {
   text?: UiText;
   /** Ponowne otwarcie wstępu — pokazuje się sam tylko za pierwszym razem. */
   onShowIntro?: () => void;
+  /** Przejście do gry przez internet (pokój z kodem). */
+  onPlayOnline?: () => void;
   /**
    * Powrót do rozpoczętej partii. Brak funkcji = nie ma czego wznawiać.
    * Wznowienie jest wyborem gracza, a nie automatem — inaczej ekran
@@ -43,6 +45,7 @@ export function SetupScreen({
   characters = ALL_CHARACTERS,
   text = DEFAULT_UI_TEXT,
   onShowIntro,
+  onPlayOnline,
   onResume,
 }: SetupScreenProps) {
   const [drafts, setDrafts] = useState<Draft[]>(() => [
@@ -188,9 +191,33 @@ export function SetupScreen({
         </span>
       </button>
 
+      {/* Gra przez internet — pokój z kodem, każdy na swoim urządzeniu. */}
+      {onPlayOnline && (
+        <button
+          type="button"
+          onClick={onPlayOnline}
+          className="eter-rise relative mt-3 flex w-full items-center gap-3 rounded-xl border-2 border-accent-2 bg-surface p-4 text-left transition hover:bg-raised"
+        >
+          <span className="shrink-0 text-accent-2">
+            <Icon name="people" size={24} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display font-bold text-accent-2">
+              Zagraj przez internet
+            </span>
+            <span className="mt-0.5 block text-xs leading-snug text-ink-dim">
+              Załóż pokój i podaj kod znajomym. Każdy gra na swoim telefonie.
+            </span>
+          </span>
+          <span className="shrink-0 text-ink-dim">
+            <Icon name="chevronDown" size={18} className="-rotate-90" />
+          </span>
+        </button>
+      )}
+
       <div className="relative mt-6 flex items-center gap-3">
         <span className="h-px flex-1 bg-edge" />
-        <span className="eter-label">albo zagrajcie razem</span>
+        <span className="eter-label">albo zagrajcie przy stole</span>
         <span className="h-px flex-1 bg-edge" />
       </div>
 
