@@ -1,6 +1,7 @@
 import { FAMILY_LABELS } from '../../data/families';
 import { cardsInSlot, requiredCountForSlot } from '../../engine/rules';
 import type { Card, MissionState, Problem, ProblemSlot, SlotKey } from '../../engine/types';
+import { Tooltip } from '../controls/Tooltip';
 import { Icon, type IconName } from '../icons/Icon';
 import { CardView } from './CardView';
 import {
@@ -65,125 +66,126 @@ export function ProblemCard({
     const familyColor = `var(--eter-family-${slot.family})`;
 
     return (
-      <button
-        key={key}
-        type="button"
-        onClick={() => playable && onSlotClick(problem.id, key)}
-        // Nie `disabled`: wyłączony przycisk nie odbiera zdarzeń wskaźnika,
-        // więc nie dałoby się na niego upuścić karty.
-        aria-disabled={!playable && !accepts}
-        // Etykieta mówi, gdy ścianka jest gotowa przyjąć wybraną kartę —
-        // inaczej gracz na klawiaturze musiał zgadywać, wciskając Enter na
-        // każdej ściance po kolei. Przy dopasowaniu dodajemy jasny sygnał.
-        aria-label={
-          filled
-            ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
-            : playable
-              ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — tutaj pasuje Twoja karta, naciśnij Enter`
-              : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
-        }
-        data-slot={dropId}
-        // Na wąskim ekranie podpowiedź jest ukryta — tutaj zostaje dostępna
-        // po dotknięciu i przytrzymaniu.
-        title={filled ? undefined : slot.hint}
-        {...(dropTargetProps?.(dropId) ?? {})}
-        className={[
-          'flex flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
-          // Pusta ścianka to sam nagłówek i podpowiedź — pełną wysokość
-          // potrzebuje dopiero karta, która w niej wyląduje. Pięć ścianek po
-          // 8.5rem nie mieściło się na telefonie i wymuszało przewijanie.
-          // Zamknięta ścianka nie potrzebuje stałej wysokości — mierzy ją
-          // leżąca w niej karta. Sztywne 8.5rem dawało przy pięciu zamkniętych
-          // ściankach ponad 400 px, przez które plansza nie mieściła się
-          // na telefonie. Od `lg` wracamy do równych rozmiarów, bo tam ścianki
-          // stoją obok siebie i różna wysokość wyglądałaby niechlujnie.
-          filled ? 'lg:min-h-[8.5rem]' : 'min-h-[4.5rem] sm:min-h-[5.5rem]',
-          filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
-          playable || accepts ? 'bg-raised' : '',
-          playable ? 'cursor-pointer' : 'cursor-default',
-          accepts ? 'scale-[1.03]' : '',
-          // Strefa pod kursorem dostaje mocniejsze podświetlenie przez atrybut.
-          'data-[drag-over=true]:border-success',
-          extraClass,
-        ].join(' ')}
-        style={{
-          borderColor: filled
-            ? familyColor
-            : accepts
-              ? 'var(--eter-success)'
+      // Custom podpowiedź zamiast natywnego `title` — pełna treść ścianki, gdy
+      // na wąskim ekranie opis jest ukryty. Pusty label (ścianka zamknięta) nic
+      // nie pokazuje. `key` i klasy układu (`extraClass`, `self-center`) idą na
+      // owijkę, bo to ona jest teraz elementem siatki; przycisk wypełnia ją.
+      <Tooltip key={key} label={filled ? '' : slot.hint} className={`w-full ${extraClass}`}>
+        <button
+          type="button"
+          onClick={() => playable && onSlotClick(problem.id, key)}
+          // Nie `disabled`: wyłączony przycisk nie odbiera zdarzeń wskaźnika,
+          // więc nie dałoby się na niego upuścić karty.
+          aria-disabled={!playable && !accepts}
+          // Etykieta mówi, gdy ścianka jest gotowa przyjąć wybraną kartę —
+          // inaczej gracz na klawiaturze musiał zgadywać, wciskając Enter na
+          // każdej ściance po kolei. Przy dopasowaniu dodajemy jasny sygnał.
+          aria-label={
+            filled
+              ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
               : playable
-                ? 'var(--eter-accent)'
-                : 'var(--eter-edge)',
-          boxShadow: accepts
-            ? '0 0 26px -6px var(--eter-success)'
-            : playable
-              ? '0 0 20px -8px var(--eter-accent)'
-              : undefined,
-        }}
-      >
-        {/* Nagłówek ścianki: kategoria plus wymagany kolor rodziny */}
-        <div className="flex items-center gap-1.5">
-          <span style={{ color: filled ? familyColor : 'var(--eter-ink-dim)' }}>
-            <Icon name={filled ? 'lockedSlot' : slotIcon(key)} size={16} />
-          </span>
-          {/* Kolor rodziny, nie kategorii. Zasada gry brzmi „kolor do
-              koloru", więc drugi system kolorów na tej samej ściance jest
-              szumem — po zamknięciu nazwa świeciła innym kolorem niż kropka
-              obok. */}
-          <span
-            className="eter-label truncate"
-            style={{ color: filled ? familyColor : undefined }}
-          >
-            {slotLabel(key)}
-          </span>
-          <span
-            aria-hidden="true"
-            className="ml-auto h-3 w-3 shrink-0 rounded-full border"
-            style={{
-              background: familyColor,
-              borderColor: 'var(--eter-bg)',
-            }}
-          />
-        </div>
-
-        {filled ? (
-          <span className="mt-1 text-xs font-semibold" style={{ color: familyColor }}>
-            Zamknięta
-          </span>
-        ) : (
-          <>
+                ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — tutaj pasuje Twoja karta, naciśnij Enter`
+                : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
+          }
+          data-slot={dropId}
+          {...(dropTargetProps?.(dropId) ?? {})}
+          className={[
+            'flex w-full flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
+            // Pusta ścianka to sam nagłówek i podpowiedź — pełną wysokość
+            // potrzebuje dopiero karta, która w niej wyląduje. Pięć ścianek po
+            // 8.5rem nie mieściło się na telefonie i wymuszało przewijanie.
+            // Zamknięta ścianka nie potrzebuje stałej wysokości — mierzy ją
+            // leżąca w niej karta. Sztywne 8.5rem dawało przy pięciu zamkniętych
+            // ściankach ponad 400 px, przez które plansza nie mieściła się
+            // na telefonie. Od `lg` wracamy do równych rozmiarów, bo tam ścianki
+            // stoją obok siebie i różna wysokość wyglądałaby niechlujnie.
+            filled ? 'lg:min-h-[8.5rem]' : 'min-h-[4.5rem] sm:min-h-[5.5rem]',
+            filled ? 'eter-slot-locked border-solid bg-raised' : 'border-dashed',
+            playable || accepts ? 'bg-raised' : '',
+            playable ? 'cursor-pointer' : 'cursor-default',
+            accepts ? 'scale-[1.03]' : '',
+            // Strefa pod kursorem dostaje mocniejsze podświetlenie przez atrybut.
+            'data-[drag-over=true]:border-success',
+          ].join(' ')}
+          style={{
+            borderColor: filled
+              ? familyColor
+              : accepts
+                ? 'var(--eter-success)'
+                : playable
+                  ? 'var(--eter-accent)'
+                  : 'var(--eter-edge)',
+            boxShadow: accepts
+              ? '0 0 26px -6px var(--eter-success)'
+              : playable
+                ? '0 0 20px -8px var(--eter-accent)'
+                : undefined,
+          }}
+        >
+          {/* Nagłówek ścianki: kategoria plus wymagany kolor rodziny */}
+          <div className="flex items-center gap-1.5">
+            <span style={{ color: filled ? familyColor : 'var(--eter-ink-dim)' }}>
+              <Icon name={filled ? 'lockedSlot' : slotIcon(key)} size={16} />
+            </span>
+            {/* Kolor rodziny, nie kategorii. Zasada gry brzmi „kolor do
+                koloru", więc drugi system kolorów na tej samej ściance jest
+                szumem — po zamknięciu nazwa świeciła innym kolorem niż kropka
+                obok. */}
             <span
-              className="mt-0.5 font-mono text-[10px] uppercase tracking-wide"
-              style={{ color: familyColor }}
+              className="eter-label truncate"
+              style={{ color: filled ? familyColor : undefined }}
             >
-              {FAMILY_LABELS[slot.family]}
+              {slotLabel(key)}
             </span>
-            {/* Przy trzech ściankach w rzędzie zostaje ~105 px szerokości —
-                podpowiedź byłaby wtedy dwoma uciętymi słowami. Kolor i
-                kategoria wystarczą do ruchu, a pełną treść niesie `title`. */}
             <span
-              className="mt-1 hidden line-clamp-3 text-xs leading-snug text-ink-dim sm:block"
-              style={{ overflowWrap: 'anywhere' }}
-            >
-              {slot.hint}
-            </span>
-          </>
-        )}
+              aria-hidden="true"
+              className="ml-auto h-3 w-3 shrink-0 rounded-full border"
+              style={{
+                background: familyColor,
+                borderColor: 'var(--eter-bg)',
+              }}
+            />
+          </div>
 
-        {required > 1 && !filled && (
-          <span className="mt-1 font-mono text-xs font-bold text-danger">
-            {placed.length} / {required}
-          </span>
-        )}
-
-        <div className="mt-auto flex flex-wrap gap-1 pt-2">
-          {placed.map((p) => (
-            <span key={p.card.id} className="eter-land block">
-              <CardView card={p.card} compact />
+          {filled ? (
+            <span className="mt-1 text-xs font-semibold" style={{ color: familyColor }}>
+              Zamknięta
             </span>
-          ))}
-        </div>
-      </button>
+          ) : (
+            <>
+              <span
+                className="mt-0.5 font-mono text-[10px] uppercase tracking-wide"
+                style={{ color: familyColor }}
+              >
+                {FAMILY_LABELS[slot.family]}
+              </span>
+              {/* Przy trzech ściankach w rzędzie zostaje ~105 px szerokości —
+                  podpowiedź byłaby wtedy dwoma uciętymi słowami. Kolor i
+                  kategoria wystarczą do ruchu, a pełną treść niesie podpowiedź. */}
+              <span
+                className="mt-1 hidden line-clamp-3 text-xs leading-snug text-ink-dim sm:block"
+                style={{ overflowWrap: 'anywhere' }}
+              >
+                {slot.hint}
+              </span>
+            </>
+          )}
+
+          {required > 1 && !filled && (
+            <span className="mt-1 font-mono text-xs font-bold text-danger">
+              {placed.length} / {required}
+            </span>
+          )}
+
+          <div className="mt-auto flex flex-wrap gap-1 pt-2">
+            {placed.map((p) => (
+              <span key={p.card.id} className="eter-land block">
+                <CardView card={p.card} compact />
+              </span>
+            ))}
+          </div>
+        </button>
+      </Tooltip>
     );
   };
 

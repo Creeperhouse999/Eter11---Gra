@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icons/Icon';
+import { Tooltip } from './Tooltip';
 
 interface ColorPickerProps {
   value: string;
@@ -206,10 +207,10 @@ export function ColorPicker({ value, onChange, label, presets = [] }: ColorPicke
                 <span className="eter-label mt-3 block">Paleta gry</span>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {presets.map((preset) => (
+                    // Custom podpowiedź (hex) zamiast natywnego `title`.
+                    <Tooltip key={preset} label={preset}>
                     <button
-                      key={preset}
                       type="button"
-                      title={preset}
                       aria-label={`Ustaw ${preset}`}
                       onClick={() => apply(preset)}
                       className={[
@@ -220,6 +221,7 @@ export function ColorPicker({ value, onChange, label, presets = [] }: ColorPicke
                       ].join(' ')}
                       style={{ background: preset }}
                     />
+                    </Tooltip>
                   ))}
                 </div>
               </>

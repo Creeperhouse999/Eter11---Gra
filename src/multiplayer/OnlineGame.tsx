@@ -102,7 +102,16 @@ export function OnlineGame({
 
   return (
     <>
-      <MissionScreen game={game} characters={characters} onQuit={onLeave} />
+      {/* Moja tura → ręka odkryta od razu: online każdy gra na swoim
+          urządzeniu, więc chowanie własnych kart przed sobą to zbędny klik.
+          Nie moja tura → zostaje zakryta (i tak to cudza ręka aktywnego
+          gracza, której nie powinienem widzieć). */}
+      <MissionScreen
+        game={game}
+        characters={characters}
+        onQuit={onLeave}
+        alwaysRevealed={myTurn}
+      />
 
       {/* Gdy gra ktoś inny — delikatna nakładka, plansza wciąż widoczna. */}
       {!myTurn && !offlineActive && <WaitingOverlay activeName={activeName} />}

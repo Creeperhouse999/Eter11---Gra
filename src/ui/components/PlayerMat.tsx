@@ -1,5 +1,6 @@
 import type { Character, Player } from '../../engine/types';
 import { fulfillmentProgress } from '../../engine/scoring';
+import { Tooltip } from '../controls/Tooltip';
 import { Icon, type IconName } from '../icons/Icon';
 import { categoryColorVar, categoryLabel } from './categoryStyles';
 
@@ -89,31 +90,37 @@ export function PlayerMat({
 
           if (!card) {
             return (
-              <div
+              // Custom podpowiedź zamiast natywnego `title`.
+              <Tooltip
                 key={slot.category}
-                title={`Puste miejsce: ${categoryLabel(slot.category as never)}`}
-                className="flex aspect-[3/4] flex-col items-center justify-center rounded border border-dashed border-edge text-ink-dim"
+                label={`Puste miejsce: ${categoryLabel(slot.category as never)}`}
               >
-                <Icon name={slot.icon} size={compact ? 13 : 16} />
-              </div>
+                <div className="flex aspect-[3/4] flex-col items-center justify-center rounded border border-dashed border-edge text-ink-dim">
+                  <Icon name={slot.icon} size={compact ? 13 : 16} />
+                </div>
+              </Tooltip>
             );
           }
 
           if (!revealed) {
             return (
-              <div
+              // Custom podpowiedź zamiast natywnego `title`.
+              <Tooltip
                 key={slot.category}
-                title={`${categoryLabel(slot.category as never)}: ${cards.length}`}
-                className="relative flex aspect-[3/4] items-center justify-center rounded border"
-                style={{ borderColor: color, background: 'var(--eter-raised)', color }}
+                label={`${categoryLabel(slot.category as never)}: ${cards.length}`}
               >
-                <Icon name={slot.icon} size={compact ? 13 : 16} />
-                {cards.length > 1 && (
-                  <span className="absolute bottom-0 right-0.5 font-mono text-[9px]">
-                    {cards.length}
-                  </span>
-                )}
-              </div>
+                <div
+                  className="relative flex aspect-[3/4] items-center justify-center rounded border"
+                  style={{ borderColor: color, background: 'var(--eter-raised)', color }}
+                >
+                  <Icon name={slot.icon} size={compact ? 13 : 16} />
+                  {cards.length > 1 && (
+                    <span className="absolute bottom-0 right-0.5 font-mono text-[9px]">
+                      {cards.length}
+                    </span>
+                  )}
+                </div>
+              </Tooltip>
             );
           }
 
@@ -127,45 +134,53 @@ export function PlayerMat({
 
                 return (
                   <div key={matCard.id} className="relative">
-                    <button
-                      type="button"
-                      title={`${matCard.name} — ${categoryLabel(matCard.category)}`}
-                      disabled={cardsDisabled || !onCardClick}
-                      onClick={onCardClick ? () => onCardClick(matCard.id) : undefined}
-                      onDoubleClick={
-                        onCardDoubleClick ? () => onCardDoubleClick(matCard.id) : undefined
-                      }
-                      className={[
-                        'flex aspect-[3/4] w-full flex-col items-center justify-center gap-0.5',
-                        'overflow-hidden rounded border p-1 text-center transition',
-                        cardsDisabled ? 'opacity-40' : '',
-                        onCardClick && !cardsDisabled ? 'cursor-pointer hover:brightness-125' : '',
-                      ].join(' ')}
-                      style={{
-                        borderColor:
-                          selectedCardId === matCard.id ? familyColor : 'var(--eter-edge)',
-                        borderWidth: selectedCardId === matCard.id ? 2 : 1,
-                        background: 'var(--eter-raised)',
-                        color: familyColor,
-                      }}
-                    >
-                      <Icon name={matCard.icon as IconName} size={compact ? 13 : 16} />
-                      {/* Przy pięciu kolumnach na telefonie slot ma ~52 px,
-                          więc nazwa schodziła do 8 px — nieczytelnej plamy.
-                          Zostaje ikona i kolor, a pełna nazwa jest w `title`
-                          przycisku wyżej. */}
-                      <span className="hidden line-clamp-2 text-[8px] leading-tight sm:line-clamp-2 sm:block">
-                        {matCard.name}
-                      </span>
-                    </button>
+                    {/* Custom podpowiedź zamiast natywnego `title` — pełna nazwa
+                        karty, gdy w slocie mieści się tylko ikona. */}
+                    <Tooltip label={`${matCard.name} — ${categoryLabel(matCard.category)}`}>
+                      <button
+                        type="button"
+                        disabled={cardsDisabled || !onCardClick}
+                        onClick={onCardClick ? () => onCardClick(matCard.id) : undefined}
+                        onDoubleClick={
+                          onCardDoubleClick ? () => onCardDoubleClick(matCard.id) : undefined
+                        }
+                        className={[
+                          'flex aspect-[3/4] w-full flex-col items-center justify-center gap-0.5',
+                          'overflow-hidden rounded border p-1 text-center transition',
+                          cardsDisabled ? 'opacity-40' : '',
+                          onCardClick && !cardsDisabled
+                            ? 'cursor-pointer hover:brightness-125'
+                            : '',
+                        ].join(' ')}
+                        style={{
+                          borderColor:
+                            selectedCardId === matCard.id ? familyColor : 'var(--eter-edge)',
+                          borderWidth: selectedCardId === matCard.id ? 2 : 1,
+                          background: 'var(--eter-raised)',
+                          color: familyColor,
+                        }}
+                      >
+                        <Icon name={matCard.icon as IconName} size={compact ? 13 : 16} />
+                        {/* Przy pięciu kolumnach na telefonie slot ma ~52 px,
+                            więc nazwa schodziła do 8 px — nieczytelnej plamy.
+                            Zostaje ikona i kolor, a pełna nazwa jest w podpowiedzi
+                            przycisku wyżej. */}
+                        <span className="hidden line-clamp-2 text-[8px] leading-tight sm:line-clamp-2 sm:block">
+                          {matCard.name}
+                        </span>
+                      </button>
+                    </Tooltip>
 
                     {fromOther && (
-                      <span
-                        title="Karta od innego gracza"
-                        className="absolute -right-0.5 -top-0.5 rounded-full bg-accent p-0.5 text-bg"
+                      // Custom podpowiedź zamiast natywnego `title`.
+                      <Tooltip
+                        label="Karta od innego gracza"
+                        className="absolute -right-0.5 -top-0.5"
                       >
-                        <Icon name="handshake" size={8} />
-                      </span>
+                        <span className="rounded-full bg-accent p-0.5 text-bg">
+                          <Icon name="handshake" size={8} />
+                        </span>
+                      </Tooltip>
                     )}
                   </div>
                 );
@@ -177,17 +192,22 @@ export function PlayerMat({
 
       {/* Pas doświadczenia — osobno za rozwiązanie i za uczenie innych */}
       <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-edge pt-2.5">
-        <span className="flex items-center gap-1.5" title="Doświadczenie za rozwiązane problemy">
-          <Icon name="medal" size={14} className="text-accent" />
-          <span className="font-mono text-sm font-bold">{solveCount}</span>
-          <span className="eter-label">za misje</span>
-        </span>
+        {/* Custom podpowiedzi zamiast natywnego `title`. */}
+        <Tooltip label="Doświadczenie za rozwiązane problemy">
+          <span className="flex items-center gap-1.5">
+            <Icon name="medal" size={14} className="text-accent" />
+            <span className="font-mono text-sm font-bold">{solveCount}</span>
+            <span className="eter-label">za misje</span>
+          </span>
+        </Tooltip>
 
-        <span className="flex items-center gap-1.5" title="Doświadczenie za przekazane karty">
-          <Icon name="handsOpen" size={14} className="text-accent-2" />
-          <span className="font-mono text-sm font-bold">{shareCount}</span>
-          <span className="eter-label">za uczenie</span>
-        </span>
+        <Tooltip label="Doświadczenie za przekazane karty">
+          <span className="flex items-center gap-1.5">
+            <Icon name="handsOpen" size={14} className="text-accent-2" />
+            <span className="font-mono text-sm font-bold">{shareCount}</span>
+            <span className="eter-label">za uczenie</span>
+          </span>
+        </Tooltip>
 
         {/* Postęp do spełnienia. Bez niego cel był niewidzialny: gracz nie
             wiedział, ilu warunków mu brakuje ani których, więc trafiał w
@@ -198,10 +218,11 @@ export function PlayerMat({
           const complete = done === total;
 
           return (
-            <span
-              className="ml-auto flex items-center gap-1 text-xs"
-              style={{ color: complete ? 'var(--eter-success)' : 'var(--eter-ink-dim)' }}
-              title={
+            // Custom podpowiedź zamiast natywnego `title`. `ml-auto` musi zostać
+            // na owijce, żeby licznik dalej dociskał się do prawej.
+            <Tooltip
+              className="ml-auto"
+              label={
                 complete
                   ? 'Spełnienie osiągnięte'
                   : `Do spełnienia brakuje ${total - done} z ${total} warunków: ` +
@@ -209,12 +230,17 @@ export function PlayerMat({
                     'doświadczenie za misję i za uczenie.'
               }
             >
-              <Icon name={complete ? 'tick' : 'heart'} size={12} />
-              <span className="font-mono">
-                {done}/{total}
+              <span
+                className="flex items-center gap-1 text-xs"
+                style={{ color: complete ? 'var(--eter-success)' : 'var(--eter-ink-dim)' }}
+              >
+                <Icon name={complete ? 'tick' : 'heart'} size={12} />
+                <span className="font-mono">
+                  {done}/{total}
+                </span>
+                <span className="eter-label">spełnienie</span>
               </span>
-              <span className="eter-label">spełnienie</span>
-            </span>
+            </Tooltip>
           );
         })()}
       </div>

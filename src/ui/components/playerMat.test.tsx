@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { PlayerMat } from './PlayerMat';
 import type { Card, Character, Player } from '../../engine/types';
 
@@ -33,9 +33,16 @@ const player = (mat: Card[] = []): Player => ({
 
 describe('PlayerMat', () => {
   it('pokazuje puste miejsca na karty', () => {
-    render(<PlayerMat player={player()} character={character} />);
-    // Pięć kategorii, pięć obrysów.
-    expect(screen.getAllByTitle(/Puste miejsce/)).toHaveLength(5);
+    const { container } = render(<PlayerMat player={player()} character={character} />);
+    // Pięć kategorii, pięć obrysów. Podpowiedź „Puste miejsce" pokazuje się
+    // dopiero po najechaniu (custom Tooltip), więc puste sloty liczymy po ich
+    // obrysie zamiast po atrybucie `title`.
+    const slots = container.querySelectorAll('.border-dashed');
+    expect(slots).toHaveLength(5);
+
+    // Najechanie na slot pokazuje podpowiedź z kategorią.
+    fireEvent.pointerEnter(slots[0].parentElement as HTMLElement);
+    expect(screen.getByRole('tooltip').textContent).toMatch(/Puste miejsce/);
   });
 
   it('pokazuje zabraną kartę na właściwym miejscu', () => {
@@ -67,10 +74,13 @@ describe('PlayerMat', () => {
     };
     render(<PlayerMat player={withExperience} character={character} />);
 
-    const solve = screen.getByTitle(/za rozwiązane problemy/i);
+    // Liczniki mają teraz custom Tooltip zamiast `title` — badge namierzamy po
+    // jego widocznej etykiecie („za misje" / „za uczenie"), a licznik siedzi
+    // w tym samym wierszu (rodzicu etykiety).
+    const solve = screen.getByText('za misje').parentElement as HTMLElement;
     expect(within(solve).getByText('2')).toBeDefined();
 
-    const share = screen.getByTitle(/za przekazane karty/i);
+    const share = screen.getByText('za uczenie').parentElement as HTMLElement;
     expect(within(share).getByText('1')).toBeDefined();
   });
 
@@ -83,8 +93,15 @@ describe('PlayerMat', () => {
   it('oznacza kartę otrzymaną od innego gracza', () => {
     const mat = [card('a', 'Odwaga', 'talent')];
     const receiver: Player = { ...player(mat), receivedCardIds: ['a'] };
-    render(<PlayerMat player={receiver} character={character} revealed />);
-    expect(screen.getByTitle('Karta od innego gracza')).toBeDefined();
+    const { container } = render(
+      <PlayerMat player={receiver} character={character} revealed />,
+    );
+    // Znacznik ma teraz custom Tooltip zamiast `title` — po najechaniu na
+    // owijkę pokazuje się podpowiedź „Karta od innego gracza".
+    const badge = container.querySelector('.absolute.-right-0\\.5.-top-0\\.5') as HTMLElement;
+    expect(badge).not.toBeNull();
+    fireEvent.pointerEnter(badge);
+    expect(screen.getByRole('tooltip').textContent).toBe('Karta od innego gracza');
   });
 
   it('nie pozwala klikać kart, gdy limit z postaci wyczerpany', () => {

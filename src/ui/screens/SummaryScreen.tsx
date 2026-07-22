@@ -10,6 +10,7 @@ import {
 import { CardView } from '../components/CardView';
 import { PlayerMat } from '../components/PlayerMat';
 import { Button } from '../controls/Button';
+import { Tooltip } from '../controls/Tooltip';
 import { TopBanner } from '../controls/TopBanner';
 import type { Game } from '../useGame';
 import { useScreenTitle } from '../useScreenTitle';
@@ -189,23 +190,27 @@ export function SummaryScreen({
                       className="flex w-[calc(50%-0.375rem)] max-w-36 flex-col gap-1.5"
                     >
                       <CardView card={play.card} disabled={shared || alreadyTook} />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        data-tour="take-card"
-                        disabled={alreadyTook || shared || !keepable}
-                        title={blockedReason}
-                        className="w-full"
-                        onClick={() =>
-                          dispatch({
-                            type: 'TAKE_CARD_TO_MAT',
-                            playerId: player.id,
-                            cardId: play.card.id,
-                          })
-                        }
-                      >
-                        Zabieram na postać
-                      </Button>
+                      {/* Custom podpowiedź zamiast natywnego `title` (szary,
+                          obcy systemowy dymek). Owija Button — span łapie
+                          najechanie także nad wyłączonym przyciskiem. */}
+                      <Tooltip label={blockedReason ?? ''} className="w-full">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          data-tour="take-card"
+                          disabled={alreadyTook || shared || !keepable}
+                          className="w-full"
+                          onClick={() =>
+                            dispatch({
+                              type: 'TAKE_CARD_TO_MAT',
+                              playerId: player.id,
+                              cardId: play.card.id,
+                            })
+                          }
+                        >
+                          Zabieram na postać
+                        </Button>
+                      </Tooltip>
                       {canShare && (
                         <Button
                           size="sm"

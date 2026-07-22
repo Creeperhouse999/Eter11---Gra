@@ -1,5 +1,6 @@
 import { isSlotFilled } from '../../engine/rules';
 import type { MissionState } from '../../engine/types';
+import { Tooltip } from '../controls/Tooltip';
 import { Icon } from '../icons/Icon';
 import { slotColorVar, slotIcon, slotLabel } from './categoryStyles';
 
@@ -44,27 +45,32 @@ export function MissionProgress({ mission }: MissionProgressProps) {
         aria-label={`Zamknięte ścianki: ${closed} z ${slots.length}.`}
       >
         {slots.map((slot) => (
-          <span
+          // Custom podpowiedź zamiast natywnego `title` — systemowy dymek jest
+          // szary i obcy dla ciemnej planszy.
+          <Tooltip
             key={`${slot.problemId}:${slot.key}`}
-            title={`${slotLabel(slot.key)}${
+            label={`${slotLabel(slot.key)}${
               mission.problems.length > 1 ? ` — ${slot.problemName}` : ''
             }: ${slot.filled ? 'zamknięta' : 'otwarta'}`}
-            className={[
-              'flex h-6 w-6 items-center justify-center rounded border transition',
-              slot.filled ? '' : 'border-dashed border-edge text-ink-dim',
-            ].join(' ')}
-            style={
-              slot.filled
-                ? {
-                    borderColor: slotColorVar(slot.key),
-                    color: slotColorVar(slot.key),
-                    background: 'var(--eter-raised)',
-                  }
-                : undefined
-            }
           >
-            <Icon name={slot.filled ? 'tick' : slotIcon(slot.key)} size={13} />
-          </span>
+            <span
+              className={[
+                'flex h-6 w-6 items-center justify-center rounded border transition',
+                slot.filled ? '' : 'border-dashed border-edge text-ink-dim',
+              ].join(' ')}
+              style={
+                slot.filled
+                  ? {
+                      borderColor: slotColorVar(slot.key),
+                      color: slotColorVar(slot.key),
+                      background: 'var(--eter-raised)',
+                    }
+                  : undefined
+              }
+            >
+              <Icon name={slot.filled ? 'tick' : slotIcon(slot.key)} size={13} />
+            </span>
+          </Tooltip>
         ))}
       </div>
     </div>

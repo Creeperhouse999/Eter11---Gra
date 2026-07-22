@@ -18,6 +18,7 @@ import { ScrollHint } from '../components/ScrollHint';
 import { RoundFuel } from '../components/RoundFuel';
 import { useCardDrag } from '../components/useCardDrag';
 import { Button } from '../controls/Button';
+import { Tooltip } from '../controls/Tooltip';
 import { TopBanner } from '../controls/TopBanner';
 import type { TutorialContext } from '../tutorial/useTutorial';
 import type { Game } from '../useGame';
@@ -574,32 +575,35 @@ export function MissionScreen({
                 </>
               ) : (
                 <>
-                  <Button
-                    onClick={pass}
-                    disabled={!allowed('pass')}
-                    // Spasowanie oddaje ruch bezpowrotnie, a przycisk sąsiaduje
-                    // z wymianą — dziecko klikające na próbę traci turę i nie
-                    // wie dlaczego. Tytuł mówi to, zanim kliknie.
-                    title={
+                  {/* Custom podpowiedź zamiast natywnego `title`.
+                      Spasowanie oddaje ruch bezpowrotnie, a przycisk sąsiaduje
+                      z wymianą — dziecko klikające na próbę traci turę i nie
+                      wie dlaczego. Podpowiedź mówi to, zanim kliknie. */}
+                  <Tooltip
+                    label={
                       hasPlayableCard
                         ? 'Oddasz ruch następnemu graczowi. Masz jeszcze kartę, którą da się zagrać.'
                         : 'Oddasz ruch następnemu graczowi.'
                     }
                   >
-                    Pasuję
-                  </Button>
-                  <Button
-                    icon="undo"
-                    data-tour="swap"
-                    disabled={!handRevealed || !allowed('swap')}
-                    title={handRevealed ? undefined : 'Najpierw odkryj karty'}
-                    onClick={() => {
-                      setSwapMode(true);
-                      setSelected(null);
-                    }}
-                  >
-                    Wymieniam karty
-                  </Button>
+                    <Button onClick={pass} disabled={!allowed('pass')}>
+                      Pasuję
+                    </Button>
+                  </Tooltip>
+                  {/* Pusty label, gdy karty odkryte — Tooltip nic nie pokazuje. */}
+                  <Tooltip label={handRevealed ? '' : 'Najpierw odkryj karty'}>
+                    <Button
+                      icon="undo"
+                      data-tour="swap"
+                      disabled={!handRevealed || !allowed('swap')}
+                      onClick={() => {
+                        setSwapMode(true);
+                        setSelected(null);
+                      }}
+                    >
+                      Wymieniam karty
+                    </Button>
+                  </Tooltip>
                 </>
               )}
             </div>

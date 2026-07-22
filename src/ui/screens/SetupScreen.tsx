@@ -3,6 +3,7 @@ import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
 import { Button } from '../controls/Button';
+import { Tooltip } from '../controls/Tooltip';
 import { Icon, type IconName } from '../icons/Icon';
 import type { PlayerSetup } from '../useGame';
 import { useScreenTitle } from '../useScreenTitle';
@@ -272,30 +273,36 @@ export function SetupScreen({
                   );
 
                   return (
-                    <button
+                    // Custom podpowiedź zamiast natywnego `title`: systemowy
+                    // dymek jest szary, obcy dla ciemnego panelu, a na telefonie
+                    // Google Translate tłumaczył go na angielski.
+                    <Tooltip
                       key={character.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      aria-label={character.name}
-                      title={`${character.name} — ${character.traits}${
+                      label={`${character.name} — ${character.traits}${
                         takenBy >= 0 ? ` (wybrał gracz ${takenBy + 1})` : ''
                       }`}
-                      // Postać zajęta przez kogoś innego jest niedostępna:
-                      // przygaszona i klikalna zarazem myliłaby.
-                      disabled={takenBy >= 0}
-                      onClick={() => update(index, { characterId: character.id })}
-                      className={[
-                        'flex h-10 w-10 items-center justify-center rounded-lg border transition',
-                        active
-                          ? 'border-accent bg-raised text-accent'
-                          : takenBy >= 0
-                            ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
-                            : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
-                      ].join(' ')}
                     >
-                      <Icon name={character.icon as IconName} size={20} />
-                    </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        aria-label={character.name}
+                        // Postać zajęta przez kogoś innego jest niedostępna:
+                        // przygaszona i klikalna zarazem myliłaby.
+                        disabled={takenBy >= 0}
+                        onClick={() => update(index, { characterId: character.id })}
+                        className={[
+                          'flex h-10 w-10 items-center justify-center rounded-lg border transition',
+                          active
+                            ? 'border-accent bg-raised text-accent'
+                            : takenBy >= 0
+                              ? 'cursor-not-allowed border-edge/50 text-ink-dim/30'
+                              : 'border-edge text-ink-dim hover:border-ink-dim hover:text-ink',
+                        ].join(' ')}
+                      >
+                        <Icon name={character.icon as IconName} size={20} />
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -317,21 +324,23 @@ export function SetupScreen({
         )}
       </section>
 
-      <Button
-        variant="primary"
-        size="lg"
-        icon="rocket"
-        onClick={() => {
-          setTriedStart(true);
-          start(false);
-        }}
-        // Świadomie NIE wyłączony: kliknięcie podświetla brakujące imiona,
-        // zamiast zostawiać gracza z martwym przyciskiem bez wyjaśnienia.
-        title={!namesFilled ? text.setupNamesHint : undefined}
-        className="relative mt-4 w-full"
-      >
-        {text.setupStartButton}
-      </Button>
+      {/* Custom podpowiedź zamiast natywnego `title`. */}
+      <Tooltip label={!namesFilled ? text.setupNamesHint : ''} className="mt-4 w-full">
+        <Button
+          variant="primary"
+          size="lg"
+          icon="rocket"
+          onClick={() => {
+            setTriedStart(true);
+            start(false);
+          }}
+          // Świadomie NIE wyłączony: kliknięcie podświetla brakujące imiona,
+          // zamiast zostawiać gracza z martwym przyciskiem bez wyjaśnienia.
+          className="relative w-full"
+        >
+          {text.setupStartButton}
+        </Button>
+      </Tooltip>
 
       {!namesFilled && (
         <p

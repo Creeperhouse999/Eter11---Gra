@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '../controls/Button';
 import { Modal } from '../controls/Modal';
+import { Tooltip } from '../controls/Tooltip';
 import { TextField, TextArea } from '../controls/Field';
 import { Icon } from '../icons/Icon';
 import { useToast } from '../controls/Toast';
@@ -71,19 +72,22 @@ export function ReportButton() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Zgłoś błąd"
-        title="Zgłoś błąd"
-        // Prawy dolny róg kolidował z przyciskami „Pasuję"/„Wymień" i paskiem
-        // ręki — na telefonie zasłaniał akcje gry. Lewy dolny róg jest wolny:
-        // akcje są po prawej, ręka przewija się środkiem.
-        className="fixed bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
-        style={{ zIndex: 'var(--z-hint)' }}
-      >
-        <Icon name="megaphone" size={18} />
-      </button>
+      {/* Custom podpowiedź zamiast natywnego `title` (szary systemowy dymek,
+          na telefonie tłumaczony przez Google Translate). */}
+      <Tooltip label="Zgłoś błąd">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Zgłoś błąd"
+          // Prawy dolny róg kolidował z przyciskami „Pasuję"/„Wymień" i paskiem
+          // ręki — na telefonie zasłaniał akcje gry. Lewy dolny róg jest wolny:
+          // akcje są po prawej, ręka przewija się środkiem.
+          className="fixed bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
+          style={{ zIndex: 'var(--z-hint)' }}
+        >
+          <Icon name="megaphone" size={18} />
+        </button>
+      </Tooltip>
 
       <Modal open={open} title="Zgłoś błąd" onClose={() => setOpen(false)}>
         <div>
