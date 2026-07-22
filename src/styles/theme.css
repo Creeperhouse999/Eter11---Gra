@@ -239,6 +239,23 @@
   animation: eter-bump var(--eter-normal) var(--eter-ease) both;
 }
 
+/*
+ * Karta odlatująca z talii do ręki.
+ *
+ * Rewers unosi się, lekko obraca i gaśnie — dziecko widzi, że dobranie coś
+ * z talii zabrało, zamiast patrzeć na statyczny stos i zmieniającą się cyfrę.
+ */
+@keyframes eter-deck-fly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -40px) scale(0.7) rotate(12deg);
+  }
+}
+.eter-deck-fly {
+  animation: eter-deck-fly 460ms var(--eter-ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

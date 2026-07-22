@@ -11,6 +11,7 @@ import { DragGhost } from '../components/DragGhost';
 import { CardZoom } from '../components/CardZoom';
 import { Icon, type IconName } from '../icons/Icon';
 import { MissionProgress } from '../components/MissionProgress';
+import { DeckStack } from '../components/DeckStack';
 import { PlayerMat } from '../components/PlayerMat';
 import { ProblemCard } from '../components/ProblemCard';
 import { ScrollHint } from '../components/ScrollHint';
@@ -352,8 +353,18 @@ export function MissionScreen({
         <BlackSwanBanner events={swanEvents} onDismiss={dismissSwanEvents} />
       )}
 
+      {/* Talie na widoku: karta wylatuje ze stosu, gdy się dobiera —
+          zamiast statycznej liczby w nagłówku. Samouczek ma ustaloną talię,
+          więc licznik tylko myliłby; pokazujemy je w normalnej grze. */}
+      {!alwaysRevealed && (
+        <div className="mt-4 flex items-start justify-center gap-6">
+          <DeckStack count={state.drawPile.length} label="Talia" icon="spark" />
+          <DeckStack count={state.problemPile.length} label="Problemy" icon="clash" />
+        </div>
+      )}
+
       {/* ── Stół ──────────────────────────────────────────────────────── */}
-      <div className="relative">
+      <div className="relative mt-4">
         {top && <div className="mx-auto mb-3 max-w-md">{renderMat(top)}</div>}
 
         <div className="grid gap-3 xl:grid-cols-[minmax(0,15rem)_1fr_minmax(0,15rem)]">
