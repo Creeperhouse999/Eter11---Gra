@@ -15,6 +15,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { ImageUpload } from './ImageUpload';
+import { Modal } from '../ui/controls/Modal';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
 const KIND_OPTIONS = [
@@ -131,6 +132,8 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
   /** Zgłoszenie z otwartym polem komentarza. */
   const [commenting, setCommenting] = useState<string | null>(null);
   const [comment, setComment] = useState('');
+  /** Zgłoszenie otwarte w oknie. */
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -218,6 +221,8 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
     try {
       await deleteReport(report.id);
       setReports((prev) => prev.filter((r) => r.id !== report.id));
+      // Okno pokazywało to zgłoszenie — zostawione otwarte wisiałoby nad pustką.
+      setOpenId(null);
       toast('Zgłoszenie usunięte.');
     } catch {
       toast('Nie udało się usunąć. Sprawdź, czy jesteś zalogowany.', 'danger');
@@ -231,6 +236,10 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
     done: reports.filter((r) => r.status === 'done').length,
   };
   const visible = reports.filter((r) => r.status === tab);
+  // Otwarte zgłoszenie bierzemy z listy po id, nie z kopii — status
+  // i komentarze zmieniają się w tym samym oknie, więc muszą się w nim
+  // odświeżać na miejscu.
+  const openReport = reports.find((r) => r.id === openId) ?? null;
 
   return (
     <section>
@@ -352,133 +361,113 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
       ) : (
         <ul className="eter-stagger mt-3 space-y-2">
           {visible.map((report) => (
-            <li
-              key={report.id}
-              className="rounded-lg border-l-4 border border-edge bg-surface p-3"
-              style={{
-                borderLeftColor:
-                  report.kind === 'bug' ? 'var(--eter-danger)' : 'var(--eter-accent)',
-              }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      style={{
-                        color:
-                          report.kind === 'bug'
-                            ? 'var(--eter-danger)'
-                            : 'var(--eter-accent)',
-                      }}
-                    >
-                      <Icon name={report.kind === 'bug' ? 'warning' : 'bulb'} size={15} />
-                    </span>
-                    <span className="font-display font-bold" style={{ overflowWrap: 'anywhere' }}>
-                      {report.title}
-                    </span>
+            <li key={report.id}>
+              <button
+                type="button"
+                onClick={() => setOpenId(report.id)}
+                className="flex w-full items-start gap-2.5 rounded-lg border-l-4 border border-edge bg-surface p-3 text-left transition hover:border-accent"
+                style={{
+                  borderLeftColor:
+                    report.kind === 'bug' ? 'var(--eter-danger)' : 'var(--eter-accent)',
+                }}
+              >
+                <span
+                  className="mt-0.5 shrink-0"
+                  style={{
+                    color: report.kind === 'bug' ? 'var(--eter-danger)' : 'var(--eter-accent)',
+                  }}
+                >
+                  <Icon name={report.kind === 'bug' ? 'warning' : 'bulb'} size={16} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span
+                    className="block font-display font-bold"
+                    style={{ overflowWrap: 'anywhere' }}
+                  >
+                    {report.title}
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-ink-dim">
                     {KIND_LABELS[report.kind]} · {formatDate(report.createdAt)}
                     {report.author && ` · ${report.author}`}
+                    {(report.notes?.length ?? 0) > 0 &&
+                      ` · ${report.notes!.length} ${report.notes!.length === 1 ? 'wpis' : 'wpisy'}`}
+                    {(report.images?.length ?? 0) > 0 && ` · ${report.images!.length} zdj.`}
                   </span>
-                </div>
+                </span>
 
-                <div className="flex shrink-0 flex-wrap gap-1">
-                  {/* Nowe i odesłane: programista oznacza, że poprawił. */}
-                  {(report.status === 'new' || report.status === 'rejected') && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon="flask"
-                      onClick={() => void changeStatus(report, 'fixed', 'dev')}
-                    >
-                      Naprawione
-                    </Button>
-                  )}
+                <span className="shrink-0 text-ink-dim">
+                  <Icon name="chevronDown" size={18} className="-rotate-90" />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
-                  {/* Do sprawdzenia: decyduje zgłaszający, nie programista. */}
-                  {report.status === 'fixed' && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        icon="tick"
-                        onClick={() => void changeStatus(report, 'done')}
-                      >
-                        Działa
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        icon="undo"
-                        className="text-danger"
-                        onClick={() => {
-                          setCommenting(report.id);
-                          setComment('');
-                        }}
-                      >
-                        Dalej nie działa
-                      </Button>
-                    </>
-                  )}
+      {/* Szczegóły zgłoszenia w oknie: opis, zrzuty, rozmowa
+          programista↔zgłaszający i akcje statusu w jednym miejscu.
+          Na liście zostają same tytuły, żeby dziesięć zgłoszeń mieściło się
+          na ekranie zamiast rozjeżdżać się na całą stronę. */}
+      <Modal
+        open={openReport !== null}
+        title={openReport?.title ?? ''}
+        onClose={() => {
+          setOpenId(null);
+          setCommenting(null);
+          setComment('');
+        }}
+      >
+        {openReport && (
+          <div>
+            <p className="font-mono text-[11px] text-ink-dim">
+              {KIND_LABELS[openReport.kind]} ·{' '}
+              {STATUS_TABS.find((s) => s.id === openReport.status)?.label ?? openReport.status}
+              {' · '}
+              {formatDate(openReport.createdAt)}
+              {openReport.author && ` · ${openReport.author}`}
+            </p>
 
-                  {report.status === 'done' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon="undo"
-                      onClick={() => void changeStatus(report, 'new')}
-                    >
-                      Otwórz ponownie
-                    </Button>
-                  )}
+            {openReport.description && (
+              <p
+                className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
+                style={{ overflowWrap: 'anywhere' }}
+              >
+                {openReport.description}
+              </p>
+            )}
 
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    icon="trash"
-                    aria-label={`Usuń zgłoszenie: ${report.title}`}
-                    className="text-danger"
-                    onClick={() => void remove(report)}
-                  />
-                </div>
+            {(openReport.images?.length ?? 0) > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {openReport.images!.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="h-24 w-24 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                  >
+                    <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
+                  </a>
+                ))}
               </div>
+            )}
 
-              {report.description && (
-                <p
-                  className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-dim"
-                  style={{ overflowWrap: 'anywhere' }}
-                >
-                  {report.description}
-                </p>
-              )}
-
-              {/* Zrzuty ekranu. Klik otwiera pełny obraz w nowej karcie —
-                  na miniaturze błąd bywa nieczytelny, a to on jest sednem. */}
-              {(report.images?.length ?? 0) > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {report.images!.map((url) => (
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="h-20 w-20 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
-                    >
-                      <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* Historia rozmowy — bez niej druga próba naprawy zaczyna
-                  się od zera, bo nikt nie pamięta, co już sprawdzano. */}
-              {(report.notes?.length ?? 0) > 0 && (
-                <ul className="mt-3 space-y-1.5 border-l-2 border-edge pl-3">
-                  {report.notes!.map((note, index) => (
-                    <li key={index} className="text-xs">
+            {/* Rozmowa: naprawiam → sprawdzam → potwierdzam albo odsyłam.
+                Bez niej druga próba naprawy zaczyna od zera. */}
+            {(openReport.notes?.length ?? 0) > 0 && (
+              <div className="mt-4 space-y-2">
+                {openReport.notes!.map((note, index) => (
+                  <div
+                    key={index}
+                    className={[
+                      'rounded-lg p-2.5',
+                      note.from === 'dev' ? 'bg-raised' : 'bg-surface border border-edge',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
                       <span
-                        className="font-mono font-bold"
+                        className="font-mono text-xs font-bold"
                         style={{
                           color:
                             note.from === 'dev'
@@ -488,53 +477,114 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
                       >
                         {note.from === 'dev' ? 'programista' : 'zgłaszający'}
                       </span>
-                      <span className="ml-2 text-ink-dim">{formatDate(note.at)}</span>
-                      <p
-                        className="mt-0.5 whitespace-pre-wrap leading-snug"
-                        style={{ overflowWrap: 'anywhere' }}
-                      >
-                        {note.text}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                      <span className="font-mono text-[10px] text-ink-dim">
+                        {formatDate(note.at)}
+                      </span>
+                    </div>
+                    <p
+                      className="mt-1 whitespace-pre-wrap text-sm leading-snug"
+                      style={{ overflowWrap: 'anywhere' }}
+                    >
+                      {note.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {commenting === openReport.id && (
+              <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
+                <TextArea
+                  label="Co dokładnie nadal nie działa?"
+                  value={comment}
+                  rows={3}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
+                />
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={comment.trim().length === 0}
+                    onClick={() => void changeStatus(openReport, 'rejected')}
+                  >
+                    Odeślij do poprawki
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setCommenting(null);
+                      setComment('');
+                    }}
+                  >
+                    Anuluj
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-edge pt-3">
+              {(openReport.status === 'new' || openReport.status === 'rejected') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon="flask"
+                  onClick={() => void changeStatus(openReport, 'fixed', 'dev')}
+                >
+                  Naprawione
+                </Button>
               )}
 
-              {commenting === report.id && (
-                <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
-                  <TextArea
-                    label="Co dokładnie nadal nie działa?"
-                    value={comment}
-                    rows={3}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
-                  />
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={comment.trim().length === 0}
-                      onClick={() => void changeStatus(report, 'rejected')}
-                    >
-                      Odeślij do poprawki
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setCommenting(null);
-                        setComment('');
-                      }}
-                    >
-                      Anuluj
-                    </Button>
-                  </div>
-                </div>
+              {openReport.status === 'fixed' && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon="tick"
+                    onClick={() => void changeStatus(openReport, 'done')}
+                  >
+                    Działa
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="undo"
+                    className="text-danger"
+                    onClick={() => {
+                      setCommenting(openReport.id);
+                      setComment('');
+                    }}
+                  >
+                    Dalej nie działa
+                  </Button>
+                </>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
+
+              {openReport.status === 'done' && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="undo"
+                  onClick={() => void changeStatus(openReport, 'new')}
+                >
+                  Otwórz ponownie
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="trash"
+                className="ml-auto text-danger"
+                onClick={() => void remove(openReport)}
+              >
+                Usuń
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </section>
   );
 }
