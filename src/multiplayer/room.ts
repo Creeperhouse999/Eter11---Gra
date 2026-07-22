@@ -211,6 +211,28 @@ export async function commitMove(
   });
 }
 
+/**
+ * Host zapisuje ruch za rozłączonego gracza (automatyczne spasowanie).
+ *
+ * Pomija sprawdzenie „czyja kolej", bo działa w imieniu skipowanego — ale
+ * transakcja i tak upewnia się, że host to host i że skipowany jest wciąż
+ * offline, żeby dwa urządzenia hosta nie skipnęły dwa razy.
+ */
+export async function commitMoveAsHost(
+  code: string,
+  next: GameState,
+  action: Action,
+): Promise<void> {
+  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
+  await runTransaction(roomRef, (room: Room | null) => {
+    if (!room || room.phase !== 'playing' || !room.state) return room;
+    room.state = next;
+    room.lastAction = action;
+    room.turnStartedAt = Date.now();
+    return room;
+  });
+}
+
 /** Gracze w kolejności tur — po czasie dołączenia. */
 export function playersInOrder(room: Room): RoomPlayer[] {
   return Object.values(room.players ?? {}).sort((a, b) => a.joinedAt - b.joinedAt);

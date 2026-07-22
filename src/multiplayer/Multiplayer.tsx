@@ -34,6 +34,8 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
     dispatch,
     kick,
     react,
+    propose,
+    resolveOffer,
     begin,
   } = useRoom(code, uid);
 
@@ -56,6 +58,24 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
   const leave = () => {
     setCode(null);
     setUid(null);
+  };
+
+  const acceptOffer = async () => {
+    const offer = room?.offer;
+    if (!offer || !room?.state) return;
+    // Biorący zatwierdza — wysyłamy właściwy ruch przekazania. Że to jego
+    // kolej decydować, pilnuje faza podsumowania w silniku.
+    await dispatch({
+      type: 'SHARE_CARD',
+      fromPlayerId: offer.fromUid,
+      toPlayerId: offer.toUid,
+      cardId: offer.cardId,
+    });
+    await resolveOffer();
+  };
+
+  const declineOffer = () => {
+    void resolveOffer();
   };
 
   /** Host zaczyna: buduje stan gry z zebranych graczy i zapisuje do pokoju. */
@@ -119,8 +139,11 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       myTurn={myTurn}
       activeUid={activeUid}
       dispatch={dispatch}
+      propose={propose}
       react={react}
       reactions={room.reactions ?? []}
+      onAcceptOffer={() => void acceptOffer()}
+      onDeclineOffer={declineOffer}
       onLeave={leave}
     />
   );

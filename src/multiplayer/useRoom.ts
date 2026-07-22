@@ -4,6 +4,7 @@ import type { Action } from '../engine/types';
 import {
   clearOffer,
   commitMove,
+  commitMoveAsHost,
   kickPlayer,
   offerCard,
   playersInOrder,
@@ -91,6 +92,37 @@ export function useRoom(code: string | null, uid: string | null) {
     () => (code && room?.state ? startGame(code, room.state) : Promise.resolve()),
     [code, room?.state],
   );
+
+  // Skipnięcie tury rozłączonego gracza po minucie.
+  //
+  // Robi to WYŁĄCZNIE host — gdyby liczył każdy, tura skipnęłaby się kilka
+  // razy naraz. Gracz na kolejce, który jest offline dłużej niż minutę od
+  // początku swojej tury, dostaje automatyczne „pasuję" i wypada z gry.
+  const isHost = Boolean(uid && room?.hostUid === uid);
+  useEffect(() => {
+    if (!isHost || !code || !room?.state || room.phase !== 'playing') return;
+    if (!activeUid) return;
+
+    const active = room.players[activeUid];
+    if (!active || active.online) return;
+
+    const deadline = room.turnStartedAt + 60_000;
+    const fire = () => {
+      // Automatyczne spasowanie za rozłączonego — silnik przesuwa turę dalej.
+      const result = reduce(room.state!, { type: 'PASS', playerId: activeUid });
+      if (!result.rejected) {
+        void commitMoveAsHost(code, result.state, { type: 'PASS', playerId: activeUid });
+      }
+    };
+
+    const wait = deadline - Date.now();
+    if (wait <= 0) {
+      fire();
+      return;
+    }
+    const timer = window.setTimeout(fire, wait);
+    return () => window.clearTimeout(timer);
+  }, [isHost, code, room?.state, room?.turnStartedAt, activeUid, room?.players, room?.phase]);
 
   return {
     room,
