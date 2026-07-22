@@ -171,6 +171,15 @@ export function MissionScreen({
       fromMat,
     });
     setSelected(null);
+
+    // Zagrana karta znika z drzewa, więc fokus spadał na `body` i gracz na
+    // klawiaturze wracał na początek dokumentu. Przenosimy go na pasek ręki —
+    // stały punkt, od którego łatwo dojść do kolejnej karty. `requestAnimationFrame`,
+    // bo cel musi istnieć po przerysowaniu planszy.
+    requestAnimationFrame(() => {
+      const hand = document.querySelector<HTMLElement>('[data-tour="hand"] button');
+      hand?.focus();
+    });
   };
 
   const playSelected = (problemId: string, slotKey: SlotKey) => {

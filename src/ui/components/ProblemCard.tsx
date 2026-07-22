@@ -72,10 +72,15 @@ export function ProblemCard({
         // Nie `disabled`: wyłączony przycisk nie odbiera zdarzeń wskaźnika,
         // więc nie dałoby się na niego upuścić karty.
         aria-disabled={!playable && !accepts}
+        // Etykieta mówi, gdy ścianka jest gotowa przyjąć wybraną kartę —
+        // inaczej gracz na klawiaturze musiał zgadywać, wciskając Enter na
+        // każdej ściance po kolei. Przy dopasowaniu dodajemy jasny sygnał.
         aria-label={
           filled
             ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
-            : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
+            : playable
+              ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — tutaj pasuje Twoja karta, naciśnij Enter`
+              : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
         }
         data-slot={dropId}
         // Na wąskim ekranie podpowiedź jest ukryta — tutaj zostaje dostępna
