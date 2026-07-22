@@ -113,8 +113,15 @@ export function CardView({
         borderColor: selected ? accent : 'var(--eter-edge)',
         borderWidth: selected ? 2 : 1,
         boxShadow: selected ? `0 0 22px -6px ${accent}` : undefined,
-        // Bez tego przeciąganie palcem przewija stronę zamiast podnosić kartę.
-        touchAction: draggable ? 'none' : undefined,
+        // `pan-x`: poziome przesunięcie palca oddajemy przeglądarce (przewija
+        // pasek ręki w bok), a pionowe zostaje dla nas — karta idzie na
+        // ściankę do góry.
+        //
+        // Wcześniej było `none` — blokowało KAŻDY gest, więc karta dawała się
+        // przeciągnąć, ale ręki nie dało się przewinąć w bok na telefonie
+        // i część kart była nieosiągalna. `pan-x` godzi oba: w bok scroll,
+        // w górę i w dół przeciąganie.
+        touchAction: draggable ? 'pan-x' : undefined,
         ...(dealIndex === undefined
           ? {}
           : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),

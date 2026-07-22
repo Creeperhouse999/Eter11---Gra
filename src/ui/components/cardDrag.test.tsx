@@ -191,7 +191,10 @@ describe('CardView z przeciąganiem', () => {
       />,
     );
     const cardEl = screen.getByRole('button', { name: /Odwaga/ });
-    expect(cardEl.style.touchAction).toBe('none');
+    // `pan-x`, nie `none`: poziome przewijanie paska ręki zostaje przy
+    // przeglądarce (inaczej na telefonie część kart była nieosiągalna),
+    // a pionowe przeciąganie na ściankę zostaje dla nas.
+    expect(cardEl.style.touchAction).toBe('pan-x');
   });
 
   it('karta bez przeciągania nie blokuje przewijania', () => {
