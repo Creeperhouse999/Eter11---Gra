@@ -77,8 +77,19 @@ export function Select<T extends string>({
       if (listRef.current?.contains(target)) return;
       setOpen(false);
     };
-    // Przewinięcie strony rozjechałoby listę z przyciskiem.
-    const onScroll = () => setOpen(false);
+    /**
+     * Przewinięcie STRONY rozjeżdża listę z przyciskiem, więc ją zamykamy.
+     *
+     * Ale nasłuch działa w fazie przechwytywania i łapie też przewijanie
+     * samej listy — a przy wielu opcjach ma ona własny pasek. Bez sprawdzenia
+     * źródła lista zamykała się przy każdej próbie dojechania do dolnych
+     * opcji, co na telefonie oznaczało, że w ogóle nie dało się jej przewinąć.
+     */
+    const onScroll = (event: Event) => {
+      const target = event.target as Node | null;
+      if (target && listRef.current?.contains(target)) return;
+      setOpen(false);
+    };
 
     document.addEventListener('mousedown', onPointerDown);
     window.addEventListener('scroll', onScroll, true);

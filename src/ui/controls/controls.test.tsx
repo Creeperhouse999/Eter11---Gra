@@ -73,6 +73,27 @@ describe('Select', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 
+  it('przewijanie samej listy jej nie zamyka', async () => {
+    // Na telefonie lista opcji ma własny pasek. Zamykanie jej przy każdym
+    // przewinięciu znaczyło, że dolnych opcji nie dało się dojechać.
+    render(<Select value="a" options={options} onChange={vi.fn()} ariaLabel="Wybór" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Wybór' }));
+    const list = await screen.findByRole('listbox');
+
+    fireEvent.scroll(list);
+    expect(screen.queryByRole('listbox')).not.toBeNull();
+  });
+
+  it('przewinięcie strony zamyka listę', async () => {
+    render(<Select value="a" options={options} onChange={vi.fn()} ariaLabel="Wybór" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Wybór' }));
+    await screen.findByRole('listbox');
+
+    // Zdarzenie spoza listy — przewijanie strony pod otwartą listą.
+    fireEvent.scroll(document.body);
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+  });
+
   it('strzałka w dół otwiera listę', async () => {
     render(<Select value="a" options={options} onChange={vi.fn()} ariaLabel="Wybór" />);
     fireEvent.keyDown(screen.getByRole('button', { name: 'Wybór' }), { key: 'ArrowDown' });
