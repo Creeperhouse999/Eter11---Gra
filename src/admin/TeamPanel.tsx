@@ -60,6 +60,13 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       toast('Nie odbierzesz roli admina samemu sobie.', 'danger');
       return;
     }
+    // Root admin (info@) jest adminem z mocy adresu — degradacja jego wpisu
+    // w bazie i tak nic nie zmieni w prawach, ale panel pokazywałby wtedy
+    // kłamstwo („Podgląd"), więc jej nie dopuszczamy.
+    if (member.email === ROOT_ADMIN_EMAIL && role !== 'admin') {
+      toast('Konta założyciela nie da się zdegradować.', 'danger');
+      return;
+    }
     try {
       await setRole({ ...member, role });
       toast(`${member.email}: ${ROLE_LABELS[role]}.`, 'success');

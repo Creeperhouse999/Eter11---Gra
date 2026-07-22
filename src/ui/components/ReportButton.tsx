@@ -32,23 +32,34 @@ export function ReportButton() {
     inFlight.current = true;
     setSending(true);
 
-    // Import dynamiczny: pakiet Firestore waży więcej niż reszta gry, a
-    // zgłoszenie to rzadkość — nie ma po co ładować go przy każdej partii.
-    const { addReport } = await import('../../firebase/reports');
-    const result = await addReport({
-      kind: 'bug',
-      title,
-      description,
-      author: 'gracz',
-      // Z gry zawsze do akceptacji — nie ma konta ani roli, więc moderator
-      // decyduje, czy to trafia do realizacji.
-      status: 'pending',
-    });
+    // Import dynamiczny w try/catch: pakiet Firestore waży więcej niż reszta
+    // gry, a offline (albo 404 chunku po wdrożeniu) rzuca odrzuceniem, którego
+    // nikt nie łapał — `inFlight` zostawał `true` na zawsze i przycisk był
+    // martwy do końca sesji. `finally` zwalnia go zawsze.
+    let ok = false;
+    let error: string | undefined;
+    try {
+      const { addReport } = await import('../../firebase/reports');
+      const result = await addReport({
+        kind: 'bug',
+        title,
+        description,
+        author: 'gracz',
+        // Z gry zawsze do akceptacji — nie ma konta ani roli, więc moderator
+        // decyduje, czy to trafia do realizacji.
+        status: 'pending',
+      });
+      ok = result.ok;
+      error = result.error;
+    } catch {
+      error = 'Brak połączenia. Spróbuj później.';
+    } finally {
+      setSending(false);
+      inFlight.current = false;
+    }
 
-    setSending(false);
-    inFlight.current = false;
-    if (!result.ok) {
-      toast(result.error ?? 'Nie udało się wysłać zgłoszenia.', 'danger');
+    if (!ok) {
+      toast(error ?? 'Nie udało się wysłać zgłoszenia.', 'danger');
       return;
     }
 

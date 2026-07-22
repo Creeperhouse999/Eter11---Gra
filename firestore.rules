@@ -49,6 +49,15 @@ service cloud.firestore {
             || rolaKonta() == 'co-admin');
     }
 
+    /** Kto może pisać w dyskusjach: wszyscy poza edytorem i podglądem. */
+    function mozeDyskutowac() {
+      return zalogowany()
+        && (rolaKonta() == 'admin'
+            || rolaKonta() == 'programmer'
+            || rolaKonta() == 'co-admin'
+            || rolaKonta() == 'coworker');
+    }
+
     // Zawartość gry: karty, problemy, postacie, parametry zasad.
     // Odczyt publiczny — gra ładuje dane bez logowania, także u dzieci,
     // które kont nie mają i mieć nie będą.
@@ -75,18 +84,29 @@ service cloud.firestore {
 
       // Zmiana statusu i komentarze.
       //
-      // Akceptacja i odrzucenie oczekującego zgłoszenia (`pending` → `new`
-      // albo `dismissed`) to moderacja — wolno ją wyłącznie adminowi
-      // i co-adminowi. Pozostałe przejścia obiegu (naprawiłem → sprawdzam →
-      // działa/wróciło) robi każdy zalogowany, bo to normalna praca zespołu.
-      allow update: if zalogowany()
-                    && (
-                      jestModeratorem()
-                      // Nie-moderator nie rusza zgłoszeń czekających na
-                      // akceptację ani nie odrzuca — to należy do moderatora.
-                      || (resource.data.status != 'pending'
-                          && request.resource.data.status != 'pending'
-                          && request.resource.data.status != 'dismissed')
+      // Moderator (admin/co-admin) może wszystko w ramach obiegu. Zwykły
+      // zalogowany — tylko `status` i `notes`, i to nie każde przejście:
+      //
+      // Wcześniejsza reguła sprawdzała TYLKO status, przez co coworker mógł
+      // przy zmianie statusu podmienić autora, tytuł czy opis w tym samym
+      // zapisie, przeskoczyć z `new` prosto na `done` (pomijając weryfikację
+      // zgłaszającego) albo otworzyć odrzucone zgłoszenie. Teraz pola poza
+      // `status`/`notes` są przypięte, a dozwolone przejścia wyliczone.
+      allow update: if jestModeratorem()
+                    || (
+                      zalogowany()
+                      // Wolno ruszyć wyłącznie status i rozmowę.
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys().hasOnly(['status', 'notes'])
+                      // Notatek tylko przybywa — nie kasuje się cudzych.
+                      // `get` z domyślną pustą listą, bo aktualizacja samego
+                      // statusu nie niesie pola `notes` wcale.
+                      && request.resource.data.get('notes', []).size()
+                         >= resource.data.get('notes', []).size()
+                      // Dozwolone przejścia dla nie-moderatora: obieg naprawy,
+                      // bez tykania `pending` i `dismissed` (to moderacja).
+                      && resource.data.status in ['new', 'fixed', 'reopened', 'done']
+                      && request.resource.data.status in ['new', 'fixed', 'reopened', 'done']
                     );
 
       // Tworzenie:
@@ -143,7 +163,11 @@ service cloud.firestore {
      */
     match /discussions/{thread} {
       allow read: if true;
-      allow create, delete: if zalogowany();
+      // Zakładać wątek i pisać może każdy, kto ma prawo dyskutować; edytor
+      // i podgląd nie. Usuwa tylko admin — reguła nie ufała rolom wcześniej,
+      // więc podgląd z dostępem do SDK mógł skasować cudzy wątek.
+      allow create: if mozeDyskutowac();
+      allow delete: if jestAdmin();
 
       // Do wątku wolno WYŁĄCZNIE dopisywać, i tylko jedną wypowiedź naraz.
       //
@@ -155,7 +179,7 @@ service cloud.firestore {
       // więc każda edycja historii jest odrzucana, a nie tylko skracanie.
       //
       // Pola tematu, autora i daty wątku zostają; `closed` wolno przełączać.
-      allow update: if zalogowany()
+      allow update: if mozeDyskutowac()
                     && request.resource.data.diff(resource.data)
                          .affectedKeys().hasOnly(['messages', 'closed'])
                     && request.resource.data.messages is list

@@ -8,7 +8,7 @@ import {
   type ReportKind,
   type ReportStatus,
 } from '../firebase/reports';
-import { canDelete, canModerate, skipsApproval, type Role } from '../firebase/roles';
+import { canDelete, canModerate, canReport, skipsApproval, type Role } from '../firebase/roles';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
 import { TextArea, TextField } from '../ui/controls/Field';
@@ -588,7 +588,8 @@ export function ReportsPanel({ author, role }: ReportsPanelProps) {
         programisty.
       </p>
 
-      {/* Formularz */}
+      {/* Formularz — ukryty dla podglądu, który zgłaszać nie może. */}
+      {canReport(role) && (
       <div className="mt-5 rounded-xl border border-edge bg-surface p-4">
         <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
           <Select
@@ -641,6 +642,7 @@ export function ReportsPanel({ author, role }: ReportsPanelProps) {
           </Button>
         </div>
       </div>
+      )}
 
       {/* Lista */}
       <div className="mt-6 flex flex-wrap gap-1.5">
