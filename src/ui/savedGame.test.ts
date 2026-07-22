@@ -21,12 +21,10 @@ describe('zapis partii', () => {
     // rundę — inaczej limit ręki działałby na wznowionej grze inaczej niż
     // na nowej.
     const state = started();
-    const bezPola = {
-      ...state,
-      config: { ...state.config } as Record<string, unknown>,
-    };
-    delete bezPola.config.maxHandSize;
-    saveGame(7, bezPola as typeof state);
+    const config = { ...state.config } as Record<string, unknown>;
+    delete config.maxHandSize;
+    const bezPola = { ...state, config } as unknown as typeof state;
+    saveGame(7, bezPola);
 
     const loaded = loadGame(7);
     expect(loaded?.config.maxHandSize).toBe(state.config.maxHandSize);

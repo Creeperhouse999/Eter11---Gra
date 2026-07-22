@@ -52,6 +52,7 @@ const SECTION_LABELS: Record<string, string> = {
   theme: 'kolory',
   families: 'rodziny',
   categories: 'kategorie',
+  customIcons: 'ikony',
   intro: 'wstęp',
   tutorial: 'samouczek',
 };
