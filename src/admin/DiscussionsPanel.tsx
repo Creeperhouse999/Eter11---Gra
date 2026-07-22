@@ -12,6 +12,7 @@ import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { Modal } from '../ui/controls/Modal';
+import { Avatar } from './Avatar';
 import { ImageUpload } from './ImageUpload';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { useToast } from '../ui/controls/Toast';
@@ -280,44 +281,81 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
       >
         {openThread && (
           <div>
-            <p className="text-xs text-ink-dim">
-              {openThread.author} · {shortDate(openThread.createdAt)}
-            </p>
-
-            {openThread.description && (
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
-                {openThread.description}
-              </p>
-            )}
+            {/* Pierwsza wypowiedź — to, od czego wątek się zaczął —
+                jako zwykły wpis z awatarem, żeby rozmowa czytała się od góry
+                jednym ciągiem, a nie „nagłówek, potem czat". */}
+            <div className="flex gap-2.5 border-b border-edge pb-3">
+              <Avatar name={openThread.author} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-bold">{openThread.author}</span>
+                  <span className="font-mono text-[10px] text-ink-dim">
+                    {shortDate(openThread.createdAt)}
+                  </span>
+                </div>
+                {openThread.description && (
+                  <p
+                    className="whitespace-pre-wrap text-sm leading-relaxed"
+                    style={{ overflowWrap: 'anywhere' }}
+                  >
+                    {openThread.description}
+                  </p>
+                )}
+              </div>
+            </div>
 
             {/* Długa rozmowa przewija się w oknie, a nie całą stroną —
                 pole odpowiedzi i przyciski zostają widoczne. */}
-            <div className="mt-3 max-h-[40vh] space-y-2 overflow-y-auto">
-              {openThread.messages.map((message, index) => (
-                <div key={index} className="rounded-lg bg-raised p-2.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-xs font-bold text-accent">{message.author}</span>
-                    <span className="font-mono text-[10px] text-ink-dim">
-                      {shortDate(message.at)}
-                    </span>
+            <div className="mt-3 max-h-[40vh] space-y-0.5 overflow-y-auto">
+              {openThread.messages.map((message, index) => {
+                // Grupowanie jak na Slacku: kolejne wypowiedzi tej samej osoby
+                // pod rząd dostają jeden awatar i nagłówek. Ściana powtórzonych
+                // imion i godzin męczy oko, a rozmowa czyta się jako bloki
+                // „kto mówił", nie jako lista osobnych karteczek.
+                const previous = openThread.messages[index - 1];
+                const grouped = previous?.author === message.author;
+
+                return (
+                  <div key={index} className="flex gap-2.5 py-1">
+                    {grouped ? (
+                      <span className="w-8 shrink-0" />
+                    ) : (
+                      <Avatar name={message.author} size={32} />
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      {!grouped && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-bold">{message.author}</span>
+                          <span className="font-mono text-[10px] text-ink-dim">
+                            {shortDate(message.at)}
+                          </span>
+                        </div>
+                      )}
+
+                      {message.text && (
+                        <p
+                          className="whitespace-pre-wrap text-sm leading-relaxed"
+                          style={{ overflowWrap: 'anywhere' }}
+                        >
+                          {message.text}
+                        </p>
+                      )}
+
+                      {message.image && (
+                        <a
+                          href={message.image}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                        >
+                          <img src={message.image} alt="" className="w-full" />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  {message.text && (
-                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                      {message.text}
-                    </p>
-                  )}
-                  {message.image && (
-                    <a
-                      href={message.image}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
-                    >
-                      <img src={message.image} alt="" className="w-full" />
-                    </a>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {!openThread.closed && (

@@ -457,38 +457,50 @@ export function ReportsPanel({ author }: ReportsPanelProps) {
                 Bez niej druga próba naprawy zaczyna od zera. */}
             {(openReport.notes?.length ?? 0) > 0 && (
               <div className="mt-4 space-y-2">
-                {openReport.notes!.map((note, index) => (
-                  <div
-                    key={index}
-                    className={[
-                      'rounded-lg p-2.5',
-                      note.from === 'dev' ? 'bg-raised' : 'bg-surface border border-edge',
-                    ].join(' ')}
-                  >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span
-                        className="font-mono text-xs font-bold"
+                {openReport.notes!.map((note, index) => {
+                  // Dwie strony rozmowy po przeciwnych krawędziach, jak w
+                  // komunikatorze: programista po lewej, zgłaszający po prawej.
+                  // Kierunek niesie sens obiegu — „naprawiłem" wychodzi od
+                  // programisty, „dalej nie działa" wraca od zgłaszającego —
+                  // więc widać go, zanim przeczyta się podpis.
+                  const dev = note.from === 'dev';
+                  return (
+                    <div
+                      key={index}
+                      className={dev ? 'flex justify-start' : 'flex justify-end'}
+                    >
+                      <div
+                        className="max-w-[80%] rounded-lg p-2.5"
                         style={{
-                          color:
-                            note.from === 'dev'
-                              ? 'var(--eter-accent)'
-                              : 'var(--eter-cat-social)',
+                          background: dev ? 'var(--eter-raised)' : 'var(--eter-surface)',
+                          border: dev ? 'none' : '1px solid var(--eter-edge)',
                         }}
                       >
-                        {note.from === 'dev' ? 'programista' : 'zgłaszający'}
-                      </span>
-                      <span className="font-mono text-[10px] text-ink-dim">
-                        {formatDate(note.at)}
-                      </span>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span
+                            className="text-xs font-bold"
+                            style={{
+                              color: dev
+                                ? 'var(--eter-accent)'
+                                : 'var(--eter-cat-social)',
+                            }}
+                          >
+                            {dev ? 'programista' : 'zgłaszający'}
+                          </span>
+                          <span className="font-mono text-[10px] text-ink-dim">
+                            {formatDate(note.at)}
+                          </span>
+                        </div>
+                        <p
+                          className="mt-1 whitespace-pre-wrap text-sm leading-snug"
+                          style={{ overflowWrap: 'anywhere' }}
+                        >
+                          {note.text}
+                        </p>
+                      </div>
                     </div>
-                    <p
-                      className="mt-1 whitespace-pre-wrap text-sm leading-snug"
-                      style={{ overflowWrap: 'anywhere' }}
-                    >
-                      {note.text}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
