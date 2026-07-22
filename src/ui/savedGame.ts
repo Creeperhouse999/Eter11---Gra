@@ -1,3 +1,4 @@
+import { DEFAULT_CONFIG } from '../engine/reducer';
 import type { GameState } from '../engine/types';
 
 const KEY = 'eter11:game';
@@ -80,7 +81,15 @@ export function loadGame(seed: number): GameState | null {
       return null;
     }
 
-    return state;
+    // Scalenie zasad z domyślnymi: zapis sprzed dodania jakiegoś parametru
+    // (np. `maxHandSize`) nie ma go w `state.config`, a silnik czyta go przy
+    // każdej rundzie. Bez tego wznowiona partia ignorowałaby nowy limit —
+    // cicho, bez błędu. Wartości zapisane mają pierwszeństwo, dochodzą tylko
+    // brakujące.
+    return {
+      ...state,
+      config: { ...DEFAULT_CONFIG, ...state.config },
+    };
   } catch {
     return null;
   }

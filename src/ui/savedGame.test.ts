@@ -15,6 +15,23 @@ beforeEach(() => localStorage.clear());
 const started = () => reduce(newGame(), { type: 'START_MISSION' }).state;
 
 describe('zapis partii', () => {
+  it('uzupełnia brakujące pola zasad z domyślnych', () => {
+    // Zapis sprzed dodania parametru (np. maxHandSize) nie ma go w config.
+    // Wznowiona partia musi dostać domyślną wartość, bo silnik czyta ją co
+    // rundę — inaczej limit ręki działałby na wznowionej grze inaczej niż
+    // na nowej.
+    const state = started();
+    const bezPola = {
+      ...state,
+      config: { ...state.config } as Record<string, unknown>,
+    };
+    delete bezPola.config.maxHandSize;
+    saveGame(7, bezPola as typeof state);
+
+    const loaded = loadGame(7);
+    expect(loaded?.config.maxHandSize).toBe(state.config.maxHandSize);
+  });
+
   it('wczytuje stan zapisany pod tym samym ziarnem', () => {
     const state = started();
     saveGame(42, state);
