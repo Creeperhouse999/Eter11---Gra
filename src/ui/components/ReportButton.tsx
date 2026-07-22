@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '../controls/Button';
 import { Modal } from '../controls/Modal';
 import { TextField, TextArea } from '../controls/Field';
@@ -21,10 +21,15 @@ export function ReportButton() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
+  // Ref, nie stan: `sending` w stanie zmienia się dopiero po renderze, więc
+  // dwa szybkie kliknięcia zdążyłyby wysłać dwa zgłoszenia, zanim przycisk
+  // się wyłączy. Ref blokuje drugie wejście natychmiast.
+  const inFlight = useRef(false);
   const toast = useToast();
 
   const send = async () => {
-    if (title.trim().length === 0) return;
+    if (inFlight.current || title.trim().length === 0) return;
+    inFlight.current = true;
     setSending(true);
 
     // Import dynamiczny: pakiet Firestore waży więcej niż reszta gry, a
@@ -41,6 +46,7 @@ export function ReportButton() {
     });
 
     setSending(false);
+    inFlight.current = false;
     if (!result.ok) {
       toast(result.error ?? 'Nie udało się wysłać zgłoszenia.', 'danger');
       return;
