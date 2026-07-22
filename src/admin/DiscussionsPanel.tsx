@@ -12,6 +12,7 @@ import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { Modal } from '../ui/controls/Modal';
+import { ImageUpload } from './ImageUpload';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { useToast } from '../ui/controls/Toast';
 
@@ -55,6 +56,7 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
+  const [replyImages, setReplyImages] = useState<string[]>([]);
   const [replying, setReplying] = useState(false);
 
   const toast = useToast();
@@ -91,7 +93,11 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
 
   const send = async (discussion: Discussion) => {
     setReplying(true);
-    const result = await addMessage(discussion, { author, text: reply });
+    const result = await addMessage(discussion, {
+      author,
+      text: reply,
+      image: replyImages[0],
+    });
     setReplying(false);
 
     if (!result.ok) {
@@ -99,6 +105,7 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
       return;
     }
     setReply('');
+    setReplyImages([]);
   };
 
   /**
@@ -294,9 +301,21 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
                       {shortDate(message.at)}
                     </span>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                    {message.text}
-                  </p>
+                  {message.text && (
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                      {message.text}
+                    </p>
+                  )}
+                  {message.image && (
+                    <a
+                      href={message.image}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
+                    >
+                      <img src={message.image} alt="" className="w-full" />
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
@@ -310,13 +329,21 @@ export function DiscussionsPanel({ author }: DiscussionsPanelProps) {
                   aria-label="Twoja odpowiedź"
                   rows={2}
                 />
-                <div className="mt-2 flex justify-end">
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <ImageUpload
+                    value={replyImages}
+                    onChange={setReplyImages}
+                    folder="discussions"
+                    max={1}
+                    namePrefix={`msg-${openThread.id}-${author}`}
+                  />
                   <Button
                     size="sm"
                     variant="primary"
                     icon="rocket"
                     onClick={() => void send(openThread)}
-                    disabled={replying || reply.trim().length === 0}
+                    // Sam obrazek bez słowa też jest wypowiedzią.
+                    disabled={replying || (reply.trim().length === 0 && replyImages.length === 0)}
                   >
                     {replying ? 'Wysyłam…' : 'Wyślij'}
                   </Button>

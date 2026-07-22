@@ -28,6 +28,8 @@ export interface DiscussionMessage {
   author: string;
   text: string;
   at: string;
+  /** Jeden obrazek na wypowiedź — zrzut ekranu albo szkic pomysłu. */
+  image?: string;
 }
 
 export interface Discussion {
@@ -143,10 +145,11 @@ export function watchDiscussions(
  */
 export async function addMessage(
   discussion: Discussion,
-  input: { author: string; text: string },
+  input: { author: string; text: string; image?: string },
 ): Promise<{ ok: boolean; error?: string }> {
   const text = input.text.trim();
-  if (!text) return { ok: false, error: 'Napisz coś.' };
+  // Sam obrazek bez słowa też jest wypowiedzią — „o to mi chodziło" + zrzut.
+  if (!text && !input.image) return { ok: false, error: 'Napisz coś albo dołącz obraz.' };
 
   const author = input.author.trim();
   if (!author) return { ok: false, error: 'Podaj swoje imię.' };
@@ -157,7 +160,15 @@ export async function addMessage(
 
   try {
     await updateDoc(doc(db, COLLECTION, discussion.id), {
-      messages: [...discussion.messages, { author, text, at: new Date().toISOString() }],
+      messages: [
+        ...discussion.messages,
+        {
+          author,
+          text,
+          at: new Date().toISOString(),
+          ...(input.image ? { image: input.image } : {}),
+        },
+      ],
     });
     return { ok: true };
   } catch (error) {
