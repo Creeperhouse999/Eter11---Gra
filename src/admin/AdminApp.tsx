@@ -104,6 +104,15 @@ export function AdminApp() {
   const isTab = (value: string): value is Tab => visibleTabs.some((t) => t.key === value);
   useTabRoute(tab, setTab, isTab);
 
+  // Rola ładuje się asynchronicznie, więc przy pierwszym renderze zakładka
+  // z adresu (np. /admin/team) może być widoczna, zanim okaże się, że ta
+  // rola jej nie ma. Gdy rola dojedzie i aktywna zakładka nie jest dla niej
+  // dozwolona, wracamy na przegląd — inaczej edytor zobaczyłby listę kont.
+  const tabAllowed = visibleTabs.some((item) => item.key === tab);
+  useEffect(() => {
+    if (!tabAllowed) setTab('overview');
+  }, [tabAllowed]);
+
   // Nowa zakładka zaczyna się od góry. Bez tego przejście z długiej listy
   // (karty) na krótszą (konto) zostawiało widok przewinięty w połowie, na
   // pustce pod treścią.

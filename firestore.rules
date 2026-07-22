@@ -118,10 +118,17 @@ service cloud.firestore {
      */
     match /roles/{uid} {
       allow read: if true;
-      allow write: if jestAdmin()
+
+      // Nadanie/zmiana roli: walidujemy kształt zapisu.
+      allow create, update: if jestAdmin()
                    && request.resource.data.keys().hasOnly(['email', 'role'])
                    && request.resource.data.role in
                         ['admin', 'programmer', 'co-admin', 'coworker', 'editor', 'viewer'];
+
+      // Usunięcie wpisu osobno: przy delete nie ma `request.resource.data`,
+      // więc walidacja kształtu (jak wyżej) zawsze by je odrzuciła — dlatego
+      // ta operacja ma własny warunek, samo `jestAdmin()`.
+      allow delete: if jestAdmin();
     }
 
     /**
