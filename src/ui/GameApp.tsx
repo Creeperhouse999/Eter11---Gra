@@ -143,18 +143,23 @@ function RunningGame({
     if (state.phase !== 'finale' || counted.current || tutorial) return;
     counted.current = true;
 
-    void import('../firebase/playStats').then(({ recordFinishedGame }) =>
-      recordFinishedGame({
-        // Wygrana wymaga progu ORAZ choć jednego rozwiązanego problemu.
-        // Sam próg nie wystarcza: redaktor mógł ustawić go na 0 w zasadach,
-        // a wtedy nawet partia bez ani jednego rozwiązania liczyłaby się jako
-        // wygrana — statystyka wygranych skłamałaby.
-        won:
-          state.solvedProblems.length > 0 &&
-          state.solvedProblems.length >= state.config.teamWinThreshold,
-        missionsSolved: state.solvedProblems.length,
-      }),
-    );
+    // `.catch` na imporcie: offline pakiet Firestore się nie wczyta, a bez
+    // tego odrzucenie importu byłoby nieobsłużone. Statystyka to ciekawostka —
+    // partia kończy się tak samo, tylko bez wpisu.
+    void import('../firebase/playStats')
+      .then(({ recordFinishedGame }) =>
+        recordFinishedGame({
+          // Wygrana wymaga progu ORAZ choć jednego rozwiązanego problemu.
+          // Sam próg nie wystarcza: redaktor mógł ustawić go na 0 w zasadach,
+          // a wtedy nawet partia bez ani jednego rozwiązania liczyłaby się jako
+          // wygrana — statystyka wygranych skłamałaby.
+          won:
+            state.solvedProblems.length > 0 &&
+            state.solvedProblems.length >= state.config.teamWinThreshold,
+          missionsSolved: state.solvedProblems.length,
+        }),
+      )
+      .catch(() => {});
   }, [state.phase, state.solvedProblems.length, state.config.teamWinThreshold, tutorial]);
 
   // Samouczek liczymy osobno: mówi, ile osób w ogóle nauczyło się grać.
@@ -163,9 +168,9 @@ function RunningGame({
     if (!tutorialDone || countedTutorial.current) return;
     countedTutorial.current = true;
 
-    void import('../firebase/playStats').then(({ recordFinishedTutorial }) =>
-      recordFinishedTutorial(),
-    );
+    void import('../firebase/playStats')
+      .then(({ recordFinishedTutorial }) => recordFinishedTutorial())
+      .catch(() => {});
   }, [tutorialDone]);
 
   if (state.phase === 'finale') {
