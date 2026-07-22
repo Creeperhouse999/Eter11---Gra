@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createGame, DEFAULT_CONFIG } from '../engine/reducer';
+import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
 import { ALL_PROBLEMS } from '../data/problems';
 import { ALL_CARDS } from '../data/cards';
 import type { GameContent } from '../firebase/validate';
@@ -95,7 +95,7 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       characterId: p.characterId,
     }));
 
-    const state = createGame({
+    const fresh = createGame({
       players,
       deck: content.cards ?? ALL_CARDS,
       problems: content.problems ?? ALL_PROBLEMS,
@@ -104,7 +104,13 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       config: content.rules ?? DEFAULT_CONFIG,
     });
 
-    await startGame(code, state);
+    // `createGame` zostawia stan w fazie `setup` z `mission: null` — przy
+    // stole gracz odkrywa problem klikając „Odkryj problem" (START_MISSION).
+    // Online nikt tego nie klika: pokój od razu wchodzi w `playing`, więc bez
+    // tego kroku wszyscy dostawali pusty ekran (MissionScreen bez `mission`
+    // rysuje nic). Odpalamy START_MISSION tu, żeby zapisać stan już z misją.
+    const started = reduce(fresh, { type: 'START_MISSION' });
+    await startGame(code, started.rejected ? fresh : started.state);
   };
 
   if (!code || !uid) {
