@@ -173,6 +173,33 @@ describe('Select', () => {
 });
 
 describe('Modal', () => {
+  it('nie kradnie fokusu, gdy rodzic renderuje się z nowym onClose', () => {
+    // Regresja: onClose w zależnościach efektu odpalał fokus po każdym
+    // renderze rodzica i przenosił go na pierwszy element okna — pisanie
+    // w polu gubiło co drugi znak. Tu symulujemy rodzica, który przy każdym
+    // renderze podaje nową strzałkę onClose.
+    function Parent() {
+      const [, force] = useState(0);
+      return (
+        <Modal open title="Okno" onClose={() => {}}>
+          <input
+            data-testid="pole"
+            onChange={() => force((n) => n + 1)}
+          />
+        </Modal>
+      );
+    }
+
+    render(<Parent />);
+    const input = screen.getByTestId('pole') as HTMLInputElement;
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    // Zmiana w polu wymusza re-render rodzica (nowy onClose). Fokus ma zostać.
+    fireEvent.change(input, { target: { value: 'a' } });
+    expect(document.activeElement).toBe(input);
+  });
+
   it('nie renderuje się, gdy zamknięte', () => {
     render(<Modal open={false} title="Tytuł" onClose={vi.fn()} />);
     expect(screen.queryByRole('dialog')).toBeNull();

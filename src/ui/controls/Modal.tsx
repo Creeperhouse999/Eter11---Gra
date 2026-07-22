@@ -30,6 +30,13 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // onClose w ref, bo wywołujący często podaje strzałkę inline (nową przy
+  // każdym renderze). Gdyby była w zależnościach efektu, efekt odpalałby się
+  // po każdym renderze rodzica i przenosił fokus na pierwszy element okna —
+  // przy pisaniu w polu formularza to kradło fokus i gubiło co drugi znak.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
 
@@ -43,7 +50,7 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -76,7 +83,7 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
       document.body.style.overflow = overflow;
       previouslyFocused.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
