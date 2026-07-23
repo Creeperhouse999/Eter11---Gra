@@ -13,7 +13,8 @@ import { signInAnonymously } from 'firebase/auth';
 import { auth, rtdb } from '../firebase/client';
 import type { Action, GameState } from '../engine/types';
 import type { CardOffer, Reaction, Room, RoomPlayer } from './types';
-import { hydrateRoom } from './hydrate';
+import { hydrateRoom, hydrateState } from './hydrate';
+import { reduce } from '../engine/reducer';
 
 /**
  * Warstwa sieciowa pokoju gry.
@@ -240,6 +241,42 @@ export async function commitMove(
     room.turnStartedAt = Date.now();
     return room;
   });
+}
+
+/**
+ * Ruch na podsumowaniu misji — bez tury, liczony WEWNĄTRZ transakcji.
+ *
+ * Na podsumowaniu wielu graczy działa naraz (każdy zabiera swoją kartę na
+ * matę albo ją przekazuje). Gdyby liczyć nowy stan z góry i tylko go zapisać,
+ * dwa równoległe zabrania nadpisałyby się — drugie zapisałoby stan policzony
+ * ze starej wersji i pierwsza karta by zniknęła. Dlatego reduktor biegnie tu
+ * na stanie z transakcji: przy konflikcie RTDB ponawia z aktualnym stanem, a
+ * ruch dokłada się do już zapisanych, nie zamiast nich.
+ */
+export async function commitSummaryMove(
+  code: string,
+  uid: string,
+  action: Action,
+): Promise<string | null> {
+  let rejection: string | null = null;
+  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
+  await runTransaction(roomRef, (room: Room | null) => {
+    if (!room || !room.state) return room;
+    // Piszący musi być w pokoju; reguła RTDB pilnuje tego samego.
+    if (!room.players?.[uid]) return room;
+
+    // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
+    // reduktorem, inaczej `.some`/`.filter` w silniku by się wysypały.
+    const result = reduce(hydrateState(room.state), action);
+    if (result.rejected) {
+      rejection = result.rejected;
+      return room; // Bez zmian — odrzucony ruch nie idzie do sieci.
+    }
+    room.state = result.state;
+    room.lastAction = action;
+    return room;
+  });
+  return rejection;
 }
 
 /**

@@ -36,6 +36,7 @@ vi.mock('./room', () => ({
   kickPlayer: vi.fn(),
   commitMove: vi.fn(),
   commitMoveAsHost: vi.fn(),
+  commitSummaryMove: vi.fn(async () => null),
   sendReaction: vi.fn(),
   offerCard: vi.fn(),
   clearOffer: vi.fn(),

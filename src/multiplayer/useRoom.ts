@@ -5,6 +5,7 @@ import {
   clearOffer,
   commitMove,
   commitMoveAsHost,
+  commitSummaryMove,
   kickPlayer,
   offerCard,
   playersInOrder,
@@ -55,6 +56,26 @@ export function useRoom(code: string | null, uid: string | null) {
   const dispatch = useCallback(
     async (action: Action): Promise<string | null> => {
       if (!code || !uid || !room?.state) return 'Pokój nie jest gotowy.';
+
+      // Podsumowanie misji nie ma tury: każdy gracz zabiera własną kartę na
+      // matę albo przekazuje ją innym, niezależnie. Poza podsumowaniem ruch
+      // robi tylko gracz, którego jest kolej. Bez tego rozróżnienia w grze
+      // online tylko „aktywny" gracz mógł cokolwiek zrobić na podsumowaniu —
+      // reszta utykała, nie mogąc zabrać karty ani przyjąć przekazania.
+      if (room.state.phase === 'missionSummary') {
+        // Gracz działa tylko we własnym imieniu — reduktor i tak sprawdza
+        // właściciela karty, tu pilnujemy, że nie gra za kogoś innego.
+        const actor =
+          'playerId' in action
+            ? action.playerId
+            : 'fromPlayerId' in action
+              ? action.fromPlayerId
+              : undefined;
+        if (actor !== undefined && actor !== uid) return 'To nie Twoja karta.';
+        // Ruch liczony w transakcji — dwa równoległe zabrania nie nadpiszą się.
+        return commitSummaryMove(code, uid, action);
+      }
+
       if (!myTurn) return 'To nie Twoja kolej.';
 
       const result = reduce(room.state, action);
