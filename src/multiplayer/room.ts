@@ -13,6 +13,7 @@ import { signInAnonymously } from 'firebase/auth';
 import { auth, rtdb } from '../firebase/client';
 import type { Action, GameState } from '../engine/types';
 import type { CardOffer, Reaction, Room, RoomPlayer } from './types';
+import { hydrateRoom } from './hydrate';
 
 /**
  * Warstwa sieciowa pokoju gry.
@@ -165,7 +166,9 @@ function trackPresence(code: string, uid: string): void {
 export function watchRoom(code: string, onChange: (room: Room | null) => void): () => void {
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   return onValue(roomRef, (snapshot) => {
-    onChange(snapshot.exists() ? (snapshot.val() as Room) : null);
+    // `hydrateRoom`: RTDB gubi puste tablice/obiekty, a widok i silnik ich
+    // oczekują — bez tego pierwszy `.some` na wyciętym `played` wysypywał grę.
+    onChange(snapshot.exists() ? hydrateRoom(snapshot.val() as Room) : null);
   });
 }
 
