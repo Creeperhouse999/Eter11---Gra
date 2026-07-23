@@ -76,6 +76,10 @@ export function hydrateRoom(room: Room): Room {
     ...room,
     players: room.players ?? {},
     reactions: arr(room.reactions),
+    // RTDB usuwa też pola o wartości null — kontrakt typu mówi `| null`, więc
+    // przywracamy je, żeby reszta kodu nie musiała odróżniać braku od null.
+    offer: room.offer ?? null,
+    lastAction: room.lastAction ?? null,
     state: room.state ? hydrateState(room.state) : null,
   };
 }

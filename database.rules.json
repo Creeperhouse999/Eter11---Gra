@@ -3,7 +3,22 @@
     "rooms": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && (!data.exists() || data.child('players').child(auth.uid).exists() || data.child('hostUid').val() === auth.uid)",
+        ".write": "auth != null && !data.exists()",
+        "state": {
+          ".write": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists()"
+        },
+        "lastAction": {
+          ".write": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists()"
+        },
+        "turnStartedAt": {
+          ".write": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists()"
+        },
+        "phase": {
+          ".write": "auth != null && (!data.parent().exists() || root.child('rooms').child($code).child('hostUid').val() === auth.uid)"
+        },
+        "hostUid": {
+          ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+        },
         "players": {
           "$uid": {
             ".write": "auth != null && ($uid === auth.uid || root.child('rooms').child($code).child('hostUid').val() === auth.uid)",

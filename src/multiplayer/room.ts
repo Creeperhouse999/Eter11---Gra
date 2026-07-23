@@ -251,12 +251,16 @@ export async function commitMove(
  */
 export async function commitMoveAsHost(
   code: string,
+  hostUid: string,
   next: GameState,
   action: Action,
 ): Promise<void> {
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
+    // Tylko host pisze za rozłączonego — inaczej dwa urządzenia mogłyby
+    // skipnąć turę naraz, a złośliwy gracz nadpisać cudzy ruch.
+    if (room.hostUid !== hostUid) return room;
     room.state = next;
     room.lastAction = action;
     room.turnStartedAt = Date.now();

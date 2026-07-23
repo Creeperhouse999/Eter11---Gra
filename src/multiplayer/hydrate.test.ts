@@ -15,8 +15,12 @@ import type { Room } from './types';
  * RTDB je wycinała.
  */
 
-/** Symuluje przejście stanu przez RTDB: usuwa puste tablice i obiekty. */
+/**
+ * Symuluje przejście stanu przez RTDB: usuwa puste tablice, puste obiekty
+ * ORAZ pola o wartości null — tak jak robi to Realtime Database.
+ */
 function stripEmpty<T>(value: T): T {
+  if (value === null) return undefined as unknown as T;
   if (Array.isArray(value)) {
     const mapped = value.map(stripEmpty);
     return (mapped.length === 0 ? undefined : mapped) as unknown as T;
@@ -106,5 +110,29 @@ describe('hydrateState — stan po RTDB', () => {
     const hydrated = hydrateRoom(room);
     expect(Array.isArray(hydrated.reactions)).toBe(true);
     expect(Array.isArray(hydrated.state!.mission!.played)).toBe(true);
+  });
+
+  it('przywraca offer i lastAction jako null, gdy RTDB je wycięła', () => {
+    // RTDB usuwa pola o wartości null. Kontrakt typu mówi `| null`, więc muszą
+    // wrócić jako null, nie undefined.
+    const room = stripEmpty({
+      code: 'ABCD',
+      phase: 'playing',
+      hostUid: 'a',
+      players: { a: { uid: 'a', name: 'Ala', characterId: 'ch-odkrywca', online: true, ready: false, joinedAt: 1 } },
+      state: startedGame(),
+      lastAction: null,
+      turnStartedAt: 0,
+      reactions: [],
+      offer: null,
+      createdAt: 0,
+    }) as unknown as Room;
+
+    // Po stripie oba pola faktycznie znikają.
+    expect((room as { offer?: unknown }).offer).toBeUndefined();
+
+    const hydrated = hydrateRoom(room);
+    expect(hydrated.offer).toBeNull();
+    expect(hydrated.lastAction).toBeNull();
   });
 });

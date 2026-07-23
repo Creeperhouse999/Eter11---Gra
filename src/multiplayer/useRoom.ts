@@ -112,11 +112,16 @@ export function useRoom(code: string | null, uid: string | null) {
     if (!active || active.online) return;
 
     const deadline = room.turnStartedAt + 60_000;
+    const skippedUid = activeUid;
     const fire = () => {
       // Automatyczne spasowanie za rozłączonego — silnik przesuwa turę dalej.
-      const result = reduce(room.state!, { type: 'PASS', playerId: activeUid });
-      if (!result.rejected) {
-        void commitMoveAsHost(code, result.state, { type: 'PASS', playerId: activeUid });
+      // `skippedUid` przypięty do tego przebiegu efektu; zmiana tury restartuje
+      // efekt (jest w zależnościach) i czyści ten timer, więc PASS zawsze
+      // dotyczy gracza, na którego naprawdę czekaliśmy. `uid` jako hostUid —
+      // commitMoveAsHost sam sprawdza w transakcji, że to host pisze.
+      const result = reduce(room.state!, { type: 'PASS', playerId: skippedUid });
+      if (!result.rejected && uid) {
+        void commitMoveAsHost(code, uid, result.state, { type: 'PASS', playerId: skippedUid });
       }
     };
 
