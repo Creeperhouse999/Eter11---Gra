@@ -51,5 +51,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // Domyślne 5 s bywa za mało pod obciążeniem: część testów renderuje
+    // ciężkie widoki (edytor z ~65 kartami, plansza misji), a cała suita
+    // idzie równolegle. Taki test wysypywał się losowo na timeout — nie z
+    // powodu usterki, tylko wolnego renderu. 15 s daje margines; prawdziwy
+    // zawis i tak trwałby dłużej i zostałby złapany.
+    testTimeout: 15000,
   },
 });
