@@ -4,6 +4,7 @@ import {
   deleteReport,
   loadReports,
   setReportStatus,
+  updateReport,
   type Report,
   type ReportKind,
   type ReportStatus,
@@ -191,6 +192,15 @@ export function ReportsPanel({
   const [commenting, setCommenting] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   /**
+   * Edycja treści zgłoszenia (tytuł + opis) — dla moderatora.
+   * `editing` = id zgłoszenia w trybie edycji; osobne pola robocze, żeby
+   * anulowanie nie ruszało oryginału, dopóki nie zapiszemy.
+   */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  /**
    * Zgłoszenie otwarte w oknie. Sterowane adresem, gdy podano `openId`;
    * inaczej własny stan — jak filtr statusu wyżej.
    */
@@ -304,6 +314,42 @@ export function ReportsPanel({
     }
   };
 
+  const startEdit = (report: Report) => {
+    setEditing(report.id);
+    setEditTitle(report.title);
+    setEditDescription(report.description);
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setEditTitle('');
+    setEditDescription('');
+  };
+
+  const saveEdit = async (report: Report) => {
+    const title = editTitle.trim();
+    if (!title) {
+      toast('Tytuł nie może być pusty.', 'danger');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateReport(report.id, { title, description: editDescription });
+      // Aktualizacja na miejscu, żeby okno pokazało nową treść bez przeładowania.
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === report.id ? { ...r, title, description: editDescription.trim() } : r,
+        ),
+      );
+      cancelEdit();
+      toast('Zgłoszenie zapisane.', 'success');
+    } catch {
+      toast('Nie udało się zapisać. Sprawdź uprawnienia.', 'danger');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const counts: Record<ReportStatus, number> = {
     pending: reports.filter((r) => r.status === 'pending').length,
     new: reports.filter((r) => r.status === 'new').length,
@@ -343,7 +389,8 @@ export function ReportsPanel({
       report.status === 'reopened' ||
       report.status === 'fixed' ||
       report.status === 'done';
-    const hasActions = hasStatusActions || canDelete(role);
+    const canEditReport = canModerate(role);
+    const hasActions = hasStatusActions || canDelete(role) || canEditReport;
 
     return (
           <div>
@@ -355,13 +402,47 @@ export function ReportsPanel({
               {report.author && ` · ${report.author}`}
             </p>
 
-            {report.description && (
-              <p
-                className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ overflowWrap: 'anywhere' }}
-              >
-                {report.description}
-              </p>
+            {editing === report.id ? (
+              // Tryb edycji treści (moderator). Pola robocze — anulowanie nie
+              // rusza oryginału.
+              <div className="mt-3 space-y-2 rounded-lg border border-accent bg-surface p-3">
+                <TextField
+                  label="Tytuł"
+                  value={editTitle}
+                  maxLength={120}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+                <TextArea
+                  label="Opis"
+                  value={editDescription}
+                  maxLength={4000}
+                  rows={5}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={savingEdit}>
+                    Anuluj
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon="tick"
+                    disabled={savingEdit}
+                    onClick={() => void saveEdit(report)}
+                  >
+                    {savingEdit ? 'Zapisywanie…' : 'Zapisz'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              report.description && (
+                <p
+                  className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
+                  style={{ overflowWrap: 'anywhere' }}
+                >
+                  {report.description}
+                </p>
+              )
             )}
 
             {(report.images?.length ?? 0) > 0 && (
@@ -578,12 +659,27 @@ export function ReportsPanel({
                 </Button>
               )}
 
+              {/* Edycja treści tylko dla moderatora — reguły bazy i tak nie
+                  wpuszczą zmiany tytułu/opisu nikomu innemu. Chowamy przycisk,
+                  gdy już edytujemy (formularz ma własny „Zapisz"). */}
+              {canEditReport && editing !== report.id && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="brush"
+                  className="ml-auto"
+                  onClick={() => startEdit(report)}
+                >
+                  Edytuj
+                </Button>
+              )}
+
               {canDelete(role) && (
                 <Button
                   size="sm"
                   variant="ghost"
                   icon="trash"
-                  className="ml-auto text-danger"
+                  className={canEditReport && editing !== report.id ? 'text-danger' : 'ml-auto text-danger'}
                   onClick={() => void remove(report)}
                 >
                   Usuń

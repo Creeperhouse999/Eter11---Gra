@@ -150,6 +150,24 @@ export async function setReportStatus(
   });
 }
 
+/**
+ * Poprawa treści zgłoszenia — tytuł i opis.
+ *
+ * Reguły Firestore wpuszczają zmianę tych pól tylko moderatorowi
+ * (admin/co-admin); zwykły zalogowany może ruszać wyłącznie status i notatki.
+ * Autor bez konta (gracz z gry) nie ma tożsamości do edycji, więc poprawia to
+ * ktoś z zespołu w panelu — np. gdy w pośpiechu wpisano literówkę w tytule.
+ */
+export async function updateReport(
+  id: string,
+  patch: { title: string; description: string },
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), {
+    title: patch.title.trim(),
+    description: patch.description.trim(),
+  });
+}
+
 /** Trwałe usunięcie zgłoszenia. Wymaga konta administracyjnego. */
 export async function deleteReport(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
