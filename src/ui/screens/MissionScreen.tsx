@@ -617,8 +617,11 @@ export function MissionScreen({
         <section className="relative mt-5" aria-label="Przebieg misji">
           <span className="eter-label">Przebieg misji</span>
           <ul className="mt-2 space-y-1 font-mono text-xs text-ink-dim">
+            {/* Klucz po pozycji w PEŁNYM logu, nie po indeksie w wycinku:
+                log rośnie, więc indeks 0..4 wskazywałby co turę inny wpis i
+                React przerysowywałby całą listę zamiast dodać jeden wiersz. */}
             {state.log.slice(-5).map((entry, index) => (
-              <li key={index}>{entry}</li>
+              <li key={state.log.length - 5 + index}>{entry}</li>
             ))}
           </ul>
         </section>

@@ -103,14 +103,18 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
 
         <ul className="space-y-3 p-4">
           {events.map((event, index) => {
-            const effect = EFFECTS[event.kind];
+            // Nieznany rodzaj (dane z bazy starsze/nowsze niż kod) nie może
+            // wysypać ekranu — bez opisu pokazujemy samą informację o dobraniu.
+            const effect = EFFECTS[event.kind] as
+              | { title: string; body: string }
+              | undefined;
             return (
               <li key={`${event.playerId}-${index}`}>
                 <p className="text-sm">
                   <strong>{event.playerName}</strong> dobrał kartę{' '}
                   <strong>{event.cardName}</strong>.
                 </p>
-                {event.applied ? (
+                {event.applied && effect ? (
                   <div className="mt-1.5 rounded-lg border border-edge bg-raised p-2.5">
                     <p className="text-sm font-bold" style={{ color: 'var(--eter-danger)' }}>
                       {effect.title}

@@ -167,7 +167,13 @@ export function FinaleScreen({
                 <input
                   value={jobs[player.id] ?? ''}
                   onChange={(e) => setJobs((prev) => ({ ...prev, [player.id]: e.target.value }))}
-                  placeholder={jobExamples[state.players.indexOf(player) % jobExamples.length]}
+                  // Guard na pustą listę: redaktor mógł zostawić w treści same
+                  // przecinki, wtedy `% 0` dałoby NaN i indeks poza tablicą.
+                  placeholder={
+                    jobExamples.length > 0
+                      ? jobExamples[state.players.indexOf(player) % jobExamples.length]
+                      : undefined
+                  }
                   className="mt-1 w-full rounded-lg border border-edge bg-bg px-3 py-2 text-ink placeholder:text-ink-dim/60"
                 />
               </label>
