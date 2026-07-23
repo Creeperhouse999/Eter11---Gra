@@ -62,11 +62,31 @@ npm run deploy
 Reguły bazy wdrażane osobno:
 
 ```bash
+# Firestore (zawartość gry, zgłoszenia, dyskusje, role)
 npx firebase-tools deploy --only firestore:rules --project savetheworld-eter11
+# Realtime Database (pokoje gry wieloosobowej)
+npx firebase-tools deploy --only database --project savetheworld-eter11
 ```
 
 **Zawsze podawaj `--project savetheworld-eter11`.** Na tym koncie jest więcej
 projektów Firebase, a bez jawnego wskazania CLI potrafi wdrożyć do niewłaściwego.
+
+### Pułapka reguł Realtime Database
+
+Reguły RTDB są **permisywne kaskadowo**: reguła `.write` na węźle otwiera CAŁE
+poddrzewo, a reguła na dziecku NIE może tego zawęzić — jeśli którakolwiek reguła
+na ścieżce daje `true`, zapis przechodzi. Dlatego w `database.rules.json` reguła
+na `rooms/$code` pozwala pisać tylko przy TWORZENIU pokoju (`!data.exists()`), a
+każde pole ma własną, węższą regułę (`phase` = tylko host, `state` = każdy gracz
+w pokoju itd.). Gdyby węzeł pokoju dawał szeroki `.write` członkom, dowolny gracz
+nadpisałby `phase`, `hostUid` czy cudzy wpis — reguła-dziecko by tego nie
+powstrzymała. Po każdej zmianie tych reguł warto zweryfikować REST-em, że
+nie-host NIE zmieni `phase`/`hostUid` (test host-vs-gość).
+
+RTDB dodatkowo **usuwa puste tablice, puste obiekty i pola `null`** — stan gry z
+bazy wraca okrojony, więc przed użyciem przechodzi przez `hydrateState`
+(`src/multiplayer/hydrate.ts`), które dokłada je z powrotem. Bez tego pierwsze
+`.some`/`.filter` na wyciętym polu wysypuje grę.
 
 ---
 
