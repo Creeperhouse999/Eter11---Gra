@@ -126,4 +126,14 @@ describe('umiejscowienie dymka', () => {
       }
     }
   });
+
+  it('szerokość dymka nigdy nie jest ujemna ani zerowa', () => {
+    // Absurdalnie wąskie okno nie może dać ujemnej szerokości (psułaby
+    // obliczenia pozycji). Realne ekrany tego nie osiągają, ale niech
+    // funkcja będzie odporna.
+    for (const vw of [0, 1, 10, 27, 28, 100, 400]) {
+      expect(bubbleWidth(vw), `vw=${vw}`).toBeGreaterThan(0);
+      expect(bubbleWidth(vw), `vw=${vw}`).toBeLessThanOrEqual(BUBBLE_WIDTH);
+    }
+  });
 });

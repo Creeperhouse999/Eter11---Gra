@@ -13,7 +13,10 @@ export const BUBBLE_GAP = 14;
  * ląduje poza krawędzią i samouczka nie da się przejść.
  */
 export function bubbleWidth(vw: number): number {
-  return Math.min(BUBBLE_WIDTH, vw - BUBBLE_GAP * 2);
+  // `Math.max(1, …)`: na absurdalnie wąskim oknie (vw < 2*GAP) różnica byłaby
+  // ujemna i psuła obliczenia pozycji. Realne ekrany tego nie osiągają, ale
+  // niech funkcja nigdy nie zwraca szerokości ≤ 0.
+  return Math.min(BUBBLE_WIDTH, Math.max(1, vw - BUBBLE_GAP * 2));
 }
 
 export interface Placement {
