@@ -5,6 +5,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { IconPicker } from './IconPicker';
+import { newId } from './newId';
 
 interface CharacterEditorProps {
   characters: Character[];
@@ -29,7 +30,10 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
     // Na początku listy — na końcu byłaby poza widokiem.
     onChange([
       {
-        id: `char-${Date.now()}`,
+        // `newId`, nie `Date.now()`: dwa dodania w tej samej milisekundzie
+        // dawały identyczne id, a wtedy dwie postacie zlewały się w jedną
+        // (edycja/usuwanie trafiały obie, a gracz wskazywał je niejednoznacznie).
+        id: newId('char'),
         name: 'Nowa postać',
         kind: 'child',
         traits: '',

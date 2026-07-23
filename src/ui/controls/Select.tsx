@@ -131,11 +131,12 @@ export function Select<T extends string>({
         break;
       case 'ArrowDown':
         event.preventDefault();
-        setActiveIndex((i) => (i + 1) % options.length);
+        // Guard na pustą listę: `% 0` dałoby NaN i zepsuło zaznaczenie.
+        if (options.length > 0) setActiveIndex((i) => (i + 1) % options.length);
         break;
       case 'ArrowUp':
         event.preventDefault();
-        setActiveIndex((i) => (i - 1 + options.length) % options.length);
+        if (options.length > 0) setActiveIndex((i) => (i - 1 + options.length) % options.length);
         break;
       case 'Home':
         event.preventDefault();

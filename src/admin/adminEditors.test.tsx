@@ -64,6 +64,17 @@ describe('CharacterEditor', () => {
     expect(onChange.mock.calls[0][0]).toHaveLength(ALL_CHARACTERS.length + 1);
   });
 
+  it('nowa postać ma id niekolidujące z istniejącymi', () => {
+    // Regresja: id z Date.now() dawało duplikat przy dwóch dodaniach w tej
+    // samej milisekundzie, przez co dwie postacie zlewały się w jedną.
+    const onChange = vi.fn();
+    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj postać' }));
+    const next = onChange.mock.calls[0][0];
+    const ids = next.map((c: { id: string }) => c.id);
+    expect(new Set(ids).size, 'wszystkie id unikalne').toBe(ids.length);
+  });
+
   it('blokuje usunięcie, gdy zostałaby mniej niż jedna para postaci', async () => {
     const onChange = vi.fn();
     render(<CharacterEditor characters={ALL_CHARACTERS.slice(0, 2)} onChange={onChange} />);
