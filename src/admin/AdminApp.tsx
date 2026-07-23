@@ -158,7 +158,19 @@ export function AdminApp() {
    */
   const uid = auth.user?.uid;
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      // Wylogowanie musi wyczyścić panel: bez tego niezapisane zmiany i podgląd
+      // motywu poprzedniej osoby zostawały w stanie i pokazywały się następnej,
+      // która zalogowała się w tej samej karcie, dopóki nie doszła świeża
+      // zawartość z bazy. Wracamy do danych wbudowanych i neutralnego motywu.
+      setContent(BUILTIN_CONTENT);
+      setSavedContent(BUILTIN_CONTENT);
+      setBaseVersion(undefined);
+      setStatus(null);
+      setErrors([]);
+      applyTheme(BUILTIN_CONTENT.theme);
+      return;
+    }
     let ignore = false;
 
     loadContent().then((result) => {
