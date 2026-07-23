@@ -131,20 +131,29 @@ export async function saveContent(
   if (!validation.ok) return { ok: false, errors: validation.errors };
 
   try {
-    if (baseUpdatedAt !== undefined) {
-      const current = await getDoc(doc(db, COLLECTION, DOCUMENT));
-      const theirs = current.exists() ? current.data().updatedAt : undefined;
+    // Wykrywanie konfliktu zawsze, także przy pierwszym zapisie.
+    //
+    // Wcześniej sprawdzenie biegło tylko, gdy panel znał już wersję bazową.
+    // Ale gdy jej NIE znał (świeży dokument albo zapis, zanim `loadContent`
+    // zdążył ustawić wersję), a w bazie ktoś inny właśnie coś zapisał, zapis
+    // przechodził i kasował cudzą pracę bez śladu. Teraz: jeśli nie mamy
+    // wersji bazowej, a w bazie leży już dokument z wersją, traktujemy to jak
+    // konflikt — bo skoro coś tam jest, ktoś to zapisał przed nami.
+    const current = await getDoc(doc(db, COLLECTION, DOCUMENT));
+    const theirs = current.exists() ? current.data().updatedAt : undefined;
+    const conflict =
+      typeof theirs === 'string' &&
+      (baseUpdatedAt === undefined || theirs !== baseUpdatedAt);
 
-      if (typeof theirs === 'string' && theirs !== baseUpdatedAt) {
-        return {
-          ok: false,
-          errors: [
-            'Ktoś inny zapisał zmiany, odkąd otworzyłeś panel. ' +
-              'Odśwież stronę i nanieś swoje poprawki jeszcze raz — ' +
-              'inaczej skasowałbyś jego pracę.',
-          ],
-        };
-      }
+    if (conflict) {
+      return {
+        ok: false,
+        errors: [
+          'Ktoś inny zapisał zmiany, odkąd otworzyłeś panel. ' +
+            'Odśwież stronę i nanieś swoje poprawki jeszcze raz — ' +
+            'inaczej skasowałbyś jego pracę.',
+        ],
+      };
     }
 
     const updatedAt = new Date().toISOString();
