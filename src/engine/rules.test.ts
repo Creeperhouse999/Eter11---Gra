@@ -4,6 +4,7 @@ import {
   requiredCountForSlot,
   isSlotFilled,
   isMissionSolved,
+  firstOpenSlotFor,
 } from './rules';
 import type { Card, MissionState, Problem, SlotKey } from './types';
 
@@ -138,6 +139,37 @@ describe('isSlotFilled', () => {
       ],
     });
     expect(isSlotFilled(m, 'p1', 'social')).toBe(true);
+  });
+});
+
+describe('firstOpenSlotFor', () => {
+  it('znajduje wolną ściankę dla pasującej karty', () => {
+    const found = firstOpenSlotFor(mission(), card('a', 'social'));
+    expect(found).toEqual({ problemId: 'p1', slotKey: 'social' });
+  });
+
+  it('pomija ściankę już zapełnioną', () => {
+    const m = mission({ played: [play(card('x', 'social'), 'social')] });
+    const found = firstOpenSlotFor(m, card('a', 'social'));
+    // Ścianka social zajęta jedną kartą (bez podwojenia = pełna) → null,
+    // bo tylko social pasuje kolorem/kategorią do tej karty.
+    expect(found).toBeNull();
+  });
+
+  it('przy podwojeniu wciąż widzi ściankę z jedną kartą jako wolną', () => {
+    // To był bug: po pierwszej karcie podwójny klik nie dokładał drugiej.
+    const m = mission({
+      activeBlackSwans: ['doubleRequirements'],
+      played: [play(card('x', 'social'), 'social')],
+    });
+    const found = firstOpenSlotFor(m, card('a', 'social'));
+    expect(found).toEqual({ problemId: 'p1', slotKey: 'social' });
+  });
+
+  it('zwraca null, gdy karta nie pasuje nigdzie', () => {
+    // Zielona karta social do czerwonych ścianek nie pasuje.
+    const green: Card = { ...card('g', 'social'), family: 'green' };
+    expect(firstOpenSlotFor(mission(), green)).toBeNull();
   });
 });
 

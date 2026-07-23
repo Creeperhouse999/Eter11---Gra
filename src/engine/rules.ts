@@ -75,6 +75,29 @@ export function isSlotFilled(
   );
 }
 
+/**
+ * Pierwsza wolna ścianka, do której pasuje karta — albo `null`.
+ *
+ * „Wolna" znaczy niezapełniona wg `isSlotFilled`, więc przy Czarnym Łabędziu
+ * podwajającym wymagania ścianka z jedną kartą wciąż się liczy jako wolna na
+ * drugą. Wcześniej widok szukał ścianki bez ŻADNEJ karty, przez co podwójny
+ * klik nie dokładał drugiej karty do podwojonej ścianki.
+ */
+export function firstOpenSlotFor(
+  mission: MissionState,
+  card: Card,
+): { problemId: string; slotKey: SlotKey } | null {
+  for (const problem of mission.problems) {
+    for (const slot of problem.slots) {
+      if (isSlotFilled(mission, problem.id, slot.key)) continue;
+      if (cardFitsSlot(card, slot.key, slot.family)) {
+        return { problemId: problem.id, slotKey: slot.key };
+      }
+    }
+  }
+  return null;
+}
+
 function isProblemSolved(mission: MissionState, problem: Problem): boolean {
   return problem.slots.every((slot) => isSlotFilled(mission, problem.id, slot.key));
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { roundsForPlayers } from '../../engine/reducer';
-import { cardFitsSlot } from '../../engine/rules';
+import { cardFitsSlot, isSlotFilled, firstOpenSlotFor } from '../../engine/rules';
 import type { Card, Character, FamilyId, Player, SlotKey } from '../../engine/types';
 import { BlackSwanBanner } from '../components/BlackSwanBanner';
 import { CardView } from '../components/CardView';
@@ -110,11 +110,10 @@ export function MissionScreen({
 
       for (const problem of mission.problems) {
         for (const slot of problem.slots) {
-          const filled =
-            mission.played.filter(
-              (p) => p.problemId === problem.id && p.slotKey === slot.key,
-            ).length > 0;
-          if (filled) continue;
+          // `isSlotFilled`, nie „są tu jakieś karty": przy Czarnym Łabędziu
+          // podwajającym wymagania ścianka z jedną kartą wciąż potrzebuje
+          // drugiej — bez tego podpowiedź gasła po pierwszej karcie.
+          if (isSlotFilled(mission, problem.id, slot.key)) continue;
 
           if (candidates.some((card) => cardFitsSlot(card, slot.key, slot.family))) {
             return `${problem.id}:${slot.key}`;
@@ -141,13 +140,14 @@ export function MissionScreen({
   if (!mission || !activePlayer) return null;
 
   // Czy gracz ma czym zagrać — używane w podpowiedzi przy „Pasuję".
+  // `isSlotFilled`: przy podwojonych wymaganiach ścianka z jedną kartą wciąż
+  // przyjmie drugą, więc gracz ma czym grać — inaczej podpowiedź kłamała.
   const hasPlayableCard = activePlayer.hand.some((card) =>
     mission.problems.some((problem) =>
       problem.slots.some(
         (slot) =>
-          !mission.played.some(
-            (p) => p.problemId === problem.id && p.slotKey === slot.key,
-          ) && cardFitsSlot(card, slot.key, slot.family),
+          !isSlotFilled(mission, problem.id, slot.key) &&
+          cardFitsSlot(card, slot.key, slot.family),
       ),
     ),
   );
@@ -227,21 +227,10 @@ export function MissionScreen({
    */
   const quickPlay = (card: Card, fromMat: boolean) => {
     if (!allowed('play')) return;
-
-    for (const problem of mission.problems) {
-      for (const slot of problem.slots) {
-        const filled =
-          mission.played.filter(
-            (p) => p.problemId === problem.id && p.slotKey === slot.key,
-          ).length > 0;
-        if (filled) continue;
-
-        if (cardFitsSlot(card, slot.key, slot.family)) {
-          play(card, fromMat, problem.id, slot.key);
-          return;
-        }
-      }
-    }
+    // Pierwsza WOLNA ścianka wg reguł (podwojenie liczy ściankę z jedną kartą
+    // jako wciąż wolną) — bez tego podwójny klik nie dokładał drugiej karty.
+    const open = firstOpenSlotFor(mission, card);
+    if (open) play(card, fromMat, open.problemId, open.slotKey);
   };
 
   // Miejsca przy stole: aktywny gracz na dole, pozostali wokół karty problemu.
@@ -474,9 +463,7 @@ export function MissionScreen({
                                 problem.slots.some(
                                   (slot) =>
                                     cardFitsSlot(card, slot.key, slot.family) &&
-                                    mission.played.filter(
-                                      (p) => p.problemId === problem.id && p.slotKey === slot.key,
-                                    ).length === 0,
+                                    !isSlotFilled(mission, problem.id, slot.key),
                                 ),
                               )
                             ? 'playable-card'
@@ -549,11 +536,7 @@ export function MissionScreen({
                                 problem.slots.some(
                                   (slot) =>
                                     cardFitsSlot(card, slot.key, slot.family) &&
-                                    mission.played.filter(
-                                      (p) =>
-                                        p.problemId === problem.id &&
-                                        p.slotKey === slot.key,
-                                    ).length === 0,
+                                    !isSlotFilled(mission, problem.id, slot.key),
                                 ),
                               ),
                           )
