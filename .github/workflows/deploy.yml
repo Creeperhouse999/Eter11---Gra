@@ -1,0 +1,51 @@
+name: Test i deploy na Firebase
+
+# Po każdym push na master: uruchom testy, zbuduj, wdróż hosting.
+# Dzięki temu cloud routine (albo człowiek) może zmergować poprawkę na master,
+# a wdrożenie na żywo dzieje się samo — bez lokalnej sesji i bez ręcznego deploya.
+on:
+  push:
+    branches: [master]
+  # Pozwala odpalić ręcznie z zakładki Actions.
+  workflow_dispatch:
+
+# Jeden deploy naraz — nowszy push anuluje starszy, żeby nie wdrażać wstecz.
+concurrency:
+  group: deploy-master
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Token na poziomie job — krok deploya sprawdza `env.FIREBASE_TOKEN`, co
+    # działa pewniej w `if:` niż odwołanie do `secrets` bezpośrednio.
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Testy
+        run: npx vitest run
+
+      - name: Build
+        run: npx vite build
+
+      # Deploy tylko gdy testy i build przeszły ORAZ token istnieje.
+      # Bez sekretu (np. push zanim go wklejono) krok się pomija — testy i build
+      # i tak się wykonały, więc CI dalej pilnuje jakości.
+      - name: Deploy na Firebase Hosting
+        if: ${{ env.FIREBASE_TOKEN != '' }}
+        run: npx firebase deploy --only hosting --project savetheworld-eter11 --token "$FIREBASE_TOKEN" --non-interactive
