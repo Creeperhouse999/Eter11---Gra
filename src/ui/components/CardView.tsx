@@ -139,7 +139,14 @@ export function CardView({
         // `shrink-0`: w pasku przewijanym na telefonie karty inaczej ściskałyby
         // się do nieczytelnych pasków zamiast wyjechać poza krawędź.
         'shrink-0 snap-start',
-        compact ? 'w-24 p-2 pt-2.5' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
+        // Karta wyłożona na ściankę: na telefonie ścianki stoją po trzy w
+        // rzędzie (grid-cols-3), więc na ściankę zostaje ~82 px szerokości.
+        // Sztywne w-24 (96 px) nie mieściło się i `overflow-hidden` ścianki
+        // ucinało kartę z prawej (nazwa, róg) na praktycznie każdym telefonie.
+        // Węższa na telefonie, pełne 96 px od `sm` w górę, gdzie ścianki są
+        // szerokie. Stała szerokość (nie w-full), żeby element flex nie
+        // zapadł się do zera w kurczliwym rodzicu.
+        compact ? 'w-20 p-2 pt-2.5 sm:w-24' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
         interactive && !draggable ? 'cursor-pointer' : '',
         interactive && !beingDragged ? 'hover:-translate-y-1' : '',
