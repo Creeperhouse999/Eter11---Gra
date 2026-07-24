@@ -65,6 +65,18 @@ service firebase.storage {
       allow write: if zalogowany() && obrazek();
     }
 
+    /**
+     * Grafiki kart (problemy, kompetencje, talenty, mentorzy).
+     *
+     * Odczyt publiczny: karta z grafiką rysuje się dziecku, które konta nie ma.
+     * Wgrywa i podmienia zespół — grafika trafia do gry, więc nie może jej
+     * ustawić ktoś z ulicy. Jak ikony.
+     */
+    match /cards/{file} {
+      allow read: if true;
+      allow write: if zalogowany() && obrazek();
+    }
+
     // Wszystko inne zamknięte.
     match /{path=**} {
       allow read, write: if false;

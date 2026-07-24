@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { FAMILY_LABELS } from '../../data/families';
 import { cardsInSlot, requiredCountForSlot } from '../../engine/rules';
 import type { Card, MissionState, Problem, ProblemSlot, SlotKey } from '../../engine/types';
@@ -45,6 +46,11 @@ export function ProblemCard({
   draggedCard,
 }: ProblemCardProps) {
   const typeColor = problemTypeColorVar(problem.type);
+
+  // Gdy karta ma wgraną grafikę, pokazujemy ją jako awers; klik odwraca na
+  // rewers ze szczegółami (nazwa, cel, historia, przeciwnik). Bez grafiki od
+  // razu widać szczegóły, jak dotąd.
+  const [showArt, setShowArt] = useState(Boolean(problem.image));
 
   const slotOf = (key: SlotKey) => problem.slots.find((s) => s.key === key);
 
@@ -189,11 +195,43 @@ export function ProblemCard({
     );
   };
 
-  const core = (
+  // Awers: wgrana grafika karty na całość, z przyciskiem odwrócenia.
+  const artFace = problem.image ? (
+    <div
+      className="relative overflow-hidden rounded-xl border-2 bg-surface"
+      style={{ borderColor: typeColor }}
+    >
+      <img
+        src={problem.image}
+        alt={`Karta problemu: ${problem.name}`}
+        className="block max-h-[70vh] w-full object-contain"
+      />
+      <button
+        type="button"
+        onClick={() => setShowArt(false)}
+        className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-lg border border-edge bg-surface/90 px-2.5 py-1.5 text-xs backdrop-blur transition hover:border-accent hover:text-accent"
+      >
+        <Icon name="undo" size={14} />
+        Odwróć — szczegóły
+      </button>
+    </div>
+  ) : null;
+
+  const details = (
     <div
       className="flex flex-col justify-center rounded-xl border-2 bg-surface p-3 text-center sm:p-4"
       style={{ borderColor: typeColor }}
     >
+      {problem.image && (
+        <button
+          type="button"
+          onClick={() => setShowArt(true)}
+          className="mb-2 flex items-center gap-1.5 self-end rounded-lg border border-edge px-2.5 py-1 text-xs text-ink-dim transition hover:border-accent hover:text-accent"
+        >
+          <Icon name="undo" size={14} />
+          Pokaż grafikę
+        </button>
+      )}
       {/* Na telefonie ikona i tytuł stoją obok siebie: wyśrodkowana kolumna
           zjadała ponad sto pikseli, przez które plansza nie mieściła się
           na ekranie. Od `lg` wraca układ pionowy, bo tam miejsca nie brakuje. */}
@@ -256,6 +294,9 @@ export function ProblemCard({
       </details>
     </div>
   );
+
+  // Awers (grafika) albo rewers (szczegóły). Bez grafiki zawsze szczegóły.
+  const core = showArt && artFace ? artFace : details;
 
   return (
     <section aria-label={`Problem: ${problem.name}`} className="eter-rise">

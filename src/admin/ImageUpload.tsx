@@ -9,7 +9,7 @@ interface ImageUploadProps {
   value: string[];
   onChange: (urls: string[]) => void;
   /** Folder w Storage — decyduje o regułach dostępu. */
-  folder: 'icons' | 'reports' | 'discussions';
+  folder: 'icons' | 'reports' | 'discussions' | 'cards';
   /** Ile obrazków wolno dołączyć. */
   max: number;
   /** Prefiks nazwy pliku — unikalność składamy z niego i licznika. */

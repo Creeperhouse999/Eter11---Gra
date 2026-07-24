@@ -9,6 +9,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { IconPicker } from './IconPicker';
+import { ImageUpload } from './ImageUpload';
 import { CardView } from '../ui/components/CardView';
 import { newId } from './newId';
 
@@ -382,6 +383,19 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
               <div className="hidden shrink-0 lg:block">
                 <CardView card={card} />
               </div>
+            </div>
+
+            {/* Grafika karty: w grze pokazuje się jako awers, klik odwraca na
+                zwykły widok z nazwą i opisem. Jedna na kartę. */}
+            <div className="mt-2">
+              <ImageUpload
+                label="Grafika karty (opcjonalnie)"
+                folder="cards"
+                max={1}
+                namePrefix={`card-${card.id}`}
+                value={card.image ? [card.image] : []}
+                onChange={(urls) => update(card.id, { image: urls[0] })}
+              />
             </div>
 
             <div className="mt-2 flex flex-wrap items-end gap-4">

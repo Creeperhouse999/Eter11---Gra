@@ -80,7 +80,7 @@ async function compress(file: File): Promise<Blob> {
  */
 export async function uploadImage(input: {
   file: File;
-  folder: 'icons' | 'reports' | 'discussions';
+  folder: 'icons' | 'reports' | 'discussions' | 'cards';
   name: string;
 }): Promise<UploadResult> {
   if (!IMAGE_TYPES.includes(input.file.type)) {

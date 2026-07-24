@@ -1,4 +1,4 @@
-import type { PointerEventHandler } from 'react';
+import { useState, type PointerEventHandler } from 'react';
 import { useLongPress } from './useLongPress';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
@@ -61,6 +61,11 @@ export function CardView({
   const interactive = Boolean(onClick) && !disabled;
   const draggable = Boolean(dragHandlers) && !disabled;
   const hold = useLongPress(() => onZoom?.());
+  // Karta z wgraną grafiką pokazuje ją jako awers; przycisk w rogu odwraca na
+  // zwykły widok z nazwą i opisem. Nie ruszamy głównego klika ani przeciągania
+  // — grafika zachowuje się jak reszta karty (można ją zagrać, przeciągnąć).
+  const [showArt, setShowArt] = useState(Boolean(card.image));
+  const art = card.image && showArt && !compact;
   const familyColor = card.family ? `var(--eter-family-${card.family})` : undefined;
   const accent = familyColor ?? color;
 
@@ -127,43 +132,86 @@ export function CardView({
           : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),
       }}
     >
-      {/* Pasek rodziny — kolor, którego szukają ścianki problemu */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-1.5"
-        style={{ background: accent }}
-      />
+      {art ? (
+        <>
+          {/* Awers: wgrana grafika karty. */}
+          <img
+            src={card.image}
+            alt={card.name}
+            className="pointer-events-none -m-2 mb-0 h-auto w-[calc(100%+1rem)] sm:-m-3 sm:mb-0 sm:w-[calc(100%+1.5rem)]"
+            style={{ objectFit: 'contain' }}
+          />
+          {/* Przycisk odwrócenia — `stopPropagation`, żeby nie zagrać karty. */}
+          <button
+            type="button"
+            aria-label="Pokaż szczegóły karty"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowArt(false);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim backdrop-blur transition hover:border-accent hover:text-accent"
+          >
+            <Icon name="undo" size={12} />
+          </button>
+        </>
+      ) : (
+        <>
+          {/* Pasek rodziny — kolor, którego szukają ścianki problemu */}
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1.5"
+            style={{ background: accent }}
+          />
 
-      {/* Kategoria nad nazwą — mówi, do której ścianki karta w ogóle należy */}
-      <span
-        className="eter-label truncate leading-tight"
-        style={{ color: accent, fontSize: compact ? '0.5625rem' : undefined }}
-      >
-        {categoryLabel(card.category)}
-      </span>
+          {/* Kategoria nad nazwą — mówi, do której ścianki karta w ogóle należy */}
+          <span
+            className="eter-label truncate leading-tight"
+            style={{ color: accent, fontSize: compact ? '0.5625rem' : undefined }}
+          >
+            {categoryLabel(card.category)}
+          </span>
 
-      <span className="mt-1" style={{ color: accent }}>
-        <Icon name={card.icon as IconName} size={compact ? 20 : 28} />
-      </span>
+          <span className="mt-1" style={{ color: accent }}>
+            <Icon name={card.icon as IconName} size={compact ? 20 : 28} />
+          </span>
 
-      <span
-        className={[
-          'mt-1 font-display font-bold leading-tight hyphens-auto',
-          compact ? 'line-clamp-3 text-[0.6875rem]' : 'line-clamp-2 text-sm',
-        ].join(' ')}
-        style={{ color: accent, overflowWrap: 'anywhere' }}
-        lang="pl"
-      >
-        {card.name}
-      </span>
+          <span
+            className={[
+              'mt-1 font-display font-bold leading-tight hyphens-auto',
+              compact ? 'line-clamp-3 text-[0.6875rem]' : 'line-clamp-2 text-sm',
+            ].join(' ')}
+            style={{ color: accent, overflowWrap: 'anywhere' }}
+            lang="pl"
+          >
+            {card.name}
+          </span>
 
-      {!compact && (
-        <span
-          className="mt-1 line-clamp-3 text-xs leading-snug text-ink-dim"
-          style={{ overflowWrap: 'anywhere' }}
-        >
-          {card.description}
-        </span>
+          {!compact && (
+            <span
+              className="mt-1 line-clamp-3 text-xs leading-snug text-ink-dim"
+              style={{ overflowWrap: 'anywhere' }}
+            >
+              {card.description}
+            </span>
+          )}
+
+          {/* Karta ma grafikę, ale pokazujemy szczegóły — przycisk wraca do niej. */}
+          {card.image && !compact && (
+            <button
+              type="button"
+              aria-label="Pokaż grafikę karty"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowArt(true);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim backdrop-blur transition hover:border-accent hover:text-accent"
+            >
+              <Icon name="lens" size={12} />
+            </button>
+          )}
+        </>
       )}
     </Element>
   );

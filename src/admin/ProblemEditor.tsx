@@ -16,6 +16,7 @@ import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
+import { ImageUpload } from './ImageUpload';
 import { newId } from './newId';
 
 interface ProblemEditorProps {
@@ -178,6 +179,17 @@ export function ProblemEditor({ problems, onChange, openId: openIdProp, onOpenCh
                     label="Historia"
                     value={problem.story}
                     onChange={(e) => update(problem.id, { story: e.target.value })}
+                  />
+
+                  {/* Grafika karty problemu: w grze pokazuje się jako awers,
+                      klik odwraca na szczegóły. Jedna na kartę. */}
+                  <ImageUpload
+                    label="Grafika karty (opcjonalnie)"
+                    folder="cards"
+                    max={1}
+                    namePrefix={`prob-${problem.id}`}
+                    value={problem.image ? [problem.image] : []}
+                    onChange={(urls) => update(problem.id, { image: urls[0] })}
                   />
 
                   <div className="grid gap-3 sm:grid-cols-3">
