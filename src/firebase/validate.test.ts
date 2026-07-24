@@ -45,6 +45,44 @@ describe('validateContent', () => {
     expect(result.errors.join(' ').toLowerCase()).toContain('duplikat');
   });
 
+  // Walidator ma ZŁAPAĆ uszkodzone dane, nie wywrócić się na nich. Element,
+  // który nie jest obiektem (null/liczba/tekst po uszkodzeniu dokumentu),
+  // rzucał TypeError przy pierwszym dostępie do pola — a wyjątek łapał się
+  // w loadContent jako „brak połączenia", więc admin nie wiedział, że dane
+  // są zepsute.
+  it('zgłasza kartę, która nie jest obiektem, zamiast się wywrócić', () => {
+    const content = validContent();
+    (content.cards as unknown[]).unshift(null);
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('nie jest obiektem');
+  });
+
+  it('zgłasza ściankę, która nie jest obiektem, zamiast się wywrócić', () => {
+    const content = validContent();
+    (content.problems[0].slots as unknown[]).push(null);
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('ścianka');
+  });
+
+  it('zgłasza motyw, który nie jest obiektem, zamiast się wywrócić', () => {
+    const content = validContent();
+    (content as { theme: unknown }).theme = 'nie-obiekt';
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('motyw');
+  });
+
   it('odrzuca kartę bez nazwy', () => {
     const content = validContent();
     content.cards[0] = { ...content.cards[0], name: '' };

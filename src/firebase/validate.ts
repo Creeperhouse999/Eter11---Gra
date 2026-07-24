@@ -129,13 +129,36 @@ export function validateContent(content: unknown): ValidationResult {
 
   // Puste sekcje są błędem, ale walidacja idzie dalej — administrator ma
   // zobaczyć wszystkie problemy naraz, a nie poprawiać je po jednym.
-  const cardList = Array.isArray(cards) ? cards : [];
-  const problemList = Array.isArray(problems) ? problems : [];
-  const characterList = Array.isArray(characters) ? characters : [];
+  const rawCards = Array.isArray(cards) ? cards : [];
+  const rawProblems = Array.isArray(problems) ? problems : [];
+  const rawCharacters = Array.isArray(characters) ? characters : [];
 
-  if (cardList.length === 0) add('Sekcja cards jest pusta.');
-  if (problemList.length === 0) add('Sekcja problems jest pusta.');
-  if (characterList.length === 0) add('Sekcja characters jest pusta.');
+  if (rawCards.length === 0) add('Sekcja cards jest pusta.');
+  if (rawProblems.length === 0) add('Sekcja problems jest pusta.');
+  if (rawCharacters.length === 0) add('Sekcja characters jest pusta.');
+
+  // Element, który nie jest obiektem (null, liczba, tekst — tak wygląda wpis
+  // po uszkodzeniu dokumentu w bazie albo ręcznej edycji w konsoli), wywracał
+  // walidator przy pierwszym `card.id`/`slot.key`. A to właśnie walidator ma
+  // ZŁAPAĆ uszkodzone dane i opisać je administratorowi — rzucony wyjątek
+  // zamiast tego łapał się w `loadContent` jako „brak połączenia", więc admin
+  // widział komunikat o sieci i nie miał jak dojść, że dane są zepsute.
+  // Odsiewamy nie-obiekty z błędem i pracujemy dalej na poprawnych.
+  const isObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+  rawCards.forEach((c, i) => {
+    if (!isObject(c)) add(`Karta #${i + 1} nie jest obiektem.`);
+  });
+  rawProblems.forEach((p, i) => {
+    if (!isObject(p)) add(`Problem #${i + 1} nie jest obiektem.`);
+  });
+  rawCharacters.forEach((c, i) => {
+    if (!isObject(c)) add(`Postać #${i + 1} nie jest obiektem.`);
+  });
+
+  const cardList = rawCards.filter((c): c is Card => isObject(c));
+  const problemList = rawProblems.filter((p): p is Problem => isObject(p));
+  const characterList = rawCharacters.filter((c): c is Character => isObject(c));
 
   // --- Karty ---
   const cardIds = new Set<string>();
@@ -216,14 +239,23 @@ export function validateContent(content: unknown): ValidationResult {
       continue;
     }
 
-    const slotKeys = problem.slots.map((s) => s.key);
+    // Ścianka, która nie jest obiektem, wywróciłaby `s.key` niżej — ten sam
+    // rodzaj uszkodzenia co przy kartach, więc tak samo ją zgłaszamy i mijamy.
+    const slots = problem.slots.filter(
+      (s): s is Problem['slots'][number] => isObject(s),
+    );
+    if (slots.length !== problem.slots.length) {
+      add(`Problem ${problem.id}: któraś ścianka nie jest obiektem.`);
+    }
+
+    const slotKeys = slots.map((s) => s.key);
     for (const required of REQUIRED_SLOTS) {
       if (!slotKeys.includes(required)) {
         add(`Problem ${problem.id}: brakuje ścianki ${required}.`);
       }
     }
 
-    for (const slot of problem.slots) {
+    for (const slot of slots) {
       if (!isText(slot.hint) || !slot.hint.trim()) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak podpowiedzi.`);
       } else if (slot.hint.length > MAX_LENGTHS.slotHint) {
@@ -320,7 +352,11 @@ export function validateContent(content: unknown): ValidationResult {
   // Nieprawidłowy kolor wywróciłby wygląd całej gry, a błąd byłby trudny
   // do namierzenia — sprawdzamy format zapisu.
   const theme = (data as Partial<GameContent>).theme;
-  if (theme) {
+  if (theme !== undefined && !isObject(theme)) {
+    // Motyw będący liczbą albo tekstem (uszkodzony zapis) wywracał walidator
+    // na `key in theme` niżej — `in` na wartości prostej rzuca wyjątek.
+    add('Motyw nie jest obiektem z kolorami.');
+  } else if (theme) {
     for (const [key, value] of Object.entries(theme)) {
       if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
         add(`Motyw, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
