@@ -65,11 +65,19 @@ export function useRoom(code: string | null, uid: string | null) {
       if (room.state.phase === 'missionSummary') {
         // Gracz działa tylko we własnym imieniu — reduktor i tak sprawdza
         // właściciela karty, tu pilnujemy, że nie gra za kogoś innego.
+        //
+        // Przekazanie jest dwustronne: ofertę tworzy DAJĄCY, ale `SHARE_CARD`
+        // wysyła BIORĄCY, klikając „Przyjmij" (przycisk widzi tylko odbiorca —
+        // patrz CardOfferModal, Multiplayer.acceptOffer). Aktorem jest więc
+        // `toPlayerId`. Wcześniej braliśmy tu `fromPlayerId` (dającego), przez
+        // co akceptacja u odbiorcy zawsze leciała jako „nie Twoja karta", a
+        // przekazanie — jedyne źródło doświadczenia za uczenie, warunku
+        // spełnienia — nie działało online w ogóle.
         const actor =
-          'playerId' in action
-            ? action.playerId
-            : 'fromPlayerId' in action
-              ? action.fromPlayerId
+          action.type === 'SHARE_CARD'
+            ? action.toPlayerId
+            : 'playerId' in action
+              ? action.playerId
               : undefined;
         if (actor !== undefined && actor !== uid) return 'To nie Twoja karta.';
         // Ruch liczony w transakcji — dwa równoległe zabrania nie nadpiszą się.
