@@ -15,21 +15,32 @@ import { cardFitsSlot } from '../engine/rules';
  *
  * Karty i problemy oznaczone `draft` są pomijane: to materiał roboczy, jeszcze
  * nie w grze.
+ *
+ * WAŻNE: przy sprawdzaniu pokrycia POMIJAMY karty ETER11 (jokery). `cardFitsSlot`
+ * zwraca dla jokera `true` dla KAŻDEJ ścianki (rules.ts), więc gdyby liczyć
+ * jokery, `.some()` zawsze coś znajdzie i test byłby pusty — nie wykryłby nawet
+ * pary (kategoria, rodzina) bez ani jednej prawdziwej karty. Są tylko dwa jokery
+ * na cały stół; nie mogą realnie zastąpić brakującej kategorii. Slot musi mieć
+ * prawdziwą, pasującą kartę tej samej kategorii i rodziny.
  */
 
 type Draftable = { draft?: boolean };
 const active = <T extends Draftable>(items: T[]) => items.filter((i) => !i.draft);
 
 describe('pokrycie ścianek kartami', () => {
-  const playableCards = active(ALL_CARDS);
   const playableProblems = active(ALL_PROBLEMS);
+  // Prawdziwe karty kompetencji/talentów/mentorów — bez jokerów (ETER11)
+  // i bez Czarnych Łabędzi, które nie zamykają ścianek.
+  const realPlayableCards = active(ALL_CARDS).filter(
+    (card) => card.category !== 'eter11' && card.category !== 'blackswan',
+  );
 
-  it('każda ścianka grywalnego problemu ma pasującą grywalną kartę', () => {
+  it('każda ścianka grywalnego problemu ma pasującą prawdziwą (nie-joker) kartę', () => {
     const gaps: string[] = [];
 
     for (const problem of playableProblems) {
       for (const slot of problem.slots) {
-        const hasMatch = playableCards.some((card) =>
+        const hasMatch = realPlayableCards.some((card) =>
           cardFitsSlot(card, slot.key, slot.family),
         );
         if (!hasMatch) {
@@ -38,13 +49,13 @@ describe('pokrycie ścianek kartami', () => {
       }
     }
 
-    expect(gaps, `ścianki bez pasującej karty: ${gaps.join('; ')}`).toEqual([]);
+    expect(gaps, `ścianki bez pasującej prawdziwej karty: ${gaps.join('; ')}`).toEqual([]);
   });
 
   it('grywalnych problemów jest co najmniej kilka', () => {
     // Zabezpieczenie przed sytuacją, w której filtr `draft` przypadkiem
     // odsiał wszystko i test pokrycia stałby się pusty (fałszywie zielony).
     expect(playableProblems.length).toBeGreaterThan(3);
-    expect(playableCards.length).toBeGreaterThan(10);
+    expect(realPlayableCards.length).toBeGreaterThan(10);
   });
 });

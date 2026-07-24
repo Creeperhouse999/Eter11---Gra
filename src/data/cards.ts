@@ -55,9 +55,9 @@ const digital: Card[] = [
   { id: 'dig-y-projektant', name: 'Projektant Przyszłości', category: 'digital', family: 'yellow', icon: 'bulb', description: 'Wymyśla nowe materiały i technologie, których jeszcze nie ma.' },
 
   // Zielona — Świat bez sieci
-  { id: 'dig-g-analog', name: 'Umiejętności analogowe', category: 'digital', family: 'green', icon: 'radio', description: 'Radzi sobie bez internetu: mapa papierowa, krótkofalówka, notes.', draft: true },
+  { id: 'dig-g-analog', name: 'Umiejętności analogowe', category: 'digital', family: 'green', icon: 'radio', description: 'Radzi sobie bez internetu: mapa papierowa, krótkofalówka, notes.' },
   { id: 'dig-g-naprawa', name: 'Naprawa sprzętu', category: 'digital', family: 'green', icon: 'wrench', description: 'Doprowadza do działania to, co inni chcieli wyrzucić.', draft: true },
-  { id: 'dig-g-higiena', name: 'Higiena cyfrowa', category: 'digital', family: 'green', icon: 'eyeOff', description: 'Wie, kiedy odłożyć telefon i jak ustawić limity.', draft: true },
+  { id: 'dig-g-higiena', name: 'Higiena cyfrowa', category: 'digital', family: 'green', icon: 'eyeOff', description: 'Wie, kiedy odłożyć telefon i jak ustawić limity.' },
 ];
 
 // ── Kompetencje poznawczo-społeczne ───────────────────────────────────────
