@@ -32,6 +32,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, tone, message }]);
   }, []);
 
+  // Stała referencja: `onDone` przekazywany dawniej jako świeża strzałka na
+  // każdym renderze restartował efekt każdego toasta przy KAŻDYM dodaniu lub
+  // usunięciu — bo dodanie/usunięcie przerysowuje providera. Odliczanie 4 s
+  // zerowało się wtedy dla wszystkich, więc przy powiadomieniach częstszych
+  // niż co 4 s (np. seria zapisów w panelu) żadne nie znikało. Teraz `remove`
+  // jest stabilne, a toast dostaje własne id — jego efekt biegnie raz.
+  const remove = useCallback(
+    (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id)),
+    [],
+  );
+
   return (
     <ToastContext.Provider value={show}>
       {children}
@@ -41,24 +52,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         aria-live="polite"
       >
         {toasts.map((toast) => (
-          <ToastItem
-            key={toast.id}
-            toast={toast}
-            onDone={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
-          />
+          <ToastItem key={toast.id} toast={toast} onDone={remove} />
         ))}
       </div>
     </ToastContext.Provider>
   );
 }
 
-function ToastItem({ toast, onDone }: { toast: Toast; onDone: () => void }) {
+function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => void }) {
   const config = TONES[toast.tone];
 
   useEffect(() => {
-    const timer = window.setTimeout(onDone, 4000);
+    const timer = window.setTimeout(() => onDone(toast.id), 4000);
     return () => window.clearTimeout(timer);
-  }, [onDone]);
+  }, [onDone, toast.id]);
 
   return (
     <div
@@ -71,7 +78,7 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: () => void }) {
       <p className="flex-1 text-sm">{toast.message}</p>
       <button
         type="button"
-        onClick={onDone}
+        onClick={() => onDone(toast.id)}
         aria-label="Zamknij powiadomienie"
         className="rounded p-1 text-ink-dim transition hover:text-ink"
       >
