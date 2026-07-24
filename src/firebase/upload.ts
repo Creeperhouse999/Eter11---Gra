@@ -27,13 +27,21 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 /**
  * Zmniejsza bitmapę przed wysłaniem.
  *
- * Rysujemy na canvasie w mniejszej skali i zapisujemy jako JPEG. SVG omija
- * ten krok — to tekst, nie piksele, a przerysowanie go na canvas straciłoby
- * ostrość i przezroczystość. Przezroczysty PNG również zostawiamy, bo JPEG
- * nie ma kanału alfa i tło zrobiłoby się czarne.
+ * Rysujemy na canvasie w mniejszej skali. SVG omija ten krok — to tekst,
+ * nie piksele, a przerysowanie na canvas straciłoby ostrość i przezroczystość.
+ *
+ * PNG NIE jest już przepuszczany bez zmian. Zrzut ekranu z telefonu to często
+ * PNG ważący 5–12 MB — powyżej limitu reguł Storage (5 MB), więc wysyłka
+ * padała na „Missing or insufficient permission" (reguła odrzuca za duży plik,
+ * a komunikat brzmi jak brak uprawnień). Zgłosił to gracz, próbując dołączyć
+ * zrzut błędu w dyskusji.
+ *
+ * PNG zapisujemy z powrotem jako PNG — zachowuje przezroczystość (JPEG nie ma
+ * kanału alfa i tło zrobiłoby się czarne), a samo zmniejszenie wymiarów tnie
+ * rozmiar wielokrotnie. Reszta bitmap (JPEG, WEBP) idzie do JPEG.
  */
 async function compress(file: File): Promise<Blob> {
-  if (file.type === 'image/svg+xml' || file.type === 'image/png') return file;
+  if (file.type === 'image/svg+xml') return file;
 
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
@@ -48,8 +56,12 @@ async function compress(file: File): Promise<Blob> {
 
   context.drawImage(bitmap, 0, 0, width, height);
 
+  // PNG zostaje PNG (przezroczystość), reszta idzie do JPEG.
+  const keepPng = file.type === 'image/png';
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', QUALITY),
+    keepPng
+      ? canvas.toBlob(resolve, 'image/png')
+      : canvas.toBlob(resolve, 'image/jpeg', QUALITY),
   );
   // Gdyby toBlob zawiódł, wysyłamy oryginał — lepszy większy plik niż żaden.
   return blob ?? file;
@@ -77,11 +89,28 @@ export async function uploadImage(input: {
 
   try {
     const blob = await compress(input.file);
-    const extension = input.file.type === 'image/svg+xml' ? 'svg' : 'jpg';
+
+    // Twardy limit reguł Storage to 5 MB. Gdy plik mimo kompresji jest większy
+    // (np. ogromny SVG albo kompresja się nie powiodła), Storage odrzuciłby go
+    // komunikatem „Missing or insufficient permission" — mylącym, bo brzmi jak
+    // brak uprawnień, a chodzi o rozmiar. Mówimy to wprost, zanim wyślemy.
+    const LIMIT = 5 * 1024 * 1024;
+    if (blob.size >= LIMIT) {
+      return {
+        ok: false,
+        error: 'Obraz jest za duży (ponad 5 MB nawet po kompresji). Wyślij mniejszy albo zrób zrzut mniejszego fragmentu.',
+      };
+    }
+
+    // Rozszerzenie z FAKTYCZNEGO typu bloba, nie z pliku wejściowego: PNG
+    // zostaje PNG po kompresji, więc nie może dostać końcówki `.jpg`.
+    const type = blob.type || input.file.type;
+    const extension =
+      type === 'image/svg+xml' ? 'svg' : type === 'image/png' ? 'png' : 'jpg';
     const path = `${input.folder}/${input.name}.${extension}`;
 
     const target = ref(storage, path);
-    await uploadBytes(target, blob, { contentType: blob.type || input.file.type });
+    await uploadBytes(target, blob, { contentType: type });
     return { ok: true, url: await getDownloadURL(target) };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

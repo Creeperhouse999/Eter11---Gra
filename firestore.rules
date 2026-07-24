@@ -187,6 +187,15 @@ service cloud.firestore {
                     && (
                       // Sama zmiana `closed`, bez ruszania wypowiedzi.
                       request.resource.data.messages == resource.data.messages
+                      // Pierwsza wypowiedź w świeżym wątku: stara lista pusta,
+                      // nowa ma dokładnie jeden element. Bez tej gałęzi warunek
+                      // z porównaniem `[0:0]` do pustej listy padał, więc do
+                      // KAŻDEGO nowego wątku nie dało się nic dopisać — „można
+                      // było założyć wątek, ale nie wysłać wiadomości".
+                      || (
+                        resource.data.messages.size() == 0
+                        && request.resource.data.messages.size() == 1
+                      )
                       // Albo dokładnie jedna nowa wypowiedź na końcu, a cała
                       // wcześniejsza historia bez zmian.
                       || (
