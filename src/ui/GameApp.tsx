@@ -217,9 +217,8 @@ function RunningGame({
           onQuit={tutorial ? undefined : () => void quit()}
         />
         <TutorialLayer tutorial={tour} />
-        {/* Zgłaszanie z gry tylko w normalnej rozgrywce — w samouczku dziecko
-            się uczy, a nie zgłasza. */}
-        {!tutorial && <ReportButton />}
+        {/* ReportButton renderuje outer GameApp na każdym ekranie gry — tu już
+            go nie dublujemy. */}
         {dialog}
       </>
     );
@@ -394,6 +393,12 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           }
         />
       )}
+
+      {/* Zgłaszanie błędów dostępne na KAŻDYM ekranie gry — menu, ustawienia,
+          rozgrywka, podsumowanie, finał, gra online. Wyjątek: wstęp i samouczek
+          (dziecko się wtedy uczy, a nie zgłasza). Wcześniej przycisk był tylko
+          w fazie misji, więc z menu nie dało się nic zgłosić. */}
+      {!showIntro && !session?.tutorial && <ReportButton />}
     </>
   );
 }
