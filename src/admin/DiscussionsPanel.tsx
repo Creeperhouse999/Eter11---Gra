@@ -8,6 +8,7 @@ import {
   type Discussion,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
+import { canModerate, type Role } from '../firebase/roles';
 import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
@@ -19,6 +20,8 @@ import { useToast } from '../ui/controls/Toast';
 interface DiscussionsPanelProps {
   /** Imię zalogowanego — podpisuje wypowiedzi. */
   author: string;
+  /** Rola zalogowanego — decyduje, kto może zrobić z wątku zgłoszenie. */
+  role: Role;
   /**
    * Czy pokazać ustalone wątki — z adresu (`/admin/discussions?closed=1`).
    * Steruje przełącznikiem otwarte/ustalone, żeby dało się zalinkować widok.
@@ -53,6 +56,7 @@ function shortDate(iso: string): string {
  */
 export function DiscussionsPanel({
   author,
+  role,
   showClosed: showClosedProp,
   onShowClosedChange,
 }: DiscussionsPanelProps) {
@@ -291,9 +295,14 @@ export function DiscussionsPanel({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-edge pt-3">
-              <Button size="sm" icon="megaphone" onClick={() => void toReport(thread)}>
-                Zrób z tego zgłoszenie
-              </Button>
+              {/* Zamiana wątku w zgłoszenie tylko dla moderacji
+                  (admin / co-admin / programmer). Coworker, edytor i podgląd
+                  dyskutują, ale nie decydują, co ląduje w kolejce zgłoszeń. */}
+              {canModerate(role) && (
+                <Button size="sm" icon="megaphone" onClick={() => void toReport(thread)}>
+                  Zrób z tego zgłoszenie
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"

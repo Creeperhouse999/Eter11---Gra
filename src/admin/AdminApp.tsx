@@ -642,6 +642,7 @@ export function AdminApp() {
         {tab === 'discussions' && (
           <DiscussionsPanel
             author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            role={auth.role}
             // Przełącznik otwarte/ustalone żyje w adresie (`?closed=1`), więc
             // link wprost do listy ustalonych da się wysłać dalej.
             showClosed={route.params.closed === '1'}
