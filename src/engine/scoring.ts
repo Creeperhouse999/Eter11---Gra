@@ -37,6 +37,21 @@ export function hasFulfillment(player: Player): boolean {
   return Object.values(fulfillmentProgress(player)).every(Boolean);
 }
 
+/**
+ * Ile warunków spełnienia gracz ma, a ile ich w ogóle jest.
+ *
+ * `total` liczony z samego `FulfillmentProgress`, nie wpisany na sztywno:
+ * spełnienie to WSZYSTKIE warunki (pięć kategorii plus otrzymanie i przekazanie
+ * karty oraz dwa typy doświadczenia), nie same kategorie. Ekran finału mówił
+ * „brakuje X z pięciu kategorii", licząc X ze wszystkich dziewięciu — więc przy
+ * skompletowanych kategoriach, ale bez np. przekazania, potrafił napisać
+ * „brakuje 2 z pięciu", co jest sprzeczne samo w sobie.
+ */
+export function fulfillmentCount(player: Player): { done: number; total: number } {
+  const values = Object.values(fulfillmentProgress(player));
+  return { done: values.filter(Boolean).length, total: values.length };
+}
+
 export function playerScore(player: Player, config: RulesConfig): number {
   const experiencePoints = player.experience.length * config.pointsPerExperience;
   const fulfillmentPoints = hasFulfillment(player) ? config.pointsPerFulfillment : 0;

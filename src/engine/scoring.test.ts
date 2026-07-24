@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { awardTitles, hasFulfillment, fulfillmentProgress, playerScore } from './scoring';
+import {
+  awardTitles,
+  hasFulfillment,
+  fulfillmentProgress,
+  fulfillmentCount,
+  playerScore,
+} from './scoring';
 import type { Card, Player, RulesConfig } from './types';
 
 const card = (id: string, category: Card['category']): Card => ({
@@ -87,6 +93,37 @@ describe('fulfillmentProgress', () => {
     expect(progress.digital).toBe(false);
     expect(progress.sharedWithOthers).toBe(false);
     expect(progress.psychological).toBe(true);
+  });
+});
+
+describe('fulfillmentCount', () => {
+  it('komplet to wszystkie warunki spełnione', () => {
+    const { done, total } = fulfillmentCount(completePlayer());
+    expect(done).toBe(total);
+    expect(total).toBe(9); // pięć kategorii + otrzymanie + przekazanie + dwa doświadczenia
+  });
+
+  it('total liczy WSZYSTKIE warunki, nie tylko pięć kategorii', () => {
+    // Regresja: ekran finału mówił „brakuje X z pięciu kategorii", licząc X
+    // ze wszystkich dziewięciu warunków — więc brak zdarzał się > 5 albo przy
+    // kompletnych kategoriach.
+    const p = completePlayer();
+    p.mat = []; // zero kategorii
+    p.receivedCardIds = [];
+    p.sharedCount = 0;
+    p.experience = [];
+    const { done, total } = fulfillmentCount(p);
+    expect(done).toBe(0);
+    expect(total).toBe(9);
+  });
+
+  it('komplet kategorii, brak przekazania — brak liczony z dziewięciu, nie z pięciu', () => {
+    const p = completePlayer();
+    p.sharedCount = 0; // wszystkie 5 kategorii są, brakuje 1 warunku niekategoryjnego
+    const { done, total } = fulfillmentCount(p);
+    expect(total - done, 'brakuje dokładnie jednego warunku').toBe(1);
+    expect(total).toBe(9);
+    // Tekst „brakuje 1 z pięciu kategorii" byłby kłamstwem — kategorie są komplet.
   });
 });
 

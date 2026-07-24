@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   awardTitles,
+  fulfillmentCount,
   fulfillmentProgress,
   hasFulfillment,
   playerScore,
@@ -120,23 +121,27 @@ export function FinaleScreen({
                 </span>
               </div>
 
-              {/* Spełnienie = po jednej karcie z każdej z pięciu kategorii na
-                  karcie postaci. Marcin pytał, co znaczy „spełnienie" i ile
-                  kart trzeba — więc mówimy to wprost, a gdy nie osiągnięte,
-                  pokazujemy ile kategorii brakuje. */}
+              {/* Spełnienie to KOMPLET wszystkich warunków z listy poniżej
+                  (pięć kategorii plus otrzymanie i przekazanie karty oraz dwa
+                  typy doświadczenia), nie same kategorie. Marcin pytał, co
+                  znaczy „spełnienie" — więc gdy nie osiągnięte, pokazujemy ile
+                  warunków brakuje, spójnie z liczbą X/9 na karcie postaci. */}
               {hasFulfillment(player) ? (
                 <div className="mt-1">
                   <p className="text-sm font-bold text-success">{text.finaleFulfillment}</p>
                   <p className="text-xs text-ink-dim">
-                    Zebrał kompetencję z każdej z pięciu kategorii.
+                    Skompletował wszystkie warunki spełnienia.
                   </p>
                 </div>
               ) : (
-                <p className="mt-1 text-xs text-ink-dim">
-                  Spełnienie: brakuje{' '}
-                  {Object.values(progress).filter((done) => !done).length} z pięciu
-                  kategorii do kompletu.
-                </p>
+                (() => {
+                  const { done, total } = fulfillmentCount(player);
+                  return (
+                    <p className="mt-1 text-xs text-ink-dim">
+                      Spełnienie: brakuje {total - done} z {total} warunków do kompletu.
+                    </p>
+                  );
+                })()
               )}
 
               {playerTitles.length > 0 && (
