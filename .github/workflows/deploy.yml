@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Pobierz kod
         uses: actions/checkout@v4
+        with:
+          # Potrzebny poprzedni commit, by odczytać trailer Report-Fixed z jego
+          # opisu (oznaczanie zgłoszenia poniżej).
+          fetch-depth: 2
 
       - name: Node 20
         uses: actions/setup-node@v4
@@ -49,3 +53,33 @@ jobs:
       - name: Deploy na Firebase Hosting
         if: ${{ env.FIREBASE_TOKEN != '' }}
         run: npx firebase deploy --only hosting --project savetheworld-eter11 --token "$FIREBASE_TOKEN" --non-interactive
+
+      # Oznaczenie zgłoszenia po udanym deployu. Cloud agent (albo człowiek),
+      # jeśli naprawił zgłoszenie, dopisuje do commita trailer:
+      #   Report-Fixed: <fragment tytułu> | <komentarz>
+      # Ten krok czyta go z ostatniego commita i woła mark-report kontem bota.
+      # Sekrety BOT_* jako repo secrets — jedyny sposób na oznaczanie z chmury,
+      # bo panel routines nie ma pola na env-secrets. Brak trailera → krok cichy.
+      - name: Oznacz zgłoszenie jako naprawione
+        if: ${{ env.FIREBASE_TOKEN != '' }}
+        env:
+          BOT_EMAIL: ${{ secrets.BOT_EMAIL }}
+          BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
+        run: |
+          LINE=$(git log -1 --pretty=%B | grep -iE '^Report-Fixed:' | head -1 || true)
+          if [ -z "$LINE" ]; then
+            echo "Brak trailera Report-Fixed w commicie — nic nie oznaczam."
+            exit 0
+          fi
+          if [ -z "$BOT_PASSWORD" ]; then
+            echo "Brak BOT_PASSWORD w sekretach — pomijam oznaczanie."
+            exit 0
+          fi
+          REST="${LINE#*:}"
+          TITLE="${REST%%|*}"
+          COMMENT="${REST#*|}"
+          [ "$COMMENT" = "$REST" ] && COMMENT="Naprawione i wdrożone automatycznie."
+          TITLE="$(echo "$TITLE" | sed 's/^ *//;s/ *$//')"
+          COMMENT="$(echo "$COMMENT" | sed 's/^ *//;s/ *$//')"
+          echo "Oznaczam zgłoszenie: \"$TITLE\" → fixed"
+          node scripts/mark-report.mjs "$TITLE" fixed "$COMMENT"

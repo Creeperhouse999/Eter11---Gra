@@ -33,7 +33,10 @@ function loadEnv() {
   }
 }
 
-const env = loadEnv();
+// Zmienne środowiskowe procesu mają pierwszeństwo przed .env — dzięki temu
+// skrypt działa i lokalnie (z .env), i w CI (GitHub Actions podaje sekrety
+// przez process.env, bez pliku .env w repo).
+const env = { ...loadEnv(), ...process.env };
 // Logujemy się kontem programisty (`claude@code.com`, rola programmer), żeby
 // odpowiedzi w zgłoszeniach były podpisane jako programista. Gdy go nie ma,
 // spadamy na konto admina.
