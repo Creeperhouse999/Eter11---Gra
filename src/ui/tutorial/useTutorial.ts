@@ -318,8 +318,12 @@ export function useTutorial(
     // zaświeciła", więc musi być co pokazać, gdy to mówi.
     anchor: anchorFor(step.goal, context),
     source: sourceFor(step.goal, context),
-    // Po wykonaniu kroku nie blokujemy niczego — gracz czeka na „Dalej".
-    allows: (action) => done || step.allow.includes(action),
+    // Po wykonaniu ZADANIA nie blokujemy niczego — gracz czeka na „Dalej".
+    // Ale krok czytany (readOnly) jest „zaliczony" od startu, więc `done`
+    // nie może tu znosić blokady: inaczej `allow: []` na wstępie nic nie
+    // daje i dziecko mogłoby w trakcie samej narracji zagrać/spasować,
+    // dobierając kartę i psując ułożoną talię samouczka.
+    allows: (action) => (done && !step.readOnly) || step.allow.includes(action),
     next,
     back: canGoBack ? back : null,
     skip,

@@ -152,6 +152,24 @@ describe('useTutorial — kroki', () => {
     expect(playStep?.allow).toEqual(['play']);
   });
 
+  it('krok czytany blokuje ruchy, mimo że jest „zaliczony" od startu', () => {
+    // Regresja: krok wstępny (welcome/slots) jest readOnly i `isGoalMet`
+    // zwraca dla niego `true`, więc `done` robi się prawdą natychmiast.
+    // Wcześniej `allows = done || step.allow.includes(...)` przepuszczało
+    // wtedy WSZYSTKO, choć krok deklaruje `allow: []` — dziecko mogło w
+    // trakcie samej narracji dwuklikiem zagrać kartę albo spasować, co
+    // dobierało dodatkową kartę i psuło ułożoną talię samouczka.
+    const { result } = setup();
+    if (!result.current.active) throw new Error('samouczek nieaktywny');
+
+    expect(result.current.step.readOnly).toBe(true);
+    expect(result.current.done).toBe(true);
+    expect(result.current.step.allow).toEqual([]);
+    expect(result.current.allows('play')).toBe(false);
+    expect(result.current.allows('pass')).toBe(false);
+    expect(result.current.allows('swap')).toBe(false);
+  });
+
   it('po wykonaniu kroku przestaje blokować', () => {
     const { result, rerender } = setup();
 
