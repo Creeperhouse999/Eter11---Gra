@@ -221,3 +221,29 @@ describe('CardView z przeciąganiem', () => {
     expect(onClick).toHaveBeenCalled();
   });
 });
+
+describe('CardView — odwracanie karty z grafiką', () => {
+  const withArt: Card = { ...card, image: 'data:image/png;base64,AAAA' };
+
+  it('interaktywna karta z grafiką nie zagnieżdża przycisku w przycisku', () => {
+    // Karta z akcją renderuje się jako <button>. Kontrolka odwracająca musi
+    // być rolą na spanie, nie <button> — <button> w <button> to nieprawidłowy
+    // HTML, który przeglądarki interpretują różnie, a czytnik ekranu gubi.
+    const { container } = render(<CardView card={withArt} onClick={vi.fn()} />);
+    expect(container.querySelector('button button')).toBeNull();
+    // Kontrolka pozostaje dostępna jako przycisk dla czytnika ekranu.
+    expect(screen.getByRole('button', { name: 'Pokaż szczegóły karty' })).toBeDefined();
+  });
+
+  it('odwrócenie karty nie zagrywa jej i pokazuje szczegóły', () => {
+    const onClick = vi.fn();
+    render(<CardView card={withArt} onClick={onClick} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pokaż szczegóły karty' }));
+
+    // stopPropagation: klik na kontrolce nie może wywołać akcji karty...
+    expect(onClick).not.toHaveBeenCalled();
+    // ...a przełącza awers (grafika) na rewers ze szczegółami.
+    expect(screen.getByText('Działa mimo strachu.')).toBeDefined();
+  });
+});
