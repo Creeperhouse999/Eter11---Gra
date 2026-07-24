@@ -54,11 +54,20 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
       return;
     }
     setBusy(true);
-    const result = await joinRoom({ code, name, characterId: ALL_CHARACTERS[0].id });
-    if (result.ok && result.uid) {
-      onEnter(code.trim().toUpperCase(), result.uid);
-    } else {
-      toast(result.error ?? 'Nie udało się dołączyć.', 'danger');
+    try {
+      const result = await joinRoom({ code, name, characterId: ALL_CHARACTERS[0].id });
+      if (result.ok && result.uid) {
+        onEnter(code.trim().toUpperCase(), result.uid);
+      } else {
+        toast(result.error ?? 'Nie udało się dołączyć.', 'danger');
+        setBusy(false);
+      }
+    } catch (e) {
+      // joinRoom woła Firebase (ensureSession/get/update) — sieć albo
+      // uprawnienia mogą rzucić. Bez tego przechwycenia przycisk zostawał na
+      // zawsze „Dołączam…", bo `setBusy(false)` nigdy nie biegło. Tak samo
+      // jak w `create`: pokaż powód i odblokuj przycisk.
+      toast(e instanceof Error ? e.message : 'Nie udało się dołączyć.', 'danger');
       setBusy(false);
     }
   };
