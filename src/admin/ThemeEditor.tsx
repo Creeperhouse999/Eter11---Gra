@@ -1,11 +1,23 @@
-import { applyTheme, DEFAULT_THEME, THEME_GROUPS, type ThemeColors } from '../data/theme';
+import { useState } from 'react';
+import {
+  applyTheme,
+  DEFAULT_THEME,
+  LIGHT_THEME,
+  THEME_GROUPS,
+  type ThemeColors,
+  type ThemeMode,
+} from '../data/theme';
 import { Button } from '../ui/controls/Button';
 import { ColorPicker } from '../ui/controls/ColorPicker';
 import { Icon } from '../ui/icons/Icon';
 
 interface ThemeEditorProps {
+  /** Kolory trybu ciemnego. */
   theme: ThemeColors;
-  onChange: (theme: ThemeColors) => void;
+  /** Kolory trybu jasnego (gdy brak, edytor startuje od wbudowanego). */
+  themeLight?: ThemeColors;
+  /** Zapisuje zmieniony zestaw właściwego trybu. */
+  onChange: (mode: ThemeMode, theme: ThemeColors) => void;
 }
 
 /**
@@ -33,31 +45,65 @@ const isHex = (value: string) => /^#[0-9a-fA-F]{6}$/.test(value);
  * widzi efekt bez zapisywania. Kontrast tekstu jest sprawdzany na bieżąco,
  * bo odbiorcą gry jest ośmiolatek.
  */
-export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
+export function ThemeEditor({ theme, themeLight, onChange }: ThemeEditorProps) {
+  // Który tryb edytujemy. Podgląd na żywo pokazuje właśnie ten tryb.
+  const [mode, setMode] = useState<ThemeMode>('dark');
+  const editing = mode === 'light' ? themeLight ?? LIGHT_THEME : theme;
+  const fallback = mode === 'light' ? LIGHT_THEME : DEFAULT_THEME;
+
   const update = (patch: Partial<ThemeColors>) => {
-    const next = { ...theme, ...patch };
-    onChange(next);
-    // Podgląd na żywo: same zmienne CSS, bez zapisu do bazy.
+    const next = { ...editing, ...patch };
+    onChange(mode, next);
+    // Podgląd na żywo: same zmienne CSS, bez zapisu do bazy. Znacznik trybu
+    // na <html> ustawiamy, żeby podgląd zgadzał się z edytowanym trybem.
+    document.documentElement.dataset.theme = mode;
     applyTheme(next);
   };
 
-  // Kolory już użyte w grze — najczęściej chce się trafić w istniejący ton.
-  const palette = Array.from(new Set(Object.values(theme).filter(isHex)));
+  const switchMode = (next: ThemeMode) => {
+    setMode(next);
+    document.documentElement.dataset.theme = next;
+    applyTheme(next === 'light' ? themeLight ?? LIGHT_THEME : theme);
+  };
 
-  const inkContrast = contrastRatio(theme.ink, theme.surface);
-  const dimContrast = contrastRatio(theme.inkDim, theme.surface);
+  // Kolory już użyte w grze — najczęściej chce się trafić w istniejący ton.
+  const palette = Array.from(new Set(Object.values(editing).filter(isHex)));
+
+  const inkContrast = contrastRatio(editing.ink, editing.surface);
+  const dimContrast = contrastRatio(editing.inkDim, editing.surface);
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Kolory</h2>
-        <Button icon="undo" size="sm" onClick={() => update(DEFAULT_THEME)}>
+        <Button icon="undo" size="sm" onClick={() => update(fallback)}>
           Przywróć domyślne
         </Button>
       </div>
 
-      <p className="mt-1 text-sm text-ink-dim">
-        Zmiany widać natychmiast na całej stronie. Zapisz, żeby zobaczyli je gracze.
+      {/* Przełącznik trybu: edytujesz osobno kolory ciemnego i jasnego. */}
+      <div className="mt-3 inline-flex rounded-lg border border-edge p-0.5" role="tablist">
+        {(['dark', 'light'] as ThemeMode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => switchMode(m)}
+            className={[
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition',
+              mode === m ? 'bg-accent text-bg font-semibold' : 'text-ink-dim hover:text-ink',
+            ].join(' ')}
+          >
+            <Icon name={m === 'light' ? 'sun' : 'moon'} size={14} />
+            {m === 'light' ? 'Jasny' : 'Ciemny'}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-2 text-sm text-ink-dim">
+        Edytujesz kolory trybu <strong>{mode === 'light' ? 'jasnego' : 'ciemnego'}</strong>.
+        Zmiany widać natychmiast. Zapisz, żeby zobaczyli je gracze.
       </p>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -97,7 +143,7 @@ export function ThemeEditor({ theme, onChange }: ThemeEditorProps) {
                 >
                   <ColorPicker
                     label={field.label}
-                    value={theme[field.key]}
+                    value={editing[field.key]}
                     presets={palette}
                     onChange={(color) => update({ [field.key]: color })}
                   />

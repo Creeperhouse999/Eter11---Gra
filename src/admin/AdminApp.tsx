@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { applyThemeUnlessLight } from '../data/theme';
+import { applyTheme, applyThemeUnlessLight, baseTheme, setThemeOverrides } from '../data/theme';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
 import { describeChanges, recordVersion } from '../firebase/history';
@@ -178,7 +178,11 @@ export function AdminApp() {
       setContent(result.content);
       setSavedContent(result.content);
       setBaseVersion(result.updatedAt);
-      applyThemeUnlessLight(result.content.theme);
+      // Własne motywy z bazy (ciemny/jasny) do rejestru i zastosowanie
+      // motywu aktualnego trybu — panel respektuje wybór jasny/ciemny.
+      setThemeOverrides({ dark: result.content.theme, light: result.content.themeLight });
+      const mode = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      applyTheme(baseTheme(mode));
       if (result.warning) setStatus(result.warning);
     });
 
@@ -621,7 +625,13 @@ export function AdminApp() {
           />
         )}
         {tab === 'theme' && (
-          <ThemeEditor theme={content.theme} onChange={(theme) => update({ theme })} />
+          <ThemeEditor
+            theme={content.theme}
+            themeLight={content.themeLight}
+            onChange={(mode, colors) =>
+              update(mode === 'light' ? { themeLight: colors } : { theme: colors })
+            }
+          />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
         {tab === 'reports' && (

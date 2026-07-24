@@ -100,9 +100,22 @@ export const LIGHT_THEME: ThemeColors = {
 
 export type ThemeMode = 'dark' | 'light';
 
-/** Bazowy motyw dla trybu. */
+/**
+ * Motywy z bazy (ustawione przez panel), osobno dla trybu ciemnego i jasnego.
+ * Rejestr modułowy, bo `useThemeMode` (przełącznik) nie ma dostępu do stanu
+ * zawartości, a musi po przełączeniu zastosować WŁASNY motyw redaktora, nie
+ * tylko wbudowany.
+ */
+let overrides: { dark?: ThemeColors; light?: ThemeColors } = {};
+
+export function setThemeOverrides(next: { dark?: ThemeColors; light?: ThemeColors }) {
+  overrides = next;
+}
+
+/** Motyw dla trybu: własny z bazy, jeśli jest; inaczej wbudowany. */
 export function baseTheme(mode: ThemeMode): ThemeColors {
-  return mode === 'light' ? LIGHT_THEME : DEFAULT_THEME;
+  if (mode === 'light') return overrides.light ?? LIGHT_THEME;
+  return overrides.dark ?? DEFAULT_THEME;
 }
 
 /** Mapowanie klucza motywu na nazwę zmiennej CSS. */

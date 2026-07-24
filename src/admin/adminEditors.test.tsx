@@ -177,7 +177,27 @@ describe('ThemeEditor', () => {
       target: { value: '#ff0000' },
     });
 
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ accent: '#ff0000' }));
+    // Sygnatura: onChange(mode, colors). Domyślnie edytujemy tryb ciemny.
+    expect(onChange).toHaveBeenCalledWith(
+      'dark',
+      expect.objectContaining({ accent: '#ff0000' }),
+    );
+  });
+
+  it('po przełączeniu na jasny edytuje tryb jasny', async () => {
+    const onChange = vi.fn();
+    render(<ThemeEditor theme={DEFAULT_THEME} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Jasny/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Akcent główny/ }));
+    fireEvent.change(await screen.findByLabelText('Kod koloru'), {
+      target: { value: '#00ff00' },
+    });
+
+    expect(onChange).toHaveBeenCalledWith(
+      'light',
+      expect.objectContaining({ accent: '#00ff00' }),
+    );
   });
 
   it('ostrzega o zbyt niskim kontraście', () => {

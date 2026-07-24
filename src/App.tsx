@@ -1,6 +1,6 @@
 import { setCategoryStyles, setCustomIcons } from './ui/components/categoryStyles';
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { applyTheme } from './data/theme';
+import { applyTheme, baseTheme, setThemeOverrides } from './data/theme';
 import { BUILTIN_CONTENT } from './data/builtinContent';
 import type { GameContent } from './firebase/validate';
 import { ToastProvider } from './ui/controls/Toast';
@@ -81,12 +81,12 @@ function Game() {
         window.clearTimeout(timeout);
 
         setContent(result.content);
-        // Własny motyw z bazy nadpisuje bazę TYLKO w trybie ciemnym — jest
-        // ciemny, a w trybie jasnym rządzi jasny zestaw (patrz useThemeMode).
-        // Inaczej wybór jasnego znikał, gdy dojechał motyw z bazy.
-        if (document.documentElement.dataset.theme !== 'light') {
-          applyTheme(result.content.theme);
-        }
+        // Własne motywy z bazy (osobno ciemny/jasny) trafiają do rejestru,
+        // żeby przełącznik trybu sięgał po nie, nie tylko po wbudowane.
+        // Potem stosujemy motyw aktualnego trybu.
+        setThemeOverrides({ dark: result.content.theme, light: result.content.themeLight });
+        const mode = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        applyTheme(baseTheme(mode));
         // Nazwy i ikony kategorii czyta trzydzieści miejsc w interfejsie,
         // w tym funkcje bez dostępu do Reacta — stąd rejestr modułowy
         // ustawiany raz, zamiast właściwości wleczonej przez całe drzewo.

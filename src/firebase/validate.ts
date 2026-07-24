@@ -19,6 +19,12 @@ export interface GameContent {
   rules: RulesConfig;
   text: UiText;
   theme: ThemeColors;
+  /**
+   * Kolory trybu jasnego. Opcjonalne — zapisy sprzed dodaniem trybu jasnego
+   * go nie mają, więc gra podstawia wtedy wbudowany LIGHT_THEME. `theme`
+   * pozostaje zestawem ciemnym.
+   */
+  themeLight?: ThemeColors;
   families: FamilyMap;
   /**
    * Wstęp przed grą i kwestie ETER11 w samouczku.
