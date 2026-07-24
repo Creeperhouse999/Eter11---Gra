@@ -67,6 +67,8 @@ When the code is genuinely solid and no issues are pending, don't fabricate chan
 
 ## Instant Report Watcher (Monitor)
 
+**ALWAYS keep a Monitor running.** It is not optional and not one-time — if the session starts, resumes, or the Monitor ever dies (timeout, session boundary), start it again immediately. A dead Monitor means missed reports. Whenever you notice it isn't running, the first thing you do is re-arm it, then continue.
+
 Instead of waiting on a slow timer, run a **background Monitor** that pings you the second a new report lands.
 
 **How it works:**
