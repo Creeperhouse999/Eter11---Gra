@@ -75,8 +75,10 @@ export const LIGHT_THEME: ThemeColors = {
   edge: '#d3dceb',
   ink: '#12203a',
   inkDim: '#5a6b8c',
-  accent: '#0d9488',
-  accent2: '#7c3aed',
+  // Akcent niebiesko-purpurowy — ten sam charakter co w ciemnym motywie
+  // (tam accent2 = #a97cff), przyciemniony, żeby był czytelny na jasnym tle.
+  accent: '#6d3fe0',
+  accent2: '#3d7fd6',
   danger: '#d6336c',
   success: '#1f9d57',
   typeAction: '#e03131',

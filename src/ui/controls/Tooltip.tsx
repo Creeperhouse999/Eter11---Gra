@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
@@ -26,9 +26,13 @@ const GAP = 8;
  * Pozycja liczona jest przy pokazaniu, nie w pętli: dymek żyje, dopóki
  * kursor stoi na elemencie, a wtedy nic się nie przesuwa.
  */
+/** Margines od krawędzi ekranu, żeby dymek nigdy nie dotykał brzegu. */
+const EDGE = 8;
+
 export function Tooltip({ label, children, className = '' }: TooltipProps) {
   const [box, setBox] = useState<{ top: number; left: number } | null>(null);
   const wrapRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLSpanElement>(null);
 
   const show = () => {
     const element = wrapRef.current;
@@ -39,6 +43,21 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
   };
 
   const hide = () => setBox(null);
+
+  // Po wyrenderowaniu dymka clampujemy jego środek do ekranu: przy elemencie
+  // w rogu (np. przełącznik motywu w prawym górnym) wyśrodkowany dymek
+  // wychodził poza prawą krawędź. Liczymy z realnej szerokości dymka.
+  useLayoutEffect(() => {
+    if (!box || !tipRef.current) return;
+    const w = tipRef.current.offsetWidth;
+    const half = w / 2;
+    const min = EDGE + half;
+    const max = window.innerWidth - EDGE - half;
+    const clamped = Math.max(min, Math.min(box.left, max));
+    if (Math.abs(clamped - box.left) > 0.5) {
+      setBox((b) => (b ? { ...b, left: clamped } : b));
+    }
+  }, [box]);
 
   return (
     <span
@@ -55,6 +74,7 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
       {box &&
         createPortal(
           <span
+            ref={tipRef}
             role="tooltip"
             className="eter-pop pointer-events-none fixed -translate-x-1/2 whitespace-nowrap rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
             style={{ top: box.top, left: box.left, zIndex: 'var(--z-tooltip)' }}

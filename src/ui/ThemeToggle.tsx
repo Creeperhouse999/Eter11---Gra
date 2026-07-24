@@ -11,18 +11,19 @@ import { Tooltip } from './controls/Tooltip';
  */
 export function ThemeToggle() {
   const { mode, toggle } = useThemeMode();
-  const goingLight = mode === 'dark';
+  const isLight = mode === 'light';
 
   return (
     <div className="fixed right-3 top-3" style={{ zIndex: 'var(--z-sticky)' }}>
-      <Tooltip label={goingLight ? 'Tryb jasny' : 'Tryb ciemny'}>
+      <Tooltip label={isLight ? 'Włącz tryb ciemny' : 'Włącz tryb jasny'}>
         <button
           type="button"
           onClick={toggle}
-          aria-label={goingLight ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'}
+          aria-label={isLight ? 'Włącz tryb ciemny' : 'Włącz tryb jasny'}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
         >
-          <Icon name={goingLight ? 'sunrise' : 'crystal'} size={18} />
+          {/* Ikona pokazuje AKTUALNY tryb: słońce gdy jasno, księżyc gdy ciemno. */}
+          <Icon name={isLight ? 'sun' : 'moon'} size={18} />
         </button>
       </Tooltip>
     </div>

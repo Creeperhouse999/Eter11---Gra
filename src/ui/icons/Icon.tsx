@@ -33,7 +33,9 @@ export type IconName =
   | 'compass' | 'brush' | 'bolt2' | 'checklist' | 'teapot' | 'sparkle' | 'hammer'
   // Interfejs
   | 'lockedSlot' | 'plus' | 'trash' | 'download' | 'upload' | 'logout' | 'undo' | 'eyeOff'
-  | 'tick' | 'close' | 'chevronDown' | 'warning' | 'info' | 'dot' | 'eyeOn';
+  | 'tick' | 'close' | 'chevronDown' | 'warning' | 'info' | 'dot' | 'eyeOn'
+  // Tryb jasny/ciemny
+  | 'sun' | 'moon';
 
 interface IconProps {
   /**
@@ -160,6 +162,10 @@ const PATHS: Record<IconName, string> = {
   warning: 'M12 4 2.5 20h19L12 4Zm0 6v5m0 3h.01',
   info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5h.01M11 12h1v5h1',
   dot: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+  // Słońce: tarcza + promienie. Tryb jasny.
+  sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM12 2v2m0 16v2M4 12H2m20 0h-2M5.6 5.6 4.2 4.2m15.6 15.6-1.4-1.4M18.4 5.6l1.4-1.4M4.2 19.8l1.4-1.4',
+  // Księżyc: półksiężyc. Tryb ciemny.
+  moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z',
 };
 
 /** Prefiks nazwy własnej ikony — po nim odróżniamy URL od klucza z zestawu. */
