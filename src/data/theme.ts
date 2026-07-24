@@ -154,10 +154,53 @@ const CSS_VARIABLES: Record<keyof ThemeColors, string> = {
   familyGreen: '--eter-family-green',
 };
 
+/**
+ * Kolory, które trafiają do konfiguracji Tailwinda jako `rgb(<kanały> / alfa)` —
+ * dla nich obok wersji hex ustawiamy też wariant kanałowy `--eter-*-rgb`, żeby
+ * modyfikator `/opacity` działał, a klasy pełne wychodziły identycznie.
+ */
+const RGB_VARIABLES: Partial<Record<keyof ThemeColors, string>> = {
+  bg: '--eter-bg-rgb',
+  surface: '--eter-surface-rgb',
+  raised: '--eter-raised-rgb',
+  edge: '--eter-edge-rgb',
+  ink: '--eter-ink-rgb',
+  inkDim: '--eter-ink-dim-rgb',
+  accent: '--eter-accent-rgb',
+  accent2: '--eter-accent-2-rgb',
+  danger: '--eter-danger-rgb',
+  success: '--eter-success-rgb',
+};
+
+/**
+ * Zamienia `#RRGGBB` (lub `#RGB`) na kanały „R G B" dla `rgb(... / alfa)`.
+ * Zwraca `null`, gdy wartość nie jest hexem — wtedy zostaje poprzedni kanał,
+ * a nie łamiemy koloru (input `type=color` i tak zawsze daje `#RRGGBB`).
+ */
+export function hexToRgbChannels(hex: string): string | null {
+  const value = hex.trim().replace(/^#/, '');
+  const full =
+    value.length === 3
+      ? value
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : value;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  const int = parseInt(full, 16);
+  return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
+}
+
 /** Wpisuje motyw do dokumentu. Wywoływane przy starcie i przy każdej zmianie w panelu. */
 export function applyTheme(theme: ThemeColors, target: HTMLElement = document.documentElement) {
   for (const [key, variable] of Object.entries(CSS_VARIABLES)) {
     target.style.setProperty(variable, theme[key as keyof ThemeColors]);
+  }
+  // Wariant kanałowy dla kolorów z Tailwinda — bez niego `bg-surface` i spółka
+  // (teraz `rgb(var(--eter-surface-rgb) / …)`) nie miałyby z czego się złożyć.
+  for (const [key, variable] of Object.entries(RGB_VARIABLES)) {
+    const channels = hexToRgbChannels(theme[key as keyof ThemeColors]);
+    if (channels) target.style.setProperty(variable, channels);
   }
 }
 
