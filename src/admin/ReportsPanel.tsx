@@ -19,6 +19,7 @@ import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { ImageUpload } from './ImageUpload';
 import { Icon, type IconName } from '../ui/icons/Icon';
+import { counted } from '../ui/plural';
 
 const KIND_OPTIONS = [
   { value: 'bug' as const, label: 'Błąd', icon: 'warning' as const, color: 'var(--eter-danger)' },
@@ -913,7 +914,9 @@ export function ReportsPanel({
                     {KIND_LABELS[report.kind]} · {formatDate(report.createdAt)}
                     {report.author && ` · ${report.author}`}
                     {(report.notes?.length ?? 0) > 0 &&
-                      ` · ${report.notes!.length} ${report.notes!.length === 1 ? 'wpis' : 'wpisy'}`}
+                      // Trzy formy polskiej odmiany, nie dwie: 5 to „wpisów",
+                      // nie „wpisy". Przez wspólny `counted`, jak reszta gry.
+                      ` · ${counted(report.notes!.length, 'wpis', 'wpisy', 'wpisów')}`}
                     {(report.images?.length ?? 0) > 0 && ` · ${report.images!.length} zdj.`}
                   </span>
                 </span>
