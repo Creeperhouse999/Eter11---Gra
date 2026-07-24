@@ -61,6 +61,48 @@ export const DEFAULT_THEME: ThemeColors = {
   familyGreen: '#5ce08f',
 };
 
+/**
+ * Motyw jasny.
+ *
+ * Odwraca tła i tekst względem ciemnego, zachowując akcenty i kolory kart
+ * (rodziny, kategorie, typy) — te niosą znaczenie w grze, więc muszą zostać
+ * rozpoznawalne. Akcenty lekko przyciemnione, żeby były czytelne na jasnym tle.
+ */
+export const LIGHT_THEME: ThemeColors = {
+  bg: '#f4f7fc',
+  surface: '#ffffff',
+  raised: '#eef2f9',
+  edge: '#d3dceb',
+  ink: '#12203a',
+  inkDim: '#5a6b8c',
+  accent: '#0d9488',
+  accent2: '#7c3aed',
+  danger: '#d6336c',
+  success: '#1f9d57',
+  typeAction: '#e03131',
+  typeThinking: '#1c7ed6',
+  typeCooperation: '#e8a800',
+  typeSelfchange: '#1f9d57',
+  catPsychological: '#d6336c',
+  catEter11: '#334155',
+  catBlackswan: '#64748b',
+  catDigital: '#1c7ed6',
+  catSocial: '#e8a800',
+  catTalent: '#7c3aed',
+  catMentor: '#0d9488',
+  familyRed: '#e03131',
+  familyBlue: '#1c7ed6',
+  familyYellow: '#e8a800',
+  familyGreen: '#1f9d57',
+};
+
+export type ThemeMode = 'dark' | 'light';
+
+/** Bazowy motyw dla trybu. */
+export function baseTheme(mode: ThemeMode): ThemeColors {
+  return mode === 'light' ? LIGHT_THEME : DEFAULT_THEME;
+}
+
 /** Mapowanie klucza motywu na nazwę zmiennej CSS. */
 const CSS_VARIABLES: Record<keyof ThemeColors, string> = {
   bg: '--eter-bg',
@@ -95,6 +137,21 @@ export function applyTheme(theme: ThemeColors, target: HTMLElement = document.do
   for (const [key, variable] of Object.entries(CSS_VARIABLES)) {
     target.style.setProperty(variable, theme[key as keyof ThemeColors]);
   }
+}
+
+/**
+ * Jak `applyTheme`, ale ustępuje trybowi jasnemu.
+ *
+ * Motyw z bazy (podgląd panelu, zawartość gry) jest ciemny. Gdy gracz albo
+ * redaktor wybrał tryb jasny, nie chcemy, żeby dojeżdżający motyw z bazy
+ * przywrócił ciemne tła. W trybie jasnym pomijamy — rządzi jasny zestaw.
+ */
+export function applyThemeUnlessLight(
+  theme: ThemeColors,
+  target: HTMLElement = document.documentElement,
+) {
+  if (target.dataset.theme === 'light') return;
+  applyTheme(theme, target);
 }
 
 export const THEME_GROUPS: Array<{

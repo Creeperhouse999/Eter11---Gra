@@ -5,6 +5,7 @@ import { BUILTIN_CONTENT } from './data/builtinContent';
 import type { GameContent } from './firebase/validate';
 import { ToastProvider } from './ui/controls/Toast';
 import { GameApp } from './ui/GameApp';
+import { ThemeToggle } from './ui/ThemeToggle';
 
 /**
  * Panel redakcyjny ładowany dopiero pod adresem /admin.
@@ -26,6 +27,8 @@ export default function App() {
 
   return (
     <ToastProvider>
+      {/* Przełącznik jasny/ciemny — jeden dla gry i panelu, róg górny. */}
+      <ThemeToggle />
       {isAdmin ? (
         <Suspense
           fallback={<main className="p-8 font-mono text-sm text-ink-dim">Wczytywanie panelu…</main>}
@@ -78,7 +81,12 @@ function Game() {
         window.clearTimeout(timeout);
 
         setContent(result.content);
-        applyTheme(result.content.theme);
+        // Własny motyw z bazy nadpisuje bazę TYLKO w trybie ciemnym — jest
+        // ciemny, a w trybie jasnym rządzi jasny zestaw (patrz useThemeMode).
+        // Inaczej wybór jasnego znikał, gdy dojechał motyw z bazy.
+        if (document.documentElement.dataset.theme !== 'light') {
+          applyTheme(result.content.theme);
+        }
         // Nazwy i ikony kategorii czyta trzydzieści miejsc w interfejsie,
         // w tym funkcje bez dostępu do Reacta — stąd rejestr modułowy
         // ustawiany raz, zamiast właściwości wleczonej przez całe drzewo.

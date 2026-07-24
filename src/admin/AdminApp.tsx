@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { applyTheme } from '../data/theme';
+import { applyThemeUnlessLight } from '../data/theme';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
 import { describeChanges, recordVersion } from '../firebase/history';
@@ -168,7 +168,7 @@ export function AdminApp() {
       setBaseVersion(undefined);
       setStatus(null);
       setErrors([]);
-      applyTheme(BUILTIN_CONTENT.theme);
+      applyThemeUnlessLight(BUILTIN_CONTENT.theme);
       return;
     }
     let ignore = false;
@@ -178,7 +178,7 @@ export function AdminApp() {
       setContent(result.content);
       setSavedContent(result.content);
       setBaseVersion(result.updatedAt);
-      applyTheme(result.content.theme);
+      applyThemeUnlessLight(result.content.theme);
       if (result.warning) setStatus(result.warning);
     });
 
@@ -198,7 +198,7 @@ export function AdminApp() {
   const savedTheme = savedContent?.theme;
   useEffect(
     () => () => {
-      applyTheme(savedTheme);
+      applyThemeUnlessLight(savedTheme);
     },
     [savedTheme],
   );
@@ -314,7 +314,7 @@ export function AdminApp() {
     });
     if (!confirmed) return;
     setContent(savedContent);
-    applyTheme(savedContent.theme);
+    applyThemeUnlessLight(savedContent.theme);
     setErrors([]);
     toast('Wrócono do ostatnio zapisanej wersji.');
   };
@@ -656,7 +656,7 @@ export function AdminApp() {
             currentVersion={baseVersion}
             onRestore={(restored) => {
               setContent(restored);
-              applyTheme(restored.theme);
+              applyThemeUnlessLight(restored.theme);
               toast('Wersja wczytana. Kliknij „Zapisz", żeby trafiła do gry.');
             }}
           />
