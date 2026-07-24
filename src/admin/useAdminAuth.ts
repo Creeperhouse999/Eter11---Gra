@@ -23,19 +23,30 @@ export function useAdminAuth() {
   // Rola zalogowanego — decyduje, co widać i wolno w panelu.
   const [role, setRole] = useState<Role>(DEFAULT_ROLE);
 
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, (nextUser) => {
-        setUser(nextUser);
-        setChecking(false);
-        if (nextUser) {
-          void loadRole(nextUser.uid, nextUser.email).then(setRole);
-        } else {
-          setRole(DEFAULT_ROLE);
-        }
-      }),
-    [],
-  );
+  useEffect(() => {
+    // Bezpiecznik: gdyby `onAuthStateChanged` nigdy nie zawołał callbacku
+    // (na telefonie zdarza się przy zablokowanym magazynie — patrz persystencja
+    // z listą awaryjną w firebase/client.ts), panel wisiałby wiecznie na
+    // „Sprawdzanie sesji…". Po 8 s przestajemy czekać i pokazujemy ekran
+    // logowania — użytkownik może się zalogować ręcznie zamiast patrzeć w spinner.
+    const timeout = setTimeout(() => setChecking(false), 8000);
+
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      clearTimeout(timeout);
+      setUser(nextUser);
+      setChecking(false);
+      if (nextUser) {
+        void loadRole(nextUser.uid, nextUser.email).then(setRole);
+      } else {
+        setRole(DEFAULT_ROLE);
+      }
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     setPending(true);
