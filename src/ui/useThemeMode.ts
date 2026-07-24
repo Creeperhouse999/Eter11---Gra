@@ -3,18 +3,21 @@ import { applyTheme, baseTheme, type ThemeMode } from '../data/theme';
 
 const STORAGE_KEY = 'eter11:theme-mode';
 
-/** Zapamiętany wybór, inaczej preferencja systemu, inaczej ciemny. */
+/**
+ * Zapamiętany wybór z localStorage, a gdy go nie ma — ZAWSZE ciemny.
+ *
+ * Gra jest z założenia ciemna (to jej wygląd domyślny), więc bez świadomego
+ * wyboru gracza nie sięgamy po preferencję systemu — inaczej ktoś z jasnym
+ * systemem dostawał jasny tryb, którego nie wybierał.
+ */
 function initialMode(): ThemeMode {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {
-    // Tryb prywatny blokuje odczyt — spadamy na preferencję systemu.
+    // Tryb prywatny blokuje odczyt — trudno, ciemny.
   }
-  const prefersLight =
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-color-scheme: light)').matches;
-  return prefersLight ? 'light' : 'dark';
+  return 'dark';
 }
 
 /**
