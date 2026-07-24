@@ -64,3 +64,27 @@ If you genuinely can't render (no browser/preview available), say so explicitly 
 ## Keeping the Loop Alive Without Busywork
 
 When the code is genuinely solid and no issues are pending, don't fabricate changes. Instead schedule a periodic re-check of the issue queue (a timed wake-up), and resume the full cycle the moment a real issue or task appears. The loop stays alive by **hunting for real work**, not by grinding out synthetic edits.
+
+## Instant Report Watcher (Monitor)
+
+Instead of waiting on a slow timer, run a **background Monitor** that pings you the second a new report lands.
+
+**How it works:**
+1. Start a Monitor — a background command that runs the whole session; each stdout line becomes a notification.
+2. The command is a loop: fetch the current set of report IDs and remember it as the baseline. Then forever — sleep ~45s, fetch again, diff against memory, print one `NEW REPORT <id>` line for each unseen ID, update memory.
+3. That line wakes you. Read the new report, fix or answer it, reply on the report.
+
+**Settings that matter:** `persistent: true` (runs all session), long `timeout_ms` (max, ~1h), and KEEP a normal fallback wake-up timer too in case the Monitor dies.
+
+**Pointing at a different backend:** only the "fetch IDs" step changes. Firestore → REST GET on the reports collection. GitHub → issues list. Supabase → select on reports. Plain files → list a folder. Everything else identical.
+
+**Two mistakes that bite — do NOT repeat:**
+- **Stamp every reply with the REAL current date/time** — run `date`, never guess or copy an old timestamp. The notification bell hides any reply whose timestamp is older than the last notifications-clear, so a stale date makes the reply invisible.
+- **Never delete the report record yourself.** The reply shown in the bell is drawn live from the record — delete it and the reply vanishes instantly. Rule: reply, then leave it. The user dismisses it after reading.
+
+**This project (ETER11):** report IDs come from Firestore REST:
+```bash
+curl -s "https://firestore.googleapis.com/v1/projects/savetheworld-eter11/databases/(default)/documents/reports?key=<API_KEY>&pageSize=100" \
+  | grep -oE '"name": *"[^"]*/reports/[^"]*"' | sed 's#.*/reports/##;s#"##'
+```
+Reply/status via `node scripts/mark-report.mjs "<fragment tytułu>" fixed "<komentarz>"` (status `fixed`, never `done` — that's the reporter's; the script writes a dated dev note, so timestamp is handled correctly). Never delete a report.
