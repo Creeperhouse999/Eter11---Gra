@@ -282,23 +282,44 @@ export async function commitSummaryMove(
 /**
  * Host zapisuje ruch za rozłączonego gracza (automatyczne spasowanie).
  *
- * Pomija sprawdzenie „czyja kolej", bo działa w imieniu skipowanego — ale
- * transakcja i tak upewnia się, że host to host i że skipowany jest wciąż
- * offline, żeby dwa urządzenia hosta nie skipnęły dwa razy.
+ * Pomija „czyja kolej" o tyle, że działa w imieniu skipowanego — ale ruch
+ * PRZELICZA WEWNĄTRZ transakcji na aktualnym stanie (jak `commitSummaryMove`)
+ * i zapisuje TYLKO gdy:
+ *  - piszący to host (inaczej dwa urządzenia hosta skipnęłyby dwa razy, a
+ *    złośliwy gracz nadpisałby cudzy ruch), ORAZ
+ *  - skipowany gracz WCIĄŻ jest tym aktywnym i WCIĄŻ jest offline.
+ *
+ * Ten drugi warunek zamyka wyścig: gracz offline potrafi wrócić i zagrać tuż
+ * przed upływem minuty (commitMove przesuwa wtedy turę), a strzelający w tej
+ * samej chwili timer hosta liczył PASS ze starego stanu i bezwarunkowo go
+ * zapisywał — kasując dopiero co wykonany ruch i cofając turę. Teraz transakcja
+ * widzi aktualny pokój: jeśli tura już przeszła albo gracz jest online, nic
+ * nie pisze.
  */
 export async function commitMoveAsHost(
   code: string,
   hostUid: string,
-  next: GameState,
+  skippedUid: string,
   action: Action,
 ): Promise<void> {
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
-    // Tylko host pisze za rozłączonego — inaczej dwa urządzenia mogłyby
-    // skipnąć turę naraz, a złośliwy gracz nadpisać cudzy ruch.
     if (room.hostUid !== hostUid) return room;
-    room.state = next;
+
+    // Skip liczy się tylko, gdy w chwili zapisu wciąż czekamy właśnie na TEGO
+    // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
+    // ruszył grę dalej i nadpisanie go spasowaniem byłoby cofnięciem.
+    const order = playersInOrder(room);
+    if (order[room.state.activePlayerIndex]?.uid !== skippedUid) return room;
+    if (room.players?.[skippedUid]?.online) return room;
+
+    // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
+    // reduktorem, tak samo jak w `commitSummaryMove`.
+    const result = reduce(hydrateState(room.state), action);
+    if (result.rejected) return room;
+
+    room.state = result.state;
     room.lastAction = action;
     room.turnStartedAt = Date.now();
     return room;
