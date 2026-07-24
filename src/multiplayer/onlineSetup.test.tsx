@@ -54,7 +54,7 @@ const noopProps = {
   propose: vi.fn(async () => {}),
   react: vi.fn(async () => {}),
   reactions: [],
-  onAcceptOffer: () => {},
+  onAcceptOffer: async () => null,
   onDeclineOffer: () => {},
   onLeave: () => {},
 };

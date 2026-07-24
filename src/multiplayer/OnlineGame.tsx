@@ -22,7 +22,8 @@ interface OnlineGameProps {
   propose: (offer: { toUid: string; cardId: string }) => Promise<void>;
   react: (kind: import('./types').ReactionKind, target?: string) => Promise<void>;
   reactions: import('./types').Reaction[];
-  onAcceptOffer: () => void;
+  /** Biorący przyjmuje ofertę; zwraca powód odrzucenia albo `null` przy sukcesie. */
+  onAcceptOffer: () => Promise<string | null>;
   onDeclineOffer: () => void;
   onLeave: () => void;
 }
@@ -77,6 +78,15 @@ export function OnlineGame({
   const activeName =
     room.players[activeUid ?? '']?.name ?? 'inny gracz';
 
+  // Przyjęcie oferty: gdy reduktor odrzuci przekazanie (biorący zabrał już
+  // kartę w tej misji, karta jest już na czyjejś macie, dający ją oddał),
+  // pokazujemy powód zamiast po cichu zamknąć okno bez żadnej zmiany.
+  const handleAcceptOffer = () => {
+    void onAcceptOffer().then((error) => {
+      if (error) setRejection(error);
+    });
+  };
+
   if (state.phase === 'finale') {
     return (
       <FinaleScreen
@@ -91,6 +101,17 @@ export function OnlineGame({
     return (
       <>
         <SummaryScreen game={game} />
+        {/* Przekazanie karty odbywa się właśnie w podsumowaniu: dający
+            proponuje, biorący przyjmuje w tym oknie. Bez niego tutaj biorący
+            nie miał czego kliknąć i uczenie (warunek spełnienia) było online
+            nieosiągalne. */}
+        <CardOfferModal
+          offer={room.offer ?? null}
+          room={room}
+          uid={uid}
+          onAccept={handleAcceptOffer}
+          onDecline={onDeclineOffer}
+        />
         <ReactionBar reactions={reactions} players={room.players} onReact={react} uid={uid} />
       </>
     );
@@ -176,7 +197,7 @@ export function OnlineGame({
         offer={room.offer ?? null}
         room={room}
         uid={uid}
-        onAccept={onAcceptOffer}
+        onAccept={handleAcceptOffer}
         onDecline={onDeclineOffer}
       />
 

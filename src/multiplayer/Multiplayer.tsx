@@ -68,18 +68,21 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
     setUid(null);
   };
 
-  const acceptOffer = async () => {
+  const acceptOffer = async (): Promise<string | null> => {
     const offer = room?.offer;
-    if (!offer || !room?.state) return;
+    if (!offer || !room?.state) return null;
     // Biorący zatwierdza — wysyłamy właściwy ruch przekazania. Że to jego
-    // kolej decydować, pilnuje faza podsumowania w silniku.
-    await dispatch({
+    // kolej decydować, pilnuje faza podsumowania w silniku. Powód odrzucenia
+    // (np. biorący zabrał już kartę w tej misji) oddajemy w górę, żeby okno
+    // pokazało go zamiast po cichu zniknąć bez przeniesienia karty.
+    const rejection = await dispatch({
       type: 'SHARE_CARD',
       fromPlayerId: offer.fromUid,
       toPlayerId: offer.toUid,
       cardId: offer.cardId,
     });
     await resolveOffer();
+    return rejection;
   };
 
   const declineOffer = () => {
@@ -156,7 +159,7 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       propose={propose}
       react={react}
       reactions={room.reactions ?? []}
-      onAcceptOffer={() => void acceptOffer()}
+      onAcceptOffer={() => acceptOffer()}
       onDeclineOffer={declineOffer}
       onLeave={leave}
     />
