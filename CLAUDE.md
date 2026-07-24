@@ -53,6 +53,12 @@ If you genuinely can't render (no browser/preview available), say so explicitly 
 - Deploy per the project's process (only when the change actually affects the deployed artifact — test-only or docs-only changes don't need a deploy).
 - If the fix answers a reported issue, mark that issue resolved with a comment (cause + what changed). Respect the project's status semantics — often "fixed / awaiting reporter verification" is a distinct state from "closed by reporter"; don't close on the reporter's behalf.
 
+**Auto-deploy + auto-oznaczanie (od 2026-07-24):** push na `master` odpala GitHub Actions (`.github/workflows/deploy.yml`): tsc + testy + build + `firebase deploy` (hosting) + oznaczenie zgłoszenia. **Nie musisz ręcznie deployować ani wołać `mark-report`, jeśli pracujesz przez push na master** — Actions to robi. Aby Actions oznaczył zgłoszenie, dopisz do commita trailer (osobna linia na końcu):
+```
+Report-Fixed: <fragment tytułu zgłoszenia> | <krótki komentarz>
+```
+Fragment musi jednoznacznie pasować do jednego zgłoszenia. Bez trailera oznaczanie się pomija (fix znaleziony samodzielnie, nie ze zgłoszenia → trailera nie dodawaj). Reguły Firestore (`--only firestore:rules` itd.) NIE są w tym workflow — jeśli zmieniasz reguły, wdróż je osobno ręcznie. Sekrety Actions (repo secrets): `FIREBASE_TOKEN`, `BOT_EMAIL`, `BOT_PASSWORD`.
+
 ## Working Discipline
 
 - **Track multi-step work** with a todo list so progress is visible.
