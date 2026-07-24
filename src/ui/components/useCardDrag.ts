@@ -62,6 +62,16 @@ export function useCardDrag<T>() {
   const pending = useRef<DragPayload<T> | null>(null);
   /** Czy próg został przekroczony. W ref, bo czytamy go w tym samym zdarzeniu. */
   const active = useRef(false);
+  /**
+   * Wskaźnik, który zaczął gest. Gest należy tylko do niego.
+   *
+   * Gra chodzi głównie na tabletach dzieci — drugi palec w trakcie
+   * przeciągania jest normą. Bez tego identyfikatora nasłuch na oknie reagował
+   * na KAŻDY wskaźnik: drugi `pointerdown` podmieniał kartę pod ręką pierwszego
+   * palca (upuszczenie złej karty), a drugi `pointerup` wołał `reset` i gasił
+   * ducha w połowie gestu. `null` = żaden gest nie trwa.
+   */
+  const activePointerId = useRef<number | null>(null);
   const dropHandler = useRef<((targetId: string, data: T) => void) | null>(null);
 
   /**
@@ -93,6 +103,7 @@ export function useCardDrag<T>() {
     startPoint.current = null;
     pending.current = null;
     active.current = false;
+    activePointerId.current = null;
     setDrag(null);
     setTracking(false);
   }, []);
@@ -106,6 +117,8 @@ export function useCardDrag<T>() {
     if (!tracking) return;
 
     const onMove = (event: PointerEvent) => {
+      // Tylko wskaźnik, który zaczął gest — drugi palec nie rusza ducha.
+      if (event.pointerId !== activePointerId.current) return;
       if (!startPoint.current || !pending.current) return;
 
       const dx = event.clientX - startPoint.current.x;
@@ -133,6 +146,8 @@ export function useCardDrag<T>() {
     };
 
     const onUp = (event: PointerEvent) => {
+      // Puszczenie innego palca nie kończy cudzego gestu.
+      if (event.pointerId !== activePointerId.current) return;
       const wasDragging = active.current;
       const payloadData = pending.current?.data;
       reset();
@@ -144,9 +159,16 @@ export function useCardDrag<T>() {
       if (targetId) dropHandler.current?.(targetId, payloadData);
     };
 
+    // System przejął gest (np. gest krawędziowy) — ale tylko dla wskaźnika,
+    // który go prowadził; anulowanie drugiego palca nie ma nic przerywać.
+    const onCancel = (event: PointerEvent) => {
+      if (event.pointerId !== activePointerId.current) return;
+      reset();
+    };
+
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', reset);
+    window.addEventListener('pointercancel', onCancel);
     // Utrata fokusu okna kończy gest: przeglądarka przestanie wtedy
     // wysyłać zdarzenia wskaźnika, a duch zostałby wiszący.
     window.addEventListener('blur', reset);
@@ -154,7 +176,7 @@ export function useCardDrag<T>() {
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', reset);
+      window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('blur', reset);
     };
   }, [tracking, reset]);
@@ -167,7 +189,10 @@ export function useCardDrag<T>() {
         // Sprawdzamy przez `> 0`, bo część środowisk nie ustawia tego pola
         // wcale — brak wartości traktujemy jak główny przycisk.
         if (event.button > 0) return;
+        // Gest już trwa (pierwszy palec) — drugi dotyk go nie przejmuje.
+        if (activePointerId.current !== null) return;
 
+        activePointerId.current = event.pointerId;
         startPoint.current = { x: event.clientX, y: event.clientY };
         // Duch pojawia się dopiero po przekroczeniu progu, ale ma wtedy stanąć
         // na palcu, a nie w rogu ekranu — pierwszy `pointermove` może przyjść
