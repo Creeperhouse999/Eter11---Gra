@@ -84,11 +84,24 @@ export function SummaryScreen({
           const alreadyTook = mission.takenToMat.includes(player.id);
 
           if (plays.length === 0) {
+            // Przekazana karta schodzi z `mission.played` (leży już na macie
+            // odbiorcy, nie liczy się dwa razy). Gdy była jedyną wyłożoną kartą
+            // dającego, jego `plays` robi się puste — ale on kartę wyłożył
+            // i jeszcze nauczył kolegę. Rozpoznajemy to po karcie doświadczenia
+            // „share" zdobytej w tej misji (id koduje misję i gracza, patrz
+            // reducer `shareCard`), żeby nie twierdzić, że nic nie zagrał.
+            const sharedAway = player.experience.some(
+              (e) =>
+                e.kind === 'share' &&
+                e.id.startsWith(`exp-share-${state.missionNumber}-${player.id}-`),
+            );
             return (
               <div key={player.id} className="rounded-xl border border-edge bg-surface p-4">
                 <h2 className="font-display font-bold">{player.name}</h2>
                 <p className="mt-1 text-sm text-ink-dim">
-                  W tej misji nie wyłożył żadnej karty.
+                  {sharedAway
+                    ? 'Przekazał swoją wyłożoną kartę innemu graczowi w tej misji.'
+                    : 'W tej misji nie wyłożył żadnej karty.'}
                 </p>
               </div>
             );
