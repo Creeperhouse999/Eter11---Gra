@@ -10,6 +10,7 @@ import { DEFAULT_THEME } from '../data/theme';
 import { DEFAULT_UI_TEXT } from '../data/uiText';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import type { GameContent } from '../firebase/validate';
+import type { Card } from '../engine/types';
 import { CardEditor } from './CardEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
@@ -150,8 +151,64 @@ describe('CardEditor', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 
-  
+  /**
+   * Zmiana kategorii hurtem musi doprowadzić kartę do stanu zgodnego z nową
+   * kategorią, tak jak zmiana pojedynczej karty. Wcześniej hurtowa ustawiała
+   * samą kategorię: Czarny Łabędź lądował bez wariantu, a karta specjalna
+   * zmieniona na zwykłą — bez rodziny. Oba stany nie przechodzą walidacji,
+   * a ukryte pole rodziny pokazuje zmyślone „red", więc nie da się ich
+   * naprawić z panelu.
+   */
+  const pickAndBulkCategory = (cardName: string, optionLabel: RegExp) => {
+    fireEvent.click(screen.getByRole('checkbox', { name: `Zaznacz kartę ${cardName}` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zmień kategorię zaznaczonym' }));
+    const list = screen.getByRole('listbox', { name: 'Zmień kategorię zaznaczonym' });
+    fireEvent.click(within(list).getByRole('option', { name: optionLabel }));
+  };
+
+  it('hurtowa zmiana na Czarnego Łabędzia nadaje wariant i czyści rodzinę', () => {
+    const onChange = vi.fn();
+    const cards: Card[] = [
+      { id: 'c1', name: 'Talent A', description: '', icon: 'star', category: 'talent', family: 'red' },
+    ];
+    render(<CardEditor cards={cards} onChange={onChange} />);
+
+    pickAndBulkCategory('Talent A', /Czarny Łabędź/);
+
+    const calls = onChange.mock.calls;
+    const next = calls[calls.length - 1][0] as Card[];
+    const c1 = next.find((c) => c.id === 'c1')!;
+    expect(c1.category).toBe('blackswan');
+    // Bez fixu: undefined — walidacja odrzuca „Czarny Łabędź bez wariantu".
+    expect(c1.blackSwanKind).toBeDefined();
+    expect(c1.family).toBeUndefined();
   });
+
+  it('hurtowa zmiana karty specjalnej na zwykłą nadaje rodzinę', () => {
+    const onChange = vi.fn();
+    const cards: Card[] = [
+      {
+        id: 'c1',
+        name: 'Łabędź A',
+        description: '',
+        icon: 'swan',
+        category: 'blackswan',
+        blackSwanKind: 'extraProblem',
+      },
+    ];
+    render(<CardEditor cards={cards} onChange={onChange} />);
+
+    pickAndBulkCategory('Łabędź A', /^Talent$/);
+
+    const calls = onChange.mock.calls;
+    const next = calls[calls.length - 1][0] as Card[];
+    const c1 = next.find((c) => c.id === 'c1')!;
+    expect(c1.category).toBe('talent');
+    // Bez fixu: undefined — walidacja odrzuca „brak rodziny (koloru)".
+    expect(c1.family).toBeDefined();
+    expect(c1.blackSwanKind).toBeUndefined();
+  });
+});
 
 describe('TextEditor', () => {
   it('zmiana tytułu gry wywołuje onChange', () => {

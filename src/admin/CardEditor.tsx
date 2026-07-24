@@ -53,6 +53,26 @@ const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
   color: categoryColorVar(category),
 }));
 
+/**
+ * Pola, które muszą zmienić się RAZEM z kategorią, żeby karta przeszła
+ * walidację: zwykła karta wymaga rodziny, Czarny Łabędź wariantu, a ETER11
+ * i Czarny Łabędź nie chcą rodziny.
+ *
+ * Jedno źródło dla zmiany pojedynczej i hurtowej. Hurtowa liczyła samą
+ * kategorię i zostawiała starą rodzinę oraz brak wariantu — karta lądowała
+ * w stanie nie do zapisania, a ukryte wtedy pole rodziny pokazywało zmyślone
+ * „red", więc redaktor nie miał jak jej naprawić i cały panel odmawiał zapisu.
+ */
+function categoryPatch(card: Card, category: CardCategory): Partial<Card> {
+  const special = category === 'blackswan' || category === 'eter11';
+  return {
+    category,
+    family: special ? undefined : (card.family ?? 'red'),
+    blackSwanKind:
+      category === 'blackswan' ? (card.blackSwanKind ?? 'extraProblem') : undefined,
+  };
+}
+
 export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
   const [family, setFamily] = useState<string>('all');
@@ -128,6 +148,18 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
    */
   const updatePicked = (patch: Partial<Card>) => {
     onChange(cards.map((c) => (picked.has(c.id) ? { ...c, ...patch } : c)));
+    toast(`Zmieniono ${picked.size} ${picked.size === 1 ? 'kartę' : 'kart'}.`);
+  };
+
+  /**
+   * Hurtowa zmiana kategorii — każda karta dostaje własny łatek, bo rodzina
+   * zależy od jej dotychczasowej. Przez `categoryPatch`, tak samo jak zmiana
+   * pojedynczej karty, żeby żadna nie została w stanie nie do zapisania.
+   */
+  const updatePickedCategory = (category: CardCategory) => {
+    onChange(
+      cards.map((c) => (picked.has(c.id) ? { ...c, ...categoryPatch(c, category) } : c)),
+    );
     toast(`Zmieniono ${picked.size} ${picked.size === 1 ? 'kartę' : 'kart'}.`);
   };
 
@@ -286,7 +318,7 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
             options={[{ value: '', label: 'Zmień kategorię…' }, ...CATEGORY_OPTIONS]}
             onChange={(category) => {
               if (!category) return;
-              updatePicked({ category: category as Card['category'] });
+              updatePickedCategory(category as Card['category']);
             }}
           />
 
@@ -332,17 +364,9 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
                 options={CATEGORY_OPTIONS}
                 onChange={(category) => {
                   // Zmiana kategorii musi doprowadzić kartę do stanu, który
-                  // przejdzie walidację: zwykła karta wymaga rodziny, Czarny
-                  // Łabędź wariantu, a ETER11 nie chce ani jednego, ani drugiego.
-                  const special = category === 'blackswan' || category === 'eter11';
-                  update(card.id, {
-                    category,
-                    family: special ? undefined : (card.family ?? 'red'),
-                    blackSwanKind:
-                      category === 'blackswan'
-                        ? (card.blackSwanKind ?? 'extraProblem')
-                        : undefined,
-                  });
+                  // przejdzie walidację — przez `categoryPatch`, tak samo jak
+                  // zmiana hurtem.
+                  update(card.id, categoryPatch(card, category));
                 }}
               />
               <div className="flex gap-1 self-start">
