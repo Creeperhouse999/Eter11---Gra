@@ -3,6 +3,7 @@ import { MissionScreen } from '../ui/screens/MissionScreen';
 import { SummaryScreen } from '../ui/screens/SummaryScreen';
 import { FinaleScreen } from '../ui/screens/FinaleScreen';
 import { ALL_CHARACTERS } from '../data/characters';
+import { DEFAULT_UI_TEXT } from '../data/uiText';
 import type { Action, GameState } from '../engine/types';
 import type { Game } from '../ui/useGame';
 import type { Room } from './types';
@@ -89,6 +90,48 @@ export function OnlineGame({
     return (
       <>
         <SummaryScreen game={game} />
+        <ReactionBar reactions={reactions} players={room.players} onReact={react} uid={uid} />
+      </>
+    );
+  }
+
+  // Między misjami silnik wraca do fazy `setup` (mission: null). Przy stole
+  // kolejny problem odkrywa się klikając „Odkryj problem" (START_MISSION);
+  // w grze online tego przycisku nie było nigdzie poza pierwszym startem,
+  // więc po każdym podsumowaniu partia zawieszała się na pustym ekranie.
+  // Odkrywa gracz, którego jest kolej (order[0] — zwykle host); reszta czeka,
+  // żeby dwa równoległe START_MISSION nie ścigały się o zapis.
+  if (state.phase === 'setup') {
+    const text = DEFAULT_UI_TEXT;
+    return (
+      <>
+        <main className="relative mx-auto max-w-2xl px-4 py-16 text-center">
+          <div aria-hidden="true" className="eter-grid pointer-events-none fixed inset-0" />
+          <div className="relative">
+            <span className="eter-label">Misja {state.missionNumber + 1}</span>
+            <h1 className="font-display text-3xl font-bold text-accent">
+              {text.missionNextHeading}
+            </h1>
+            <p className="mt-3 font-mono text-sm text-ink-dim">
+              Rozwiązane: {state.solvedProblems.length} · W talii: {state.problemPile.length}
+              {state.unsolvedProblems.length > 0 &&
+                ` · Odłożone: ${state.unsolvedProblems.length}`}
+            </p>
+            {myTurn ? (
+              <button
+                type="button"
+                onClick={() => game.dispatch({ type: 'START_MISSION' })}
+                className="mt-8 rounded-lg bg-accent px-8 py-4 font-display text-lg font-bold text-bg"
+              >
+                {text.missionRevealButton}
+              </button>
+            ) : (
+              <p className="mt-8 text-sm text-ink-dim">
+                Czekaj, aż {activeName} odkryje kolejny problem…
+              </p>
+            )}
+          </div>
+        </main>
         <ReactionBar reactions={reactions} players={room.players} onReact={react} uid={uid} />
       </>
     );
