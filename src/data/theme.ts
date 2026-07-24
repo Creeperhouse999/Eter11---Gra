@@ -83,18 +83,25 @@ export const LIGHT_THEME: ThemeColors = {
   success: '#1f9d57',
   typeAction: '#e03131',
   typeThinking: '#1c7ed6',
-  typeCooperation: '#e8a800',
+  // Żółć/złoto jako TEKST na jasnym tle. Karta maluje nazwę, etykietę i ikonę
+  // kolorem rodziny/kategorii — a `#e8a800` na `--eter-raised` (#eef2f9) dawał
+  // ~1.86:1, więc żółte karty i podpisy „Współpraca"/„Społeczna" były w trybie
+  // jasnym praktycznie nieczytelne (reszta rodzin trzyma ~3:1+). Ciemniejsze
+  // złoto `#9a6b00` daje ~4.2:1 na wyniesionym tle i ~4.7:1 na białym, a wciąż
+  // jest wyraźnie „żółte/złote" — ten sam wariant niesie pasek karty i obrys
+  // ścianki, więc dopasowanie koloru do koloru zostaje zachowane.
+  typeCooperation: '#9a6b00',
   typeSelfchange: '#1f9d57',
   catPsychological: '#d6336c',
   catEter11: '#334155',
   catBlackswan: '#64748b',
   catDigital: '#1c7ed6',
-  catSocial: '#e8a800',
+  catSocial: '#9a6b00',
   catTalent: '#7c3aed',
   catMentor: '#0d9488',
   familyRed: '#e03131',
   familyBlue: '#1c7ed6',
-  familyYellow: '#e8a800',
+  familyYellow: '#9a6b00',
   familyGreen: '#1f9d57',
 };
 
