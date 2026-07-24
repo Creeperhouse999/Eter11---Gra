@@ -8,7 +8,7 @@ import {
   type Discussion,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
-import { canModerate, type Role } from '../firebase/roles';
+import { canModerate, skipsApproval, type Role } from '../firebase/roles';
 import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
@@ -139,6 +139,20 @@ export function DiscussionsPanel({
    * więc zabieramy temat i całą dyskusję jako opis.
    */
   const toReport = async (discussion: Discussion) => {
+    // Zdjęcia z całej rozmowy — najwyżej pięć (limit zgłoszenia). Bez nich
+    // programista nie widzi tego, co zespół pokazywał sobie w wątku.
+    const images = discussion.messages
+      .map((m) => m.image)
+      .filter((url): url is string => Boolean(url))
+      .slice(0, 5);
+
+    // Zgłoszenie bez zdjęć nie ma sensu w tym przepływie — to zwykle zrzut,
+    // który trzeba pokazać programiście. Blokujemy, zamiast tworzyć puste.
+    if (images.length === 0) {
+      toast('Ten wątek nie ma żadnego zdjęcia — dołącz zrzut, zanim zrobisz z niego zgłoszenie.', 'danger');
+      return;
+    }
+
     const rozmowa = [
       discussion.description,
       ...discussion.messages.map((m) => `${m.author}: ${m.text}`),
@@ -151,6 +165,10 @@ export function DiscussionsPanel({
       title: discussion.title,
       description: `Z dyskusji zespołu:\n\n${rozmowa}`.slice(0, 4000),
       author,
+      images,
+      // Robi to moderator (przycisk gated na canModerate), więc zgłoszenie
+      // pomija kolejkę akceptacji i trafia od razu do „nowych".
+      status: skipsApproval(role) ? 'new' : 'pending',
     });
 
     if (!result.ok) {
