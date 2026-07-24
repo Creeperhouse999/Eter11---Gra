@@ -51,19 +51,22 @@ export function ThemeEditor({ theme, themeLight, onChange }: ThemeEditorProps) {
   const editing = mode === 'light' ? themeLight ?? LIGHT_THEME : theme;
   const fallback = mode === 'light' ? LIGHT_THEME : DEFAULT_THEME;
 
+  // Tryb, w którym jest teraz strona (z przełącznika jasny/ciemny). Podgląd
+  // na żywo pokazujemy TYLKO wtedy, gdy edytujesz właśnie ten tryb — inaczej
+  // edycja jasnego przy ciemnej stronie rozjeżdżałaby jej wygląd. Sam wybór
+  // „co edytuję" nie zmienia motywu strony.
+  const pageMode: ThemeMode =
+    document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+
   const update = (patch: Partial<ThemeColors>) => {
     const next = { ...editing, ...patch };
     onChange(mode, next);
-    // Podgląd na żywo: same zmienne CSS, bez zapisu do bazy. Znacznik trybu
-    // na <html> ustawiamy, żeby podgląd zgadzał się z edytowanym trybem.
-    document.documentElement.dataset.theme = mode;
-    applyTheme(next);
+    if (mode === pageMode) applyTheme(next);
   };
 
   const switchMode = (next: ThemeMode) => {
+    // Zmienia tylko to, CO edytujesz — nie przestawia motywu strony.
     setMode(next);
-    document.documentElement.dataset.theme = next;
-    applyTheme(next === 'light' ? themeLight ?? LIGHT_THEME : theme);
   };
 
   // Kolory już użyte w grze — najczęściej chce się trafić w istniejący ton.

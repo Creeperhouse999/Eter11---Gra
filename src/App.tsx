@@ -27,16 +27,20 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {/* Przełącznik jasny/ciemny — jeden dla gry i panelu, róg górny. */}
-      <ThemeToggle />
       {isAdmin ? (
         <Suspense
           fallback={<main className="p-8 font-mono text-sm text-ink-dim">Wczytywanie panelu…</main>}
         >
+          {/* Panel ma własny przełącznik w nagłówku (obok Zapisz/Wyloguj),
+              żeby nie nachodził na tamte przyciski w rogu. */}
           <AdminApp />
         </Suspense>
       ) : (
-        <Game />
+        <>
+          {/* Gra: przełącznik jako pływający przycisk w rogu. */}
+          <ThemeToggle />
+          <Game />
+        </>
       )}
     </ToastProvider>
   );

@@ -36,6 +36,7 @@ import { IconEditor } from './IconEditor';
 import { setCategoryStyles, setCustomIcons } from '../ui/components/categoryStyles';
 import { useTabRoute } from './useTabRoute';
 import { ThemeEditor } from './ThemeEditor';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAdminAuth } from './useAdminAuth';
 
 type Tab =
@@ -58,24 +59,39 @@ type Tab =
   | 'stats'
   | 'team';
 
+// Kolejność zakładek logicznie, grupami: najpierw przegląd, potem treść gry
+// (co widzi gracz), dalej narzędzia, komunikacja zespołu, dane, na końcu
+// ustawienia konta i zespołu. Nowe zakładki dokładaj do właściwej grupy.
 const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
+  // Start
   { key: 'overview', label: 'Przegląd', icon: 'chart' },
+
+  // Treść gry — od największych elementów do drobiazgów wizualnych
   { key: 'problems', label: 'Problemy', icon: 'clash' },
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
-  { key: 'families', label: 'Rodziny', icon: 'palette' },
-  { key: 'categories', label: 'Kategorie', icon: 'clipboard' },
-  { key: 'icons', label: 'Ikony', icon: 'palette' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
   { key: 'story', label: 'Wstęp i ETER11', icon: 'spark' },
+  // Systemy wizualne kart
+  { key: 'families', label: 'Rodziny', icon: 'palette' },
+  { key: 'categories', label: 'Kategorie', icon: 'clipboard' },
+  { key: 'icons', label: 'Ikony', icon: 'palette' },
   { key: 'theme', label: 'Kolory', icon: 'palette' },
+
+  // Narzędzie sprawdzające
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
+
+  // Komunikacja zespołu
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
-  { key: 'account', label: 'Konto', icon: 'people' },
-  { key: 'history', label: 'Historia', icon: 'undo' },
+
+  // Dane i podgląd wstecz
   { key: 'stats', label: 'Statystyki', icon: 'chart' },
+  { key: 'history', label: 'Historia', icon: 'undo' },
+
+  // Ustawienia na końcu
+  { key: 'account', label: 'Konto', icon: 'people' },
   { key: 'team', label: 'Zespół', icon: 'people' },
 ];
 
@@ -408,6 +424,9 @@ export function AdminApp() {
                 {saving ? 'Zapisywanie…' : 'Zapisz'}
               </Button>
             </Tooltip>
+            {/* Przełącznik jasny/ciemny — jak w grze, ten sam wybór
+                (wspólny localStorage), tu w pasku, żeby nie nachodził. */}
+            <ThemeToggle variant="inline" />
             <Button
               variant="secondary"
               size="sm"
