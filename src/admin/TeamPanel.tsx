@@ -94,6 +94,19 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
   };
 
   const remove = async (member: TeamMember) => {
+    // Te same zabezpieczenia co przy zmianie roli — inaczej „kosz" na
+    // własnym wierszu obchodził je bokiem: usunięcie własnego wpisu cofa
+    // rolę do coworkera, a wtedy znika zakładka Zespół i nie ma jak
+    // przywrócić sobie admina (poza kontem założyciela). Guard MUSI stać
+    // przed potwierdzeniem, żeby dialog w ogóle się nie pokazał.
+    if (member.uid === currentUid) {
+      toast('Nie usuniesz własnego wpisu roli — stracił(a)byś dostęp do zarządzania zespołem.', 'danger');
+      return;
+    }
+    if (member.email === ROOT_ADMIN_EMAIL) {
+      toast('Wpisu konta założyciela nie da się usunąć.', 'danger');
+      return;
+    }
     const confirmed = await confirm({
       title: 'Usunąć wpis roli?',
       message: `${member.email} wróci do domyślnej roli (coworker). Konto nie znika — tylko jego wpis roli.`,
