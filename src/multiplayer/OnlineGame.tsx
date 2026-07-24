@@ -11,6 +11,7 @@ import { ReactionBar } from './ReactionBar';
 import { WaitingOverlay } from './WaitingOverlay';
 import { DisconnectBanner } from './DisconnectBanner';
 import { CardOfferModal } from './CardOfferModal';
+import { revealerUid } from './room';
 
 interface OnlineGameProps {
   room: Room;
@@ -99,10 +100,15 @@ export function OnlineGame({
   // kolejny problem odkrywa się klikając „Odkryj problem" (START_MISSION);
   // w grze online tego przycisku nie było nigdzie poza pierwszym startem,
   // więc po każdym podsumowaniu partia zawieszała się na pustym ekranie.
-  // Odkrywa gracz, którego jest kolej (order[0] — zwykle host); reszta czeka,
-  // żeby dwa równoległe START_MISSION nie ścigały się o zapis.
+  // Odkrywa wyznaczony rewelator — pierwszy ONLINE gracz w kolejności (zwykle
+  // host, a gdy host padł tuż po podsumowaniu, przejmuje kolejny obecny, żeby
+  // pokój nie wisiał). Reszta czeka, żeby dwa równoległe START_MISSION nie
+  // ścigały się o zapis.
   if (state.phase === 'setup') {
     const text = DEFAULT_UI_TEXT;
+    const revealer = revealerUid(room);
+    const canReveal = Boolean(revealer && revealer === uid);
+    const revealerName = room.players[revealer ?? '']?.name ?? activeName;
     return (
       <>
         <main className="relative mx-auto max-w-2xl px-4 py-16 text-center">
@@ -117,7 +123,7 @@ export function OnlineGame({
               {state.unsolvedProblems.length > 0 &&
                 ` · Odłożone: ${state.unsolvedProblems.length}`}
             </p>
-            {myTurn ? (
+            {canReveal ? (
               <button
                 type="button"
                 onClick={() => game.dispatch({ type: 'START_MISSION' })}
@@ -127,7 +133,7 @@ export function OnlineGame({
               </button>
             ) : (
               <p className="mt-8 text-sm text-ink-dim">
-                Czekaj, aż {activeName} odkryje kolejny problem…
+                Czekaj, aż {revealerName} odkryje kolejny problem…
               </p>
             )}
           </div>

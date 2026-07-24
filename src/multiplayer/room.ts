@@ -331,6 +331,59 @@ export function playersInOrder(room: Room): RoomPlayer[] {
   return Object.values(room.players ?? {}).sort((a, b) => a.joinedAt - b.joinedAt);
 }
 
+/**
+ * Kto odkrywa kolejny problem między misjami (faza `setup`).
+ *
+ * Przy stole robi to każdy po kolei, ale online w fazie `setup`
+ * `activePlayerIndex` stoi na 0, więc „turę" ma wyłącznie pierwszy gracz
+ * w kolejności — zwykle host. Gdy host rozłączy się właśnie między misjami,
+ * nikt inny nie ma tury: START_MISSION przechodzi tylko dla order[0], a
+ * automatyczny skip liczy sam host (którego nie ma) i dotyczy tylko fazy
+ * `playing`. Pokój wisiał wtedy na „Czekaj, aż host odkryje problem" bez
+ * ratunku.
+ *
+ * Rewelatorem jest więc PIERWSZY ONLINE gracz w kolejności: gdy host jest,
+ * to on; gdy padł, przejmuje kolejny obecny. Wybór jest jednoznaczny (jeden
+ * najstarszy online gracz), więc dwóch gości nie odkryje problemu naraz.
+ */
+export function revealerUid(room: Room): string | undefined {
+  return playersInOrder(room).find((p) => p.online)?.uid;
+}
+
+/**
+ * Odkrycie kolejnego problemu (START_MISSION) w fazie `setup`.
+ *
+ * Osobna ścieżka od `commitMove`, bo między misjami nikt nie ma zwykłej tury —
+ * autoryzujemy wyznaczonego rewelatora (pierwszy online gracz), a nie
+ * `order[activePlayerIndex]`. Dzięki temu partia rusza dalej także wtedy, gdy
+ * host padł tuż po podsumowaniu. Ruch PRZELICZAMY w transakcji (jak
+ * `commitSummaryMove`), więc dwa równoległe kliknięcia nie nadpiszą się:
+ * pierwsze przenosi grę do fazy `mission`, a drugie trafia już na stan, w
+ * którym reduktor odrzuca START_MISSION.
+ */
+export async function commitReveal(code: string, uid: string): Promise<string | null> {
+  let rejection: string | null = null;
+  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
+  await runTransaction(roomRef, (room: Room | null) => {
+    if (!room || room.phase !== 'playing' || !room.state) return room;
+    if (!room.players?.[uid]) return room;
+    // Odkryć może tylko wyznaczony rewelator — inaczej dwóch obecnych graczy
+    // (gdy host padł) ścigałoby się o zapis.
+    if (revealerUid(room) !== uid) return room;
+
+    const result = reduce(hydrateState(room.state), { type: 'START_MISSION' });
+    if (result.rejected) {
+      rejection = result.rejected;
+      return room;
+    }
+    room.state = result.state;
+    room.lastAction = { type: 'START_MISSION' };
+    room.turnStartedAt = Date.now();
+    return room;
+  });
+  return rejection;
+}
+
 /** Host startuje partię: zapisuje początkowy stan gry. */
 export async function startGame(code: string, state: GameState): Promise<void> {
   await update(ref(rtdb, `${ROOMS}/${code}`), {

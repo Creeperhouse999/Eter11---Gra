@@ -5,6 +5,7 @@ import {
   clearOffer,
   commitMove,
   commitMoveAsHost,
+  commitReveal,
   commitSummaryMove,
   kickPlayer,
   offerCard,
@@ -56,6 +57,14 @@ export function useRoom(code: string | null, uid: string | null) {
   const dispatch = useCallback(
     async (action: Action): Promise<string | null> => {
       if (!code || !uid || !room?.state) return 'Pokój nie jest gotowy.';
+
+      // Odkrycie kolejnego problemu między misjami (faza `setup`) nie ma
+      // zwykłej tury — autoryzuje je wyznaczony rewelator (pierwszy online
+      // gracz), więc partia rusza dalej także wtedy, gdy host padł tuż po
+      // podsumowaniu. Bez tego pokój wisiał na pustym ekranie startu misji.
+      if (action.type === 'START_MISSION') {
+        return commitReveal(code, uid);
+      }
 
       // Podsumowanie misji nie ma tury: każdy gracz zabiera własną kartę na
       // matę albo przekazuje ją innym, niezależnie. Poza podsumowaniem ruch
