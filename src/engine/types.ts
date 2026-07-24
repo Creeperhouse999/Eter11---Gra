@@ -55,6 +55,11 @@ export interface Card {
   family?: FamilyId;
   /** Tylko dla category === 'blackswan'. */
   blackSwanKind?: BlackSwanKind;
+  /**
+   * Pełna grafika karty (URL). Gdy jest, karta pokazuje ją jako awers, a klik
+   * odwraca ją na rewers z tekstem (nazwa, opis). Brak = sam obecny wygląd.
+   */
+  image?: string;
   /** Oznaczenie treści dopisanej technicznie, do weryfikacji merytorycznej. */
   draft?: boolean;
 }
@@ -83,6 +88,11 @@ export interface Problem {
   type: ProblemType;
   slots: ProblemSlot[];
   icon: string;
+  /**
+   * Pełna grafika karty problemu (URL). Awers to grafika, klik odwraca na
+   * rewers z historią, przeciwnikiem i celem. Brak = sam obecny wygląd.
+   */
+  image?: string;
   draft?: boolean;
 }
 

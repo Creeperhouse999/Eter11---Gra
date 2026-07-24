@@ -53,6 +53,12 @@ export async function addDiscussion(input: {
   title: string;
   description: string;
   author: string;
+  /**
+   * Wypowiedzi startowe wątku. Pusto przy zwykłym zakładaniu; wypełnione, gdy
+   * wątek powstaje z odrzuconego zgłoszenia — przenosimy wtedy jego treść i
+   * komentarz odrzucenia jako pierwsze wypowiedzi, żeby dyskusja miała kontekst.
+   */
+  messages?: DiscussionMessage[];
 }): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz temat dyskusji.' };
@@ -66,7 +72,7 @@ export async function addDiscussion(input: {
       description: input.description.trim(),
       author,
       createdAt: new Date().toISOString(),
-      messages: [],
+      messages: input.messages ?? [],
       closed: false,
     });
     return { ok: true };

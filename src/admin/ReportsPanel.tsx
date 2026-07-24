@@ -10,6 +10,7 @@ import {
   type ReportStatus,
 } from '../firebase/reports';
 import { canDelete, canModerate, canReport, skipsApproval, type Role } from '../firebase/roles';
+import { addDiscussion } from '../firebase/discussions';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
 import { TextArea, TextField } from '../ui/controls/Field';
@@ -350,6 +351,39 @@ export function ReportsPanel({
     }
   };
 
+  /**
+   * Odrzucone zgłoszenie do ponownej rozmowy.
+   *
+   * Odrzucenie kończy zgłoszenie, ale bywa, że temat wraca — wtedy zamiast
+   * pisać od zera zakładamy dyskusję z całym kontekstem: tytuł zgłoszenia,
+   * jego opis jako pierwsza wypowiedź, a każda notatka (w tym powód odrzucenia)
+   * jako kolejna. Dalej zespół dyskutuje, a gdy coś ustali, robi z wątku
+   * zgłoszenie normalnie (przycisk w dyskusjach).
+   */
+  const toDiscussion = async (report: Report) => {
+    const messages = [
+      { author: report.author || 'Zgłaszający', text: report.description, at: report.createdAt },
+      ...(report.notes ?? []).map((n) => ({
+        author: n.from === 'reporter' ? report.author || 'Zgłaszający' : 'Zespół',
+        text: n.text,
+        at: n.at,
+      })),
+    ].filter((m) => m.text?.trim());
+
+    const result = await addDiscussion({
+      title: report.title,
+      description: `Z odrzuconego zgłoszenia „${report.title}".`,
+      author,
+      messages,
+    });
+
+    if (!result.ok) {
+      toast(result.error ?? 'Nie udało się założyć dyskusji.', 'danger');
+      return;
+    }
+    toast('Założono dyskusję z tego zgłoszenia — jest w zakładce Dyskusja.', 'success');
+  };
+
   const counts: Record<ReportStatus, number> = {
     pending: reports.filter((r) => r.status === 'pending').length,
     new: reports.filter((r) => r.status === 'new').length,
@@ -656,6 +690,20 @@ export function ReportsPanel({
                   onClick={() => void changeStatus(report, 'new')}
                 >
                   Otwórz ponownie
+                </Button>
+              )}
+
+              {/* Odrzucone zgłoszenie można przenieść do dyskusji (moderator):
+                  temat wraca, więc rozmawiamy z pełnym kontekstem zamiast
+                  pisać od zera. Później z wątku robi się zgłoszenie normalnie. */}
+              {report.status === 'dismissed' && canModerate(role) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="message"
+                  onClick={() => void toDiscussion(report)}
+                >
+                  Zrób z tego dyskusję
                 </Button>
               )}
 
