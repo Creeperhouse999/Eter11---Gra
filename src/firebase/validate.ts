@@ -373,20 +373,13 @@ export function validateContent(content: unknown): ValidationResult {
     );
   }
 
-  // Ręka rośnie o kartę na rundę, dopóki gracz nie zagra. Przy długich
-  // misjach robi się z niej kilkadziesiąt kart, których nie da się objąć
-  // wzrokiem ani zmieścić na ekranie — to psuje grę bardziej niż pomaga.
-  if (
-    typeof rules.handSize === 'number' &&
-    typeof rules.roundsPerMission === 'number' &&
-    rules.handSize + rules.roundsPerMission > 24
-  ) {
-    add(
-      `Ręka może urosnąć do ${rules.handSize + rules.roundsPerMission} kart ` +
-        '(rozdanie plus dobieranie co rundę). Powyżej 24 kart ręka nie mieści się ' +
-        'na ekranie — zmniejsz rozdanie albo liczbę rund.',
-    );
-  }
+  // Rozmiar ręki na ekranie ogranicza maxHandSize, NIE suma rozdania i rund:
+  // reducer przerywa dobieranie na nowej rundzie, gdy `hand.length >= maxHandSize`
+  // (reducer.ts), więc ręka nigdy nie urośnie ponad maxHandSize, choćby rund było
+  // trzydzieści. maxHandSize jest już ograniczony zakresem do 1–12 (NUMERIC_RULES),
+  // co mieści się na ekranie. Wcześniejszy warunek liczył worst-case jako
+  // `handSize + roundsPerMission` i odrzucał grywalne konfiguracje długich misji
+  // (np. rozdanie 5 przy 20 rundach i limicie 7 — realnie najwyżej 7 kart).
 
   // --- Motyw ---
   // Nieprawidłowy kolor wywróciłby wygląd całej gry, a błąd byłby trudny

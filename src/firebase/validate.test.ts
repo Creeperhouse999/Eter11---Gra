@@ -133,14 +133,17 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('więcej niż grywalnych problemów');
   });
 
-  it('odrzuca zasady, przy których ręka nie mieści się na ekranie', () => {
+  it('przepuszcza długie misje — rozmiar ręki ogranicza maxHandSize, nie liczba rund', () => {
     const content = validContent();
-    // Ręka rośnie o kartę na rundę: 12 + 30 to ponad czterdzieści kart,
-    // czyli kilka ekranów samego przewijania.
-    content.rules = { ...content.rules, handSize: 12, roundsPerMission: 30 };
+    // Ręka rośnie o kartę na rundę TYLKO do maxHandSize: reducer przerywa
+    // dobieranie, gdy `hand.length >= maxHandSize`. Przy maxHandSize 7 dwadzieścia
+    // rund nie zrobi z ręki dwudziestu pięciu kart. Walidator mylił rozmiar ręki
+    // z sumą (rozdanie + rundy) i odrzucał grywalną konfigurację długiej misji —
+    // o tym, czy ręka mieści się na ekranie, decyduje zakres maxHandSize (1–12),
+    // sprawdzany osobno, a nie liczba rund.
+    content.rules = { ...content.rules, handSize: 5, roundsPerMission: 20, maxHandSize: 7 };
     const result = validateContent(content);
-    expect(result.ok).toBe(false);
-    expect(result.errors.join(' ')).toContain('nie mieści się na ekranie');
+    expect(result.ok, result.errors.join('; ')).toBe(true);
   });
 
   it('przepuszcza zasady mieszczące się w granicach', () => {
