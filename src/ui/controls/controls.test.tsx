@@ -261,6 +261,44 @@ describe('useConfirm', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Anuluj' }));
     await waitFor(() => expect(screen.getByTestId('wynik').textContent).toBe('nie'));
   });
+
+  /**
+   * Druga prośba, zanim padła odpowiedź na pierwszą (np. podwójny klik w „Usuń"),
+   * nie może zawiesić pierwszej obietnicy na zawsze — musi się domknąć „nie".
+   */
+  function DoubleHarness() {
+    const { confirm, dialog } = useConfirm();
+    const [log, setLog] = useState<string[]>([]);
+    const ask = (title: string) => async () => {
+      const ok = await confirm({ title, message: title });
+      setLog((prev) => [...prev, `${title}:${ok}`]);
+    };
+    return (
+      <>
+        {dialog}
+        <button type="button" onClick={ask('A')}>a</button>
+        <button type="button" onClick={ask('B')}>b</button>
+        <span data-testid="log">{log.join(',')}</span>
+      </>
+    );
+  }
+
+  it('druga prośba przed odpowiedzią domyka pierwszą, nie zawiesza jej', async () => {
+    render(<DoubleHarness />);
+    fireEvent.click(screen.getByRole('button', { name: 'a' }));
+    fireEvent.click(screen.getByRole('button', { name: 'b' }));
+
+    // Okno pokazuje teraz prośbę B (A została nadpisana).
+    const dialog = await screen.findByRole('dialog', { name: 'B' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Potwierdź' }));
+
+    // A domknięte „nie" (bez fixu wisiałoby i nigdy nie trafiło do logu), B „tak".
+    await waitFor(() => {
+      const log = screen.getByTestId('log').textContent ?? '';
+      expect(log).toContain('A:false');
+      expect(log).toContain('B:true');
+    });
+  });
 });
 
 describe('Toast', () => {
