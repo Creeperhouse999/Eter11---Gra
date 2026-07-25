@@ -382,4 +382,26 @@ describe('DeckOverview', () => {
     expect(screen.getByText(/do sprawdzenia/i)).toBeDefined();
     expect(screen.queryByText(/Gra jest gotowa/)).toBeNull();
   });
+
+  it('ostrzega, gdy ściankę pokrywa tylko karta robocza (draft)', () => {
+    // Do gry trafiają wyłącznie karty nierobocze (playableCards) — tak samo
+    // liczy walidator zapisu. Gdy jedyne karty danej kombinacji kategoria+rodzina
+    // są `draft`, ścianki NIE da się domknąć w grze, więc przegląd musi
+    // ostrzegać. Wcześniej liczył wszystkie karty (z draftami), przez co mówił
+    // „Gra jest gotowa", a zapis odrzucała walidacja — panel kłamał w groźną stronę.
+    const data = content();
+    const combo = { key: 'digital' as const, family: 'red' as const };
+    const usesCombo = data.problems.some((p) =>
+      p.slots.some((s) => s.key === combo.key && s.family === combo.family),
+    );
+    expect(usesCombo).toBe(true); // założenie testu: jakiś problem wymaga tej kombinacji
+    for (const card of data.cards) {
+      if (card.category === combo.key && card.family === combo.family) card.draft = true;
+    }
+
+    render(<DeckOverview content={data} />);
+
+    expect(screen.queryByText(/Gra jest gotowa/)).toBeNull();
+    expect(screen.getByText(/do sprawdzenia/i)).toBeDefined();
+  });
 });
