@@ -33,29 +33,49 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
   const [box, setBox] = useState<{ top: number; left: number } | null>(null);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
+  // Krawędzie elementu-kotwicy zapamiętane przy pokazaniu — potrzebne, by po
+  // zmierzeniu wysokości dymka zdecydować, czy zmieści się pod, czy nad nim.
+  const anchor = useRef<{ top: number; bottom: number; centerX: number } | null>(null);
 
   const show = () => {
     const element = wrapRef.current;
     if (!element || !label) return;
 
     const rect = element.getBoundingClientRect();
-    setBox({ top: rect.bottom + GAP, left: rect.left + rect.width / 2 });
+    anchor.current = { top: rect.top, bottom: rect.bottom, centerX: rect.left + rect.width / 2 };
+    setBox({ top: rect.bottom + GAP, left: anchor.current.centerX });
   };
 
   const hide = () => setBox(null);
 
-  // Po wyrenderowaniu dymka clampujemy jego środek do ekranu: przy elemencie
-  // w rogu (np. przełącznik motywu w prawym górnym) wyśrodkowany dymek
-  // wychodził poza prawą krawędź. Liczymy z realnej szerokości dymka.
+  // Po wyrenderowaniu dymka domykamy jego pozycję do ekranu — z realnych
+  // wymiarów dymka, nie na oko.
+  //
+  // Poziomo: środek clampujemy do kadru (element w rogu — np. przełącznik
+  // motywu w prawym górnym — inaczej wypychał dymek poza prawą krawędź).
+  //
+  // Pionowo: domyślnie pod elementem, ale gdy dymek nie mieści się na dole
+  // (element przy dolnej krawędzi — np. „Zgłoś błąd" w rogu ekranu gry),
+  // odwracamy go NAD element. Wcześniej pozycja była zawsze `rect.bottom + GAP`
+  // bez pionowego domknięcia, więc taki dymek lądował pod kadrem i był
+  // niewidoczny.
   useLayoutEffect(() => {
-    if (!box || !tipRef.current) return;
-    const w = tipRef.current.offsetWidth;
-    const half = w / 2;
-    const min = EDGE + half;
-    const max = window.innerWidth - EDGE - half;
-    const clamped = Math.max(min, Math.min(box.left, max));
-    if (Math.abs(clamped - box.left) > 0.5) {
-      setBox((b) => (b ? { ...b, left: clamped } : b));
+    if (!box || !tipRef.current || !anchor.current) return;
+    const tip = tipRef.current;
+    const half = tip.offsetWidth / 2;
+    const height = tip.offsetHeight;
+
+    const left = Math.max(EDGE + half, Math.min(box.left, window.innerWidth - EDGE - half));
+
+    const { top: aTop, bottom: aBottom } = anchor.current;
+    let top = aBottom + GAP;
+    if (top + height > window.innerHeight - EDGE) {
+      const above = aTop - GAP - height;
+      top = above >= EDGE ? above : Math.max(EDGE, window.innerHeight - EDGE - height);
+    }
+
+    if (Math.abs(left - box.left) > 0.5 || Math.abs(top - box.top) > 0.5) {
+      setBox({ top, left });
     }
   }, [box]);
 
