@@ -47,7 +47,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={show}>
       {children}
       <div
-        className="pointer-events-none fixed bottom-4 right-4 flex w-full max-w-sm flex-col gap-2"
+        // Szerokość ograniczona do kadru minus marginesy, a nie `w-full` (100vw).
+        // Z `right-4` i `w-full` przeglądarka liczyła lewą krawędź jako
+        // viewportWidth − 16 − 100vw = −16px, więc na telefonie (≤384px) kolumna
+        // była zepchnięta 16px za lewą krawędź, a ikona wiodąca ucięta przez
+        // body overflow-x:hidden. `min(100vw−2rem, 24rem)` mieści ją w kadrze,
+        // zachowując wyrównanie do prawej i wąską kolumnę na desktopie.
+        className="pointer-events-none fixed bottom-4 right-4 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2"
         style={{ zIndex: 'var(--z-toast)' }}
         aria-live="polite"
       >
