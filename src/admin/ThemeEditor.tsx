@@ -105,8 +105,22 @@ export function ThemeEditor({ theme, themeLight, onChange }: ThemeEditorProps) {
       </div>
 
       <p className="mt-2 text-sm text-ink-dim">
-        Edytujesz kolory trybu <strong>{mode === 'light' ? 'jasnego' : 'ciemnego'}</strong>.
-        Zmiany widać natychmiast. Zapisz, żeby zobaczyli je gracze.
+        Edytujesz kolory trybu <strong>{mode === 'light' ? 'jasnego' : 'ciemnego'}</strong>.{' '}
+        {/* Podgląd na żywo działa TYLKO dla trybu, w którym jest teraz strona
+            (update woła applyTheme jedynie przy mode === pageMode). Tekst musiał
+            to odzwierciedlać — dawniej mówił „widać natychmiast" zawsze, więc
+            edycja jasnego przy ciemnej stronie wyglądała, jakby edytor nie
+            działał: kolory się zmieniały w polach, a strona ani drgnęła. */}
+        {mode === pageMode ? (
+          'Zmiany widać natychmiast.'
+        ) : (
+          <>
+            Podgląd na żywo działa teraz w trybie{' '}
+            <strong>{pageMode === 'light' ? 'jasnym' : 'ciemnym'}</strong> — przełącz
+            stronę na ten tryb, żeby od razu zobaczyć zmiany.
+          </>
+        )}{' '}
+        Zapisz, żeby zobaczyli je gracze.
       </p>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">

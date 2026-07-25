@@ -267,6 +267,32 @@ describe('ThemeEditor', () => {
     );
     expect(screen.getByText(/za mało/)).toBeDefined();
   });
+
+  /**
+   * Podgląd na żywo działa tylko dla trybu, w którym jest teraz strona.
+   * Tekst musi to mówić — inaczej edycja jasnego przy ciemnej stronie
+   * wygląda, jakby edytor był zepsuty (kolory się zmieniają w polach,
+   * a strona ani drgnie).
+   */
+  it('nie kłamie o podglądzie, gdy edytujesz tryb inny niż widoczny', () => {
+    const previous = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = 'dark';
+    try {
+      render(<ThemeEditor theme={DEFAULT_THEME} onChange={vi.fn()} />);
+
+      // Domyślnie edytujemy ciemny = tryb strony → podgląd na żywo.
+      expect(screen.getByText(/Zmiany widać natychmiast/)).toBeDefined();
+
+      // Przełącz na edycję jasnego, gdy strona jest ciemna.
+      fireEvent.click(screen.getByRole('tab', { name: /Jasny/ }));
+
+      expect(screen.queryByText(/Zmiany widać natychmiast/)).toBeNull();
+      expect(screen.getByText(/Podgląd na żywo działa teraz w trybie/)).toBeDefined();
+    } finally {
+      if (previous === undefined) delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = previous;
+    }
+  });
 });
 
 describe('DeckOverview', () => {
