@@ -32,9 +32,20 @@ export function AccountPanel({ email, displayName, onSaveName }: AccountPanelPro
     setName(displayName ?? '');
   }, [displayName]);
 
+  const nameChanged = name.trim() !== (displayName ?? '').trim();
+  // Jedno źródło warunku zapisu dla przycisku i Entera — inaczej Enter obchodził
+  // wyłączony przycisk: przy pustym polu zapisywał puste imię i WYMAZYWAŁ je.
+  const canSave = !savingName && nameChanged && name.trim().length > 0;
+
   const saveName = async () => {
+    const trimmed = name.trim();
+    // Bezpiecznik na wypadek wywołania z pominięciem `canSave` (np. Enter):
+    // puste imię nie ma czego zapisać, a zapisalibyśmy nim istniejące.
+    if (!trimmed) return;
+
     setSavingName(true);
-    const result = await onSaveName(name);
+    // Zapisujemy przycięte — inaczej „ Jan " podpisywałby wypowiedzi ze spacjami.
+    const result = await onSaveName(trimmed);
     setSavingName(false);
 
     if (!result.ok) {
@@ -43,8 +54,6 @@ export function AccountPanel({ email, displayName, onSaveName }: AccountPanelPro
     }
     toast('Imię zapisane. Tak podpiszą się Twoje wypowiedzi.', 'success');
   };
-
-  const nameChanged = name.trim() !== (displayName ?? '').trim();
 
   return (
     <section aria-label="Konto" className="max-w-xl">
@@ -70,7 +79,7 @@ export function AccountPanel({ email, displayName, onSaveName }: AccountPanelPro
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && nameChanged) void saveName();
+              if (e.key === 'Enter' && canSave) void saveName();
             }}
             placeholder="Imię"
             aria-label="Twoje imię"
@@ -81,7 +90,7 @@ export function AccountPanel({ email, displayName, onSaveName }: AccountPanelPro
             variant="primary"
             icon="tick"
             onClick={() => void saveName()}
-            disabled={savingName || !nameChanged || name.trim().length === 0}
+            disabled={!canSave}
           >
             {savingName ? 'Zapisuję…' : 'Zapisz'}
           </Button>
