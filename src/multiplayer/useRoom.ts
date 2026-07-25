@@ -14,6 +14,7 @@ import {
   sendReaction,
   setReady,
   startGame,
+  trackPresence,
   watchRoom,
 } from './room';
 import type { CardOffer, Reaction, ReactionKind, Room } from './types';
@@ -42,6 +43,15 @@ export function useRoom(code: string | null, uid: string | null) {
     });
     return stop;
   }, [code]);
+
+  // Obecność gracza (`online`) przez cały pobyt w pokoju. Osobno od nasłuchu
+  // stanu, bo zależy też od `uid` i musi się posprzątać przy wyjściu — inaczej
+  // nasłuch `.info/connected` zostawałby po opuszczeniu pokoju i przy powrocie
+  // sieci wpisywał obecność do pokoju, z którego gracz już wyszedł.
+  useEffect(() => {
+    if (!code || !uid) return;
+    return trackPresence(code, uid);
+  }, [code, uid]);
 
   // Gracze w kolejności tur — indeks aktywnego z tej listy wskazuje, czyj ruch.
   const order = room ? playersInOrder(room) : [];

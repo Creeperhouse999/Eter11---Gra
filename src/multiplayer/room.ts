@@ -93,7 +93,9 @@ export async function createRoom(input: {
       createdAt: serverTimestamp(),
     });
 
-    trackPresence(code, uid);
+    // Obecność pilnuje `useRoom` przez cały pobyt w pokoju (nasłuch
+    // `.info/connected` z odpięciem przy wyjściu) — początkowe `online: true`
+    // jest już w zapisie wyżej.
     return { code, uid };
   }
 
@@ -146,21 +148,49 @@ export async function joinRoom(input: {
   };
 
   await update(ref(rtdb, `${ROOMS}/${code}/players`), { [uid]: player });
-  trackPresence(code, uid);
+  // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
   return { ok: true, uid };
 }
 
 /**
- * Utrzymuje flagę `online` gracza.
+ * Utrzymuje flagę `online` gracza przez cały pobyt w pokoju.
  *
- * `onDisconnect` każe serwerowi ustawić `online: false`, gdy połączenie
- * padnie — bez tego rozłączony gracz wyglądałby na obecnego w nieskończoność.
- * Sam zapis `true` przy wejściu, obietnica rozłączenia zostaje na serwerze.
+ * Sama obietnica `onDisconnect` NIE wystarcza. Gdy telefon na moment traci
+ * sieć (norma na komórce) i Firebase łączy się z powrotem, serwer zdążył już
+ * wykonać `onDisconnect` — ustawił `online: false` i „zużył" obietnicę. Zapis
+ * `true` tylko raz przy wejściu nie wracał: gracz zostawał „poza grą" na
+ * zawsze, a po minucie koordynator spasowywał jego turę i wyrzucał go z partii,
+ * mimo że siedział połączony. Dokładnie to psuło grę we dwoje na komórkach.
+ *
+ * Dlatego nasłuchujemy `.info/connected` i przy KAŻDYM (ponownym) połączeniu
+ * najpierw zbroimy świeżą obietnicę rozłączenia, a potem zapisujemy
+ * `online: true`. Zwrócona funkcja tylko ODPINA nasłuch przy wyjściu z pokoju —
+ * obietnicy rozłączenia świadomie nie zdejmujemy (jak było wcześniej: rozłączenie
+ * i tak oznaczy gracza offline), a `online: false` też nie zapisujemy tu ręcznie,
+ * bo dla wyrzuconego gracza (jego węzeł `kickPlayer` właśnie skasował) taki zapis
+ * odtworzyłby wpis-widmo. Flaga `disposed` zamyka wyścig, w którym reconnect
+ * domknąłby się już po wyjściu i „wskrzesił" obecność w opuszczonym pokoju.
  */
-function trackPresence(code: string, uid: string): void {
+function trackPresence(code: string, uid: string): () => void {
   const onlineRef = ref(rtdb, `${ROOMS}/${code}/players/${uid}/online`);
-  void set(onlineRef, true);
-  void onDisconnect(onlineRef).set(false);
+  const connectedRef = ref(rtdb, '.info/connected');
+  let disposed = false;
+
+  const stop = onValue(connectedRef, (snapshot) => {
+    if (disposed || snapshot.val() !== true) return;
+    // Zbroimy obietnicę PRZED zapisem `true`: gdyby łącze padło w tej samej
+    // chwili, rozłączenie i tak ustawi `false`.
+    void onDisconnect(onlineRef)
+      .set(false)
+      .then(() => {
+        if (!disposed) void set(onlineRef, true);
+      });
+  });
+
+  return () => {
+    disposed = true;
+    stop();
+  };
 }
 
 /** Nasłuch całego pokoju na żywo. Zwraca funkcję odłączającą. */
@@ -431,4 +461,4 @@ export async function clearOffer(code: string): Promise<void> {
   await remove(ref(rtdb, `${ROOMS}/${code}/offer`));
 }
 
-export { makeCode };
+export { makeCode, trackPresence };

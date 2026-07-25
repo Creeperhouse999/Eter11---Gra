@@ -40,6 +40,7 @@ vi.mock('./room', () => ({
   setReady: vi.fn(),
   kickPlayer: vi.fn(),
   startGame: vi.fn(),
+  trackPresence: vi.fn(() => () => {}),
 }));
 
 const { useRoom } = await import('./useRoom');

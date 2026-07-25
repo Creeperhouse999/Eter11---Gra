@@ -42,6 +42,7 @@ vi.mock('./room', () => ({
   sendReaction: vi.fn(),
   offerCard: vi.fn(),
   clearOffer: vi.fn(),
+  trackPresence: vi.fn(() => () => {}),
 }));
 
 // Import po vi.mock, żeby komponent dostał zamockowaną warstwę pokoju.
