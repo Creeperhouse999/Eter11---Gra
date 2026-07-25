@@ -76,7 +76,13 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
           <span
             ref={tipRef}
             role="tooltip"
-            className="eter-pop pointer-events-none fixed -translate-x-1/2 whitespace-nowrap rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
+            // Zawija się i ma sufit szerokości = ekran minus 2×EDGE. `nowrap`
+            // sprawiał, że długa podpowiedź (podpowiedzi ścianek mają do 120
+            // znaków, a na telefonie tylko one niosą treść — tekst w karcie jest
+            // ukryty) była szersza niż ekran; wtedy w clampie `min > max`, środek
+            // przyklejał się do lewej, a prawy brzeg uciekał poza kadr. Ze
+            // zwijaniem realna szerokość mieści się w kadrze i clamp działa.
+            className="eter-pop pointer-events-none fixed max-w-[calc(100vw-16px)] -translate-x-1/2 whitespace-normal break-words rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
             style={{ top: box.top, left: box.left, zIndex: 'var(--z-tooltip)' }}
           >
             {label}
