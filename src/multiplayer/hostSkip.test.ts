@@ -55,13 +55,13 @@ function missionState(activeIndex: number): GameState {
   return { ...state, activePlayerIndex: activeIndex };
 }
 
-function roomWith(state: GameState, p2online: boolean): Room {
+function roomWith(state: GameState, p2online: boolean, p1online = true): Room {
   return {
     code: 'ABCD',
     phase: 'playing',
     hostUid: 'p1',
     players: {
-      p1: { uid: 'p1', name: 'Ala', characterId: 'ch-odkrywca', online: true, ready: true, joinedAt: 1 },
+      p1: { uid: 'p1', name: 'Ala', characterId: 'ch-odkrywca', online: p1online, ready: true, joinedAt: 1 },
       p2: { uid: 'p2', name: 'Bo', characterId: 'ch-odkrywca', online: p2online, ready: true, joinedAt: 2 },
     },
     state,
@@ -101,6 +101,29 @@ describe('commitMoveAsHost — skip rozłączonego', () => {
     // Aktywny jest już gracz 0 (Ala), skipowany to p2 — jego chwila minęła.
     currentRoom = roomWith(missionState(0), /* p2online */ false);
     await commitMoveAsHost('ABCD', 'p1', 'p2', { type: 'PASS', playerId: 'p2' });
+
+    expect(lastResult?.lastAction).toBeNull();
+    expect(lastResult?.state?.activePlayerIndex).toBe(0);
+  });
+
+  it('gdy to HOST jest rozłączonym aktywnym graczem, spasuje go koordynator (nie host)', async () => {
+    // Regresja soft-locka: host (p1) padł na własnej turze (indeks 0). Timer
+    // hosta nie zadziała — host jest offline. Pierwszy obecny gracz (p2) jest
+    // teraz rewelatorem/koordynatorem i to on zapisuje spasowanie.
+    currentRoom = roomWith(missionState(0), /* p2online */ true, /* p1online */ false);
+    await commitMoveAsHost('ABCD', 'p2', 'p1', { type: 'PASS', playerId: 'p1' });
+
+    // Tura hosta spasowana, gra rusza dalej — koniec zawieszenia.
+    expect(lastResult?.lastAction).toEqual({ type: 'PASS', playerId: 'p1' });
+    expect(lastResult?.state?.activePlayerIndex).not.toBe(0);
+  });
+
+  it('NIE pozwala pisać komuś, kto nie jest już koordynatorem', async () => {
+    // Ten sam pokój (host p1 offline, aktywny to p1), ale strzela timer
+    // rozłączonego p1 — p1 nie jest już rewelatorem (jest offline), więc
+    // transakcja odrzuca: autoryzacja idzie po rewelatorze, nie po hostUid.
+    currentRoom = roomWith(missionState(0), /* p2online */ true, /* p1online */ false);
+    await commitMoveAsHost('ABCD', 'p1', 'p1', { type: 'PASS', playerId: 'p1' });
 
     expect(lastResult?.lastAction).toBeNull();
     expect(lastResult?.state?.activePlayerIndex).toBe(0);

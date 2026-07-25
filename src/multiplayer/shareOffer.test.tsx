@@ -28,6 +28,8 @@ vi.mock('./room', () => ({
     };
   }),
   playersInOrder: (room: Room) => Object.values(room.players ?? {}),
+  revealerUid: (room: Room) =>
+    Object.values(room.players ?? {}).find((p) => p.online)?.uid,
   commitMove: vi.fn(),
   commitMoveAsHost: vi.fn(),
   commitSummaryMove: (code: string, uid: string, action: unknown) =>

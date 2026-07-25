@@ -30,6 +30,8 @@ vi.mock('./room', () => ({
     };
   }),
   playersInOrder: (room: Room) => Object.values(room.players ?? {}),
+  revealerUid: (room: Room) =>
+    Object.values(room.players ?? {}).find((p) => p.online)?.uid,
   startGame: vi.fn(),
   setReady: vi.fn(),
   setCharacter: vi.fn(),

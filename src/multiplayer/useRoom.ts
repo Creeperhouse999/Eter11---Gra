@@ -10,6 +10,7 @@ import {
   kickPlayer,
   offerCard,
   playersInOrder,
+  revealerUid,
   sendReaction,
   setReady,
   startGame,
@@ -138,12 +139,16 @@ export function useRoom(code: string | null, uid: string | null) {
 
   // Skipnięcie tury rozłączonego gracza po minucie.
   //
-  // Robi to WYŁĄCZNIE host — gdyby liczył każdy, tura skipnęłaby się kilka
-  // razy naraz. Gracz na kolejce, który jest offline dłużej niż minutę od
-  // początku swojej tury, dostaje automatyczne „pasuję" i wypada z gry.
-  const isHost = Boolean(uid && room?.hostUid === uid);
+  // Robi to WYŁĄCZNIE koordynator — pierwszy obecny gracz w kolejności
+  // (`revealerUid`), a nie host. Gdyby liczył każdy, tura skipnęłaby się kilka
+  // razy naraz; gdyby liczył tylko host, a to host byłby rozłączonym aktywnym
+  // graczem, nie byłoby komu spasować jego turę i partia zawisłaby na stałe.
+  // Koordynator jest zawsze obecny (online) i jednoznaczny. Gracz na kolejce,
+  // który jest offline dłużej niż minutę od początku swojej tury, dostaje
+  // automatyczne „pasuję" i wypada z gry.
+  const isSkipCoordinator = Boolean(uid && room && revealerUid(room) === uid);
   useEffect(() => {
-    if (!isHost || !code || !room?.state || room.phase !== 'playing') return;
+    if (!isSkipCoordinator || !code || !room?.state || room.phase !== 'playing') return;
     if (!activeUid) return;
 
     const active = room.players[activeUid];
@@ -171,7 +176,7 @@ export function useRoom(code: string | null, uid: string | null) {
     }
     const timer = window.setTimeout(fire, wait);
     return () => window.clearTimeout(timer);
-  }, [isHost, code, room?.state, room?.turnStartedAt, activeUid, room?.players, room?.phase]);
+  }, [isSkipCoordinator, code, room?.state, room?.turnStartedAt, activeUid, room?.players, room?.phase]);
 
   return {
     room,

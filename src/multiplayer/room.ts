@@ -280,32 +280,38 @@ export async function commitSummaryMove(
 }
 
 /**
- * Host zapisuje ruch za rozłączonego gracza (automatyczne spasowanie).
+ * Automatyczne spasowanie za rozłączonego gracza.
  *
- * Pomija „czyja kolej" o tyle, że działa w imieniu skipowanego — ale ruch
- * PRZELICZA WEWNĄTRZ transakcji na aktualnym stanie (jak `commitSummaryMove`)
+ * Pisze to WYZNACZONY KOORDYNATOR — pierwszy obecny gracz w kolejności
+ * (`revealerUid`), a NIE host. Wcześniej autoryzował tylko host (`hostUid`),
+ * przez co gdy to host był rozłączonym aktywnym graczem, nie było komu spasować
+ * jego turę: partia zawieszała się na stałe (a po odejściu hosta żadnego
+ * rozłączonego gracza nie dało się już pominąć). Rewelator jest zawsze obecny z
+ * definicji i jednoznaczny (jeden najstarszy online gracz), więc dwóch gości nie
+ * spasuje naraz — dokładnie ten sam wybór koordynatora co przy `commitReveal`.
+ *
+ * Ruch PRZELICZA WEWNĄTRZ transakcji na aktualnym stanie (jak `commitSummaryMove`)
  * i zapisuje TYLKO gdy:
- *  - piszący to host (inaczej dwa urządzenia hosta skipnęłyby dwa razy, a
- *    złośliwy gracz nadpisałby cudzy ruch), ORAZ
+ *  - piszący jest aktualnym rewelatorem (koordynatorem), ORAZ
  *  - skipowany gracz WCIĄŻ jest tym aktywnym i WCIĄŻ jest offline.
  *
  * Ten drugi warunek zamyka wyścig: gracz offline potrafi wrócić i zagrać tuż
  * przed upływem minuty (commitMove przesuwa wtedy turę), a strzelający w tej
- * samej chwili timer hosta liczył PASS ze starego stanu i bezwarunkowo go
+ * samej chwili timer koordynatora liczył PASS ze starego stanu i bezwarunkowo go
  * zapisywał — kasując dopiero co wykonany ruch i cofając turę. Teraz transakcja
  * widzi aktualny pokój: jeśli tura już przeszła albo gracz jest online, nic
  * nie pisze.
  */
 export async function commitMoveAsHost(
   code: string,
-  hostUid: string,
+  byUid: string,
   skippedUid: string,
   action: Action,
 ): Promise<void> {
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
-    if (room.hostUid !== hostUid) return room;
+    if (revealerUid(room) !== byUid) return room;
 
     // Skip liczy się tylko, gdy w chwili zapisu wciąż czekamy właśnie na TEGO
     // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
