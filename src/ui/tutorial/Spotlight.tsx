@@ -121,8 +121,13 @@ export function Spotlight({ target, from = null, padding = 8 }: SpotlightProps) 
     return (
       <div
         aria-hidden="true"
-        className="eter-fade-in pointer-events-none fixed inset-0 bg-bg/70"
-        style={{ zIndex: 'var(--z-spotlight)' }}
+        className="eter-fade-in pointer-events-none fixed inset-0"
+        // Ciemny scrim, nie `bg-bg/70`. `--eter-bg` w motywie JASNYM to prawie
+        // biel (#f4f7fc), więc zasłona kroków narracyjnych (welcome/slots/outro)
+        // ledwo przyciemniała i nie skupiała uwagi, podczas gdy kroki gry mają
+        // ciemny scrim z maski SVG (rgba(10,16,32,0.78)). Ten sam ciemny odcień
+        // dla obu przypadków daje spójne przyciemnienie w jasnym i ciemnym motywie.
+        style={{ zIndex: 'var(--z-spotlight)', background: 'rgba(10, 16, 32, 0.7)' }}
       />
     );
   }
