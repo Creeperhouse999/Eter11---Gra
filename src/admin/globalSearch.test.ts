@@ -90,6 +90,35 @@ describe('szukanie w całej treści', () => {
     expect(hit && hit.excerpt.length).toBeLessThan(problem.story.length);
   });
 
+  it('nie wstawia literalnego "undefined", gdy pola opcjonalne są puste', () => {
+    // validateContent NIE wymaga description/consequence/antagonist/traits
+    // (sprawdza je tylko, gdy są tekstem), więc poprawny dokument z bazy może
+    // je mieć puste — contentStats domyka to `?? ''`, a wyszukiwarka nie.
+    // Bez domknięcia szablon dawał „Kotek undefined …": szukanie „undefined"
+    // trafiało w każdą taką kartę, a fragment wyniku pokazywał to słowo.
+    const content = {
+      ...BUILTIN_CONTENT,
+      cards: [
+        { id: 'x1', name: 'Kotek', category: 'digital', family: 'red', icon: 'star' },
+        ...BUILTIN_CONTENT.cards,
+      ],
+      characters: [
+        { id: 'c1', name: 'Bezcecha', kind: 'child', icon: 'star' },
+        ...BUILTIN_CONTENT.characters,
+      ],
+    } as unknown as typeof BUILTIN_CONTENT;
+
+    // Szukanie „undefined" nie może trafić w kartę/postać z pustym polem.
+    const spurious = searchContent(content, 'undefined');
+    expect(spurious.some((h) => h.title === 'Kotek')).toBe(false);
+    expect(spurious.some((h) => h.title === 'Bezcecha')).toBe(false);
+
+    // Fragment przy trafieniu w nazwę nie zawiera literalnego „undefined".
+    const hit = searchContent(content, 'Kotek').find((h) => h.title === 'Kotek');
+    expect(hit).toBeTruthy();
+    expect(hit!.excerpt.toLowerCase()).not.toContain('undefined');
+  });
+
   it('nie wywraca się na częściowym wstępie', () => {
     // Walidacja nie sprawdza kształtu wstępu, więc w bazie może leżeć sama
     // historia bez zasad i części dla dorosłych. Kiedyś `undefined.forEach`
