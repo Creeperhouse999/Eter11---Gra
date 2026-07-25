@@ -8,3 +8,6 @@ dist-ssr
 .env.local
 .DS_Store
 *.log
+
+# Build artifact TypeScript — generowany, nie śledzić (blokował merge cloud routine)
+tsconfig.tsbuildinfo
