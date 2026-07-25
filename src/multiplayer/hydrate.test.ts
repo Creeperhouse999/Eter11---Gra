@@ -3,6 +3,7 @@ import { createGame, reduce, DEFAULT_CONFIG } from '../engine/reducer';
 import { ALL_CARDS } from '../data/cards';
 import { ALL_PROBLEMS } from '../data/problems';
 import { hydrateState, hydrateRoom } from './hydrate';
+import { playersInOrder } from './room';
 import type { GameState } from '../engine/types';
 import type { Room } from './types';
 
@@ -110,6 +111,39 @@ describe('hydrateState — stan po RTDB', () => {
     const hydrated = hydrateRoom(room);
     expect(Array.isArray(hydrated.reactions)).toBe(true);
     expect(Array.isArray(hydrated.state!.mission!.played)).toBe(true);
+  });
+
+  it('odrzuca wpis-widmo gracza po kicku (onDisconnect odtworzył {online:false})', () => {
+    // `kickPlayer` kasuje węzeł gracza, ale jego obietnica
+    // `onDisconnect(.../online).set(false)` bywa wciąż uzbrojona. Gdy wyrzucony
+    // zamknie kartę, serwer zapisuje `players/<uid>/online = false` i odtwarza
+    // NIEPEŁNY wpis — bez uid/name/characterId/joinedAt. Taki widmowy gracz psuł
+    // kolejność tur (joinedAt = undefined → NaN w sortowaniu), listę w poczekalni
+    // (Avatar bez imienia) i start partii (gracz o `id: undefined`).
+    const room = {
+      code: 'ABCD',
+      phase: 'lobby',
+      hostUid: 'a',
+      players: {
+        a: { uid: 'a', name: 'Ala', characterId: 'ch-odkrywca', online: true, ready: false, joinedAt: 1 },
+        // Widmo: onDisconnect wyrzuconego dopisał sam `online`, bez reszty pól.
+        b: { online: false },
+        c: { uid: 'c', name: 'Cezary', characterId: 'ch-lekarz', online: true, ready: false, joinedAt: 2 },
+      },
+      state: null,
+      lastAction: null,
+      turnStartedAt: 0,
+      reactions: [],
+      offer: null,
+      createdAt: 0,
+    } as unknown as Room;
+
+    const hydrated = hydrateRoom(room);
+
+    // Widmo wypada — zostają tylko prawdziwi gracze.
+    expect(Object.keys(hydrated.players).sort()).toEqual(['a', 'c']);
+    // Kolejność tur bez NaN: prawdziwi gracze po joinedAt, bez widma w środku.
+    expect(playersInOrder(hydrated).map((p) => p.uid)).toEqual(['a', 'c']);
   });
 
   it('przywraca offer i lastAction jako null, gdy RTDB je wycięła', () => {

@@ -1,5 +1,5 @@
 import type { GameState, MissionState, Player } from '../engine/types';
-import type { Room } from './types';
+import type { Room, RoomPlayer } from './types';
 
 /**
  * Uzupełnienie stanu gry po drodze przez Realtime Database.
@@ -66,15 +66,40 @@ export function hydrateState(state: GameState): GameState {
 }
 
 /**
+ * Odrzuca wpisy-widma graczy.
+ *
+ * `kickPlayer` kasuje węzeł gracza, ale jego obietnica
+ * `onDisconnect(.../online).set(false)` bywa wciąż uzbrojona na łączu wyrzuconego.
+ * Gdy ten zamknie kartę, serwer zapisuje `players/<uid>/online = false` i odtwarza
+ * NIEPEŁNY wpis `{ online: false }` — bez `uid`, `name`, `characterId`, `joinedAt`.
+ * Taki widmowy gracz psuł kolejność tur (`joinedAt` = undefined → NaN w sortowaniu
+ * `playersInOrder`), listę w poczekalni (Avatar bez imienia) i start partii
+ * (`Multiplayer.start` budował gracza o `id: undefined`). Wpis bez `uid` nie jest
+ * graczem — pomijamy go już na wejściu z sieci.
+ */
+function realPlayers(
+  players: Record<string, RoomPlayer> | undefined | null,
+): Record<string, RoomPlayer> {
+  if (!players) return {};
+  const out: Record<string, RoomPlayer> = {};
+  for (const [key, player] of Object.entries(players)) {
+    if (player && typeof player.uid === 'string' && player.uid.length > 0) {
+      out[key] = player;
+    }
+  }
+  return out;
+}
+
+/**
  * Dopełnia cały pokój: stan gry, listę reakcji i mapę graczy.
  *
  * `reactions` i `players` też bywają wycięte przez RTDB, gdy puste — a widok
- * i tak po nich iteruje.
+ * i tak po nich iteruje. Wpisy-widma (patrz `realPlayers`) odsiewamy tutaj.
  */
 export function hydrateRoom(room: Room): Room {
   return {
     ...room,
-    players: room.players ?? {},
+    players: realPlayers(room.players),
     reactions: arr(room.reactions),
     // RTDB usuwa też pola o wartości null — kontrakt typu mówi `| null`, więc
     // przywracamy je, żeby reszta kodu nie musiała odróżniać braku od null.
