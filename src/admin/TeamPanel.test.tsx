@@ -82,4 +82,47 @@ describe('TeamPanel — ochrona przed samo-wylogowaniem', () => {
     // Dla cudzego konta „kosz" działa jak dotąd: prosi o potwierdzenie.
     expect(await screen.findByText('Usunąć wpis roli?')).toBeTruthy();
   });
+
+  /**
+   * „Nadaj rolę" obchodziło te same guardy, które ma changeRole/remove: admin
+   * mógł wpisać WŁASNY uid z niższą rolą i zdegradować sam siebie, tracąc
+   * zakładkę Zespół. Formularz musi odrzucić samo-degradację i degradację
+   * konta założyciela — tak samo jak pozostałe ścieżki.
+   */
+  const fillAndAdd = (email: string, uid: string) => {
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: email } });
+    fireEvent.change(screen.getByLabelText('UID'), { target: { value: uid } });
+    // Rola domyślna to „coworker" — czyli degradacja z admina.
+    fireEvent.click(screen.getByRole('button', { name: 'Nadaj' }));
+  };
+
+  it('nie pozwala nadać sobie niższej roli (samo-degradacja) przez „Nadaj rolę"', async () => {
+    team = [];
+    renderPanel('me');
+
+    fillAndAdd('admin@eter11.pl', 'me');
+
+    expect(await screen.findByText(/samemu sobie/i)).toBeTruthy();
+    expect(setRole).not.toHaveBeenCalled();
+  });
+
+  it('nie pozwala zdegradować konta założyciela przez „Nadaj rolę"', async () => {
+    team = [];
+    renderPanel('me');
+
+    fillAndAdd(ROOT_ADMIN_EMAIL, 'rootUID');
+
+    expect(await screen.findByText(/założyciela/i)).toBeTruthy();
+    expect(setRole).not.toHaveBeenCalled();
+  });
+
+  it('nadanie roli innemu kontu nadal działa', async () => {
+    team = [];
+    renderPanel('me');
+
+    fillAndAdd('nowy@eter11.pl', 'nowy-uid');
+
+    await screen.findByText(/Rola nadana/i);
+    expect(setRole).toHaveBeenCalledTimes(1);
+  });
 });
