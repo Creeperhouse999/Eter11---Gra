@@ -43,4 +43,16 @@ describe('IntroScreen', () => {
 
     expect(screen.getByText(INTRO_STORY[0].heading)).toBeTruthy();
   });
+
+  it('taby wstępu mają cel dotyku min-h-11 (na telefonie podpowiedź jest ukryta)', () => {
+    const { container } = render(<IntroScreen onDone={noop} onSkip={noop} />);
+    const nav = container.querySelector('nav[aria-label="Części wstępu"]');
+    const tabs = nav?.querySelectorAll('button') ?? [];
+
+    expect(tabs.length).toBeGreaterThan(0);
+    // Bez fixu: same px-3 py-2 → ~36px, poniżej 44px celu dotyku dla dzieci.
+    for (const tab of tabs) {
+      expect(tab.className).toMatch(/\bmin-h-11\b/);
+    }
+  });
 });
