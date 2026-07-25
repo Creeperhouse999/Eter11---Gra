@@ -107,6 +107,33 @@ describe('Select', () => {
     expect(await screen.findByRole('listbox')).toBeDefined();
   });
 
+  it('aria-activedescendant wskazuje aktywną opcję i podąża za strzałką', async () => {
+    // Fokus zostaje na przycisku, więc bez aria-activedescendant czytnik ekranu
+    // nie ogłasza, na której opcji stoi zaznaczenie po ArrowUp/Down.
+    render(<Select value="a" options={options} onChange={vi.fn()} ariaLabel="Wybór" />);
+    const trigger = screen.getByRole('button', { name: 'Wybór' });
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // otwiera, aktywna = „Pierwsza"
+    const listbox = await screen.findByRole('listbox');
+    expect(trigger.getAttribute('aria-controls')).toBe(listbox.id);
+
+    const activeByData = () =>
+      within(listbox)
+        .getAllByRole('option')
+        .find((o) => o.getAttribute('data-active') === 'true');
+
+    // Wskazana po id opcja to dokładnie ta oznaczona jako aktywna.
+    expect(trigger.getAttribute('aria-activedescendant')).toBeTruthy();
+    expect(activeByData()?.id).toBe(trigger.getAttribute('aria-activedescendant'));
+
+    // Strzałka w dół przesuwa wirtualny fokus na kolejną opcję.
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(trigger.getAttribute('aria-activedescendant')).toBe(
+      within(listbox).getByRole('option', { name: 'Druga' }).id,
+    );
+    expect(activeByData()?.id).toBe(trigger.getAttribute('aria-activedescendant'));
+  });
+
   it('wybór opcji zgłasza wartość i zamyka listę', async () => {
     const onChange = vi.fn();
     render(<Select value="a" options={options} onChange={onChange} ariaLabel="Wybór" />);
