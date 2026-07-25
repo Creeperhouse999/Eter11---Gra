@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reduce, DEFAULT_CONFIG } from './reducer';
+import { reduce, DEFAULT_CONFIG, hasProblemToReveal } from './reducer';
 import { newGame, testDeck } from './testFixtures';
 
 describe('createGame', () => {
@@ -111,5 +111,36 @@ describe('START_MISSION', () => {
     // Licznik odłożenia też znika — inaczej problem wróciłby natychmiast
     // przy kolejnej porażce, bez dwóch misji przerwy.
     expect(Object.keys(state.unsolvedSince)).toHaveLength(0);
+  });
+});
+
+describe('hasProblemToReveal', () => {
+  // Predykat, którym ekran startu decyduje, czy „Odkryj problem" jest aktywny.
+  // Musi zgadzać się z tym, co faktycznie robi START_MISSION — inaczej przycisk
+  // bywa wyłączony mimo że silnik ma co wyłożyć (ślepy zaułek).
+
+  it('widzi problem, gdy talia nie jest pusta', () => {
+    expect(hasProblemToReveal(newGame())).toBe(true);
+  });
+
+  it('widzi odłożony problem, gdy talia opustoszała — jak recykling w START_MISSION', () => {
+    const base = newGame();
+    const waiting = {
+      ...base,
+      problemPile: [],
+      unsolvedProblems: [base.problemPile[0]],
+    };
+
+    // Patrzenie na sam `problemPile` dałoby tu `false` i wyłączyło przycisk,
+    // choć START_MISSION w tym stanie realnie wykłada odłożony problem.
+    expect(hasProblemToReveal(waiting)).toBe(true);
+    expect(reduce(waiting, { type: 'START_MISSION' }).state.phase).toBe('mission');
+  });
+
+  it('nie ma czego odkryć, gdy obie listy puste — start prowadzi do finału', () => {
+    const empty = { ...newGame(), problemPile: [], unsolvedProblems: [] };
+
+    expect(hasProblemToReveal(empty)).toBe(false);
+    expect(reduce(empty, { type: 'START_MISSION' }).state.phase).toBe('finale');
   });
 });

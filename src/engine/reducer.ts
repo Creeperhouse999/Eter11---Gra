@@ -96,6 +96,20 @@ export function roundsForPlayers(_players: number, configured: number): number {
   return configured;
 }
 
+/**
+ * Czy jest jeszcze jakiś problem do odkrycia.
+ *
+ * `startMission` odkrywa problem z talii, a gdy talia opustoszała — sięga po
+ * odłożone (recykling, żeby partia nie zawisła). Ekran startu MUSI liczyć tak
+ * samo: gdyby patrzył tylko na `problemPile`, wyłączałby „Odkryj problem"
+ * mimo że silnik ma co wyłożyć, i zostawiał gracza w ślepym zaułku z obietnicą
+ * „wrócą po dwóch misjach", której nic nie mogło spełnić. Jedno źródło prawdy
+ * dla obu ekranów startu (gra przy stole i tryb testowy panelu).
+ */
+export function hasProblemToReveal(state: GameState): boolean {
+  return state.problemPile.length > 0 || state.unsolvedProblems.length > 0;
+}
+
 /** Odrzucenie ruchu — stan bez zmian, powód dla UI. */
 function reject(state: GameState, reason: string): ReducerResult {
   return { state, rejected: reason };
