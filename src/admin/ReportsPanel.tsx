@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   addReport,
   deleteReport,
@@ -261,11 +261,20 @@ export function ReportsPanel({
    * Komentarz jest wymagany przy odesłaniu do poprawki: „dalej nie działa"
    * bez opisu nie mówi programiście nic, czego by już nie wiedział.
    */
+  // Blokada ponownego wejścia w locie. Ref, nie stan: `sending` w stanie
+  // zmienia się dopiero po renderze, więc dwa szybkie kliknięcia (albo
+  // dwuklik) zdążyłyby wywołać zapis dwa razy, zanim przycisk się wyłączy.
+  // Przy odesłaniu/odrzuceniu z komentarzem każde wywołanie dokłada notatkę
+  // przez arrayUnion z innym `at` — bez dedupu powstawały near-duplikaty.
+  const statusInFlight = useRef(false);
+
   const changeStatus = async (
     report: Report,
     next: ReportStatus,
     from: 'dev' | 'reporter' = 'reporter',
   ) => {
+    if (statusInFlight.current) return;
+    statusInFlight.current = true;
     const text = commenting === report.id ? comment.trim() : '';
 
     try {
@@ -293,6 +302,8 @@ export function ReportsPanel({
       toast(STATUS_TOAST[next]);
     } catch {
       toast('Nie udało się zapisać. Sprawdź, czy jesteś zalogowany.', 'danger');
+    } finally {
+      statusInFlight.current = false;
     }
   };
 
