@@ -89,4 +89,16 @@ describe('szukanie w całej treści', () => {
     // Cała historia problemu w wyniku zamieniłaby listę w ścianę tekstu.
     expect(hit && hit.excerpt.length).toBeLessThan(problem.story.length);
   });
+
+  it('nie wywraca się na częściowym wstępie', () => {
+    // Walidacja nie sprawdza kształtu wstępu, więc w bazie może leżeć sama
+    // historia bez zasad i części dla dorosłych. Kiedyś `undefined.forEach`
+    // wywracał wyszukiwarkę — teraz brakująca część to zero scen.
+    const broken = {
+      ...BUILTIN_CONTENT,
+      intro: { story: BUILTIN_CONTENT.intro?.story ?? [] },
+    } as unknown as typeof BUILTIN_CONTENT;
+
+    expect(() => searchContent(broken, 'test')).not.toThrow();
+  });
 });

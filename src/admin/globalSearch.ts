@@ -109,7 +109,9 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       ['adults', 'Wstęp → Dla dorosłych'],
     ];
     for (const [key, label] of parts) {
-      content.intro[key].forEach((scene, index) => {
+      // Wstęp bywa zapisany częściowo (sama historia bez zasad itd.) — brakująca
+      // część to zero scen, nie `undefined.forEach`, które wywracało wyszukiwarkę.
+      (content.intro[key] ?? []).forEach((scene, index) => {
         add(
           'story',
           label,
