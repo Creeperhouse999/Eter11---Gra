@@ -73,7 +73,9 @@ When the code is genuinely solid and no issues are pending, don't fabricate chan
 
 ## Instant Report Watcher (Monitor)
 
-**ALWAYS keep a Monitor running.** It is not optional and not one-time — if the session starts, resumes, or the Monitor ever dies (timeout, session boundary), start it again immediately. A dead Monitor means missed reports. Whenever you notice it isn't running, the first thing you do is re-arm it, then continue.
+**⚠️ TYLKO w interaktywnej sesji lokalnej (na komputerze Alana). W CLOUD ROUTINE (agent na claude.ai, cron) NIE URUCHAMIAJ Monitora ani ScheduleWakeup — NIGDY.** Cloud routine to krótki bieg: zrób robotę wg pętli i ZAKOŃCZ. Monitor to nieskończona pętla — w chmurze wisiałby bez końca i zżarłby cały limit planu ("Usage limit reached"), a każdy zaplanowany bieg padał. Regularność w chmurze zapewnia CRON (raz na dobę), nie Monitor. Jeśli działasz jako cloud agent (repo sklonowane przez routine, brak lokalnego .env) — pomiń całą tę sekcję.
+
+**W sesji lokalnej: ALWAYS keep a Monitor running.** It is not optional and not one-time — if the session starts, resumes, or the Monitor ever dies (timeout, session boundary), start it again immediately. A dead Monitor means missed reports. Whenever you notice it isn't running, the first thing you do is re-arm it, then continue.
 
 Instead of waiting on a slow timer, run a **background Monitor** that pings you the second a new report lands.
 
