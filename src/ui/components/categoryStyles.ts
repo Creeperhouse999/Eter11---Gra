@@ -39,7 +39,13 @@ export function setCategoryStyles(next?: Partial<CategoryMap>): void {
 }
 
 export function categoryLabel(category: CardCategory): string {
-  return categories[category]?.label ?? DEFAULT_CATEGORIES[category].label;
+  // Pusta/whitespace nazwa (redaktor wyczyścił pole w panelu i zapisał) NIE
+  // jest poprawną nazwą, a `?? ` jej nie łapie — pusty string przechodził i
+  // ścianki/karty/karta postaci pokazywały puste miejsce w obu motywach.
+  // Wracamy wtedy do nazwy wbudowanej; dopasowanie karty do ścianki i tak idzie
+  // po kluczu, ale gracz musi widzieć jakąś nazwę.
+  const label = categories[category]?.label;
+  return label && label.trim() ? label : DEFAULT_CATEGORIES[category].label;
 }
 
 export function categoryColorVar(category: CardCategory): string {
