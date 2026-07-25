@@ -49,9 +49,14 @@ export function CardZoom({ card, onClose }: CardZoomProps) {
     <div
       role="dialog"
       aria-label={`Karta ${card.name}`}
-      // Zamyka dowolne dotknięcie: dziecko nie szuka krzyżyka, tylko puka
-      // w ekran, żeby wrócić do gry.
-      onPointerDown={onClose}
+      // Zamyka dotknięcie w dowolnym miejscu (także w kartę): dziecko nie
+      // szuka krzyżyka, tylko puka w ekran, żeby wrócić do gry. Celowo `onClick`,
+      // a nie `onPointerDown` — przewijanie długiego opisu na niskim ekranie
+      // zaczyna się od `pointerdown` w treści, więc zamykanie na nim ucinałoby
+      // przewijanie, po które okno w ogóle powstało. Gest przewijania (dotknięcie
+      // z ruchem) nie wywołuje `click`, samo puknięcie tak — ten sam wzorzec co
+      // w oknie Łabędzia.
+      onClick={onClose}
       className="eter-fade-in fixed inset-0 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-sm"
       style={{ zIndex: 'var(--z-game-overlay)' }}
     >
