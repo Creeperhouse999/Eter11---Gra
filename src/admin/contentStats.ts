@@ -93,11 +93,18 @@ export function contentStats(content: GameContent): StatGroup[] {
     ...characters.map((c) => c.icon),
   ]);
 
-  const duplicateNames = cards
-    .map((c) => c.name)
-    .filter((name, index, all) => all.indexOf(name) !== index)
+  // `Set` domyka liczenie: `indexOf !== index` zostawia KAŻDE wystąpienie po
+  // pierwszym, więc nazwa w N egzemplarzach dawała N-1 wpisów (trzy „Echo" →
+  // „2" i nota „Echo, Echo"). Powtórzona nazwa to jedna pozycja, nieważne ile
+  // razy się powtarza — dedup przed policzeniem i wypisaniem.
+  const duplicateNames = [
+    ...new Set(
+      cards
+        .map((c) => c.name)
+        .filter((name, index, all) => all.indexOf(name) !== index),
+    ),
     // ETER11 występuje w talii wielokrotnie z założenia — to ta sama karta.
-    .filter((name) => name !== 'ETER11');
+  ].filter((name) => name !== 'ETER11');
 
   const noDescription = cards.filter((c) => !(c.description ?? '').trim()).length;
   const drafts = [

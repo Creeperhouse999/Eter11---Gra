@@ -81,6 +81,27 @@ describe('statystyki treści', () => {
     expect(stat.warn).toBe(true);
   });
 
+  it('liczy powtórzoną nazwę raz, niezależnie od liczby wystąpień', () => {
+    // Nazwa w trzech egzemplarzach to JEDNA powtórzona nazwa, nie dwie.
+    // Filtr `indexOf !== index` zostawiał N-1 wpisów, więc trzy „Echo"
+    // pokazywały „Powtórzone nazwy: 2" i notę „Echo, Echo" — sprzeczne
+    // z intencją (jedna powtórzona nazwa).
+    const base = BUILTIN_CONTENT.cards.find((c) => c.name !== 'ETER11')!;
+    const broken: GameContent = {
+      ...BUILTIN_CONTENT,
+      cards: [
+        ...BUILTIN_CONTENT.cards,
+        { ...base, id: 'kopia-1', name: 'Echo' },
+        { ...base, id: 'kopia-2', name: 'Echo' },
+        { ...base, id: 'kopia-3', name: 'Echo' },
+      ],
+    };
+
+    const stat = entry(broken, 'Powtórzone nazwy');
+    expect(stat.value).toBe('1');
+    expect(stat.note).toBe('Echo');
+  });
+
   it('nie uznaje wielu ETER11 za pomyłkę', () => {
     // ETER11 leży w talii w kilku egzemplarzach z założenia — to ta sama
     // karta, nie przeoczenie redaktora.
