@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { useState } from 'react';
 import { Alert } from './Alert';
 import { Button } from './Button';
@@ -9,6 +9,7 @@ import { NumberField, TextField } from './Field';
 import { Modal } from './Modal';
 import { Select } from './Select';
 import { ToastProvider, useToast } from './Toast';
+import { TopBanner } from './TopBanner';
 import { useConfirm } from './useConfirm';
 
 describe('Checkbox', () => {
@@ -298,6 +299,36 @@ describe('useConfirm', () => {
       expect(log).toContain('A:false');
       expect(log).toContain('B:true');
     });
+  });
+});
+
+describe('TopBanner', () => {
+  /**
+   * Baner znika sam po `autoHideMs`, nawet gdy wołający przerysowuje się
+   * z coraz to nową funkcją `onDismiss` (tak robi adapter `game` w grze
+   * online). Wcześniej `onDismiss` w zależnościach odliczania zerował timer
+   * przy każdym renderze rodzica, więc baner nie znikał nigdy.
+   */
+  it('samoczynne zniknięcie przeżywa przerysowania z nową onDismiss', () => {
+    vi.useFakeTimers();
+    try {
+      const dismissed = vi.fn();
+      const { rerender } = render(
+        <TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />,
+      );
+
+      // Trzy przerysowania z NOWĄ strzałką co 1,5 s — łącznie do t=4,5 s.
+      act(() => vi.advanceTimersByTime(1500));
+      rerender(<TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />);
+      act(() => vi.advanceTimersByTime(1500));
+      rerender(<TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />);
+      act(() => vi.advanceTimersByTime(1500));
+
+      // Bez fixu timer zerowałby się przy każdym rerenderze i nigdy nie odpalił.
+      expect(dismissed).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

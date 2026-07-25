@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '../icons/Icon';
 
 type BannerTone = 'info' | 'success' | 'warning' | 'danger';
@@ -41,6 +41,14 @@ export function TopBanner({
   const [entered, setEntered] = useState(false);
   const config = TONES[tone];
 
+  // `onDismiss` bywa świeżą strzałką na każdym renderze wołającego (np. adapter
+  // `game` w grze online tworzy ją od nowa). Gdyby siedziała w zależnościach
+  // odliczania, każdy render rodzica zerowałby timer — a gra online przerysowuje
+  // się co sekundę (reakcje, stan pokoju), więc baner nie znikałby nigdy.
+  // Trzymamy najnowszą w ref i odliczamy tylko od treści i czasu.
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   useEffect(() => {
     const frame = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(frame);
@@ -48,11 +56,11 @@ export function TopBanner({
 
   useEffect(() => {
     if (autoHideMs <= 0) return;
-    const timer = window.setTimeout(onDismiss, autoHideMs);
+    const timer = window.setTimeout(() => onDismissRef.current(), autoHideMs);
     return () => window.clearTimeout(timer);
     // `message` w zależnościach: kolejny komunikat resetuje odliczanie,
     // inaczej drugi baner dziedziczyłby resztę czasu pierwszego.
-  }, [autoHideMs, onDismiss, message]);
+  }, [autoHideMs, message]);
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 flex justify-center p-3"
