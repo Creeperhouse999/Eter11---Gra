@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { CustomIcon } from '../data/customIcons';
 import { uploadImage } from '../firebase/upload';
+import { newId } from './newId';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
 import { Tooltip } from '../ui/controls/Tooltip';
@@ -40,7 +41,12 @@ export function IconEditor({ icons, onChange }: IconEditorProps) {
       // Nazwa domyślna z pliku, bez rozszerzenia — redaktor i tak może ją
       // zmienić, ale „ikona-3" jest gorsza niż „lisek".
       const label = file.name.replace(/\.[^.]+$/, '') || `ikona-${custom.length + i}`;
-      const name = `icon-${custom.length + added.length}-${i}`;
+      // Nazwa obiektu w Storage MUSI być unikalna na cały czas życia biblioteki,
+      // nie liczona z długości tablicy. Wcześniej `icon-${count}-${i}` po
+      // usunięciu ikony cofał licznik, więc kolejne wgranie trafiało na ścieżkę
+      // wciąż używaną przez ocalałą ikonę — uploadBytes nadpisywał jej plik i
+      // ikona cicho znikała (obraz się psuł). Losowy id jak przy kartach/postaciach.
+      const name = newId('icon');
 
       const result = await uploadImage({ file, folder: 'icons', name });
       if (result.ok && result.url) {
