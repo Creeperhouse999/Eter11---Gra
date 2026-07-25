@@ -171,6 +171,30 @@ describe('Select', () => {
     const selected = await screen.findByRole('option', { selected: true });
     expect(selected.textContent).toContain('Druga');
   });
+
+  it('po ponownym otwarciu myszą Enter wybiera aktualną wartość, nie ostatnio podświetloną', async () => {
+    // Ścieżka klawiaturowa przywraca podświetlenie na wybraną wartość przy
+    // otwarciu; ścieżka myszy tego nie robiła. Sekwencja: otwórz, przejdź
+    // strzałkami na trzecią opcję, zamknij Escape, otwórz PONOWNIE myszą,
+    // Enter — bez fixu wybierało 'c' z poprzedniego otwarcia zamiast 'a'.
+    const onChange = vi.fn();
+    render(<Select value="a" options={options} onChange={onChange} ariaLabel="Wybór" />);
+    const trigger = screen.getByRole('button', { name: 'Wybór' });
+
+    fireEvent.click(trigger);
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // a -> b
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // b -> c
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+
+    fireEvent.click(trigger); // ponowne otwarcie myszą
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('a');
+    expect(onChange).not.toHaveBeenCalledWith('c');
+  });
 });
 
 describe('Modal', () => {

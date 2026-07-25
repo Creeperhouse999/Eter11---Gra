@@ -167,7 +167,15 @@ export function Select<T extends string>({
         ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // Otwarcie myszą przywraca podświetlenie na aktualną wartość — tak
+          // samo jak otwarcie klawiaturą (onKeyDown wyżej). Bez tego po
+          // ArrowDown/Escape i ponownym kliknięciu lista zostawała podświetlona
+          // na starej pozycji, a Enter wybierał nie tę opcję, na którą patrzy
+          // użytkownik.
+          if (!open) setActiveIndex(Math.max(0, options.findIndex((o) => o.value === value)));
+          setOpen((v) => !v);
+        }}
         onKeyDown={onKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
