@@ -65,6 +65,8 @@ export function GuideBubble({
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [typed, setTyped] = useState('');
   const bubbleRef = useRef<HTMLDivElement>(null);
+  // Uchwyt bieżącego wystukiwania — żeby klik „pokaż całość" mógł je zatrzymać.
+  const typerRef = useRef<number | null>(null);
   // Ostatni klucz animacji — po nim poznajemy, czy to nowy komunikat (pisz od
   // zera), czy tylko zmiana licznika w tym samym (pokaż od razu, bez restartu).
   const lastKeyRef = useRef<string | null>(null);
@@ -87,11 +89,26 @@ export function GuideBubble({
     const timer = window.setInterval(() => {
       index += 1;
       setTyped(message.slice(0, index));
-      if (index >= message.length) window.clearInterval(timer);
+      if (index >= message.length) {
+        window.clearInterval(timer);
+        typerRef.current = null;
+      }
     }, 16);
+    typerRef.current = timer;
 
     return () => window.clearInterval(timer);
   }, [typewriterKey, message]);
+
+  // Klik pokazuje całość — ale najpierw MUSI zatrzymać wystukiwanie. Inaczej
+  // interwał na kolejnym ticku wołał `setTyped(message.slice(0, index))`
+  // i cofał tekst z powrotem do połowy — klik migał pełną treścią na klatkę.
+  const revealAll = () => {
+    if (typerRef.current !== null) {
+      window.clearInterval(typerRef.current);
+      typerRef.current = null;
+    }
+    setTyped(message);
+  };
 
   useLayoutEffect(() => {
     const place = () => {
@@ -201,7 +218,7 @@ export function GuideBubble({
             {/* Klik pokazuje całość — czytający szybciej nie czekają. */}
             <p
               className="mt-1 text-sm leading-relaxed"
-              onClick={() => setTyped(message)}
+              onClick={revealAll}
             >
               {typed}
               {typing && <span className="eter-pulse text-accent">▍</span>}
