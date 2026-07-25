@@ -7,6 +7,13 @@ import { findVisible } from './Spotlight';
 interface GuideBubbleProps {
   /** Treść wypowiedzi ETER11. */
   message: string;
+  /**
+   * Klucz animacji pisania. Gdy zmienia się tylko licznik w tym samym
+   * komunikacie (etap wymiany: „Zaznaczone: 2" → „3"), klucz zostaje ten sam,
+   * więc maszyna do pisania NIE restartuje się przy każdym kliknięciu karty.
+   * Domyślnie sam `message` — dla zgodności, gdyby ktoś nie podał klucza.
+   */
+  typewriterKey?: string;
   /** Numer kroku i ich liczba — pokazują, ile jeszcze zostało. */
   step: number;
   total: number;
@@ -46,6 +53,7 @@ const MEASURE_MS = 50;
  */
 export function GuideBubble({
   message,
+  typewriterKey,
   step,
   total,
   done,
@@ -57,10 +65,19 @@ export function GuideBubble({
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [typed, setTyped] = useState('');
   const bubbleRef = useRef<HTMLDivElement>(null);
+  // Ostatni klucz animacji — po nim poznajemy, czy to nowy komunikat (pisz od
+  // zera), czy tylko zmiana licznika w tym samym (pokaż od razu, bez restartu).
+  const lastKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const key = typewriterKey ?? message;
+    const fresh = lastKeyRef.current !== key;
+    lastKeyRef.current = key;
+
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
+    if (reduced || !fresh) {
+      // Ten sam komunikat, zmienił się tylko licznik (albo ruch ograniczony) —
+      // pokazujemy pełny tekst bez ponownego wystukiwania litera po literze.
       setTyped(message);
       return;
     }
@@ -74,7 +91,7 @@ export function GuideBubble({
     }, 16);
 
     return () => window.clearInterval(timer);
-  }, [message]);
+  }, [typewriterKey, message]);
 
   useLayoutEffect(() => {
     const place = () => {
