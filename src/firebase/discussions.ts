@@ -7,6 +7,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './client';
@@ -144,10 +145,15 @@ export function watchDiscussions(
  * tylko urósł i że nikt nie podmienił cudzych wypowiedzi. `arrayUnion` nie
  * pozwala tego wyrazić po stronie reguł, bo serwer sam składa wynik.
  *
- * Skutek uboczny: dwie osoby piszące w tej samej sekundzie mogą sobie
- * nadpisać wypowiedź. Zespół to cztery osoby ustalające rzeczy w ciągu dnia,
- * więc realne ryzyko jest znikome, a chronimy się przed czymś gorszym —
- * wyczyszczeniem cudzego wątku.
+ * Listę składamy z wersji SERWEROWEJ czytanej w JEDNEJ transakcji, nie z kopii
+ * gracza (`discussion.messages`). Reguła Firestore wymaga, by nowa lista była
+ * starą listą Z BAZY plus dokładnie jedna wypowiedź na końcu. Gdy ktoś dopisał
+ * w międzyczasie, kopia gracza była już nieaktualna: zapis nie pasował do
+ * reguły i wypowiedź leciała z błędem „Nie udało się wysłać". A dyskusja czyta
+ * się jak czat — dwie osoby piszące niemal równocześnie to norma, nie wyjątek.
+ * Transakcja czyta świeżą listę, dokłada wypowiedź i przy równoległym zapisie
+ * ponawia całość, więc dopisanie zawsze siada na aktualnym stanie, nie kasuje
+ * cudzej wypowiedzi i nie wymaga ręcznego odświeżenia.
  */
 export async function addMessage(
   discussion: Discussion,
@@ -160,26 +166,32 @@ export async function addMessage(
   const author = input.author.trim();
   if (!author) return { ok: false, error: 'Podaj swoje imię.' };
 
-  if (discussion.messages.length >= MAX_MESSAGES) {
-    return { ok: false, error: 'Wątek osiągnął limit wypowiedzi. Załóż nowy.' };
-  }
+  const message: DiscussionMessage = {
+    author,
+    text,
+    at: new Date().toISOString(),
+    ...(input.image ? { image: input.image } : {}),
+  };
 
   try {
-    await updateDoc(doc(db, COLLECTION, discussion.id), {
-      messages: [
-        ...discussion.messages,
-        {
-          author,
-          text,
-          at: new Date().toISOString(),
-          ...(input.image ? { image: input.image } : {}),
-        },
-      ],
+    const ref = doc(db, COLLECTION, discussion.id);
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { ok: false, error: 'Tego wątku już nie ma.' };
+
+      // Limit liczony ze stanu z bazy, nie z kopii gracza — inaczej dwie osoby
+      // dobijające do granicy naraz mogłyby ją przekroczyć.
+      const current = (snap.data()?.messages ?? []) as DiscussionMessage[];
+      if (current.length >= MAX_MESSAGES) {
+        return { ok: false, error: 'Wątek osiągnął limit wypowiedzi. Załóż nowy.' };
+      }
+
+      tx.update(ref, { messages: [...current, message] });
+      return { ok: true };
     });
-    return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, error: `Nie udało się wysłać: ${message}` };
+    const reason = error instanceof Error ? error.message : String(error);
+    return { ok: false, error: `Nie udało się wysłać: ${reason}` };
   }
 }
 
