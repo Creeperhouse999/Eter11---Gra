@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
-import { ALL_PROBLEMS } from '../data/problems';
-import { ALL_CARDS } from '../data/cards';
+import { playableProblems } from '../data/problems';
+import { playableCards } from '../data/cards';
 import type { GameContent } from '../firebase/validate';
 import { LobbyScreen } from './LobbyScreen';
 import { RoomLobby } from './RoomLobby';
@@ -100,8 +100,9 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
 
     const fresh = createGame({
       players,
-      deck: content.cards ?? ALL_CARDS,
-      problems: content.problems ?? ALL_PROBLEMS,
+      // Wersje robocze (`draft`) nie trafiają do gry — tak samo jak przy stole.
+      deck: playableCards(content.cards),
+      problems: playableProblems(content.problems),
       // Ziarno z kodu pokoju — ta sama partia u wszystkich, powtarzalna.
       seed: [...code].reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
       config: content.rules ?? DEFAULT_CONFIG,

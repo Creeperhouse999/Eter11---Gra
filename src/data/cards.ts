@@ -203,3 +203,15 @@ export function buildDeck(cards: Card[] = ALL_CARDS): Card[] {
 
   return [...copies, ...specialCards];
 }
+
+/**
+ * Karty, które faktycznie trafiają do gry.
+ *
+ * Karty oznaczone `draft: true` to materiał roboczy — nowa karta rodzi się jako
+ * wersja robocza i wymaga sprawdzenia, zanim wejdzie do rozgrywki. Panel mówi
+ * redaktorowi wprost, że wersje robocze „nie trafiają do gry", a test pokrycia
+ * ścianek liczy tylko karty nierobocze — więc ścieżka rozgrywki też musi je
+ * odsiać, inaczej niedokończona karta wychodzi dzieciom do prawdziwej partii.
+ */
+export const playableCards = (cards: Card[] = ALL_CARDS): Card[] =>
+  cards.filter((card) => !card.draft);
