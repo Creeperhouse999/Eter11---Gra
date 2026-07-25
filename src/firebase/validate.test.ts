@@ -29,6 +29,25 @@ describe('validateContent', () => {
     expect(validateContent('tekst').ok).toBe(false);
   });
 
+  // Gra przy stole ma co najmniej dwóch graczy, a każdy musi dostać INNĄ
+  // postać (postać identyfikuje go na planszy). Jedna postać robi grę
+  // niegrywalną — walidacja łapie to jak każdą inną konfigurację nie do
+  // rozegrania (za mało problemów, próg zwycięstwa ponad liczbę misji itd.).
+  it('odrzuca zawartość z jedną postacią — za mało na dwóch graczy', () => {
+    const content = validContent();
+    content.characters = content.characters.slice(0, 1);
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('za mało postaci');
+  });
+
+  it('akceptuje dokładnie dwie postacie (minimum na dwóch graczy)', () => {
+    const content = validContent();
+    content.characters = content.characters.slice(0, 2);
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
   it('odrzuca brak wymaganej sekcji', () => {
     const content = validContent() as Partial<GameContent>;
     delete content.cards;
