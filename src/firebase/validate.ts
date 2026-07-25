@@ -91,6 +91,12 @@ const looksLikeMarkup = (value: string) => /[<>]/.test(value);
 const NUMERIC_RULES: Array<[keyof RulesConfig, number, number]> = [
   ['roundsPerMission', 1, 30],
   ['handSize', 1, 12],
+  // maxHandSize jest żywą zasadą silnika: reducer.ts dobiera kartę na nowej
+  // rundzie tylko gdy `hand.length < maxHandSize`. Bez tego wpisu przechodziła
+  // każda wartość — 0 wyłączało dobieranie (warunek zawsze fałszywy), a NaN/
+  // tekst wyłączało sam limit (porównanie zawsze fałszywe) i ręka rosła bez
+  // końca, czyli dokładnie to przepełnienie, przed którym walidator chroni.
+  ['maxHandSize', 1, 12],
   ['missionsPerGame', 1, 20],
   ['teamWinThreshold', 1, 20],
   ['maxMatCardsPerMission', 0, 5],
@@ -308,6 +314,24 @@ export function validateContent(content: unknown): ValidationResult {
     } else if (value < min || value > max) {
       add(`Zasada ${key}: wartość ${value} poza dozwolonym zakresem ${min}–${max}.`);
     }
+  }
+
+  // Limit ręki nie może być mniejszy niż rozdanie: gracz startuje z ręką
+  // rozmiaru handSize, więc już od pierwszej rundy byłaby ona ponad limitem,
+  // a `hand.length < maxHandSize` nigdy nie ruszyłoby dobierania. Zestaw
+  // pozornie w zakresie (np. handSize 5, maxHandSize 3) po cichu psułby grę.
+  if (
+    typeof rules.handSize === 'number' &&
+    typeof rules.maxHandSize === 'number' &&
+    Number.isInteger(rules.handSize) &&
+    Number.isInteger(rules.maxHandSize) &&
+    rules.maxHandSize < rules.handSize
+  ) {
+    add(
+      `Limit ręki (${rules.maxHandSize}) jest mniejszy niż rozdanie ` +
+        `(${rules.handSize}) — gracze startowaliby z ręką ponad limitem, ` +
+        'a dobieranie na rundę nigdy by nie ruszyło.',
+    );
   }
 
   if (

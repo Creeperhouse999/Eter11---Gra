@@ -209,6 +209,36 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('roundsPerMission');
   });
 
+  it('odrzuca maxHandSize równy zero — silnik przestałby dobierać karty', () => {
+    const content = validContent();
+    // reducer.ts dobiera kartę na nowej rundzie tylko gdy
+    // hand.length < maxHandSize. Przy 0 warunek jest zawsze fałszywy, więc
+    // ręka nigdy się nie uzupełnia — dokładnie to, przed czym walidator ma
+    // chronić przy innych zasadach, a maxHandSize mijał go zupełnie.
+    content.rules = { ...content.rules, maxHandSize: 0 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('maxHandSize');
+  });
+
+  it('odrzuca maxHandSize, który nie jest liczbą całkowitą', () => {
+    const content = validContent();
+    content.rules = { ...content.rules, maxHandSize: Number.NaN };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('maxHandSize');
+  });
+
+  it('odrzuca limit ręki mniejszy niż rozdanie', () => {
+    const content = validContent();
+    // Limit poniżej rozdania jest sprzeczny: gracz startuje z ręką powyżej
+    // limitu, a dobierania na rundę i tak nigdy nie ruszą.
+    content.rules = { ...content.rules, handSize: 5, maxHandSize: 3 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('limit ręki');
+  });
+
   it('odrzuca talię bez kart którejś kategorii kompetencji', () => {
     const content = validContent();
     content.cards = content.cards.filter((c) => c.category !== 'digital');
