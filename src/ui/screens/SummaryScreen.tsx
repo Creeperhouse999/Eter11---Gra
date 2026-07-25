@@ -83,12 +83,36 @@ export function SummaryScreen({
           const plays = mission.played.filter((p) => p.playerId === player.id);
           const alreadyTook = mission.takenToMat.includes(player.id);
 
+          // Zabrana ORAZ przekazana karta schodzi z `mission.played` (leży już
+          // na macie — swojej albo odbiorcy — i nie liczy się dwa razy). Gdy
+          // była jedyną wyłożoną kartą gracza, jego `plays` robi się puste — ale
+          // on ją WYŁOŻYŁ, więc nie wolno twierdzić, że nic nie zagrał.
           if (plays.length === 0) {
+            // Przekazał: karta doświadczenia „share" z tej misji (id koduje
+            // misję i gracza, patrz reducer `shareCard`).
+            const sharedAway = player.experience.some(
+              (e) =>
+                e.kind === 'share' &&
+                e.id.startsWith(`exp-share-${state.missionNumber}-${player.id}-`),
+            );
+            // Zabrał SWOJĄ kartę na matę. `takenToMat` obejmuje też odbiorcę
+            // przekazania (dostanie karty wyczerpuje jego limit) — a odbiorca
+            // sam nic nie wyłożył. Odróżniamy zabierającego od obdarowanego po
+            // tym, że obdarowany ma tę kartę w `receivedCardIds`, spójną z
+            // `sharedCardIds` bieżącej misji.
+            const receivedThisMission = player.receivedCardIds.some((id) =>
+              mission.sharedCardIds.includes(id),
+            );
+            const tookOwnCard = alreadyTook && !receivedThisMission;
             return (
               <div key={player.id} className="rounded-xl border border-edge bg-surface p-4">
                 <h2 className="font-display font-bold">{player.name}</h2>
                 <p className="mt-1 text-sm text-ink-dim">
-                  W tej misji nie wyłożył żadnej karty.
+                  {sharedAway
+                    ? 'Przekazał swoją wyłożoną kartę innemu graczowi w tej misji.'
+                    : tookOwnCard
+                      ? 'Zabrał swoją wyłożoną kartę na swoją postać.'
+                      : 'W tej misji nie wyłożył żadnej karty.'}
                 </p>
               </div>
             );

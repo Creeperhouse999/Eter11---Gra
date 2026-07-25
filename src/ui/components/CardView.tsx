@@ -79,6 +79,38 @@ export function CardView({
    */
   const Element = onClick || draggable ? 'button' : 'div';
 
+  /**
+   * Kontrolka odwracająca kartę (grafika ⇄ szczegóły).
+   *
+   * `role="button"` na spanie, a nie `<button>`: karta z akcją renderuje się
+   * jako `<button>`, a `<button>` w `<button>` to nieprawidłowy HTML —
+   * przeglądarki radzą sobie z nim różnie, React ostrzega, a czytnik ekranu
+   * gubi wewnętrzny przycisk. Span z rolą jest treścią frazową (wolno mu stać
+   * w przycisku), a zachowuje klik i obsługę klawiatury. `stopPropagation`,
+   * żeby odwrócenie nie zagrało karty ani nie zaczęło przeciągania.
+   */
+  const flipControl = (target: boolean, label: string, glyph: IconName) => (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowArt(target);
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        e.stopPropagation();
+        setShowArt(target);
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      className="absolute bottom-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim backdrop-blur transition hover:border-accent hover:text-accent"
+    >
+      <Icon name={glyph} size={12} />
+    </span>
+  );
+
   return (
     <Element
       {...(Element === 'button'
@@ -107,7 +139,14 @@ export function CardView({
         // `shrink-0`: w pasku przewijanym na telefonie karty inaczej ściskałyby
         // się do nieczytelnych pasków zamiast wyjechać poza krawędź.
         'shrink-0 snap-start',
-        compact ? 'w-24 p-2 pt-2.5' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
+        // Karta wyłożona na ściankę: na telefonie ścianki stoją po trzy w
+        // rzędzie (grid-cols-3), więc na ściankę zostaje ~82 px szerokości.
+        // Sztywne w-24 (96 px) nie mieściło się i `overflow-hidden` ścianki
+        // ucinało kartę z prawej (nazwa, róg) na praktycznie każdym telefonie.
+        // Węższa na telefonie, pełne 96 px od `sm` w górę, gdzie ścianki są
+        // szerokie. Stała szerokość (nie w-full), żeby element flex nie
+        // zapadł się do zera w kurczliwym rodzicu.
+        compact ? 'w-20 p-2 pt-2.5 sm:w-24' : 'w-[6.5rem] p-2 pt-2.5 sm:w-36 sm:p-3 sm:pt-3.5',
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
         interactive && !draggable ? 'cursor-pointer' : '',
         interactive && !beingDragged ? 'hover:-translate-y-1' : '',
@@ -141,19 +180,8 @@ export function CardView({
             className="pointer-events-none -m-2 mb-0 h-auto w-[calc(100%+1rem)] sm:-m-3 sm:mb-0 sm:w-[calc(100%+1.5rem)]"
             style={{ objectFit: 'contain' }}
           />
-          {/* Przycisk odwrócenia — `stopPropagation`, żeby nie zagrać karty. */}
-          <button
-            type="button"
-            aria-label="Pokaż szczegóły karty"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowArt(false);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim backdrop-blur transition hover:border-accent hover:text-accent"
-          >
-            <Icon name="undo" size={12} />
-          </button>
+          {/* Odwrócenie na szczegóły — patrz `flipControl`. */}
+          {flipControl(false, 'Pokaż szczegóły karty', 'undo')}
         </>
       ) : (
         <>
@@ -196,21 +224,8 @@ export function CardView({
             </span>
           )}
 
-          {/* Karta ma grafikę, ale pokazujemy szczegóły — przycisk wraca do niej. */}
-          {card.image && !compact && (
-            <button
-              type="button"
-              aria-label="Pokaż grafikę karty"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowArt(true);
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim backdrop-blur transition hover:border-accent hover:text-accent"
-            >
-              <Icon name="lens" size={12} />
-            </button>
-          )}
+          {/* Karta ma grafikę, ale pokazujemy szczegóły — wrót do niej. */}
+          {card.image && !compact && flipControl(true, 'Pokaż grafikę karty', 'lens')}
         </>
       )}
     </Element>

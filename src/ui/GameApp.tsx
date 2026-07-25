@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { ALL_CHARACTERS } from '../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../data/uiText';
 import type { Card, Character, Problem, RulesConfig } from '../engine/types';
-import { DEFAULT_CONFIG } from '../engine/reducer';
+import { DEFAULT_CONFIG, hasProblemToReveal } from '../engine/reducer';
 import { FinaleScreen } from './screens/FinaleScreen';
 import { MissionScreen } from './screens/MissionScreen';
 import { ReportButton } from './components/ReportButton';
@@ -245,12 +245,15 @@ function RunningGame({
         <button
           type="button"
           onClick={() => dispatch({ type: 'START_MISSION' })}
-          disabled={state.problemPile.length === 0}
+          // Nie tylko talia: gdy opustoszała, silnik sięga po odłożone problemy.
+          // Patrzenie na sam `problemPile` wyłączało przycisk mimo że jest co
+          // wyłożyć — patrz `hasProblemToReveal`.
+          disabled={!hasProblemToReveal(state)}
           className="mt-8 rounded-lg bg-accent px-8 py-4 font-display text-lg font-bold text-bg disabled:opacity-40"
         >
           {text.missionRevealButton}
         </button>
-        {state.problemPile.length === 0 && (
+        {!hasProblemToReveal(state) && (
           <>
             <p className="mt-3 text-sm text-ink-dim">
               Talia problemów jest pusta. Odłożone problemy wracają po dwóch

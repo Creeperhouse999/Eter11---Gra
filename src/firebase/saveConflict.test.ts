@@ -12,7 +12,23 @@ import { BUILTIN_CONTENT } from '../data/builtinContent';
 
 // Sterowany stan „dokumentu w bazie".
 let docData: { updatedAt?: string } | undefined;
-const setDocMock = vi.fn(async (_ref: unknown, _data: unknown) => {});
+const setDocMock = vi.fn((_ref: unknown, _data: unknown) => {});
+
+// Odczyt i zapis biegną w JEDNEJ transakcji — inaczej dwa równoległe zapisy
+// oba widziałyby tę samą wersję jako „bez konfliktu" i drugi kasowałby
+// pierwszy. Mock oddaje ten kształt: `tx.get` czyta bieżący `docData`
+// (autorytatywny odczyt, który Firestore gwarantuje w chwili commitu),
+// `tx.set` zapisuje przez ten sam `setDocMock`.
+const runTransactionMock = vi.fn(
+  async (_db: unknown, updater: (tx: unknown) => Promise<unknown>) =>
+    updater({
+      get: async () => ({
+        exists: () => docData !== undefined,
+        data: () => docData,
+      }),
+      set: (ref: unknown, data: unknown) => setDocMock(ref, data),
+    }),
+);
 
 vi.mock('./client', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
@@ -21,7 +37,8 @@ vi.mock('firebase/firestore', () => ({
     exists: () => docData !== undefined,
     data: () => docData,
   }),
-  setDoc: (ref: unknown, data: unknown) => setDocMock(ref, data),
+  runTransaction: (db: unknown, updater: (tx: unknown) => Promise<unknown>) =>
+    runTransactionMock(db, updater),
 }));
 
 const { saveContent } = await import('./content');
@@ -29,6 +46,7 @@ const { saveContent } = await import('./content');
 beforeEach(() => {
   docData = undefined;
   setDocMock.mockClear();
+  runTransactionMock.mockClear();
 });
 
 describe('saveContent — konflikt zapisu', () => {
@@ -59,6 +77,36 @@ describe('saveContent — konflikt zapisu', () => {
     docData = { updatedAt: 'v2' }; // ktoś zapisał w międzyczasie
     const result = await saveContent(BUILTIN_CONTENT, 'v1');
     expect(result.ok).toBe(false);
+    expect(setDocMock).not.toHaveBeenCalled();
+  });
+
+  it('odczyt i zapis biegną w jednej transakcji (atomowo)', async () => {
+    // Sprawdzenie wersji rozdzielone od zapisu (osobne getDoc + setDoc)
+    // zostawiało okno, w którym dwa zapisy naraz kasowały sobie pracę.
+    // Ten test pilnuje, że zapis idzie przez transakcję — cofnięcie do
+    // nieatomowej wersji je wywala.
+    docData = { updatedAt: 'v1' };
+    const result = await saveContent(BUILTIN_CONTENT, 'v1');
+    expect(result.ok).toBe(true);
+    expect(runTransactionMock).toHaveBeenCalledOnce();
+    expect(setDocMock).toHaveBeenCalledOnce();
+  });
+
+  it('konflikt wykryty na autorytatywnym odczycie transakcji nie nadpisuje', async () => {
+    // Redaktor B pracuje na 'v1'. Zanim jego transakcja zdąży zapisać, A
+    // zapisuje 'v2'; Firestore ponawia updater, który na świeżym odczycie
+    // ('v2') widzi konflikt i nie woła set — praca A zostaje.
+    docData = { updatedAt: 'v1' };
+    runTransactionMock.mockImplementationOnce(async (_db, updater) => {
+      docData = { updatedAt: 'v2' }; // A zapisał tuż przed commitem B
+      return updater({
+        get: async () => ({ exists: () => true, data: () => docData }),
+        set: (ref: unknown, data: unknown) => setDocMock(ref, data),
+      });
+    });
+    const result = await saveContent(BUILTIN_CONTENT, 'v1');
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toMatch(/Ktoś inny zapisał/);
     expect(setDocMock).not.toHaveBeenCalled();
   });
 });

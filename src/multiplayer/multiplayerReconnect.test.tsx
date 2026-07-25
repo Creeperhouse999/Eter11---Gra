@@ -30,6 +30,8 @@ vi.mock('./room', () => ({
     };
   }),
   playersInOrder: (room: Room) => Object.values(room.players ?? {}),
+  revealerUid: (room: Room) =>
+    Object.values(room.players ?? {}).find((p) => p.online)?.uid,
   startGame: vi.fn(),
   setReady: vi.fn(),
   setCharacter: vi.fn(),
@@ -40,6 +42,7 @@ vi.mock('./room', () => ({
   sendReaction: vi.fn(),
   offerCard: vi.fn(),
   clearOffer: vi.fn(),
+  trackPresence: vi.fn(() => () => {}),
 }));
 
 // Import po vi.mock, żeby komponent dostał zamockowaną warstwę pokoju.

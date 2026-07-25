@@ -28,6 +28,30 @@ const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({
 }));
 
 /**
+ * Wspólny bezpiecznik degradacji — jedno źródło dla zmiany roli i „Nadaj rolę".
+ *
+ * Zwraca powód odmowy albo `null`, gdy operacja jest dozwolona. Wcześniej te
+ * same reguły miał tylko `changeRole`, a formularz „Nadaj rolę" (`add`) wołał
+ * `setRole` na wprost — więc admin, który wpisał WŁASNY uid z niższą rolą,
+ * degradował sam siebie i tracił zakładkę Zespół (jedyne miejsce, z którego da
+ * się odzyskać admina poza kontem założyciela). Ten sam rozjazd, przed którym
+ * chroni ujednolicenie: reguła w jednym miejscu, nie kopiowana ścieżka po ścieżce.
+ */
+export function roleGuardReason(
+  target: { uid: string; email: string },
+  role: Role,
+  currentUid: string,
+): string | null {
+  if (target.uid === currentUid && role !== 'admin') {
+    return 'Nie odbierzesz roli admina samemu sobie.';
+  }
+  if (target.email === ROOT_ADMIN_EMAIL && role !== 'admin') {
+    return 'Konta założyciela nie da się zdegradować.';
+  }
+  return null;
+}
+
+/**
  * Zarządzanie rolami zespołu — widoczne tylko dla admina.
  *
  * Firebase nie pozwala wypisać wszystkich kont z poziomu aplikacji (to
@@ -54,17 +78,11 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
   }, []);
 
   const changeRole = async (member: TeamMember, role: Role) => {
-    // Admin nie odbiera roli samemu sobie — inaczej mógłby przez pomyłkę
-    // stracić dostęp do jedynej zakładki, z której da się go odzyskać.
-    if (member.uid === currentUid && role !== 'admin') {
-      toast('Nie odbierzesz roli admina samemu sobie.', 'danger');
-      return;
-    }
-    // Root admin (info@) jest adminem z mocy adresu — degradacja jego wpisu
-    // w bazie i tak nic nie zmieni w prawach, ale panel pokazywałby wtedy
-    // kłamstwo („Podgląd"), więc jej nie dopuszczamy.
-    if (member.email === ROOT_ADMIN_EMAIL && role !== 'admin') {
-      toast('Konta założyciela nie da się zdegradować.', 'danger');
+    // Bezpiecznik degradacji (własne konto, konto założyciela) — wspólny z
+    // formularzem „Nadaj rolę", żeby żadna ścieżka go nie obeszła.
+    const blocked = roleGuardReason(member, role, currentUid);
+    if (blocked) {
+      toast(blocked, 'danger');
       return;
     }
     try {
@@ -82,6 +100,13 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       toast('Podaj adres e-mail i UID konta.', 'danger');
       return;
     }
+    // Ten sam bezpiecznik co przy zmianie roli: „Nadaj rolę" nie może posłużyć
+    // do samo-degradacji (własny uid) ani degradacji konta założyciela.
+    const blocked = roleGuardReason({ uid, email }, newRole, currentUid);
+    if (blocked) {
+      toast(blocked, 'danger');
+      return;
+    }
     try {
       await setRole({ uid, email, role: newRole });
       setNewEmail('');
@@ -94,6 +119,19 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
   };
 
   const remove = async (member: TeamMember) => {
+    // Te same zabezpieczenia co przy zmianie roli — inaczej „kosz" na
+    // własnym wierszu obchodził je bokiem: usunięcie własnego wpisu cofa
+    // rolę do coworkera, a wtedy znika zakładka Zespół i nie ma jak
+    // przywrócić sobie admina (poza kontem założyciela). Guard MUSI stać
+    // przed potwierdzeniem, żeby dialog w ogóle się nie pokazał.
+    if (member.uid === currentUid) {
+      toast('Nie usuniesz własnego wpisu roli — stracił(a)byś dostęp do zarządzania zespołem.', 'danger');
+      return;
+    }
+    if (member.email === ROOT_ADMIN_EMAIL) {
+      toast('Wpisu konta założyciela nie da się usunąć.', 'danger');
+      return;
+    }
     const confirmed = await confirm({
       title: 'Usunąć wpis roli?',
       message: `${member.email} wróci do domyślnej roli (coworker). Konto nie znika — tylko jego wpis roli.`,

@@ -18,9 +18,16 @@ export interface StatGroup {
   entries: StatEntry[];
 }
 
-/** Liczy słowa tak, jak liczy je człowiek: ciągi oddzielone spacjami. */
-function words(text: string): number {
-  return text.split(/\s+/).filter(Boolean).length;
+/**
+ * Liczy słowa tak, jak liczy je człowiek: ciągi oddzielone spacjami.
+ *
+ * Toleruje brak wartości: walidacja treści nie wymaga np. `description` karty
+ * ani `consequence` problemu (sprawdza je tylko, gdy są), więc dokument z bazy
+ * potrafi ich nie mieć. Bez `?? ''` `undefined.split` wywracał CAŁY panel
+ * statystyk na biało — a to panel ma pokazać, że czegoś brakuje, nie paść.
+ */
+function words(text: string | undefined): number {
+  return (text ?? '').split(/\s+/).filter(Boolean).length;
 }
 
 /**
@@ -66,10 +73,14 @@ export function contentStats(content: GameContent): StatGroup[] {
     0,
   );
   const introWords = content.intro
-    ? [...content.intro.story, ...content.intro.rules, ...content.intro.adults].reduce(
-        (sum, scene) => sum + words(scene.heading) + words(scene.body),
-        0,
-      )
+    ? [
+        // Każda część osobno domknięta: wstęp bywa zapisany częściowo (np. sama
+        // historia bez zasad), a rozłożenie `undefined` przez `...` wywalało
+        // panel. Brakująca część to zero scen, nie wyjątek.
+        ...(content.intro.story ?? []),
+        ...(content.intro.rules ?? []),
+        ...(content.intro.adults ?? []),
+      ].reduce((sum, scene) => sum + words(scene.heading) + words(scene.body), 0)
     : 0;
   const tutorialWords = (content.tutorial ?? []).reduce(
     (sum, step) => sum + words(step.say) + words(step.praise) + words(step.nudge ?? ''),
@@ -82,19 +93,26 @@ export function contentStats(content: GameContent): StatGroup[] {
     ...characters.map((c) => c.icon),
   ]);
 
-  const duplicateNames = cards
-    .map((c) => c.name)
-    .filter((name, index, all) => all.indexOf(name) !== index)
+  // `Set` domyka liczenie: `indexOf !== index` zostawia KAŻDE wystąpienie po
+  // pierwszym, więc nazwa w N egzemplarzach dawała N-1 wpisów (trzy „Echo" →
+  // „2" i nota „Echo, Echo"). Powtórzona nazwa to jedna pozycja, nieważne ile
+  // razy się powtarza — dedup przed policzeniem i wypisaniem.
+  const duplicateNames = [
+    ...new Set(
+      cards
+        .map((c) => c.name)
+        .filter((name, index, all) => all.indexOf(name) !== index),
+    ),
     // ETER11 występuje w talii wielokrotnie z założenia — to ta sama karta.
-    .filter((name) => name !== 'ETER11');
+  ].filter((name) => name !== 'ETER11');
 
-  const noDescription = cards.filter((c) => !c.description.trim()).length;
+  const noDescription = cards.filter((c) => !(c.description ?? '').trim()).length;
   const drafts = [
     ...cards.filter((c) => c.draft),
     ...problems.filter((p) => p.draft),
   ].length;
 
-  const descriptionLengths = cards.map((c) => c.description.length).filter((n) => n > 0);
+  const descriptionLengths = cards.map((c) => (c.description ?? '').length).filter((n) => n > 0);
   const longestName = [...cards].sort((a, b) => b.name.length - a.name.length)[0];
 
   const problemTypes = new Map<string, number>();

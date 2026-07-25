@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { buildDeck } from '../data/cards';
-import { ALL_PROBLEMS } from '../data/problems';
+import { buildDeck, playableCards } from '../data/cards';
+import { playableProblems } from '../data/problems';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
 import type { Action, Card, GameState, Problem, RulesConfig } from '../engine/types';
 import { clearSavedGame, loadGame, saveGame } from './savedGame';
@@ -38,8 +38,11 @@ export function setupGame(
 ): GameState {
   const base = createGame({
     players,
-    deck: content.orderedDeck ?? buildDeck(content.cards),
-    problems: content.problems ?? ALL_PROBLEMS,
+    // Wersje robocze (`draft`) nie trafiają do gry — panel obiecuje to
+    // redaktorowi, a test pokrycia ścianek liczy tylko treść nieroboczą.
+    // `orderedDeck`/samouczek podaje własną, ustaloną talię i jej nie ruszamy.
+    deck: content.orderedDeck ?? buildDeck(playableCards(content.cards)),
+    problems: playableProblems(content.problems),
     seed,
     config,
   });

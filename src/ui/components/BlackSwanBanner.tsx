@@ -77,7 +77,13 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
       <div
         // Klik w treść nie zamyka — zamykają tło i przycisk.
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-md rounded-xl border-2 bg-surface shadow-2xl transition-all duration-300"
+        // `max-h` + kolumna: przy kilku Łabędziach naraz (do czterech graczy
+        // dobiera po karcie w jednej rundzie) treść była wyższa niż ekran
+        // w poziomie na telefonie (~360px), a że okno blokuje kliknięcia pod
+        // spodem i nie ma klawisza Escape na dotyku, dziecko nie widziało ani
+        // opisu, ani przycisku „Rozumiem". Nagłówek i stopka zostają na
+        // miejscu (`shrink-0`), a lista zdarzeń przewija się w środku.
+        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-xl border-2 bg-surface shadow-2xl transition-all duration-300"
         style={{
           borderColor: 'var(--eter-danger)',
           boxShadow: '0 20px 60px -15px var(--eter-danger)',
@@ -85,7 +91,7 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
           opacity: entered ? 1 : 0,
         }}
       >
-        <div className="flex items-start gap-3 border-b border-edge p-4">
+        <div className="flex shrink-0 items-start gap-3 border-b border-edge p-4">
           <span className="shrink-0 rounded-lg p-2" style={{ background: 'var(--eter-raised)', color: 'var(--eter-danger)' }}>
             <Icon name="clash" size={22} />
           </span>
@@ -101,7 +107,7 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
           </div>
         </div>
 
-        <ul className="space-y-3 p-4">
+        <ul className="flex-1 space-y-3 overflow-y-auto p-4">
           {events.map((event, index) => {
             // Nieznany rodzaj (dane z bazy starsze/nowsze niż kod) nie może
             // wysypać ekranu — bez opisu pokazujemy samą informację o dobraniu.
@@ -133,7 +139,7 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
           })}
         </ul>
 
-        <div className="flex justify-end border-t border-edge px-4 py-3">
+        <div className="flex shrink-0 justify-end border-t border-edge px-4 py-3">
           <Button variant="primary" onClick={onDismiss} autoFocus>
             Rozumiem, gramy dalej
           </Button>

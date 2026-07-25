@@ -8,7 +8,7 @@ import {
   type Discussion,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
-import { canModerate, skipsApproval, type Role } from '../firebase/roles';
+import { canDelete, canModerate, skipsApproval, type Role } from '../firebase/roles';
 import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
@@ -187,11 +187,19 @@ export function DiscussionsPanel({
     });
     if (!confirmed) return;
 
-    await deleteDiscussion(discussion.id);
-    // Okno pokazywało właśnie ten wątek — zostawione otwarte wisiałoby
-    // nad pustką, bo nasłuch usunie go z listy w następnej chwili.
-    setOpenId(null);
-    toast('Wątek usunięty.');
+    try {
+      await deleteDiscussion(discussion.id);
+      // Okno pokazywało właśnie ten wątek — zostawione otwarte wisiałoby
+      // nad pustką, bo nasłuch usunie go z listy w następnej chwili.
+      setOpenId(null);
+      toast('Wątek usunięty.');
+    } catch {
+      // Reguły dopuszczają usunięcie tylko adminowi. Bez tej gałęzi każdy błąd
+      // (odmowa reguł, brak sieci) i tak kończył się toastem „Wątek usunięty" i
+      // zamknięciem widoku — fałszywe potwierdzenie, choć wątek wciąż był w
+      // bazie i za chwilę wracał z nasłuchu. Wzór jak w ReportsPanel.remove.
+      toast('Nie udało się usunąć. Sprawdź, czy jesteś zalogowany jako admin.', 'danger');
+    }
   };
 
   const visible = discussions.filter((d) => (showClosed ? d.closed : !d.closed));
@@ -329,15 +337,22 @@ export function DiscussionsPanel({
               >
                 {thread.closed ? 'Otwórz ponownie' : 'Ustalone'}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon="trash"
-                className="text-danger"
-                onClick={() => void remove(thread)}
-              >
-                Usuń
-              </Button>
+              {/* Usunąć wątek może TYLKO admin (reguły Firestore: jestAdmin).
+                  Wcześniej przycisk był niezabezpieczony, więc co-admin/edytor
+                  też go widział, klikał i dostawał fałszywe „Wątek usunięty",
+                  choć reguły odrzucały zapis. Bramka jak przy usuwaniu
+                  zgłoszeń (ReportsPanel: canDelete). */}
+              {canDelete(role) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="trash"
+                  className="text-danger"
+                  onClick={() => void remove(thread)}
+                >
+                  Usuń
+                </Button>
+              )}
             </div>
           </div>
   );

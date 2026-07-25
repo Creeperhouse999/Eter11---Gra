@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '../icons/Icon';
 
@@ -47,6 +47,14 @@ export function Select<T extends string>({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+
+  // Fokus zostaje na przycisku (lista nie przejmuje go), więc czytnik ekranu
+  // sam z siebie nie ogłasza, na której opcji stoi zaznaczenie po strzałce.
+  // `aria-activedescendant` wskazuje aktywną opcję po id — dopiero wtedy AT
+  // czyta ją przy każdym ArrowUp/Down. Wzorzec listbox z wirtualnym fokusem.
+  const baseId = useId();
+  const listId = `${baseId}-list`;
+  const optionId = (index: number) => `${baseId}-opt-${index}`;
 
   const MAX_LIST_HEIGHT = 256;
 
@@ -167,10 +175,20 @@ export function Select<T extends string>({
         ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // Otwarcie myszą przywraca podświetlenie na aktualną wartość — tak
+          // samo jak otwarcie klawiaturą (onKeyDown wyżej). Bez tego po
+          // ArrowDown/Escape i ponownym kliknięciu lista zostawała podświetlona
+          // na starej pozycji, a Enter wybierał nie tę opcję, na którą patrzy
+          // użytkownik.
+          if (!open) setActiveIndex(Math.max(0, options.findIndex((o) => o.value === value)));
+          setOpen((v) => !v);
+        }}
         onKeyDown={onKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={open ? optionId(activeIndex) : undefined}
         aria-label={ariaLabel ?? label}
         className={[
           'mt-1 flex w-full items-center gap-2 rounded-lg border bg-bg px-2.5 py-2 text-left text-sm transition',
@@ -198,6 +216,7 @@ export function Select<T extends string>({
         createPortal(
           <ul
             ref={listRef}
+            id={listId}
             role="listbox"
             aria-label={ariaLabel ?? label}
             className="eter-pop fixed max-h-64 overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-2xl"
@@ -210,6 +229,7 @@ export function Select<T extends string>({
                 <li key={option.value}>
                   <button
                     type="button"
+                    id={optionId(index)}
                     role="option"
                     aria-selected={isSelected}
                     data-active={isActive}

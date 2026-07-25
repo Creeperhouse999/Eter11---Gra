@@ -41,11 +41,23 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
     if (!open) return;
 
     previouslyFocused.current = document.activeElement as HTMLElement;
-    // Fokus na pierwszy przycisk akcji, żeby Enter działał od razu.
-    const first = panelRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea',
-    );
-    first?.focus();
+    // Fokus na akcję, żeby Enter działał od razu. Najpierw pierwsze pole
+    // formularza (gracz od razu pisze), a gdy pól nie ma — okno potwierdzenia —
+    // OSTATNI przycisk, czyli akcja główna: stopka to [Anuluj, Potwierdź]
+    // ułożona do prawej, więc ostatni = „Potwierdź".
+    //
+    // Wcześniej querySelector brał PIERWSZY przycisk w DOM — a to „Zamknij" (X)
+    // w nagłówku. Enter aktywował więc X → onClose → w useConfirm settle(false),
+    // czyli Enter ANULOWAŁ potwierdzenie zamiast je potwierdzić (dotyczyło
+    // każdego okna „Usunąć?"). Teraz X nigdy nie jest domyślnym celem fokusu.
+    const panel = panelRef.current;
+    const field = panel?.querySelector<HTMLElement>('input, select, textarea');
+    if (field) {
+      field.focus();
+    } else {
+      const buttons = panel?.querySelectorAll<HTMLElement>('button');
+      buttons?.[buttons.length - 1]?.focus();
+    }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

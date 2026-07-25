@@ -91,6 +91,12 @@ const looksLikeMarkup = (value: string) => /[<>]/.test(value);
 const NUMERIC_RULES: Array<[keyof RulesConfig, number, number]> = [
   ['roundsPerMission', 1, 30],
   ['handSize', 1, 12],
+  // maxHandSize jest żywą zasadą silnika: reducer.ts dobiera kartę na nowej
+  // rundzie tylko gdy `hand.length < maxHandSize`. Bez tego wpisu przechodziła
+  // każda wartość — 0 wyłączało dobieranie (warunek zawsze fałszywy), a NaN/
+  // tekst wyłączało sam limit (porównanie zawsze fałszywe) i ręka rosła bez
+  // końca, czyli dokładnie to przepełnienie, przed którym walidator chroni.
+  ['maxHandSize', 1, 12],
   ['missionsPerGame', 1, 20],
   ['teamWinThreshold', 1, 20],
   ['maxMatCardsPerMission', 0, 5],
@@ -129,13 +135,46 @@ export function validateContent(content: unknown): ValidationResult {
 
   // Puste sekcje są błędem, ale walidacja idzie dalej — administrator ma
   // zobaczyć wszystkie problemy naraz, a nie poprawiać je po jednym.
-  const cardList = Array.isArray(cards) ? cards : [];
-  const problemList = Array.isArray(problems) ? problems : [];
-  const characterList = Array.isArray(characters) ? characters : [];
+  const rawCards = Array.isArray(cards) ? cards : [];
+  const rawProblems = Array.isArray(problems) ? problems : [];
+  const rawCharacters = Array.isArray(characters) ? characters : [];
 
-  if (cardList.length === 0) add('Sekcja cards jest pusta.');
-  if (problemList.length === 0) add('Sekcja problems jest pusta.');
-  if (characterList.length === 0) add('Sekcja characters jest pusta.');
+  if (rawCards.length === 0) add('Sekcja cards jest pusta.');
+  if (rawProblems.length === 0) add('Sekcja problems jest pusta.');
+  if (rawCharacters.length === 0) add('Sekcja characters jest pusta.');
+
+  // Element, który nie jest obiektem (null, liczba, tekst — tak wygląda wpis
+  // po uszkodzeniu dokumentu w bazie albo ręcznej edycji w konsoli), wywracał
+  // walidator przy pierwszym `card.id`/`slot.key`. A to właśnie walidator ma
+  // ZŁAPAĆ uszkodzone dane i opisać je administratorowi — rzucony wyjątek
+  // zamiast tego łapał się w `loadContent` jako „brak połączenia", więc admin
+  // widział komunikat o sieci i nie miał jak dojść, że dane są zepsute.
+  // Odsiewamy nie-obiekty z błędem i pracujemy dalej na poprawnych.
+  const isObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+  rawCards.forEach((c, i) => {
+    if (!isObject(c)) add(`Karta #${i + 1} nie jest obiektem.`);
+  });
+  rawProblems.forEach((p, i) => {
+    if (!isObject(p)) add(`Problem #${i + 1} nie jest obiektem.`);
+  });
+  rawCharacters.forEach((c, i) => {
+    if (!isObject(c)) add(`Postać #${i + 1} nie jest obiektem.`);
+  });
+
+  const cardList = rawCards.filter((c): c is Card => isObject(c));
+  const problemList = rawProblems.filter((p): p is Problem => isObject(p));
+  const characterList = rawCharacters.filter((c): c is Character => isObject(c));
+
+  // Do gry trafia tylko treść NIEROBOCZA (patrz playableCards/playableProblems
+  // w danych). Sprawdzenia grywalności — czy każda ścianka ma pasującą kartę,
+  // czy talia ma wszystkie kategorie, czy misji nie jest więcej niż problemów —
+  // muszą więc liczyć tę samą treść, którą naprawdę zobaczą gracze. Inaczej
+  // walidator przepuściłby zawartość niegrywalną w prawdziwej (nieroboczej)
+  // partii: np. ściankę pokrytą wyłącznie kartą roboczą. Kontrole strukturalne
+  // (nazwa, historia, komplet ścianek) zostają dla WSZYSTKICH, także szkiców.
+  const playableCards = cardList.filter((c) => !c.draft);
+  const playableProblems = problemList.filter((p) => !p.draft);
 
   // --- Karty ---
   const cardIds = new Set<string>();
@@ -178,13 +217,15 @@ export function validateContent(content: unknown): ValidationResult {
   }
 
   if (cardList.length > 0) {
+    // Grywalna talia (bez szkiców) musi mieć każdą kategorię — to ona wchodzi
+    // do partii, więc kategoria pokryta wyłącznie kartą roboczą to za mało.
     for (const category of COMPETENCE_CATEGORIES) {
-      if (!cardList.some((c) => c.category === category)) {
+      if (!playableCards.some((c) => c.category === category)) {
         add(`Talia nie zawiera żadnej karty kategorii ${category}.`);
       }
     }
-    if (!cardList.some((c) => c.category === 'talent')) add('Talia nie zawiera talentów.');
-    if (!cardList.some((c) => c.category === 'mentor')) add('Talia nie zawiera mentorów.');
+    if (!playableCards.some((c) => c.category === 'talent')) add('Talia nie zawiera talentów.');
+    if (!playableCards.some((c) => c.category === 'mentor')) add('Talia nie zawiera mentorów.');
   }
 
   // --- Problemy ---
@@ -216,14 +257,23 @@ export function validateContent(content: unknown): ValidationResult {
       continue;
     }
 
-    const slotKeys = problem.slots.map((s) => s.key);
+    // Ścianka, która nie jest obiektem, wywróciłaby `s.key` niżej — ten sam
+    // rodzaj uszkodzenia co przy kartach, więc tak samo ją zgłaszamy i mijamy.
+    const slots = problem.slots.filter(
+      (s): s is Problem['slots'][number] => isObject(s),
+    );
+    if (slots.length !== problem.slots.length) {
+      add(`Problem ${problem.id}: któraś ścianka nie jest obiektem.`);
+    }
+
+    const slotKeys = slots.map((s) => s.key);
     for (const required of REQUIRED_SLOTS) {
       if (!slotKeys.includes(required)) {
         add(`Problem ${problem.id}: brakuje ścianki ${required}.`);
       }
     }
 
-    for (const slot of problem.slots) {
+    for (const slot of slots) {
       if (!isText(slot.hint) || !slot.hint.trim()) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak podpowiedzi.`);
       } else if (slot.hint.length > MAX_LENGTHS.slotHint) {
@@ -234,9 +284,12 @@ export function validateContent(content: unknown): ValidationResult {
       }
       if (!slot.family) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak wymaganej rodziny.`);
-      } else {
+      } else if (!problem.draft) {
         // Ścianka bez ani jednej pasującej karty w talii zablokowałaby misję.
-        const matching = cardList.filter(
+        // Liczymy tylko problemy i karty NIEROBOCZE: szkic jeszcze nie gra
+        // (może być niekompletny, nie blokujemy jego zapisu), a ściankę
+        // grywalnego problemu musi domknąć karta, która naprawdę trafia do gry.
+        const matching = playableCards.filter(
           (c) => c.category === slot.key && c.family === slot.family,
         );
         if (matching.length === 0) {
@@ -278,6 +331,24 @@ export function validateContent(content: unknown): ValidationResult {
     }
   }
 
+  // Limit ręki nie może być mniejszy niż rozdanie: gracz startuje z ręką
+  // rozmiaru handSize, więc już od pierwszej rundy byłaby ona ponad limitem,
+  // a `hand.length < maxHandSize` nigdy nie ruszyłoby dobierania. Zestaw
+  // pozornie w zakresie (np. handSize 5, maxHandSize 3) po cichu psułby grę.
+  if (
+    typeof rules.handSize === 'number' &&
+    typeof rules.maxHandSize === 'number' &&
+    Number.isInteger(rules.handSize) &&
+    Number.isInteger(rules.maxHandSize) &&
+    rules.maxHandSize < rules.handSize
+  ) {
+    add(
+      `Limit ręki (${rules.maxHandSize}) jest mniejszy niż rozdanie ` +
+        `(${rules.handSize}) — gracze startowaliby z ręką ponad limitem, ` +
+        'a dobieranie na rundę nigdy by nie ruszyło.',
+    );
+  }
+
   if (
     typeof rules.teamWinThreshold === 'number' &&
     typeof rules.missionsPerGame === 'number' &&
@@ -288,53 +359,64 @@ export function validateContent(content: unknown): ValidationResult {
     );
   }
 
-  // Misji nie może być więcej niż problemów: gra dobiega wtedy końca
+  // Misji nie może być więcej niż GRYWALNYCH problemów: gra dobiega wtedy końca
   // wcześniej, niż zapowiada, a ekran „odkryj problem" zostaje bez treści.
+  // Liczymy problemy nierobocze, bo tylko one trafiają do partii — szkice nie.
   if (
     typeof rules.missionsPerGame === 'number' &&
-    problemList.length > 0 &&
-    rules.missionsPerGame > problemList.length
+    playableProblems.length > 0 &&
+    rules.missionsPerGame > playableProblems.length
   ) {
     add(
-      `Misji w grze (${rules.missionsPerGame}) jest więcej niż problemów w talii ` +
-        `(${problemList.length}) — gra skończy się przed czasem.`,
+      `Misji w grze (${rules.missionsPerGame}) jest więcej niż grywalnych problemów ` +
+        `(${playableProblems.length}, bez wersji roboczych) — gra skończy się przed czasem.`,
     );
   }
 
-  // Ręka rośnie o kartę na rundę, dopóki gracz nie zagra. Przy długich
-  // misjach robi się z niej kilkadziesiąt kart, których nie da się objąć
-  // wzrokiem ani zmieścić na ekranie — to psuje grę bardziej niż pomaga.
-  if (
-    typeof rules.handSize === 'number' &&
-    typeof rules.roundsPerMission === 'number' &&
-    rules.handSize + rules.roundsPerMission > 24
-  ) {
-    add(
-      `Ręka może urosnąć do ${rules.handSize + rules.roundsPerMission} kart ` +
-        '(rozdanie plus dobieranie co rundę). Powyżej 24 kart ręka nie mieści się ' +
-        'na ekranie — zmniejsz rozdanie albo liczbę rund.',
-    );
-  }
+  // Rozmiar ręki na ekranie ogranicza maxHandSize, NIE suma rozdania i rund:
+  // reducer przerywa dobieranie na nowej rundzie, gdy `hand.length >= maxHandSize`
+  // (reducer.ts), więc ręka nigdy nie urośnie ponad maxHandSize, choćby rund było
+  // trzydzieści. maxHandSize jest już ograniczony zakresem do 1–12 (NUMERIC_RULES),
+  // co mieści się na ekranie. Wcześniejszy warunek liczył worst-case jako
+  // `handSize + roundsPerMission` i odrzucał grywalne konfiguracje długich misji
+  // (np. rozdanie 5 przy 20 rundach i limicie 7 — realnie najwyżej 7 kart).
 
   // --- Motyw ---
   // Nieprawidłowy kolor wywróciłby wygląd całej gry, a błąd byłby trudny
   // do namierzenia — sprawdzamy format zapisu.
-  const theme = (data as Partial<GameContent>).theme;
-  if (theme) {
-    for (const [key, value] of Object.entries(theme)) {
+  //
+  // Ta sama kontrola obejmuje motyw ciemny (`theme`) i jasny (`themeLight`):
+  // oba mają kształt `ThemeColors` i tak samo trafiają do zmiennych CSS
+  // (App.tsx / AdminApp.tsx → setThemeOverrides → applyTheme). Wcześniej
+  // walidowany był tylko ciemny — uszkodzony `themeLight` (brak koloru albo
+  // zły format) wpisywał `undefined`/śmieć do zmiennych trybu jasnego, więc
+  // gracz w jasnym motywie tracił tło albo tekst, dokładnie tak, jak przed
+  // dodaniem tej kontroli dla ciemnego.
+  const checkTheme = (label: string, palette: unknown): void => {
+    if (palette === undefined) return;
+    if (!isObject(palette)) {
+      // Motyw będący liczbą albo tekstem (uszkodzony zapis) wywracał walidator
+      // na `key in palette` niżej — `in` na wartości prostej rzuca wyjątek.
+      add(`${label} nie jest obiektem z kolorami.`);
+      return;
+    }
+    for (const [key, value] of Object.entries(palette)) {
       if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
-        add(`Motyw, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
+        add(`${label}, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
       }
     }
-
     // Brakujący kolor wpisywał się do zmiennych CSS jako `undefined`, więc
     // element tracił tło albo tekst — a błąd był nie do namierzenia, bo
     // walidacja sprawdzała tylko te pola, które akurat były.
-    const missing = Object.keys(DEFAULT_THEME).filter((key) => !(key in theme));
+    const missing = Object.keys(DEFAULT_THEME).filter((key) => !(key in palette));
     if (missing.length > 0) {
-      add(`Motyw: brakuje kolorów: ${missing.join(', ')}.`);
+      add(`${label}: brakuje kolorów: ${missing.join(', ')}.`);
     }
-  }
+  };
+
+  const themed = data as Partial<GameContent>;
+  checkTheme('Motyw', themed.theme);
+  checkTheme('Motyw jasny', themed.themeLight);
 
   return { ok: errors.length === 0, errors };
 }

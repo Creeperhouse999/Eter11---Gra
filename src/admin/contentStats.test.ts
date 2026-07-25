@@ -49,6 +49,26 @@ describe('statystyki treści', () => {
     expect(stat.warn).toBe(true);
   });
 
+  it('nie wywraca się na treści z brakującymi polami (nie tylko pustymi)', () => {
+    // Walidacja treści nie wymaga `description` karty, `consequence` problemu
+    // ani kompletnego wstępu — dokument z bazy potrafi ich w ogóle nie mieć
+    // (nie ma pola, a nie: puste). Kiedyś `undefined.split`/`...undefined`
+    // wywracały cały panel statystyk na biało. Panel ma to przeżyć.
+    const { description: _d, ...cardNoDesc } = BUILTIN_CONTENT.cards[0];
+    const { consequence: _c, ...problemNoConseq } = BUILTIN_CONTENT.problems[0];
+    const broken = {
+      ...BUILTIN_CONTENT,
+      cards: [cardNoDesc, ...BUILTIN_CONTENT.cards.slice(1)],
+      problems: [problemNoConseq, ...BUILTIN_CONTENT.problems.slice(1)],
+      // Wstęp częściowy: sama historia, bez zasad i części dla dorosłych.
+      intro: { story: BUILTIN_CONTENT.intro?.story ?? [] },
+    } as unknown as GameContent;
+
+    expect(() => contentStats(broken)).not.toThrow();
+    // Karta bez klucza opisu liczy się jak karta bez opisu.
+    expect(entry(broken, 'Karty bez opisu').warn).toBe(true);
+  });
+
   it('wyłapuje powtórzoną nazwę', () => {
     const first = BUILTIN_CONTENT.cards.find((c) => c.name !== 'ETER11')!;
     const broken: GameContent = {
@@ -59,6 +79,27 @@ describe('statystyki treści', () => {
     const stat = entry(broken, 'Powtórzone nazwy');
     expect(stat.value).toBe('1');
     expect(stat.warn).toBe(true);
+  });
+
+  it('liczy powtórzoną nazwę raz, niezależnie od liczby wystąpień', () => {
+    // Nazwa w trzech egzemplarzach to JEDNA powtórzona nazwa, nie dwie.
+    // Filtr `indexOf !== index` zostawiał N-1 wpisów, więc trzy „Echo"
+    // pokazywały „Powtórzone nazwy: 2" i notę „Echo, Echo" — sprzeczne
+    // z intencją (jedna powtórzona nazwa).
+    const base = BUILTIN_CONTENT.cards.find((c) => c.name !== 'ETER11')!;
+    const broken: GameContent = {
+      ...BUILTIN_CONTENT,
+      cards: [
+        ...BUILTIN_CONTENT.cards,
+        { ...base, id: 'kopia-1', name: 'Echo' },
+        { ...base, id: 'kopia-2', name: 'Echo' },
+        { ...base, id: 'kopia-3', name: 'Echo' },
+      ],
+    };
+
+    const stat = entry(broken, 'Powtórzone nazwy');
+    expect(stat.value).toBe('1');
+    expect(stat.note).toBe('Echo');
   });
 
   it('nie uznaje wielu ETER11 za pomyłkę', () => {

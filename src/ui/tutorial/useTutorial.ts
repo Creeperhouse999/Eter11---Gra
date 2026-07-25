@@ -192,6 +192,22 @@ function swapStageMessage(goal: TutorialGoal, context: TutorialContext): string 
   return `Zaznaczone: ${context.swapSelected}. Naciśnij „Wymień ${context.swapSelected}", żeby dostać tyle samo nowych kart.`;
 }
 
+/**
+ * Klucz animacji pisania dla dymka ETER11.
+ *
+ * Dymek pisze tekst literą po literze i restartuje efekt, gdy zmieni się
+ * komunikat. Komunikat etapu wymiany osadza licznik zaznaczonych kart
+ * („Zaznaczone: 2…"), więc każde kliknięcie karty zmieniało treść i re-animowało
+ * całą linię — dziecko zaznaczające kilka kart pod rząd widziało tekst
+ * skaczący od zera przy każdym dotknięciu. Zwijamy cyfry do wspólnego tokenu:
+ * ten sam komunikat z innym licznikiem daje ten sam klucz (bez restartu), a
+ * inne komunikaty różnią się dalej. Jedyne cyfry w treści to licznik wymiany,
+ * więc nic sensownego to nie łączy.
+ */
+export function typewriterKey(message: string): string {
+  return message.replace(/\d+/g, '#');
+}
+
 const STORAGE_KEY = 'eter11:tutorial-done';
 
 /** Czy gracz przeszedł już samouczek — pamiętane między wizytami. */
@@ -219,6 +235,8 @@ export interface TutorialControl {
   total: number;
   done: boolean;
   message: string;
+  /** Klucz animacji pisania — stabilny, gdy zmienia się tylko licznik wymiany. */
+  typewriterKey: string;
   anchor: string | null;
   /** Drugi podświetlony element — źródło ruchu. */
   source: string | null;
@@ -300,26 +318,33 @@ export function useTutorial(
     onFinish();
   };
 
+  // Krok czytany nie ma czego chwalić — gracz jeszcze nic nie zrobił,
+  // więc pokazujemy treść wyjaśnienia aż do naciśnięcia „Dalej".
+  const message =
+    done && !step.readOnly
+      ? step.praise
+      : wrongCardMessage(step.goal, context) ??
+        swapStageMessage(step.goal, context) ??
+        (stuck && step.nudge ? step.nudge : step.say);
+
   return {
     active: true,
     step,
     stepNumber: index + 1,
     total: script.length,
     done,
-    // Krok czytany nie ma czego chwalić — gracz jeszcze nic nie zrobił,
-    // więc pokazujemy treść wyjaśnienia aż do naciśnięcia „Dalej".
-    message:
-      done && !step.readOnly
-        ? step.praise
-        : wrongCardMessage(step.goal, context) ??
-          swapStageMessage(step.goal, context) ??
-          (stuck && step.nudge ? step.nudge : step.say),
+    message,
+    typewriterKey: typewriterKey(message),
     // Podświetlenie zostaje także przy pochwale: ETER11 mówi „ścianka
     // zaświeciła", więc musi być co pokazać, gdy to mówi.
     anchor: anchorFor(step.goal, context),
     source: sourceFor(step.goal, context),
-    // Po wykonaniu kroku nie blokujemy niczego — gracz czeka na „Dalej".
-    allows: (action) => done || step.allow.includes(action),
+    // Po wykonaniu ZADANIA nie blokujemy niczego — gracz czeka na „Dalej".
+    // Ale krok czytany (readOnly) jest „zaliczony" od startu, więc `done`
+    // nie może tu znosić blokady: inaczej `allow: []` na wstępie nic nie
+    // daje i dziecko mogłoby w trakcie samej narracji zagrać/spasować,
+    // dobierając kartę i psując ułożoną talię samouczka.
+    allows: (action) => (done && !step.readOnly) || step.allow.includes(action),
     next,
     back: canGoBack ? back : null,
     skip,

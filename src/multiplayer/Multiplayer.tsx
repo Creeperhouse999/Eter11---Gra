@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
-import { ALL_PROBLEMS } from '../data/problems';
-import { ALL_CARDS } from '../data/cards';
+import { playableProblems } from '../data/problems';
+import { playableCards } from '../data/cards';
 import type { GameContent } from '../firebase/validate';
 import { LobbyScreen } from './LobbyScreen';
 import { RoomLobby } from './RoomLobby';
 import { OnlineGame } from './OnlineGame';
-import { playersInOrder, startGame } from './room';
+import { leaveRoom, playersInOrder, startGame } from './room';
 import { useRoom } from './useRoom';
 
 interface MultiplayerProps {
@@ -64,22 +64,31 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
   }, [room, uid]);
 
   const leave = () => {
+    // Zwolnij wpis w bazie ZANIM zerwiemy lokalne dowiązanie do pokoju: w
+    // poczekalni kasuje wpis (wolne miejsce/postać), w grze oznacza offline,
+    // żeby koordynator spasował turę wychodzącego. Bez tego partia drugiego
+    // gracza we dwoje wisiała na graczu, który już wyszedł. Najlepsze staranie
+    // — błąd sieci nie może zablokować powrotu do lobby.
+    if (code && uid) void leaveRoom(code, uid, room);
     setCode(null);
     setUid(null);
   };
 
-  const acceptOffer = async () => {
+  const acceptOffer = async (): Promise<string | null> => {
     const offer = room?.offer;
-    if (!offer || !room?.state) return;
+    if (!offer || !room?.state) return null;
     // Biorący zatwierdza — wysyłamy właściwy ruch przekazania. Że to jego
-    // kolej decydować, pilnuje faza podsumowania w silniku.
-    await dispatch({
+    // kolej decydować, pilnuje faza podsumowania w silniku. Powód odrzucenia
+    // (np. biorący zabrał już kartę w tej misji) oddajemy w górę, żeby okno
+    // pokazało go zamiast po cichu zniknąć bez przeniesienia karty.
+    const rejection = await dispatch({
       type: 'SHARE_CARD',
       fromPlayerId: offer.fromUid,
       toPlayerId: offer.toUid,
       cardId: offer.cardId,
     });
     await resolveOffer();
+    return rejection;
   };
 
   const declineOffer = () => {
@@ -97,8 +106,9 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
 
     const fresh = createGame({
       players,
-      deck: content.cards ?? ALL_CARDS,
-      problems: content.problems ?? ALL_PROBLEMS,
+      // Wersje robocze (`draft`) nie trafiają do gry — tak samo jak przy stole.
+      deck: playableCards(content.cards),
+      problems: playableProblems(content.problems),
       // Ziarno z kodu pokoju — ta sama partia u wszystkich, powtarzalna.
       seed: [...code].reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
       config: content.rules ?? DEFAULT_CONFIG,
@@ -156,7 +166,7 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       propose={propose}
       react={react}
       reactions={room.reactions ?? []}
-      onAcceptOffer={() => void acceptOffer()}
+      onAcceptOffer={() => acceptOffer()}
       onDeclineOffer={declineOffer}
       onLeave={leave}
     />

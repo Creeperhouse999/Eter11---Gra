@@ -1,4 +1,4 @@
-import { buildDeck } from '../data/cards';
+import { buildDeck, playableCards } from '../data/cards';
 import type { CardCategory } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { FAMILY_IDS } from '../data/families';
@@ -40,6 +40,16 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
   const deck = buildDeck(content.cards);
   const { rules, problems, cards } = content;
 
+  // Twarde sprawdzenie grywalności („ścianka bez ani jednej karty") liczy tylko
+  // karty NIEROBOCZE — dokładnie te, które trafiają do gry (playableCards) i
+  // których wymaga walidator zapisu (validate.ts: slot bez pasującej karty
+  // nierobocze = błąd „misji nie da się ukończyć"). Wcześniej deadSlots liczył
+  // wszystkie karty, więc ścianka pokryta JEDYNIE kartą-szkicem nie dawała
+  // ostrzeżenia: przegląd mówił „Gra jest gotowa", a zapis odrzucała walidacja.
+  // Miękkie heurystyki (rzadkość < 3, przechył rodzin) i statystyki opisowe
+  // celowo liczą drafty — to treść czekająca na zatwierdzenie, nie brak karty.
+  const playable = playableCards(cards);
+
   const maxPlayers = 4;
   const cardsDealt = rules.handSize * maxPlayers;
   // Każda runda to jedno dobranie na gracza; misja może trwać pełne rundy.
@@ -71,7 +81,7 @@ export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
   const deadSlots = problems.flatMap((p) =>
     p.slots
       .filter(
-        (s) => !cards.some((c) => c.category === s.key && c.family === s.family),
+        (s) => !playable.some((c) => c.category === s.key && c.family === s.family),
       )
       .map((s) => `${p.name} → ${slotLabel(s.key)} (${s.family})`),
   );

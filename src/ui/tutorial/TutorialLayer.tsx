@@ -20,6 +20,7 @@ export function TutorialLayer({ tutorial }: TutorialLayerProps) {
       <Spotlight target={tutorial.anchor} from={tutorial.source} />
       <GuideBubble
         message={tutorial.message}
+        typewriterKey={tutorial.typewriterKey}
         step={tutorial.stepNumber}
         total={tutorial.total}
         done={tutorial.done}

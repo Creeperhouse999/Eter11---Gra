@@ -5,13 +5,16 @@ import {
   clearOffer,
   commitMove,
   commitMoveAsHost,
+  commitReveal,
   commitSummaryMove,
   kickPlayer,
   offerCard,
   playersInOrder,
+  revealerUid,
   sendReaction,
   setReady,
   startGame,
+  trackPresence,
   watchRoom,
 } from './room';
 import type { CardOffer, Reaction, ReactionKind, Room } from './types';
@@ -41,6 +44,15 @@ export function useRoom(code: string | null, uid: string | null) {
     return stop;
   }, [code]);
 
+  // Obecność gracza (`online`) przez cały pobyt w pokoju. Osobno od nasłuchu
+  // stanu, bo zależy też od `uid` i musi się posprzątać przy wyjściu — inaczej
+  // nasłuch `.info/connected` zostawałby po opuszczeniu pokoju i przy powrocie
+  // sieci wpisywał obecność do pokoju, z którego gracz już wyszedł.
+  useEffect(() => {
+    if (!code || !uid) return;
+    return trackPresence(code, uid);
+  }, [code, uid]);
+
   // Gracze w kolejności tur — indeks aktywnego z tej listy wskazuje, czyj ruch.
   const order = room ? playersInOrder(room) : [];
   const activeUid = room?.state ? order[room.state.activePlayerIndex]?.uid : undefined;
@@ -56,6 +68,27 @@ export function useRoom(code: string | null, uid: string | null) {
   const dispatch = useCallback(
     async (action: Action): Promise<string | null> => {
       if (!code || !uid || !room?.state) return 'Pokój nie jest gotowy.';
+
+      // Odkrycie kolejnego problemu między misjami (faza `setup`) nie ma
+      // zwykłej tury — autoryzuje je wyznaczony rewelator (pierwszy online
+      // gracz), więc partia rusza dalej także wtedy, gdy host padł tuż po
+      // podsumowaniu. Bez tego pokój wisiał na pustym ekranie startu misji.
+      if (action.type === 'START_MISSION') {
+        return commitReveal(code, uid);
+      }
+
+      // Zamknięcie okna Czarnego Łabędzia nie jest ruchem tury: karta weszła
+      // sama w chwili dobrania (niezależnie od tego, czyja kolej), a komunikat
+      // `pendingSwanEvents` to stan WSPÓŁDZIELONY — blokujące okno widzą wszyscy
+      // klienci. Gdyby zamknąć mógł tylko aktywny gracz, ten kto dobrał Łabędzia
+      // (często NIE na kolejce) utykał z oknem, którego przycisk „Rozumiem"
+      // dawał ciche „nie Twoja kolej", dopóki aktywny gracz nie zamknął go za
+      // niego. Czyszczenie kolejki jest idempotentne i niezależne od tury, więc
+      // liczymy je w transakcji (jak ruch podsumowania): dowolny gracz w pokoju
+      // może zamknąć okno, a równoległe zamknięcia się nie nadpisują.
+      if (action.type === 'DISMISS_SWAN_EVENTS') {
+        return commitSummaryMove(code, uid, action);
+      }
 
       // Podsumowanie misji nie ma tury: każdy gracz zabiera własną kartę na
       // matę albo przekazuje ją innym, niezależnie. Poza podsumowaniem ruch
@@ -129,12 +162,16 @@ export function useRoom(code: string | null, uid: string | null) {
 
   // Skipnięcie tury rozłączonego gracza po minucie.
   //
-  // Robi to WYŁĄCZNIE host — gdyby liczył każdy, tura skipnęłaby się kilka
-  // razy naraz. Gracz na kolejce, który jest offline dłużej niż minutę od
-  // początku swojej tury, dostaje automatyczne „pasuję" i wypada z gry.
-  const isHost = Boolean(uid && room?.hostUid === uid);
+  // Robi to WYŁĄCZNIE koordynator — pierwszy obecny gracz w kolejności
+  // (`revealerUid`), a nie host. Gdyby liczył każdy, tura skipnęłaby się kilka
+  // razy naraz; gdyby liczył tylko host, a to host byłby rozłączonym aktywnym
+  // graczem, nie byłoby komu spasować jego turę i partia zawisłaby na stałe.
+  // Koordynator jest zawsze obecny (online) i jednoznaczny. Gracz na kolejce,
+  // który jest offline dłużej niż minutę od początku swojej tury, dostaje
+  // automatyczne „pasuję" i wypada z gry.
+  const isSkipCoordinator = Boolean(uid && room && revealerUid(room) === uid);
   useEffect(() => {
-    if (!isHost || !code || !room?.state || room.phase !== 'playing') return;
+    if (!isSkipCoordinator || !code || !room?.state || room.phase !== 'playing') return;
     if (!activeUid) return;
 
     const active = room.players[activeUid];
@@ -145,12 +182,13 @@ export function useRoom(code: string | null, uid: string | null) {
     const fire = () => {
       // Automatyczne spasowanie za rozłączonego — silnik przesuwa turę dalej.
       // `skippedUid` przypięty do tego przebiegu efektu; zmiana tury restartuje
-      // efekt (jest w zależnościach) i czyści ten timer, więc PASS zawsze
-      // dotyczy gracza, na którego naprawdę czekaliśmy. `uid` jako hostUid —
-      // commitMoveAsHost sam sprawdza w transakcji, że to host pisze.
-      const result = reduce(room.state!, { type: 'PASS', playerId: skippedUid });
-      if (!result.rejected && uid) {
-        void commitMoveAsHost(code, uid, result.state, { type: 'PASS', playerId: skippedUid });
+      // efekt (jest w zależnościach) i czyści ten timer. Ruch PRZELICZA i
+      // zabezpiecza transakcja w `commitMoveAsHost` (host? wciąż jego tura?
+      // wciąż offline?), więc nie liczymy tu nic ze stanu, który mógł się już
+      // zmienić — inaczej PASS ze starego stanu nadpisałby ruch gracza, który
+      // zdążył wrócić tuż przed deadline. `uid` to hostUid.
+      if (uid) {
+        void commitMoveAsHost(code, uid, skippedUid, { type: 'PASS', playerId: skippedUid });
       }
     };
 
@@ -161,7 +199,7 @@ export function useRoom(code: string | null, uid: string | null) {
     }
     const timer = window.setTimeout(fire, wait);
     return () => window.clearTimeout(timer);
-  }, [isHost, code, room?.state, room?.turnStartedAt, activeUid, room?.players, room?.phase]);
+  }, [isSkipCoordinator, code, room?.state, room?.turnStartedAt, activeUid, room?.players, room?.phase]);
 
   return {
     room,

@@ -1,5 +1,6 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
+import { LIGHT_THEME } from '../data/theme';
 import { db } from './client';
 import { validateContent, type GameContent } from './validate';
 
@@ -17,7 +18,16 @@ function migrate(raw: Record<string, unknown>): GameContent {
     rules: { ...BUILTIN_CONTENT.rules, ...(raw.rules as object) },
     text: { ...BUILTIN_CONTENT.text, ...(raw.text as object) },
     theme: { ...BUILTIN_CONTENT.theme, ...(raw.theme as object) },
-    families: { ...BUILTIN_CONTENT.families, ...(raw.families as object) },
+    // Motyw jasny domykamy tak samo jak ciemny — inaczej dołożenie nowego
+    // koloru do DEFAULT_THEME sprawiłoby, że zapisany wcześniej themeLight jest
+    // o ten klucz krótszy, walidacja odrzuca CAŁĄ zawartość i gra po cichu
+    // wraca do wbudowanej. Uzupełniamy z LIGHT_THEME (jasne wartości, nie
+    // ciemne z BUILTIN_CONTENT.theme) i tylko gdy themeLight istnieje: brak
+    // jest poprawnym stanem starszego dokumentu (gra podstawia wtedy LIGHT_THEME
+    // przy renderze), a pusty obiekt walidacja uznałaby za komplet braków.
+    ...(raw.themeLight
+      ? { themeLight: { ...LIGHT_THEME, ...(raw.themeLight as object) } }
+      : {}),
     // Wstęp i samouczek: zapisy sprzed dodania tych pól ich nie mają, a bez
     // podstawienia gra pokazałaby pusty ekran powitalny. Pusta lista jest
     // traktowana jak brak — redaktor mógł skasować wszystkie sceny.
@@ -139,13 +149,29 @@ export async function saveContent(
     // przechodził i kasował cudzą pracę bez śladu. Teraz: jeśli nie mamy
     // wersji bazowej, a w bazie leży już dokument z wersją, traktujemy to jak
     // konflikt — bo skoro coś tam jest, ktoś to zapisał przed nami.
-    const current = await getDoc(doc(db, COLLECTION, DOCUMENT));
-    const theirs = current.exists() ? current.data().updatedAt : undefined;
-    const conflict =
-      typeof theirs === 'string' &&
-      (baseUpdatedAt === undefined || theirs !== baseUpdatedAt);
+    //
+    // Odczyt i zapis MUSZĄ być atomowe. Osobne getDoc + setDoc zostawiały
+    // okno: dwaj redaktorzy zapisujący w tej samej chwili oba odczytywali tę
+    // samą wersję jako „bez konfliktu", po czym drugi setDoc kasował pierwszy
+    // — dokładnie ta strata, której funkcja ma zapobiegać. runTransaction
+    // każe Firestore ponowić całość, gdy dokument zmieni się między odczytem
+    // a zapisem, więc sprawdzenie zawsze dotyczy wersji, którą naprawdę
+    // nadpisujemy.
+    const ref = doc(db, COLLECTION, DOCUMENT);
+    const result = await runTransaction(db, async (tx) => {
+      const current = await tx.get(ref);
+      const theirs = current.exists() ? current.data()!.updatedAt : undefined;
+      const conflict =
+        typeof theirs === 'string' &&
+        (baseUpdatedAt === undefined || theirs !== baseUpdatedAt);
+      if (conflict) return { conflict: true as const, updatedAt: undefined };
 
-    if (conflict) {
+      const updatedAt = new Date().toISOString();
+      tx.set(ref, { ...content, updatedAt });
+      return { conflict: false as const, updatedAt };
+    });
+
+    if (result.conflict) {
       return {
         ok: false,
         errors: [
@@ -156,9 +182,7 @@ export async function saveContent(
       };
     }
 
-    const updatedAt = new Date().toISOString();
-    await setDoc(doc(db, COLLECTION, DOCUMENT), { ...content, updatedAt });
-    return { ok: true, errors: [], updatedAt };
+    return { ok: true, errors: [], updatedAt: result.updatedAt };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {

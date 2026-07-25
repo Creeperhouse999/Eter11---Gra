@@ -25,6 +25,24 @@
   --eter-danger: #ff6b8a;
   --eter-success: #5ce08f;
 
+  /*
+   * Te same kolory w kanałach RGB — Tailwind składa z nich `rgb(<kanały> / alfa)`,
+   * dzięki czemu modyfikator `/opacity` (przyciemnienia pod modalem, pigułki,
+   * wyszarzenia) w ogóle działa. Muszą istnieć już w :root, bo klasy pełne
+   * (`bg-surface` itd.) też z nich korzystają, zanim JS zdąży wpisać motyw.
+   * `applyTheme` nadpisuje je przy zmianie trybu/motywu z panelu.
+   */
+  --eter-bg-rgb: 10 16 32;
+  --eter-surface-rgb: 20 29 51;
+  --eter-raised-rgb: 27 39 64;
+  --eter-edge-rgb: 42 58 92;
+  --eter-ink-rgb: 233 240 255;
+  --eter-ink-dim-rgb: 148 166 200;
+  --eter-accent-rgb: 61 219 208;
+  --eter-accent-2-rgb: 169 124 255;
+  --eter-danger-rgb: 255 107 138;
+  --eter-success-rgb: 92 224 143;
+
   /* Typy problemów — cztery równorzędne kanały, nie jeden neon */
   --eter-type-action: #ff6b6b;
   --eter-type-thinking: #5b9dff;

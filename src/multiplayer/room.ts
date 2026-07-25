@@ -93,7 +93,9 @@ export async function createRoom(input: {
       createdAt: serverTimestamp(),
     });
 
-    trackPresence(code, uid);
+    // Obecność pilnuje `useRoom` przez cały pobyt w pokoju (nasłuch
+    // `.info/connected` z odpięciem przy wyjściu) — początkowe `online: true`
+    // jest już w zapisie wyżej.
     return { code, uid };
   }
 
@@ -146,21 +148,49 @@ export async function joinRoom(input: {
   };
 
   await update(ref(rtdb, `${ROOMS}/${code}/players`), { [uid]: player });
-  trackPresence(code, uid);
+  // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
   return { ok: true, uid };
 }
 
 /**
- * Utrzymuje flagę `online` gracza.
+ * Utrzymuje flagę `online` gracza przez cały pobyt w pokoju.
  *
- * `onDisconnect` każe serwerowi ustawić `online: false`, gdy połączenie
- * padnie — bez tego rozłączony gracz wyglądałby na obecnego w nieskończoność.
- * Sam zapis `true` przy wejściu, obietnica rozłączenia zostaje na serwerze.
+ * Sama obietnica `onDisconnect` NIE wystarcza. Gdy telefon na moment traci
+ * sieć (norma na komórce) i Firebase łączy się z powrotem, serwer zdążył już
+ * wykonać `onDisconnect` — ustawił `online: false` i „zużył" obietnicę. Zapis
+ * `true` tylko raz przy wejściu nie wracał: gracz zostawał „poza grą" na
+ * zawsze, a po minucie koordynator spasowywał jego turę i wyrzucał go z partii,
+ * mimo że siedział połączony. Dokładnie to psuło grę we dwoje na komórkach.
+ *
+ * Dlatego nasłuchujemy `.info/connected` i przy KAŻDYM (ponownym) połączeniu
+ * najpierw zbroimy świeżą obietnicę rozłączenia, a potem zapisujemy
+ * `online: true`. Zwrócona funkcja tylko ODPINA nasłuch przy wyjściu z pokoju —
+ * obietnicy rozłączenia świadomie nie zdejmujemy (jak było wcześniej: rozłączenie
+ * i tak oznaczy gracza offline), a `online: false` też nie zapisujemy tu ręcznie,
+ * bo dla wyrzuconego gracza (jego węzeł `kickPlayer` właśnie skasował) taki zapis
+ * odtworzyłby wpis-widmo. Flaga `disposed` zamyka wyścig, w którym reconnect
+ * domknąłby się już po wyjściu i „wskrzesił" obecność w opuszczonym pokoju.
  */
-function trackPresence(code: string, uid: string): void {
+function trackPresence(code: string, uid: string): () => void {
   const onlineRef = ref(rtdb, `${ROOMS}/${code}/players/${uid}/online`);
-  void set(onlineRef, true);
-  void onDisconnect(onlineRef).set(false);
+  const connectedRef = ref(rtdb, '.info/connected');
+  let disposed = false;
+
+  const stop = onValue(connectedRef, (snapshot) => {
+    if (disposed || snapshot.val() !== true) return;
+    // Zbroimy obietnicę PRZED zapisem `true`: gdyby łącze padło w tej samej
+    // chwili, rozłączenie i tak ustawi `false`.
+    void onDisconnect(onlineRef)
+      .set(false)
+      .then(() => {
+        if (!disposed) void set(onlineRef, true);
+      });
+  });
+
+  return () => {
+    disposed = true;
+    stop();
+  };
 }
 
 /** Nasłuch całego pokoju na żywo. Zwraca funkcję odłączającą. */
@@ -212,6 +242,62 @@ export async function kickPlayer(code: string, uid: string): Promise<void> {
     [`players/${uid}`]: null,
     [`kicked/${uid}`]: true,
   });
+}
+
+/**
+ * Co zrobić z wpisem gracza przy DOBROWOLNYM wyjściu z pokoju, zależnie od fazy.
+ *
+ * - `none` — gracza i tak nie ma w pokoju (nic do zrobienia).
+ * - `remove` — w poczekalni gra nie zbudowała jeszcze kolejności ze stanu, więc
+ *   wpis kasujemy w całości: zwalnia miejsce i wybraną postać.
+ * - `offline` — w trakcie gry (i po jej końcu) wpisu NIE wolno usuwać: kolejność
+ *   tur mapuje `state.players` po indeksie z `playersInOrder(room)`, więc
+ *   skasowanie wpisu rozjechałoby ten indeks u wszystkich. Zostawiamy wpis, ale
+ *   `online: false`, żeby koordynator spasował turę wychodzącego (warunek
+ *   `!online`) i partia toczyła się dalej.
+ *
+ * Czysta decyzja, bez sieci — testowalna. Sam zapis robi `leaveRoom`.
+ */
+export function leaveActionFor(
+  room: Room | null,
+  uid: string,
+): 'none' | 'remove' | 'offline' {
+  if (!room?.players?.[uid]) return 'none';
+  return room.phase === 'lobby' ? 'remove' : 'offline';
+}
+
+/**
+ * Dobrowolne wyjście z pokoju.
+ *
+ * Wcześniej `leave()` tylko czyścił stan lokalny (kod/uid), a wpisu gracza w
+ * bazie nie ruszał. Wpis zostawał z `online: true` (połączenie SPA żyje dalej,
+ * więc `onDisconnect` nie odpalał), przez co w grze we dwoje koordynator NIGDY
+ * nie spasował tury wychodzącego — partia drugiego gracza wisiała na stałe.
+ *
+ * Rozbrajamy przy okazji obietnicę rozłączenia tego połączenia: po świadomym
+ * wyjściu nie chcemy, by późniejsze zerwanie sieci odtworzyło wpis-widmo.
+ */
+export async function leaveRoom(
+  code: string,
+  uid: string,
+  room: Room | null,
+): Promise<void> {
+  const action = leaveActionFor(room, uid);
+  if (action === 'none') return;
+
+  const onlineRef = ref(rtdb, `${ROOMS}/${code}/players/${uid}/online`);
+  try {
+    await onDisconnect(onlineRef).cancel();
+  } catch {
+    // Rozbrojenie obietnicy jest najlepszym staraniem — brak sieci nie może
+    // zablokować wyjścia z pokoju.
+  }
+
+  if (action === 'remove') {
+    await remove(ref(rtdb, `${ROOMS}/${code}/players/${uid}`));
+  } else {
+    await set(onlineRef, false);
+  }
 }
 
 /**
@@ -274,31 +360,67 @@ export async function commitSummaryMove(
     }
     room.state = result.state;
     room.lastAction = action;
+    // Wyjście z podsumowania (END_MISSION_SUMMARY → następna misja albo finał)
+    // unieważnia wiszącą ofertę przekazania: dotyczyła kart tej misji. Bez tego
+    // niezaakceptowana oferta zostawała w `room.offer` i wyskakiwała w kolejnej
+    // misji jako okno „Dostajesz kartę!", a przyjęcie dispatchowało SHARE_CARD
+    // poza fazą `missionSummary` — reduktor i tak by je odrzucił. Czyścimy ją
+    // przy zmianie fazy.
+    if (result.state.phase !== 'missionSummary') {
+      room.offer = null;
+    }
     return room;
   });
   return rejection;
 }
 
 /**
- * Host zapisuje ruch za rozłączonego gracza (automatyczne spasowanie).
+ * Automatyczne spasowanie za rozłączonego gracza.
  *
- * Pomija sprawdzenie „czyja kolej", bo działa w imieniu skipowanego — ale
- * transakcja i tak upewnia się, że host to host i że skipowany jest wciąż
- * offline, żeby dwa urządzenia hosta nie skipnęły dwa razy.
+ * Pisze to WYZNACZONY KOORDYNATOR — pierwszy obecny gracz w kolejności
+ * (`revealerUid`), a NIE host. Wcześniej autoryzował tylko host (`hostUid`),
+ * przez co gdy to host był rozłączonym aktywnym graczem, nie było komu spasować
+ * jego turę: partia zawieszała się na stałe (a po odejściu hosta żadnego
+ * rozłączonego gracza nie dało się już pominąć). Rewelator jest zawsze obecny z
+ * definicji i jednoznaczny (jeden najstarszy online gracz), więc dwóch gości nie
+ * spasuje naraz — dokładnie ten sam wybór koordynatora co przy `commitReveal`.
+ *
+ * Ruch PRZELICZA WEWNĄTRZ transakcji na aktualnym stanie (jak `commitSummaryMove`)
+ * i zapisuje TYLKO gdy:
+ *  - piszący jest aktualnym rewelatorem (koordynatorem), ORAZ
+ *  - skipowany gracz WCIĄŻ jest tym aktywnym i WCIĄŻ jest offline.
+ *
+ * Ten drugi warunek zamyka wyścig: gracz offline potrafi wrócić i zagrać tuż
+ * przed upływem minuty (commitMove przesuwa wtedy turę), a strzelający w tej
+ * samej chwili timer koordynatora liczył PASS ze starego stanu i bezwarunkowo go
+ * zapisywał — kasując dopiero co wykonany ruch i cofając turę. Teraz transakcja
+ * widzi aktualny pokój: jeśli tura już przeszła albo gracz jest online, nic
+ * nie pisze.
  */
 export async function commitMoveAsHost(
   code: string,
-  hostUid: string,
-  next: GameState,
+  byUid: string,
+  skippedUid: string,
   action: Action,
 ): Promise<void> {
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
-    // Tylko host pisze za rozłączonego — inaczej dwa urządzenia mogłyby
-    // skipnąć turę naraz, a złośliwy gracz nadpisać cudzy ruch.
-    if (room.hostUid !== hostUid) return room;
-    room.state = next;
+    if (revealerUid(room) !== byUid) return room;
+
+    // Skip liczy się tylko, gdy w chwili zapisu wciąż czekamy właśnie na TEGO
+    // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
+    // ruszył grę dalej i nadpisanie go spasowaniem byłoby cofnięciem.
+    const order = playersInOrder(room);
+    if (order[room.state.activePlayerIndex]?.uid !== skippedUid) return room;
+    if (room.players?.[skippedUid]?.online) return room;
+
+    // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
+    // reduktorem, tak samo jak w `commitSummaryMove`.
+    const result = reduce(hydrateState(room.state), action);
+    if (result.rejected) return room;
+
+    room.state = result.state;
     room.lastAction = action;
     room.turnStartedAt = Date.now();
     return room;
@@ -308,6 +430,59 @@ export async function commitMoveAsHost(
 /** Gracze w kolejności tur — po czasie dołączenia. */
 export function playersInOrder(room: Room): RoomPlayer[] {
   return Object.values(room.players ?? {}).sort((a, b) => a.joinedAt - b.joinedAt);
+}
+
+/**
+ * Kto odkrywa kolejny problem między misjami (faza `setup`).
+ *
+ * Przy stole robi to każdy po kolei, ale online w fazie `setup`
+ * `activePlayerIndex` stoi na 0, więc „turę" ma wyłącznie pierwszy gracz
+ * w kolejności — zwykle host. Gdy host rozłączy się właśnie między misjami,
+ * nikt inny nie ma tury: START_MISSION przechodzi tylko dla order[0], a
+ * automatyczny skip liczy sam host (którego nie ma) i dotyczy tylko fazy
+ * `playing`. Pokój wisiał wtedy na „Czekaj, aż host odkryje problem" bez
+ * ratunku.
+ *
+ * Rewelatorem jest więc PIERWSZY ONLINE gracz w kolejności: gdy host jest,
+ * to on; gdy padł, przejmuje kolejny obecny. Wybór jest jednoznaczny (jeden
+ * najstarszy online gracz), więc dwóch gości nie odkryje problemu naraz.
+ */
+export function revealerUid(room: Room): string | undefined {
+  return playersInOrder(room).find((p) => p.online)?.uid;
+}
+
+/**
+ * Odkrycie kolejnego problemu (START_MISSION) w fazie `setup`.
+ *
+ * Osobna ścieżka od `commitMove`, bo między misjami nikt nie ma zwykłej tury —
+ * autoryzujemy wyznaczonego rewelatora (pierwszy online gracz), a nie
+ * `order[activePlayerIndex]`. Dzięki temu partia rusza dalej także wtedy, gdy
+ * host padł tuż po podsumowaniu. Ruch PRZELICZAMY w transakcji (jak
+ * `commitSummaryMove`), więc dwa równoległe kliknięcia nie nadpiszą się:
+ * pierwsze przenosi grę do fazy `mission`, a drugie trafia już na stan, w
+ * którym reduktor odrzuca START_MISSION.
+ */
+export async function commitReveal(code: string, uid: string): Promise<string | null> {
+  let rejection: string | null = null;
+  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
+  await runTransaction(roomRef, (room: Room | null) => {
+    if (!room || room.phase !== 'playing' || !room.state) return room;
+    if (!room.players?.[uid]) return room;
+    // Odkryć może tylko wyznaczony rewelator — inaczej dwóch obecnych graczy
+    // (gdy host padł) ścigałoby się o zapis.
+    if (revealerUid(room) !== uid) return room;
+
+    const result = reduce(hydrateState(room.state), { type: 'START_MISSION' });
+    if (result.rejected) {
+      rejection = result.rejected;
+      return room;
+    }
+    room.state = result.state;
+    room.lastAction = { type: 'START_MISSION' };
+    room.turnStartedAt = Date.now();
+    return room;
+  });
+  return rejection;
 }
 
 /** Host startuje partię: zapisuje początkowy stan gry. */
@@ -342,4 +517,4 @@ export async function clearOffer(code: string): Promise<void> {
   await remove(ref(rtdb, `${ROOMS}/${code}/offer`));
 }
 
-export { makeCode };
+export { makeCode, trackPresence };

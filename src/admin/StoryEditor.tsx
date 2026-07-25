@@ -75,7 +75,18 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
     onPartChange?.(next);
   };
 
-  const current: IntroContent = intro ?? DEFAULT_INTRO;
+  // Wstęp zapisany przed dodaniem którejś części (np. „Dla dorosłych") nie ma
+  // jej klucza. `intro ?? DEFAULT_INTRO` ratuje tylko wstęp NIEISTNIEJĄCY
+  // w całości — przy częściowym `current.adults.length` w pasku zakładek
+  // wywracał cały edytor pustym ekranem. Każdą część bierzemy z zapisu, gdy
+  // jest tablicą; inaczej z wersji wbudowanej (spójnie z migracją w content.ts).
+  const scenesOf = (key: keyof IntroContent): IntroScene[] =>
+    Array.isArray(intro?.[key]) ? intro![key] : DEFAULT_INTRO[key];
+  const current: IntroContent = {
+    story: scenesOf('story'),
+    rules: scenesOf('rules'),
+    adults: scenesOf('adults'),
+  };
   const steps = tutorial?.length ? tutorial : TUTORIAL_STEPS;
 
   const setScenes = (key: 'story' | 'rules' | 'adults', scenes: IntroScene[]) => {

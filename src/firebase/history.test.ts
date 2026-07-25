@@ -62,4 +62,21 @@ describe('opis zmian między wersjami', () => {
   it('zapis bez zmian mówi to wprost', () => {
     expect(describeChanges(base, base)).toBe('bez zmian w treści');
   });
+
+  it('zmiana tylko jasnego motywu jest widoczna w opisie', () => {
+    // Redaktor edytujący same kolory trybu jasnego zapisuje zmianę wyłącznie
+    // w `themeLight` (patrz AdminApp — update({ themeLight: colors })). Bez tej
+    // sekcji w opisie historia mówiłaby „bez zmian w treści", choć zapisała
+    // pełną wersję — a redaktor szukający „kiedy zmieniłem jasne kolory" nie
+    // znalazłby po czym.
+    const prev: GameContent = { ...base, themeLight: { ...base.theme } };
+    const next: GameContent = {
+      ...base,
+      themeLight: { ...base.theme, catDigital: '#abcdef' },
+    };
+
+    const summary = describeChanges(next, prev);
+    expect(summary).not.toBe('bez zmian w treści');
+    expect(summary).toContain('jasny');
+  });
 });

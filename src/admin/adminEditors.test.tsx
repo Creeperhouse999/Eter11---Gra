@@ -10,6 +10,7 @@ import { DEFAULT_THEME } from '../data/theme';
 import { DEFAULT_UI_TEXT } from '../data/uiText';
 import { DEFAULT_CONFIG } from '../engine/reducer';
 import type { GameContent } from '../firebase/validate';
+import type { Card } from '../engine/types';
 import { CardEditor } from './CardEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
@@ -150,8 +151,95 @@ describe('CardEditor', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 
-  
+  /**
+   * Zmiana kategorii hurtem musi doprowadzić kartę do stanu zgodnego z nową
+   * kategorią, tak jak zmiana pojedynczej karty. Wcześniej hurtowa ustawiała
+   * samą kategorię: Czarny Łabędź lądował bez wariantu, a karta specjalna
+   * zmieniona na zwykłą — bez rodziny. Oba stany nie przechodzą walidacji,
+   * a ukryte pole rodziny pokazuje zmyślone „red", więc nie da się ich
+   * naprawić z panelu.
+   */
+  const pickAndBulkCategory = (cardName: string, optionLabel: RegExp) => {
+    fireEvent.click(screen.getByRole('checkbox', { name: `Zaznacz kartę ${cardName}` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zmień kategorię zaznaczonym' }));
+    const list = screen.getByRole('listbox', { name: 'Zmień kategorię zaznaczonym' });
+    fireEvent.click(within(list).getByRole('option', { name: optionLabel }));
+  };
+
+  it('hurtowa zmiana na Czarnego Łabędzia nadaje wariant i czyści rodzinę', () => {
+    const onChange = vi.fn();
+    const cards: Card[] = [
+      { id: 'c1', name: 'Talent A', description: '', icon: 'star', category: 'talent', family: 'red' },
+    ];
+    render(<CardEditor cards={cards} onChange={onChange} />);
+
+    pickAndBulkCategory('Talent A', /Czarny Łabędź/);
+
+    const calls = onChange.mock.calls;
+    const next = calls[calls.length - 1][0] as Card[];
+    const c1 = next.find((c) => c.id === 'c1')!;
+    expect(c1.category).toBe('blackswan');
+    // Bez fixu: undefined — walidacja odrzuca „Czarny Łabędź bez wariantu".
+    expect(c1.blackSwanKind).toBeDefined();
+    expect(c1.family).toBeUndefined();
   });
+
+  it('hurtowa zmiana karty specjalnej na zwykłą nadaje rodzinę', () => {
+    const onChange = vi.fn();
+    const cards: Card[] = [
+      {
+        id: 'c1',
+        name: 'Łabędź A',
+        description: '',
+        icon: 'swan',
+        category: 'blackswan',
+        blackSwanKind: 'extraProblem',
+      },
+    ];
+    render(<CardEditor cards={cards} onChange={onChange} />);
+
+    pickAndBulkCategory('Łabędź A', /^Talent$/);
+
+    const calls = onChange.mock.calls;
+    const next = calls[calls.length - 1][0] as Card[];
+    const c1 = next.find((c) => c.id === 'c1')!;
+    expect(c1.category).toBe('talent');
+    // Bez fixu: undefined — walidacja odrzuca „brak rodziny (koloru)".
+    expect(c1.family).toBeDefined();
+    expect(c1.blackSwanKind).toBeUndefined();
+  });
+
+  /**
+   * Nowa karta dziedziczy kategorię z aktywnego filtra (CardEditor:189). Gdy
+   * filtr stoi na karcie specjalnej, „Dodaj kartę" MUSI zrobić kartę bez
+   * rodziny — tak samo jak zmiana kategorii przez `categoryPatch`. Wcześniej
+   * `add()` wpisywał na sztywno `family: 'red'` niezależnie od kategorii, więc
+   * powstawała karta-potwór (ETER11/Łabędź z rodziną): przechodziła zapis, ale
+   * zaśmiecała bilans talii (liczona jako 21. kombinacja kategoria/rodzina).
+   */
+  const addWithCategoryFilter = (onChange: ReturnType<typeof vi.fn>, optionLabel: RegExp) => {
+    render(<CardEditor cards={[]} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
+    const list = screen.getByRole('listbox', { name: 'Filtruj kategorię' });
+    fireEvent.click(within(list).getByRole('option', { name: optionLabel }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj kartę' }));
+    const calls = onChange.mock.calls;
+    return calls[calls.length - 1][0][0] as Card;
+  };
+
+  it('dodanie karty przy filtrze ETER11 nie nadaje rodziny', () => {
+    const created = addWithCategoryFilter(vi.fn(), /^ETER11$/);
+    expect(created.category).toBe('eter11');
+    expect(created.family).toBeUndefined();
+  });
+
+  it('dodanie karty przy filtrze Czarny Łabędź daje wariant bez rodziny', () => {
+    const created = addWithCategoryFilter(vi.fn(), /Czarny Łabędź/);
+    expect(created.category).toBe('blackswan');
+    expect(created.family).toBeUndefined();
+    expect(created.blackSwanKind).toBeDefined();
+  });
+});
 
 describe('TextEditor', () => {
   it('zmiana tytułu gry wywołuje onChange', () => {
@@ -210,6 +298,32 @@ describe('ThemeEditor', () => {
     );
     expect(screen.getByText(/za mało/)).toBeDefined();
   });
+
+  /**
+   * Podgląd na żywo działa tylko dla trybu, w którym jest teraz strona.
+   * Tekst musi to mówić — inaczej edycja jasnego przy ciemnej stronie
+   * wygląda, jakby edytor był zepsuty (kolory się zmieniają w polach,
+   * a strona ani drgnie).
+   */
+  it('nie kłamie o podglądzie, gdy edytujesz tryb inny niż widoczny', () => {
+    const previous = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = 'dark';
+    try {
+      render(<ThemeEditor theme={DEFAULT_THEME} onChange={vi.fn()} />);
+
+      // Domyślnie edytujemy ciemny = tryb strony → podgląd na żywo.
+      expect(screen.getByText(/Zmiany widać natychmiast/)).toBeDefined();
+
+      // Przełącz na edycję jasnego, gdy strona jest ciemna.
+      fireEvent.click(screen.getByRole('tab', { name: /Jasny/ }));
+
+      expect(screen.queryByText(/Zmiany widać natychmiast/)).toBeNull();
+      expect(screen.getByText(/Podgląd na żywo działa teraz w trybie/)).toBeDefined();
+    } finally {
+      if (previous === undefined) delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = previous;
+    }
+  });
 });
 
 describe('DeckOverview', () => {
@@ -267,5 +381,27 @@ describe('DeckOverview', () => {
 
     expect(screen.getByText(/do sprawdzenia/i)).toBeDefined();
     expect(screen.queryByText(/Gra jest gotowa/)).toBeNull();
+  });
+
+  it('ostrzega, gdy ściankę pokrywa tylko karta robocza (draft)', () => {
+    // Do gry trafiają wyłącznie karty nierobocze (playableCards) — tak samo
+    // liczy walidator zapisu. Gdy jedyne karty danej kombinacji kategoria+rodzina
+    // są `draft`, ścianki NIE da się domknąć w grze, więc przegląd musi
+    // ostrzegać. Wcześniej liczył wszystkie karty (z draftami), przez co mówił
+    // „Gra jest gotowa", a zapis odrzucała walidacja — panel kłamał w groźną stronę.
+    const data = content();
+    const combo = { key: 'digital' as const, family: 'red' as const };
+    const usesCombo = data.problems.some((p) =>
+      p.slots.some((s) => s.key === combo.key && s.family === combo.family),
+    );
+    expect(usesCombo).toBe(true); // założenie testu: jakiś problem wymaga tej kombinacji
+    for (const card of data.cards) {
+      if (card.category === combo.key && card.family === combo.family) card.draft = true;
+    }
+
+    render(<DeckOverview content={data} />);
+
+    expect(screen.queryByText(/Gra jest gotowa/)).toBeNull();
+    expect(screen.getByText(/do sprawdzenia/i)).toBeDefined();
   });
 });

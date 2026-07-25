@@ -31,7 +31,15 @@ export function useConfirm() {
   const confirm = useCallback(
     (options: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
-        setPending({ ...options, resolve });
+        // Druga prośba, zanim padła odpowiedź na pierwszą (np. podwójny klik
+        // w „Usuń"), nadpisywała `pending` i gubiła poprzedni `resolve` —
+        // tamta obietnica nie kończyła się nigdy. Domykamy ją „nie" przed
+        // podmianą. Updater funkcyjny, bo dwa wywołania w jednym takcie widzą
+        // się wtedy nawzajem, a ref (aktualizowany dopiero przy renderze) nie.
+        setPending((prev) => {
+          prev?.resolve(false);
+          return { ...options, resolve };
+        });
       }),
     [],
   );

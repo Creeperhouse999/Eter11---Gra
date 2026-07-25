@@ -55,9 +55,9 @@ const digital: Card[] = [
   { id: 'dig-y-projektant', name: 'Projektant Przyszłości', category: 'digital', family: 'yellow', icon: 'bulb', description: 'Wymyśla nowe materiały i technologie, których jeszcze nie ma.' },
 
   // Zielona — Świat bez sieci
-  { id: 'dig-g-analog', name: 'Umiejętności analogowe', category: 'digital', family: 'green', icon: 'radio', description: 'Radzi sobie bez internetu: mapa papierowa, krótkofalówka, notes.', draft: true },
+  { id: 'dig-g-analog', name: 'Umiejętności analogowe', category: 'digital', family: 'green', icon: 'radio', description: 'Radzi sobie bez internetu: mapa papierowa, krótkofalówka, notes.' },
   { id: 'dig-g-naprawa', name: 'Naprawa sprzętu', category: 'digital', family: 'green', icon: 'wrench', description: 'Doprowadza do działania to, co inni chcieli wyrzucić.', draft: true },
-  { id: 'dig-g-higiena', name: 'Higiena cyfrowa', category: 'digital', family: 'green', icon: 'eyeOff', description: 'Wie, kiedy odłożyć telefon i jak ustawić limity.', draft: true },
+  { id: 'dig-g-higiena', name: 'Higiena cyfrowa', category: 'digital', family: 'green', icon: 'eyeOff', description: 'Wie, kiedy odłożyć telefon i jak ustawić limity.' },
 ];
 
 // ── Kompetencje poznawczo-społeczne ───────────────────────────────────────
@@ -203,3 +203,15 @@ export function buildDeck(cards: Card[] = ALL_CARDS): Card[] {
 
   return [...copies, ...specialCards];
 }
+
+/**
+ * Karty, które faktycznie trafiają do gry.
+ *
+ * Karty oznaczone `draft: true` to materiał roboczy — nowa karta rodzi się jako
+ * wersja robocza i wymaga sprawdzenia, zanim wejdzie do rozgrywki. Panel mówi
+ * redaktorowi wprost, że wersje robocze „nie trafiają do gry", a test pokrycia
+ * ścianek liczy tylko karty nierobocze — więc ścieżka rozgrywki też musi je
+ * odsiać, inaczej niedokończona karta wychodzi dzieciom do prawdziwej partii.
+ */
+export const playableCards = (cards: Card[] = ALL_CARDS): Card[] =>
+  cards.filter((card) => !card.draft);

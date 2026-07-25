@@ -73,7 +73,12 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       categoryLabel(card.category),
       card.family ? FAMILY_LABELS[card.family] : '',
     ].join(' ');
-    add('cards', 'Karty', card.name, `${card.name} ${card.description} ${meta}`);
+    // `?? ''` bo validateContent NIE wymaga description/consequence/antagonist/
+    // traits (sprawdza je tylko, gdy są tekstem) — poprawny dokument może je
+    // mieć puste. Bez domknięcia szablon dawał „…undefined…", przez co szukanie
+    // „undefined" trafiało w każdy taki wpis, a fragment wyniku pokazywał to
+    // słowo. contentStats domyka to tak samo.
+    add('cards', 'Karty', card.name, `${card.name} ${card.description ?? ''} ${meta}`);
   }
 
   for (const problem of content.problems) {
@@ -81,18 +86,18 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       'problems',
       'Problemy',
       problem.name,
-      `${problem.name} ${problem.story} ${problem.consequence} ${problem.goal} ${problem.antagonist}`,
+      `${problem.name} ${problem.story ?? ''} ${problem.consequence ?? ''} ${problem.goal ?? ''} ${problem.antagonist ?? ''}`,
     );
     for (const slot of problem.slots) {
       // Ścianka wyszukiwana też po nazwie kategorii i rodziny, których
       // wymaga — „cyfrowa czerwona" ma trafić w problem z taką ścianką.
-      const slotMeta = `${categoryLabel(slot.key)} ${FAMILY_LABELS[slot.family]}`;
+      const slotMeta = `${categoryLabel(slot.key)} ${slot.family ? FAMILY_LABELS[slot.family] : ''}`;
       add('problems', 'Problemy → ścianki', problem.name, `${slot.hint} ${slotMeta}`);
     }
   }
 
   for (const character of content.characters) {
-    add('characters', 'Postacie', character.name, `${character.name} ${character.traits}`);
+    add('characters', 'Postacie', character.name, `${character.name} ${character.traits ?? ''}`);
   }
 
   for (const [key, value] of Object.entries(content.text)) {
@@ -109,7 +114,9 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       ['adults', 'Wstęp → Dla dorosłych'],
     ];
     for (const [key, label] of parts) {
-      content.intro[key].forEach((scene, index) => {
+      // Wstęp bywa zapisany częściowo (sama historia bez zasad itd.) — brakująca
+      // część to zero scen, nie `undefined.forEach`, które wywracało wyszukiwarkę.
+      (content.intro[key] ?? []).forEach((scene, index) => {
         add(
           'story',
           label,

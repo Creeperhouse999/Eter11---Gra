@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { useState } from 'react';
 import { Alert } from './Alert';
 import { Button } from './Button';
@@ -9,6 +9,7 @@ import { NumberField, TextField } from './Field';
 import { Modal } from './Modal';
 import { Select } from './Select';
 import { ToastProvider, useToast } from './Toast';
+import { TopBanner } from './TopBanner';
 import { useConfirm } from './useConfirm';
 
 describe('Checkbox', () => {
@@ -106,6 +107,33 @@ describe('Select', () => {
     expect(await screen.findByRole('listbox')).toBeDefined();
   });
 
+  it('aria-activedescendant wskazuje aktywną opcję i podąża za strzałką', async () => {
+    // Fokus zostaje na przycisku, więc bez aria-activedescendant czytnik ekranu
+    // nie ogłasza, na której opcji stoi zaznaczenie po ArrowUp/Down.
+    render(<Select value="a" options={options} onChange={vi.fn()} ariaLabel="Wybór" />);
+    const trigger = screen.getByRole('button', { name: 'Wybór' });
+
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // otwiera, aktywna = „Pierwsza"
+    const listbox = await screen.findByRole('listbox');
+    expect(trigger.getAttribute('aria-controls')).toBe(listbox.id);
+
+    const activeByData = () =>
+      within(listbox)
+        .getAllByRole('option')
+        .find((o) => o.getAttribute('data-active') === 'true');
+
+    // Wskazana po id opcja to dokładnie ta oznaczona jako aktywna.
+    expect(trigger.getAttribute('aria-activedescendant')).toBeTruthy();
+    expect(activeByData()?.id).toBe(trigger.getAttribute('aria-activedescendant'));
+
+    // Strzałka w dół przesuwa wirtualny fokus na kolejną opcję.
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(trigger.getAttribute('aria-activedescendant')).toBe(
+      within(listbox).getByRole('option', { name: 'Druga' }).id,
+    );
+    expect(activeByData()?.id).toBe(trigger.getAttribute('aria-activedescendant'));
+  });
+
   it('wybór opcji zgłasza wartość i zamyka listę', async () => {
     const onChange = vi.fn();
     render(<Select value="a" options={options} onChange={onChange} ariaLabel="Wybór" />);
@@ -169,6 +197,30 @@ describe('Select', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Wybór' }));
     const selected = await screen.findByRole('option', { selected: true });
     expect(selected.textContent).toContain('Druga');
+  });
+
+  it('po ponownym otwarciu myszą Enter wybiera aktualną wartość, nie ostatnio podświetloną', async () => {
+    // Ścieżka klawiaturowa przywraca podświetlenie na wybraną wartość przy
+    // otwarciu; ścieżka myszy tego nie robiła. Sekwencja: otwórz, przejdź
+    // strzałkami na trzecią opcję, zamknij Escape, otwórz PONOWNIE myszą,
+    // Enter — bez fixu wybierało 'c' z poprzedniego otwarcia zamiast 'a'.
+    const onChange = vi.fn();
+    render(<Select value="a" options={options} onChange={onChange} ariaLabel="Wybór" />);
+    const trigger = screen.getByRole('button', { name: 'Wybór' });
+
+    fireEvent.click(trigger);
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // a -> b
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' }); // b -> c
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+
+    fireEvent.click(trigger); // ponowne otwarcie myszą
+    await screen.findByRole('listbox');
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('a');
+    expect(onChange).not.toHaveBeenCalledWith('c');
   });
 });
 
@@ -260,6 +312,74 @@ describe('useConfirm', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Na pewno?' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Anuluj' }));
     await waitFor(() => expect(screen.getByTestId('wynik').textContent).toBe('nie'));
+  });
+
+  /**
+   * Druga prośba, zanim padła odpowiedź na pierwszą (np. podwójny klik w „Usuń"),
+   * nie może zawiesić pierwszej obietnicy na zawsze — musi się domknąć „nie".
+   */
+  function DoubleHarness() {
+    const { confirm, dialog } = useConfirm();
+    const [log, setLog] = useState<string[]>([]);
+    const ask = (title: string) => async () => {
+      const ok = await confirm({ title, message: title });
+      setLog((prev) => [...prev, `${title}:${ok}`]);
+    };
+    return (
+      <>
+        {dialog}
+        <button type="button" onClick={ask('A')}>a</button>
+        <button type="button" onClick={ask('B')}>b</button>
+        <span data-testid="log">{log.join(',')}</span>
+      </>
+    );
+  }
+
+  it('druga prośba przed odpowiedzią domyka pierwszą, nie zawiesza jej', async () => {
+    render(<DoubleHarness />);
+    fireEvent.click(screen.getByRole('button', { name: 'a' }));
+    fireEvent.click(screen.getByRole('button', { name: 'b' }));
+
+    // Okno pokazuje teraz prośbę B (A została nadpisana).
+    const dialog = await screen.findByRole('dialog', { name: 'B' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Potwierdź' }));
+
+    // A domknięte „nie" (bez fixu wisiałoby i nigdy nie trafiło do logu), B „tak".
+    await waitFor(() => {
+      const log = screen.getByTestId('log').textContent ?? '';
+      expect(log).toContain('A:false');
+      expect(log).toContain('B:true');
+    });
+  });
+});
+
+describe('TopBanner', () => {
+  /**
+   * Baner znika sam po `autoHideMs`, nawet gdy wołający przerysowuje się
+   * z coraz to nową funkcją `onDismiss` (tak robi adapter `game` w grze
+   * online). Wcześniej `onDismiss` w zależnościach odliczania zerował timer
+   * przy każdym renderze rodzica, więc baner nie znikał nigdy.
+   */
+  it('samoczynne zniknięcie przeżywa przerysowania z nową onDismiss', () => {
+    vi.useFakeTimers();
+    try {
+      const dismissed = vi.fn();
+      const { rerender } = render(
+        <TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />,
+      );
+
+      // Trzy przerysowania z NOWĄ strzałką co 1,5 s — łącznie do t=4,5 s.
+      act(() => vi.advanceTimersByTime(1500));
+      rerender(<TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />);
+      act(() => vi.advanceTimersByTime(1500));
+      rerender(<TopBanner message="Błąd" onDismiss={() => dismissed()} autoHideMs={4000} />);
+      act(() => vi.advanceTimersByTime(1500));
+
+      // Bez fixu timer zerowałby się przy każdym rerenderze i nigdy nie odpalił.
+      expect(dismissed).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

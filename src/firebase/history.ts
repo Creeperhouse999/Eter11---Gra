@@ -50,6 +50,10 @@ const SECTION_LABELS: Record<string, string> = {
   rules: 'zasady',
   text: 'teksty',
   theme: 'kolory',
+  // `themeLight` to osobna, edytowalna sekcja (kolory trybu jasnego). Bez niej
+  // opis zmian pomijał zapisy dotykające wyłącznie jasnego motywu i mówił
+  // „bez zmian w treści", choć wersja zapisała pełną kopię.
+  themeLight: 'kolory (jasny)',
   families: 'rodziny',
   categories: 'kategorie',
   customIcons: 'ikony',

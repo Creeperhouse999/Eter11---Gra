@@ -236,3 +236,15 @@ export const ALL_PROBLEMS: Problem[] = [
     ],
   },
 ];
+
+/**
+ * Problemy, które faktycznie trafiają do gry.
+ *
+ * Problem oznaczony `draft: true` to wersja robocza — niekompletna albo
+ * czekająca na sprawdzenie merytoryczne. Panel mówi redaktorowi wprost, że
+ * wersje robocze „nie trafiają do gry", a test pokrycia ścianek liczy tylko
+ * problemy nierobocze. Ścieżka rozgrywki musi je więc odsiać, inaczej
+ * niedokończony problem wychodzi dzieciom do prawdziwej partii.
+ */
+export const playableProblems = (problems: Problem[] = ALL_PROBLEMS): Problem[] =>
+  problems.filter((problem) => !problem.draft);

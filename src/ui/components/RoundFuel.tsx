@@ -24,7 +24,11 @@ export function RoundFuel({ round, total }: RoundFuelProps) {
         </span>
       </div>
       <div
-        className="mt-1.5 flex gap-1"
+        // `flex-wrap`: liczba rund idzie z zasad (redaktor może ustawić do 30),
+        // a rząd kresek po 20 px nie mieści się wtedy w kolumnie na telefonie
+        // i wychodził poza ekran w bok. Zawijanie do kolejnych rzędów trzyma
+        // wszystkie kreski w kadrze — tak samo jak pasek ścianek (MissionProgress).
+        className="mt-1.5 flex flex-wrap gap-1"
         role="img"
         aria-label={`Runda ${round} z ${total}. Zostało ${remaining}.`}
       >

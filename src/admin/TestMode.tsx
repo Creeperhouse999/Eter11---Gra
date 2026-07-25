@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { applyBlackSwan } from '../engine/reducer';
+import { applyBlackSwan, hasProblemToReveal } from '../engine/reducer';
 import type { BlackSwanKind } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { FinaleScreen } from '../ui/screens/FinaleScreen';
@@ -162,7 +162,7 @@ function TestGame({
           <button
             type="button"
             onClick={() => dispatch({ type: 'START_MISSION' })}
-            disabled={state.problemPile.length === 0}
+            disabled={!hasProblemToReveal(state)}
             className="rounded-lg bg-accent px-6 py-3 font-display font-bold text-bg disabled:opacity-40"
           >
             Odkryj problem
