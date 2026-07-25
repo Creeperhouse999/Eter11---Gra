@@ -1,6 +1,6 @@
 import { FAMILY_LABELS } from '../../data/families';
 import { roundsForPlayers } from '../../engine/reducer';
-import { cardFitsSlot } from '../../engine/rules';
+import { cardFitsSlot, isSlotFilled } from '../../engine/rules';
 import type { Card, GameState, Player } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { counted } from '../plural';
@@ -56,7 +56,15 @@ function buildHint(props: CoachProps): Hint | null {
   if (selectedCard) {
     const targets = mission.problems.flatMap((problem) =>
       problem.slots
-        .filter((slot) => cardFitsSlot(selectedCard, slot.key, slot.family))
+        .filter(
+          (slot) =>
+            // Tylko WOLNE ścianki — komunikat niżej mówi „wolnej ścianki",
+            // a „przeciągnij tam" na zamkniętą kończyłoby się odrzuceniem
+            // ruchu. `isSlotFilled` liczy jak silnik (uwzględnia podwojenie
+            // wymagań przez Czarnego Łabędzia).
+            !isSlotFilled(mission, problem.id, slot.key) &&
+            cardFitsSlot(selectedCard, slot.key, slot.family),
+        )
         .map((slot) => `${slotLabel(slot.key)} ${FAMILY_LABELS[slot.family].toLowerCase()}`),
     );
 
@@ -87,7 +95,13 @@ function buildHint(props: CoachProps): Hint | null {
   // Nic nie wybrano: czy w ogóle jest czym zagrać?
   const playable = player.hand.filter((card) =>
     mission.problems.some((problem) =>
-      problem.slots.some((slot) => cardFitsSlot(card, slot.key, slot.family)),
+      problem.slots.some(
+        (slot) =>
+          // „Grywalna" znaczy „domknie WOLNĄ ściankę" — karta pasująca tylko
+          // do już zamkniętej nie daje ruchu. Liczymy jak silnik i widok gry.
+          !isSlotFilled(mission, problem.id, slot.key) &&
+          cardFitsSlot(card, slot.key, slot.family),
+      ),
     ),
   );
 
