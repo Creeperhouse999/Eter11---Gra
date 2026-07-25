@@ -170,22 +170,42 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
 
       <div className="relative mt-6 space-y-3">
         {isHost ? (
-          // Custom podpowiedź zamiast natywnego `title`.
-          <Tooltip
-            label={players.length < 2 ? 'Potrzeba co najmniej dwóch graczy' : ''}
-            className="w-full"
-          >
-          <Button
-            variant="primary"
-            size="lg"
-            icon="rocket"
-            className="w-full"
-            disabled={players.length < 2}
-            onClick={onStart}
-          >
-            {players.length < 2 ? 'Czekamy na graczy…' : `Zaczynamy (${players.length})`}
-          </Button>
-          </Tooltip>
+          (() => {
+            // Każdy startuje z tym samym placeholderem (ch-odkrywca) i nikt nie
+            // musi go zmienić — bez tego warunku host mógł zacząć grę, w której
+            // dwie osoby grają tą samą postacią (ten sam awatar i imię postaci).
+            // Blokujemy start, dopóki wybory nie są różne — to wymusza wybór z
+            // poczekalni, który i tak jest zamysłem tego ekranu.
+            const enough = players.length >= 2;
+            const distinct =
+              new Set(players.map((p) => p.characterId)).size === players.length;
+            const canStart = enough && distinct;
+            const reason = !enough
+              ? 'Potrzeba co najmniej dwóch graczy'
+              : !distinct
+                ? 'Każdy gracz musi wybrać własną postać'
+                : '';
+            const label = !enough
+              ? 'Czekamy na graczy…'
+              : !distinct
+                ? 'Wybierzcie różne postacie'
+                : `Zaczynamy (${players.length})`;
+            return (
+              // Custom podpowiedź zamiast natywnego `title`.
+              <Tooltip label={reason} className="w-full">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  icon="rocket"
+                  className="w-full"
+                  disabled={!canStart}
+                  onClick={onStart}
+                >
+                  {label}
+                </Button>
+              </Tooltip>
+            );
+          })()
         ) : (
           <p className="rounded-lg border border-edge bg-surface p-3 text-center text-sm text-ink-dim">
             Czekamy, aż gospodarz zacznie grę.
