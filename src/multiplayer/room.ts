@@ -245,6 +245,62 @@ export async function kickPlayer(code: string, uid: string): Promise<void> {
 }
 
 /**
+ * Co zrobić z wpisem gracza przy DOBROWOLNYM wyjściu z pokoju, zależnie od fazy.
+ *
+ * - `none` — gracza i tak nie ma w pokoju (nic do zrobienia).
+ * - `remove` — w poczekalni gra nie zbudowała jeszcze kolejności ze stanu, więc
+ *   wpis kasujemy w całości: zwalnia miejsce i wybraną postać.
+ * - `offline` — w trakcie gry (i po jej końcu) wpisu NIE wolno usuwać: kolejność
+ *   tur mapuje `state.players` po indeksie z `playersInOrder(room)`, więc
+ *   skasowanie wpisu rozjechałoby ten indeks u wszystkich. Zostawiamy wpis, ale
+ *   `online: false`, żeby koordynator spasował turę wychodzącego (warunek
+ *   `!online`) i partia toczyła się dalej.
+ *
+ * Czysta decyzja, bez sieci — testowalna. Sam zapis robi `leaveRoom`.
+ */
+export function leaveActionFor(
+  room: Room | null,
+  uid: string,
+): 'none' | 'remove' | 'offline' {
+  if (!room?.players?.[uid]) return 'none';
+  return room.phase === 'lobby' ? 'remove' : 'offline';
+}
+
+/**
+ * Dobrowolne wyjście z pokoju.
+ *
+ * Wcześniej `leave()` tylko czyścił stan lokalny (kod/uid), a wpisu gracza w
+ * bazie nie ruszał. Wpis zostawał z `online: true` (połączenie SPA żyje dalej,
+ * więc `onDisconnect` nie odpalał), przez co w grze we dwoje koordynator NIGDY
+ * nie spasował tury wychodzącego — partia drugiego gracza wisiała na stałe.
+ *
+ * Rozbrajamy przy okazji obietnicę rozłączenia tego połączenia: po świadomym
+ * wyjściu nie chcemy, by późniejsze zerwanie sieci odtworzyło wpis-widmo.
+ */
+export async function leaveRoom(
+  code: string,
+  uid: string,
+  room: Room | null,
+): Promise<void> {
+  const action = leaveActionFor(room, uid);
+  if (action === 'none') return;
+
+  const onlineRef = ref(rtdb, `${ROOMS}/${code}/players/${uid}/online`);
+  try {
+    await onDisconnect(onlineRef).cancel();
+  } catch {
+    // Rozbrojenie obietnicy jest najlepszym staraniem — brak sieci nie może
+    // zablokować wyjścia z pokoju.
+  }
+
+  if (action === 'remove') {
+    await remove(ref(rtdb, `${ROOMS}/${code}/players/${uid}`));
+  } else {
+    await set(onlineRef, false);
+  }
+}
+
+/**
  * Zapisuje nowy stan gry po ruchu.
  *
  * Transakcja, bo dwóch graczy mogłoby pisać naraz przy zamieszaniu na łączu —

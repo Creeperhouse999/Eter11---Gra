@@ -6,7 +6,7 @@ import type { GameContent } from '../firebase/validate';
 import { LobbyScreen } from './LobbyScreen';
 import { RoomLobby } from './RoomLobby';
 import { OnlineGame } from './OnlineGame';
-import { playersInOrder, startGame } from './room';
+import { leaveRoom, playersInOrder, startGame } from './room';
 import { useRoom } from './useRoom';
 
 interface MultiplayerProps {
@@ -64,6 +64,12 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
   }, [room, uid]);
 
   const leave = () => {
+    // Zwolnij wpis w bazie ZANIM zerwiemy lokalne dowiązanie do pokoju: w
+    // poczekalni kasuje wpis (wolne miejsce/postać), w grze oznacza offline,
+    // żeby koordynator spasował turę wychodzącego. Bez tego partia drugiego
+    // gracza we dwoje wisiała na graczu, który już wyszedł. Najlepsze staranie
+    // — błąd sieci nie może zablokować powrotu do lobby.
+    if (code && uid) void leaveRoom(code, uid, room);
     setCode(null);
     setUid(null);
   };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeCode, playersInOrder } from './room';
+import { leaveActionFor, makeCode, playersInOrder } from './room';
 import type { Room, RoomPlayer } from './types';
 
 /**
@@ -55,5 +55,46 @@ describe('kolejność graczy', () => {
   it('pusty pokój daje pustą listę', () => {
     const room = { players: {} } as unknown as Room;
     expect(playersInOrder(room)).toEqual([]);
+  });
+});
+
+describe('dobrowolne wyjście z pokoju', () => {
+  const player = (uid: string, joinedAt: number): RoomPlayer => ({
+    uid,
+    name: uid,
+    characterId: 'ch-odkrywca',
+    online: true,
+    ready: false,
+    joinedAt,
+  });
+
+  const roomWith = (phase: Room['phase'], uids: string[]): Room =>
+    ({
+      phase,
+      players: Object.fromEntries(uids.map((uid, i) => [uid, player(uid, i * 10)])),
+    }) as unknown as Room;
+
+  it('w poczekalni usuwa wpis — zwalnia miejsce i postać', () => {
+    // Gra jeszcze nie zbudowała kolejności ze stanu, więc wpis można skasować
+    // w całości. Zostawienie go zajmowałoby slot i blokowało wybraną postać.
+    expect(leaveActionFor(roomWith('lobby', ['a', 'b']), 'a')).toBe('remove');
+  });
+
+  it('w trakcie gry oznacza gracza offline zamiast usuwać', () => {
+    // Kolejność tur mapuje `state.players` po indeksie z `playersInOrder(room)`.
+    // Usunięcie wpisu rozjechałoby ten indeks u wszystkich. Zostawiamy wpis, ale
+    // offline — inaczej `leave()` nic nie zapisywał, gracz zostawał online:true,
+    // a w grze we dwoje koordynator (warunek `!online`) NIGDY nie spasował jego
+    // tury: partia wisiała na stałe. To był realny błąd tej łatki.
+    expect(leaveActionFor(roomWith('playing', ['a', 'b']), 'a')).toBe('offline');
+  });
+
+  it('po zakończeniu gry też tylko offline', () => {
+    expect(leaveActionFor(roomWith('finished', ['a', 'b']), 'a')).toBe('offline');
+  });
+
+  it('gdy gracza nie ma w pokoju, nic nie robi', () => {
+    expect(leaveActionFor(roomWith('playing', ['a', 'b']), 'zzz')).toBe('none');
+    expect(leaveActionFor(null, 'a')).toBe('none');
   });
 });
