@@ -124,7 +124,16 @@ describe('bilans kart przez pełną partię', () => {
           playerId: player.id,
           cardId: own.card.id,
         });
-        if (!result.rejected) state = result.state;
+        if (!result.rejected) {
+          state = result.state;
+          // Karta zabrana na matę schodzi z listy zagranych — inaczej leży
+          // naraz w `mat` i w `mission.played` i spis liczy ją dwa razy przez
+          // całe podsumowanie. Sprawdzamy tu, a nie dopiero po zamknięciu
+          // podsumowania, bo tam played jest kasowane i duplikat znika sam.
+          const mid = census(state);
+          expect(mid.total, 'suma kart zaraz po zabraniu na matę').toBe(start.total);
+          expect(mid.unique, 'karta na macie i w played naraz').toBe(start.unique);
+        }
       }
 
       state = reduce(state, { type: 'END_MISSION_SUMMARY' }).state;

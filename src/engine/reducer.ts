@@ -715,7 +715,15 @@ function takeCardToMat(
         ...p,
         mat: [...p.mat, play.card],
       })),
-      mission: { ...mission, takenToMat: [...mission.takenToMat, action.playerId] },
+      mission: {
+        ...mission,
+        // Karta schodzi z listy zagranych: leży teraz na karcie postaci, nie
+        // przy problemie. Zostawiona tu leżałaby naraz w `mat` i w `played` —
+        // spis kart widziałby ją dwa razy przez całe podsumowanie. Tak samo
+        // robi `shareCard`, gdy karta odchodzi do innego gracza.
+        played: mission.played.filter((p) => p.card.id !== action.cardId),
+        takenToMat: [...mission.takenToMat, action.playerId],
+      },
     },
   };
 }
