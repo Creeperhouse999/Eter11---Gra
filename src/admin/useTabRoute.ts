@@ -73,6 +73,10 @@ export function useTabRoute<T extends string>(
   const isValidRef = useRef(isValid);
   setTabRef.current = setTab;
   isValidRef.current = isValid;
+  // Bieżąca zakładka pod ręką w efekcie nasłuchu adresu (który biegnie z `[]`),
+  // żeby uzbrajać `syncingFromUrl` tylko, gdy adres NAPRAWDĘ zmienia zakładkę.
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
 
   // Pod-zakładka i parametry czytane z adresu. Trzymamy je też w stanie, żeby
   // zmiana adresu przez „wstecz"/„naprzód" odświeżała widok.
@@ -90,7 +94,16 @@ export function useTabRoute<T extends string>(
   useEffect(() => {
     const apply = () => {
       const loc = readLocation();
-      if (loc.tab && isValidRef.current(loc.tab)) {
+      // Flagę „to zmiana z adresu" uzbrajamy TYLKO, gdy adres faktycznie
+      // przełącza zakładkę. Wcześniej ustawialiśmy ją zawsze, gdy adres miał
+      // poprawną zakładkę — nawet gdy była to ta sama, co bieżąca (bo AdminApp
+      // inicjuje zakładkę z adresu). setTab był wtedy no-opem, więc efekt
+      // „tab → adres" nie widział zmiany i NIE zerował flagi (robi to tylko przy
+      // realnej zmianie). Flaga zostawała `true` do PIERWSZEGO kliknięcia
+      // zakładki — brane wtedy za sync z URL — i pod-zakładka/filtr poprzedniej
+      // zakładki wyciekały do nowego adresu (wejście /admin/story/adults, klik
+      // „Karty" → /admin/cards/adults). Teraz: ta sama zakładka = brak flagi.
+      if (loc.tab && isValidRef.current(loc.tab) && loc.tab !== tabRef.current) {
         syncingFromUrl.current = true;
         setTabRef.current(loc.tab);
       }
@@ -167,15 +180,24 @@ export function useTabRoute<T extends string>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  /** Przepisuje adres bez zmiany wpisu w historii — dla pod-stanu zakładki. */
+  /**
+   * Przepisuje adres do stanu pod-zakładki/parametrów.
+   *
+   * `mode`:
+   *  - `push` (domyślnie) dokłada wpis do historii — zmiana pod-zakładki to
+   *    nawigacja, „wstecz" ma ją cofnąć, a nie od razu wyjść z zakładki.
+   *  - `replace` podmienia bieżący wpis — dla parametrów wpisywanych znak po
+   *    znaku (filtr kart): `push` na każdy znak zasypywał historię, więc
+   *    „wstecz" trzeba było klikać tyle razy, ile liter frazy.
+   */
   const writeLocation = useCallback(
-    (nextSub: string | null, nextParams: Record<string, string>) => {
+    (nextSub: string | null, nextParams: Record<string, string>, mode: 'push' | 'replace' = 'push') => {
       const query = new URLSearchParams(nextParams).toString();
       const target = `/admin/${tab}${nextSub ? `/${nextSub}` : ''}${query ? `?${query}` : ''}`;
       const currentFull = window.location.pathname + window.location.search;
-      // pushState, nie replaceState: „wstecz" ma cofnąć zmianę pod-zakładki
-      // czy filtra, a nie wychodzić od razu z zakładki.
-      if (currentFull !== target) window.history.pushState(null, '', target);
+      if (currentFull === target) return;
+      if (mode === 'replace') window.history.replaceState(null, '', target);
+      else window.history.pushState(null, '', target);
     },
     [tab],
   );
@@ -190,15 +212,18 @@ export function useTabRoute<T extends string>(
 
   const setParam = useCallback(
     (key: string, value: string | null) => {
-      setParamsState((current) => {
-        const next = { ...current };
-        if (value) next[key] = value;
-        else delete next[key];
-        writeLocation(sub, next);
-        return next;
-      });
+      // Nowe parametry liczymy z bieżących (domknięcie), a zapis adresu robimy
+      // POZA setterem stanu. Wcześniej writeLocation wołane było WEWNĄTRZ
+      // updatera setParamsState — a updater musi być czysty; w StrictMode React
+      // woła go dwukrotnie, więc adres zapisywał się dwa razy (podwójny wpis).
+      const next = { ...params };
+      if (value) next[key] = value;
+      else delete next[key];
+      setParamsState(next);
+      // `replace`, nie `push`: filtr wpisywany znak po znaku nie zasypuje historii.
+      writeLocation(sub, next, 'replace');
     },
-    [sub, writeLocation],
+    [params, sub, writeLocation],
   );
 
   const navigate = useCallback(
