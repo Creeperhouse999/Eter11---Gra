@@ -351,26 +351,39 @@ export function validateContent(content: unknown): ValidationResult {
   // --- Motyw ---
   // Nieprawidłowy kolor wywróciłby wygląd całej gry, a błąd byłby trudny
   // do namierzenia — sprawdzamy format zapisu.
-  const theme = (data as Partial<GameContent>).theme;
-  if (theme !== undefined && !isObject(theme)) {
-    // Motyw będący liczbą albo tekstem (uszkodzony zapis) wywracał walidator
-    // na `key in theme` niżej — `in` na wartości prostej rzuca wyjątek.
-    add('Motyw nie jest obiektem z kolorami.');
-  } else if (theme) {
-    for (const [key, value] of Object.entries(theme)) {
+  //
+  // Ta sama kontrola obejmuje motyw ciemny (`theme`) i jasny (`themeLight`):
+  // oba mają kształt `ThemeColors` i tak samo trafiają do zmiennych CSS
+  // (App.tsx / AdminApp.tsx → setThemeOverrides → applyTheme). Wcześniej
+  // walidowany był tylko ciemny — uszkodzony `themeLight` (brak koloru albo
+  // zły format) wpisywał `undefined`/śmieć do zmiennych trybu jasnego, więc
+  // gracz w jasnym motywie tracił tło albo tekst, dokładnie tak, jak przed
+  // dodaniem tej kontroli dla ciemnego.
+  const checkTheme = (label: string, palette: unknown): void => {
+    if (palette === undefined) return;
+    if (!isObject(palette)) {
+      // Motyw będący liczbą albo tekstem (uszkodzony zapis) wywracał walidator
+      // na `key in palette` niżej — `in` na wartości prostej rzuca wyjątek.
+      add(`${label} nie jest obiektem z kolorami.`);
+      return;
+    }
+    for (const [key, value] of Object.entries(palette)) {
       if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
-        add(`Motyw, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
+        add(`${label}, pole ${key}: „${value}" nie jest kolorem w formacie #rrggbb.`);
       }
     }
-
     // Brakujący kolor wpisywał się do zmiennych CSS jako `undefined`, więc
     // element tracił tło albo tekst — a błąd był nie do namierzenia, bo
     // walidacja sprawdzała tylko te pola, które akurat były.
-    const missing = Object.keys(DEFAULT_THEME).filter((key) => !(key in theme));
+    const missing = Object.keys(DEFAULT_THEME).filter((key) => !(key in palette));
     if (missing.length > 0) {
-      add(`Motyw: brakuje kolorów: ${missing.join(', ')}.`);
+      add(`${label}: brakuje kolorów: ${missing.join(', ')}.`);
     }
-  }
+  };
+
+  const themed = data as Partial<GameContent>;
+  checkTheme('Motyw', themed.theme);
+  checkTheme('Motyw jasny', themed.themeLight);
 
   return { ok: errors.length === 0, errors };
 }

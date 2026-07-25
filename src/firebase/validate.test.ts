@@ -246,6 +246,44 @@ describe('validateContent', () => {
     expect(validateContent(content).ok).toBe(true);
   });
 
+  // `themeLight` (kolory trybu jasnego) ma ten sam kształt co `theme` i tak
+  // samo trafia do zmiennych CSS (App.tsx / AdminApp.tsx → setThemeOverrides →
+  // applyTheme). Był jednak walidowany tylko motyw ciemny — uszkodzony
+  // `themeLight` (brak koloru albo zły format) wpisywał `undefined`/śmieć do
+  // zmiennych trybu jasnego, więc gracz w jasnym motywie tracił tło/tekst.
+  it('odrzuca motyw jasny z brakującymi kolorami', () => {
+    const content = validContent();
+    content.themeLight = { bg: '#ffffff' } as GameContent['themeLight'];
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('brakuje kolorów');
+  });
+
+  it('odrzuca kolor motywu jasnego w złym formacie', () => {
+    const content = validContent();
+    content.themeLight = { ...DEFAULT_THEME, accent: 'fiolet' };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('accent');
+  });
+
+  it('zgłasza motyw jasny, który nie jest obiektem, zamiast się wywrócić', () => {
+    const content = validContent();
+    (content as { themeLight: unknown }).themeLight = 'nie-obiekt';
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+  });
+
+  it('akceptuje zawartość bez motywu jasnego (starszy dokument)', () => {
+    const content = validContent() as Partial<GameContent>;
+    delete content.themeLight;
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
   it('zbiera wiele błędów naraz', () => {
     const content = validContent();
     content.problems = [];
