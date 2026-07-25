@@ -77,6 +77,19 @@ export function useRoom(code: string | null, uid: string | null) {
         return commitReveal(code, uid);
       }
 
+      // Zamknięcie okna Czarnego Łabędzia nie jest ruchem tury: karta weszła
+      // sama w chwili dobrania (niezależnie od tego, czyja kolej), a komunikat
+      // `pendingSwanEvents` to stan WSPÓŁDZIELONY — blokujące okno widzą wszyscy
+      // klienci. Gdyby zamknąć mógł tylko aktywny gracz, ten kto dobrał Łabędzia
+      // (często NIE na kolejce) utykał z oknem, którego przycisk „Rozumiem"
+      // dawał ciche „nie Twoja kolej", dopóki aktywny gracz nie zamknął go za
+      // niego. Czyszczenie kolejki jest idempotentne i niezależne od tury, więc
+      // liczymy je w transakcji (jak ruch podsumowania): dowolny gracz w pokoju
+      // może zamknąć okno, a równoległe zamknięcia się nie nadpisują.
+      if (action.type === 'DISMISS_SWAN_EVENTS') {
+        return commitSummaryMove(code, uid, action);
+      }
+
       // Podsumowanie misji nie ma tury: każdy gracz zabiera własną kartę na
       // matę albo przekazuje ją innym, niezależnie. Poza podsumowaniem ruch
       // robi tylko gracz, którego jest kolej. Bez tego rozróżnienia w grze
