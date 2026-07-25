@@ -80,8 +80,14 @@ export function FinaleScreen({
             {team.won ? text.finaleTeamWon : text.finaleTeamLost}
           </h2>
           <p className="mt-2 text-sm">
+            {/* Mianownik to problemy NAPOTKANE (rozwiązane + nierozwiązane), nie
+                liczba misji: Czarny Łabędź „dodatkowy problem" dokłada drugi
+                problem do misji, więc wygrana misja wnosi do `solvedProblems`
+                więcej niż jeden problem. Przy `z {missionsPerGame}` wychodził
+                bezsens w stylu „9 z 7". Tak liczone zgadza się też z listą
+                „Nierozwiązane" niżej. */}
             Rozwiązane problemy: <strong className="font-mono">{team.solved}</strong> z{' '}
-            {state.config.missionsPerGame}.
+            {team.solved + state.unsolvedProblems.length}.
             {!team.won && ' Możecie przegrać bitwę, ale nie wojnę.'}
           </p>
           {/* Marcin pytał wprost, jak rozumieć wynik: ekran pokazywał liczby,
@@ -191,9 +197,15 @@ export function FinaleScreen({
         Przykłady zawodów przyszłości: {jobExamples.join(', ')}.
       </p>
 
-      <Button variant="primary" size="lg" icon="rocket" onClick={onRestart}>
+      {/* `relative mt-8` jak przy „Dalej" w podsumowaniu: bez `relative`
+          przycisk stał w warstwie pod stałą siatką tła (.eter-grid, malowaną
+          po treści statycznej), więc jako jedyny element ekranu miał kreski
+          siatki na sobie; bez marginesu przyklejał się do akapitu wyżej. */}
+      <div className="relative mt-8">
+        <Button variant="primary" size="lg" icon="rocket" onClick={onRestart}>
           Nowa gra
         </Button>
+      </div>
     </main>
   );
 }
