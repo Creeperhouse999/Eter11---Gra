@@ -123,14 +123,14 @@ describe('validateContent', () => {
     expect(result.errors.join(' ')).toContain('misji nie da się ukończyć');
   });
 
-  it('odrzuca więcej misji niż problemów w talii', () => {
+  it('odrzuca więcej misji niż grywalnych problemów', () => {
     const content = validContent();
-    // Gra deklaruje 20 misji, a problemów jest 13 — skończy się przed czasem,
-    // a ekran „odkryj problem" zostaje bez treści.
+    // Gra deklaruje 20 misji, a grywalnych (nieroboczych) problemów jest mniej —
+    // skończy się przed czasem, a ekran „odkryj problem" zostaje bez treści.
     content.rules = { ...content.rules, missionsPerGame: 20, teamWinThreshold: 20 };
     const result = validateContent(content);
     expect(result.ok).toBe(false);
-    expect(result.errors.join(' ')).toContain('więcej niż problemów');
+    expect(result.errors.join(' ')).toContain('więcej niż grywalnych problemów');
   });
 
   it('odrzuca zasady, przy których ręka nie mieści się na ekranie', () => {
@@ -320,5 +320,61 @@ describe('validateContent', () => {
     content.rules = { ...content.rules, handSize: 0 };
     const result = validateContent(content);
     expect(result.errors.length).toBeGreaterThan(1);
+  });
+});
+
+/**
+ * Walidator musi mierzyć GRYWALNOŚĆ tą samą treścią, którą widzą gracze —
+ * czyli bez wersji roboczych (`draft`), bo te nie trafiają do partii
+ * (playableCards/playableProblems). Inaczej przepuściłby zawartość niegrywalną
+ * w prawdziwej grze albo zablokował zapis niedokończonego szkicu.
+ */
+describe('validateContent — świadomość wersji roboczych (draft)', () => {
+  it('grywalny problem ze ścianką pokrytą tylko kartą roboczą jest odrzucany', () => {
+    const content = validContent();
+    const problem = content.problems.find((p) => !p.draft)!;
+    const slot = problem.slots[0];
+    // Wszystkie pasujące karty stają się robocze — grywalna talia traci pokrycie.
+    for (const c of content.cards) {
+      if (c.category === slot.key && c.family === slot.family) c.draft = true;
+    }
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/nie da się ukończyć|nie zawiera żadnej karty/i);
+  });
+
+  it('roboczy problem z niepokrytą ścianką nie blokuje zapisu, a nieroboczy — tak', () => {
+    const base = structuredClone(validContent().problems.find((p) => !p.draft)!);
+    const build = (draft: boolean) => {
+      const content = validContent();
+      const p = structuredClone(base);
+      p.id = 'p-nowy';
+      p.draft = draft;
+      // Ścianka mentora w rodzinie, której żadna karta nie ma → niepokryta.
+      p.slots = p.slots.map((s) =>
+        s.key === 'mentor'
+          ? { ...s, family: '__brak__' as unknown as typeof s.family }
+          : s,
+      );
+      content.problems = [...content.problems, p];
+      return validateContent(content);
+    };
+    // Jako szkic: kontrola pokrycia pomijana → nadal ok.
+    const asDraft = build(true);
+    expect(asDraft.ok, asDraft.errors.join('; ')).toBe(true);
+    // Jako nieroboczy: ścianka niepokryta → odrzucony.
+    expect(build(false).ok).toBe(false);
+  });
+
+  it('missionsPerGame liczy problemy nierobocze, nie wszystkie', () => {
+    const content = validContent();
+    const playable = content.problems.filter((p) => !p.draft).length;
+    const drafts = content.problems.length - playable;
+    expect(drafts).toBeGreaterThan(0); // w danych SĄ robocze problemy
+    // O jeden więcej niż grywalnych, ale wciąż ≤ wszystkich (w tym roboczych).
+    content.rules = { ...content.rules, missionsPerGame: playable + 1 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/grywalnych problemów/i);
   });
 });

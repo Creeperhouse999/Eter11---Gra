@@ -166,6 +166,16 @@ export function validateContent(content: unknown): ValidationResult {
   const problemList = rawProblems.filter((p): p is Problem => isObject(p));
   const characterList = rawCharacters.filter((c): c is Character => isObject(c));
 
+  // Do gry trafia tylko treść NIEROBOCZA (patrz playableCards/playableProblems
+  // w danych). Sprawdzenia grywalności — czy każda ścianka ma pasującą kartę,
+  // czy talia ma wszystkie kategorie, czy misji nie jest więcej niż problemów —
+  // muszą więc liczyć tę samą treść, którą naprawdę zobaczą gracze. Inaczej
+  // walidator przepuściłby zawartość niegrywalną w prawdziwej (nieroboczej)
+  // partii: np. ściankę pokrytą wyłącznie kartą roboczą. Kontrole strukturalne
+  // (nazwa, historia, komplet ścianek) zostają dla WSZYSTKICH, także szkiców.
+  const playableCards = cardList.filter((c) => !c.draft);
+  const playableProblems = problemList.filter((p) => !p.draft);
+
   // --- Karty ---
   const cardIds = new Set<string>();
   for (const card of cardList) {
@@ -207,13 +217,15 @@ export function validateContent(content: unknown): ValidationResult {
   }
 
   if (cardList.length > 0) {
+    // Grywalna talia (bez szkiców) musi mieć każdą kategorię — to ona wchodzi
+    // do partii, więc kategoria pokryta wyłącznie kartą roboczą to za mało.
     for (const category of COMPETENCE_CATEGORIES) {
-      if (!cardList.some((c) => c.category === category)) {
+      if (!playableCards.some((c) => c.category === category)) {
         add(`Talia nie zawiera żadnej karty kategorii ${category}.`);
       }
     }
-    if (!cardList.some((c) => c.category === 'talent')) add('Talia nie zawiera talentów.');
-    if (!cardList.some((c) => c.category === 'mentor')) add('Talia nie zawiera mentorów.');
+    if (!playableCards.some((c) => c.category === 'talent')) add('Talia nie zawiera talentów.');
+    if (!playableCards.some((c) => c.category === 'mentor')) add('Talia nie zawiera mentorów.');
   }
 
   // --- Problemy ---
@@ -272,9 +284,12 @@ export function validateContent(content: unknown): ValidationResult {
       }
       if (!slot.family) {
         add(`Problem ${problem.id}, ścianka ${slot.key}: brak wymaganej rodziny.`);
-      } else {
+      } else if (!problem.draft) {
         // Ścianka bez ani jednej pasującej karty w talii zablokowałaby misję.
-        const matching = cardList.filter(
+        // Liczymy tylko problemy i karty NIEROBOCZE: szkic jeszcze nie gra
+        // (może być niekompletny, nie blokujemy jego zapisu), a ściankę
+        // grywalnego problemu musi domknąć karta, która naprawdę trafia do gry.
+        const matching = playableCards.filter(
           (c) => c.category === slot.key && c.family === slot.family,
         );
         if (matching.length === 0) {
@@ -344,16 +359,17 @@ export function validateContent(content: unknown): ValidationResult {
     );
   }
 
-  // Misji nie może być więcej niż problemów: gra dobiega wtedy końca
+  // Misji nie może być więcej niż GRYWALNYCH problemów: gra dobiega wtedy końca
   // wcześniej, niż zapowiada, a ekran „odkryj problem" zostaje bez treści.
+  // Liczymy problemy nierobocze, bo tylko one trafiają do partii — szkice nie.
   if (
     typeof rules.missionsPerGame === 'number' &&
-    problemList.length > 0 &&
-    rules.missionsPerGame > problemList.length
+    playableProblems.length > 0 &&
+    rules.missionsPerGame > playableProblems.length
   ) {
     add(
-      `Misji w grze (${rules.missionsPerGame}) jest więcej niż problemów w talii ` +
-        `(${problemList.length}) — gra skończy się przed czasem.`,
+      `Misji w grze (${rules.missionsPerGame}) jest więcej niż grywalnych problemów ` +
+        `(${playableProblems.length}, bez wersji roboczych) — gra skończy się przed czasem.`,
     );
   }
 
