@@ -208,6 +208,37 @@ describe('CardEditor', () => {
     expect(c1.family).toBeDefined();
     expect(c1.blackSwanKind).toBeUndefined();
   });
+
+  /**
+   * Nowa karta dziedziczy kategorię z aktywnego filtra (CardEditor:189). Gdy
+   * filtr stoi na karcie specjalnej, „Dodaj kartę" MUSI zrobić kartę bez
+   * rodziny — tak samo jak zmiana kategorii przez `categoryPatch`. Wcześniej
+   * `add()` wpisywał na sztywno `family: 'red'` niezależnie od kategorii, więc
+   * powstawała karta-potwór (ETER11/Łabędź z rodziną): przechodziła zapis, ale
+   * zaśmiecała bilans talii (liczona jako 21. kombinacja kategoria/rodzina).
+   */
+  const addWithCategoryFilter = (onChange: ReturnType<typeof vi.fn>, optionLabel: RegExp) => {
+    render(<CardEditor cards={[]} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
+    const list = screen.getByRole('listbox', { name: 'Filtruj kategorię' });
+    fireEvent.click(within(list).getByRole('option', { name: optionLabel }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj kartę' }));
+    const calls = onChange.mock.calls;
+    return calls[calls.length - 1][0][0] as Card;
+  };
+
+  it('dodanie karty przy filtrze ETER11 nie nadaje rodziny', () => {
+    const created = addWithCategoryFilter(vi.fn(), /^ETER11$/);
+    expect(created.category).toBe('eter11');
+    expect(created.family).toBeUndefined();
+  });
+
+  it('dodanie karty przy filtrze Czarny Łabędź daje wariant bez rodziny', () => {
+    const created = addWithCategoryFilter(vi.fn(), /Czarny Łabędź/);
+    expect(created.category).toBe('blackswan');
+    expect(created.family).toBeUndefined();
+    expect(created.blackSwanKind).toBeDefined();
+  });
 });
 
 describe('TextEditor', () => {

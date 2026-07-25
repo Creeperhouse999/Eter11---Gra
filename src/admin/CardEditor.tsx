@@ -187,7 +187,13 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
 
   const add = () => {
     const category: CardCategory = filter === 'all' ? 'psychological' : filter;
-    const created: Card = {
+    // Pola zależne od kategorii idą przez `categoryPatch`, tak samo jak zmiana
+    // kategorii istniejącej karty — jedno źródło reguły „karta specjalna nie ma
+    // rodziny, Czarny Łabędź ma wariant". Wcześniej `add()` wpisywał na sztywno
+    // `family: 'red'`, więc dodanie karty przy filtrze ETER11/Czarny Łabędź
+    // tworzyło kartę-potwora (specjalną z rodziną): zapisywała się, ale liczyła
+    // się jako dodatkowa kombinacja kategoria/rodzina i zaśmiecała bilans talii.
+    const base: Card = {
       id: newId('card'),
       name: 'Nowa karta',
       category,
@@ -195,8 +201,8 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
       icon: 'star',
       family: 'red' as FamilyId,
       draft: true,
-      ...(category === 'blackswan' ? { blackSwanKind: 'extraProblem' as BlackSwanKind } : {}),
     };
+    const created: Card = { ...base, ...categoryPatch(base, category) };
 
     // Nowa karta trafia na początek listy. Na końcu ginęłaby poniżej
     // kilkudziesięciu pozycji i trzeba by jej szukać przewijaniem.
