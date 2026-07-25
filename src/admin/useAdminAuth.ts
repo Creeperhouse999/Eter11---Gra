@@ -7,7 +7,15 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../firebase/client';
-import { loadRole, DEFAULT_ROLE, type Role } from '../firebase/roles';
+import { loadRole, type Role } from '../firebase/roles';
+
+/**
+ * Rola do czasu ustalenia prawdziwej — najniższy poziom, żeby guardy
+ * (canEdit/canDiscuss/…) odmawiały. Konto bez wpisu roli to coworker
+ * (DEFAULT_ROLE), ale to rozstrzyga dopiero `loadRole`; DO wtedy blokujemy, bo
+ * inaczej `viewer` przez moment miał prawa coworkera (Zapisz, Ctrl+S, Dyskusja).
+ */
+const ROLE_UNKNOWN: Role = 'viewer';
 
 /**
  * Uwierzytelnianie panelu administracyjnego.
@@ -20,29 +28,45 @@ export function useAdminAuth() {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  // Rola zalogowanego — decyduje, co widać i wolno w panelu.
-  const [role, setRole] = useState<Role>(DEFAULT_ROLE);
+  // Rola zalogowanego — decyduje, co widać i wolno w panelu. Startuje jako
+  // nieznana (najniższy poziom) do czasu odczytu.
+  const [role, setRole] = useState<Role>(ROLE_UNKNOWN);
 
   useEffect(() => {
+    let disposed = false;
+    // Rośnie przy KAŻDEJ zmianie stanu logowania. Wynik `loadRole` przyjmujemy
+    // tylko dla najświeższego logowania — inaczej wolniejszy odczyt roli starego
+    // konta (po przelogowaniu w tej samej karcie) rozwiązałby się PO nowym i
+    // nadpisał rolę nowego konta rolą starego. Rola bramkuje uprawnienia, więc
+    // to realny błąd. Ten sam licznik chroni przed setState po odmontowaniu.
+    let authGen = 0;
+
     // Bezpiecznik: gdyby `onAuthStateChanged` nigdy nie zawołał callbacku
     // (na telefonie zdarza się przy zablokowanym magazynie — patrz persystencja
     // z listą awaryjną w firebase/client.ts), panel wisiałby wiecznie na
     // „Sprawdzanie sesji…". Po 8 s przestajemy czekać i pokazujemy ekran
     // logowania — użytkownik może się zalogować ręcznie zamiast patrzeć w spinner.
-    const timeout = setTimeout(() => setChecking(false), 8000);
+    const timeout = setTimeout(() => {
+      if (!disposed) setChecking(false);
+    }, 8000);
 
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       clearTimeout(timeout);
+      const gen = (authGen += 1);
       setUser(nextUser);
       setChecking(false);
+      // Rola nieznana do czasu odczytu — do wtedy blokujemy uprawnienia.
+      setRole(ROLE_UNKNOWN);
       if (nextUser) {
-        void loadRole(nextUser.uid, nextUser.email).then(setRole);
-      } else {
-        setRole(DEFAULT_ROLE);
+        void loadRole(nextUser.uid, nextUser.email).then((resolved) => {
+          // Tylko gdy to wciąż aktualne logowanie i komponent żyje.
+          if (!disposed && gen === authGen) setRole(resolved);
+        });
       }
     });
 
     return () => {
+      disposed = true;
       clearTimeout(timeout);
       unsubscribe();
     };
