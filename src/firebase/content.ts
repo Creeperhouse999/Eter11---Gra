@@ -1,5 +1,6 @@
 import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
+import { LIGHT_THEME } from '../data/theme';
 import { db } from './client';
 import { validateContent, type GameContent } from './validate';
 
@@ -17,7 +18,16 @@ function migrate(raw: Record<string, unknown>): GameContent {
     rules: { ...BUILTIN_CONTENT.rules, ...(raw.rules as object) },
     text: { ...BUILTIN_CONTENT.text, ...(raw.text as object) },
     theme: { ...BUILTIN_CONTENT.theme, ...(raw.theme as object) },
-    families: { ...BUILTIN_CONTENT.families, ...(raw.families as object) },
+    // Motyw jasny domykamy tak samo jak ciemny — inaczej dołożenie nowego
+    // koloru do DEFAULT_THEME sprawiłoby, że zapisany wcześniej themeLight jest
+    // o ten klucz krótszy, walidacja odrzuca CAŁĄ zawartość i gra po cichu
+    // wraca do wbudowanej. Uzupełniamy z LIGHT_THEME (jasne wartości, nie
+    // ciemne z BUILTIN_CONTENT.theme) i tylko gdy themeLight istnieje: brak
+    // jest poprawnym stanem starszego dokumentu (gra podstawia wtedy LIGHT_THEME
+    // przy renderze), a pusty obiekt walidacja uznałaby za komplet braków.
+    ...(raw.themeLight
+      ? { themeLight: { ...LIGHT_THEME, ...(raw.themeLight as object) } }
+      : {}),
     // Wstęp i samouczek: zapisy sprzed dodania tych pól ich nie mają, a bez
     // podstawienia gra pokazałaby pusty ekran powitalny. Pusta lista jest
     // traktowana jak brak — redaktor mógł skasować wszystkie sceny.
