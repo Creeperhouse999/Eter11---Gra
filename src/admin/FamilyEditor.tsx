@@ -36,7 +36,9 @@ export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
   ) => {
     onChange({
       ...families,
-      [category]: families[category].map((family) =>
+      // `?? []` na wypadek okrojonej mapy z bazy — normalnie domyka ją migracja
+      // w content.ts, ale edytor nie może wywalić się na brakującej kategorii.
+      [category]: (families[category] ?? []).map((family) =>
         family.id === familyId ? { ...family, ...patch } : family,
       ),
     });
@@ -57,7 +59,7 @@ export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
             <h3 className="eter-label">{categoryLabel(category)}</h3>
 
             <div className="eter-stagger mt-2 grid gap-3 lg:grid-cols-2">
-              {families[category].map((family) => {
+              {(families[category] ?? []).map((family) => {
                 const count = cards.filter(
                   (c) => c.category === category && c.family === family.id,
                 ).length;
