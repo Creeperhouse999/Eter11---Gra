@@ -274,6 +274,15 @@ export async function commitSummaryMove(
     }
     room.state = result.state;
     room.lastAction = action;
+    // Wyjście z podsumowania (END_MISSION_SUMMARY → następna misja albo finał)
+    // unieważnia wiszącą ofertę przekazania: dotyczyła kart tej misji. Bez tego
+    // niezaakceptowana oferta zostawała w `room.offer` i wyskakiwała w kolejnej
+    // misji jako okno „Dostajesz kartę!", a przyjęcie dispatchowało SHARE_CARD
+    // poza fazą `missionSummary` — reduktor i tak by je odrzucił. Czyścimy ją
+    // przy zmianie fazy.
+    if (result.state.phase !== 'missionSummary') {
+      room.offer = null;
+    }
     return room;
   });
   return rejection;
