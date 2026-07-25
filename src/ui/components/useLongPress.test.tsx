@@ -69,6 +69,29 @@ describe('przytrzymanie', () => {
     expect(fired).not.toHaveBeenCalled();
   });
 
+  it('dwa palce naraz nie zostawiają osieroconego odliczania', () => {
+    const fired = vi.fn();
+    render(<Probe onFire={fired} />);
+    const card = screen.getByTestId('card');
+
+    // Dwa palce lądują na tej samej karcie — norma na tablecie dziecka.
+    act(() => {
+      card.dispatchEvent(pointer('pointerdown', 50, 50));
+      card.dispatchEvent(pointer('pointerdown', 120, 120));
+    });
+    // Oba puszczone przed progiem — to nie było przytrzymanie.
+    act(() => void vi.advanceTimersByTime(100));
+    act(() => {
+      card.dispatchEvent(pointer('pointerup', 50, 50));
+      card.dispatchEvent(pointer('pointerup', 120, 120));
+    });
+    act(() => void vi.advanceTimersByTime(500));
+
+    // Bez poprawki drugi palec osieracał timer pierwszego i powiększenie
+    // odpalało z palcami już podniesionymi.
+    expect(fired).not.toHaveBeenCalled();
+  });
+
   it('drobne drgnięcie palca nie przeszkadza', () => {
     const fired = vi.fn();
     render(<Probe onFire={fired} />);

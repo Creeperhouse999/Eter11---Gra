@@ -43,6 +43,12 @@ export function useLongPress(onLongPress: () => void) {
     onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
       // Tylko główny przycisk; dotyk i rysik też raportują 0.
       if (event.button > 0) return;
+      // Jedno przytrzymanie naraz. Drugi palec na tej samej karcie (na tablecie
+      // to norma) nadpisywał uchwyt timera pierwszego palca — `cancel` nie miał
+      // już czym go zatrzymać, więc po podniesieniu obu palców przed progiem
+      // powiększenie i tak odpalało (a przy trzymaniu — dwa razy). Kolejne
+      // wskaźniki ignorujemy, dopóki trwa bieżące odliczanie.
+      if (timer.current !== null) return;
       origin.current = { x: event.clientX, y: event.clientY };
       timer.current = window.setTimeout(() => {
         timer.current = null;
