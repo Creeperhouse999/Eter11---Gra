@@ -16,14 +16,19 @@ import { LIGHT_THEME } from '../data/theme';
 
 // Sterowany „dokument w bazie".
 let docData: Record<string, unknown> | undefined;
+// Gdy true, odczyt symuluje awarię sieci (getDoc rzuca).
+let getThrows = false;
 
 vi.mock('./client', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   doc: () => ({}),
-  getDoc: async () => ({
-    exists: () => docData !== undefined,
-    data: () => docData,
-  }),
+  getDoc: async () => {
+    if (getThrows) throw new Error('offline');
+    return {
+      exists: () => docData !== undefined,
+      data: () => docData,
+    };
+  },
   runTransaction: async () => ({ conflict: false, updatedAt: 'x' }),
 }));
 
@@ -31,6 +36,7 @@ const { loadContent } = await import('./content');
 
 beforeEach(() => {
   docData = undefined;
+  getThrows = false;
 });
 
 describe('loadContent — migracja themeLight', () => {
@@ -68,5 +74,67 @@ describe('loadContent — migracja themeLight', () => {
     };
     const result = await loadContent();
     expect(result.source, result.warning).toBe('firestore');
+  });
+});
+
+/**
+ * Pozostałe gałęzie sieci bezpieczeństwa: cokolwiek jest (albo nie ma) w bazie,
+ * gra rusza, a panel dostaje powód. Bez tego pusta baza wyglądałaby jak awaria,
+ * uszkodzona treść — jak brak sieci, a błąd sieci mógłby wywalić ładowanie.
+ */
+describe('loadContent — gałęzie sieci bezpieczeństwa', () => {
+  it('brak dokumentu → wbudowane, powód „empty"', async () => {
+    docData = undefined;
+    const result = await loadContent();
+    expect(result.source).toBe('builtin');
+    expect(result.reason).toBe('empty');
+  });
+
+  it('poprawna treść z bazy przenosi znacznik updatedAt do panelu', async () => {
+    docData = {
+      ...structuredClone(BUILTIN_CONTENT),
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const result = await loadContent();
+    expect(result.source, result.warning).toBe('firestore');
+    // Panel odsyła TEN znacznik przy zapisie, żeby wykryć cudzą zmianę.
+    expect(result.updatedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('częściowa treść (bez tekstów i wstępu) → migracja dopełnia, wciąż firestore', async () => {
+    // Dokument sprzed dodania tekstów/motywu/wstępu: same sekcje wymagane.
+    const full = structuredClone(BUILTIN_CONTENT);
+    docData = {
+      cards: full.cards,
+      problems: full.problems,
+      characters: full.characters,
+      rules: full.rules,
+      families: full.families,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const result = await loadContent();
+    expect(result.source, result.warning).toBe('firestore');
+    // Migracja dołożyła teksty i wstęp z wersji wbudowanej.
+    expect(result.content.text.gameTitle).toBe(BUILTIN_CONTENT.text.gameTitle);
+    expect(result.content.intro?.story.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it('uszkodzona treść → wbudowane, powód „invalid" z opisem błędu', async () => {
+    const broken = structuredClone(BUILTIN_CONTENT);
+    broken.cards[0] = { ...broken.cards[0], name: '' };
+    docData = { ...broken, updatedAt: '2026-01-01T00:00:00.000Z' };
+
+    const result = await loadContent();
+    expect(result.source).toBe('builtin');
+    expect(result.reason).toBe('invalid');
+    expect(result.warning).toContain('nazwy');
+  });
+
+  it('błąd sieci → wbudowane, powód „unreachable" (nie wywala ładowania)', async () => {
+    getThrows = true;
+    const result = await loadContent();
+    expect(result.source).toBe('builtin');
+    expect(result.reason).toBe('unreachable');
   });
 });
