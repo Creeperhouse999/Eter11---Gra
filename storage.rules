@@ -4,13 +4,22 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     /**
-     * Czy wgrywający ma konto w projekcie.
+     * Czy wgrywający należy do zespołu (konto e-mail/hasło).
      *
-     * Konta zakłada właściciel w Firebase Console — tak samo jak przy
-     * Firestore. Posiadanie konta jest uprawnieniem.
+     * UWAGA — to nie jest zwykłe „zalogowany". Gra loguje graczy ANONIMOWO
+     * (signInAnonymously w multiplayerze), więc `request.auth != null` jest
+     * prawdą dla KAŻDEGO, kto zna publiczny config — a config jest publiczny
+     * z założenia. Gdyby zapis do Storage sprawdzał tylko `auth != null`,
+     * ktoś obcy zalogowałby się anonimowo i wgrał dowolną ilość plików na
+     * cudzy rachunek (klasyczny „upload 36 TB na cudzy bucket").
+     *
+     * Konta zespołu zakłada właściciel w Firebase Console przez Email/Password,
+     * więc mają `sign_in_provider == 'password'`. Anonimowa sesja gracza ma
+     * `'anonymous'` i tu nie przechodzi.
      */
-    function zalogowany() {
-      return request.auth != null;
+    function czlonekZespolu() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider == 'password';
     }
 
     /**
@@ -36,7 +45,7 @@ service firebase.storage {
      */
     match /icons/{file} {
       allow read: if true;
-      allow write: if zalogowany() && obrazek();
+      allow write: if czlonekZespolu() && obrazek();
     }
 
     /**
@@ -50,9 +59,14 @@ service firebase.storage {
      */
     match /reports/{file} {
       allow read: if true;
+      // Zgłoszenie z gry wysyła gracz zalogowany anonimowo (nie ma konta), więc
+      // create musi puścić anonima — inaczej zrzut ekranu z błędem nie dołączy.
+      // Ochroną jest `obrazek()` (typ + twardy limit 5 MB): ktoś obcy wgra co
+      // najwyżej pliki-obrazki do 5 MB pod reports/, nie dowolną treść ani
+      // wielkie archiwa. To świadomy kompromis, żeby zgłaszanie z gry działało.
       allow create: if obrazek();
       // Skasować może tylko zespół — sprzątanie po testach, nie cudza ręka.
-      allow delete: if zalogowany();
+      allow delete: if czlonekZespolu();
     }
 
     /**
@@ -62,7 +76,7 @@ service firebase.storage {
      */
     match /discussions/{file} {
       allow read: if true;
-      allow write: if zalogowany() && obrazek();
+      allow write: if czlonekZespolu() && obrazek();
     }
 
     /**
@@ -74,7 +88,7 @@ service firebase.storage {
      */
     match /cards/{file} {
       allow read: if true;
-      allow write: if zalogowany() && obrazek();
+      allow write: if czlonekZespolu() && obrazek();
     }
 
     // Wszystko inne zamknięte.

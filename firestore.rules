@@ -21,19 +21,38 @@ service cloud.firestore {
     }
 
     /**
+     * Czy to konto ZESPOŁU (e-mail/hasło), nie anonimowy gracz.
+     *
+     * KLUCZOWE: gra loguje graczy ANONIMOWO (signInAnonymously w multiplayerze),
+     * więc `request.auth != null` jest prawdą dla KAŻDEGO obcego, kto zna
+     * publiczny config. Konta zespołu zakłada właściciel przez Email/Password,
+     * więc mają `sign_in_provider == 'password'`. Anonimowa sesja gracza ma
+     * `'anonymous'`. Bez tego rozróżnienia anonim dostawał domyślną rolę
+     * `coworker` i mógł nadpisać całą treść gry — patrz `mozeEdytowac`.
+     */
+    function czlonekZespolu() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider == 'password';
+    }
+
+    /**
      * Rola zalogowanego, czytana z kolekcji `roles/<uid>`.
      *
      * `info@eter11.pl` jest adminem zawsze — nawet gdy w bazie nic o nim nie
      * ma — żeby błąd w kolekcji ról nie odciął jedynej osoby, która może ją
-     * naprawić. Brak wpisu = coworker (najniższy poziom, który jeszcze
-     * pracuje), nigdy admin.
+     * naprawić. Konto zespołu bez wpisu = coworker (najniższy pracujący
+     * poziom). Ktokolwiek NIE jest kontem zespołu (anonimowy gracz) = `viewer`,
+     * czyli brak uprawnień edycyjnych — inaczej obcy z anonimową sesją
+     * przechodziłby jako coworker i pisał do treści gry.
      */
     function rolaKonta() {
       return request.auth.token.email == 'info@eter11.pl'
         ? 'admin'
-        : (exists(/databases/$(database)/documents/roles/$(request.auth.uid))
-            ? get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role
-            : 'coworker');
+        : (!czlonekZespolu()
+            ? 'viewer'
+            : (exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+                ? get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role
+                : 'coworker'));
     }
 
     function jestAdmin() {
@@ -94,36 +113,26 @@ service cloud.firestore {
       // Usuwa tylko admin — ani co-admin, ani coworker, nawet własnych.
       allow delete: if jestAdmin();
 
-      // Zmiana statusu i komentarze.
+      // Zmiana STATUSU (akceptacja, odrzucenie, „naprawione", „działa",
+      // „dalej nie działa", ponowne otwarcie) należy WYŁĄCZNIE do moderatora
+      // (admin / co-admin / programmer). Tak zdecydował właściciel: o obiegu
+      // zgłoszenia decyduje tylko zespół prowadzący, nie każdy zalogowany.
       //
-      // Moderator (admin/co-admin) może wszystko w ramach obiegu. Zwykły
-      // zalogowany — tylko `status` i `notes`, i to nie każde przejście:
-      //
-      // Wcześniejsza reguła sprawdzała TYLKO status, przez co coworker mógł
-      // przy zmianie statusu podmienić autora, tytuł czy opis w tym samym
-      // zapisie, przeskoczyć z `new` prosto na `done` (pomijając weryfikację
-      // zgłaszającego) albo otworzyć odrzucone zgłoszenie. Teraz pola poza
-      // `status`/`notes` są przypięte, a dozwolone przejścia wyliczone.
+      // Nie-moderatorowi (coworker/editor) wolno jedynie DOPISAĆ notatkę do
+      // rozmowy pod zgłoszeniem — bez ruszania statusu ani żadnego innego pola,
+      // i tylko dokładając (nie kasując cudzych). Viewer i anonim: nic.
+      // Pola poza `status`/`notes` są w obu ścieżkach przypięte, więc nie da się
+      // przy okazji podmienić autora, tytułu czy opisu.
       allow update: if jestModeratorem()
                     || (
-                      // `viewer` to sam podgląd — nie tyka nawet statusu ani
-                      // notatek. Wcześniej wystarczało `zalogowany()`, więc
-                      // konto podglądowe mogło przestawiać status zgłoszeń
-                      // i dopisywać notatki. Teraz obieg naprawy jest dla ról
-                      // edytujących (coworker/editor/…), viewer tylko czyta.
                       mozeEdytowac()
-                      // Wolno ruszyć wyłącznie status i rozmowę.
+                      // Tylko dopisanie notatki — status ZOSTAJE bez zmian.
                       && request.resource.data.diff(resource.data)
-                           .affectedKeys().hasOnly(['status', 'notes'])
+                           .affectedKeys().hasOnly(['notes'])
+                      && request.resource.data.status == resource.data.status
                       // Notatek tylko przybywa — nie kasuje się cudzych.
-                      // `get` z domyślną pustą listą, bo aktualizacja samego
-                      // statusu nie niesie pola `notes` wcale.
                       && request.resource.data.get('notes', []).size()
                          >= resource.data.get('notes', []).size()
-                      // Dozwolone przejścia dla nie-moderatora: obieg naprawy,
-                      // bez tykania `pending` i `dismissed` (to moderacja).
-                      && resource.data.status in ['new', 'fixed', 'reopened', 'done']
-                      && request.resource.data.status in ['new', 'fixed', 'reopened', 'done']
                     );
 
       // Tworzenie:

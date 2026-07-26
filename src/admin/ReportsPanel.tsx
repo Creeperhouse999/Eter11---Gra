@@ -451,14 +451,22 @@ export function ReportsPanel({
   const renderReport = (report: Report) => {
     // Czy pasek akcji ma cokolwiek pokazać. Bez tego zgłoszenie odrzucone
     // albo oczekujące oglądane bez uprawnień zostawiałoby pustą kreskę.
-    const canModeratePending = report.status === 'pending' && canModerate(role);
+    // Cały obieg statusu — Akceptuj/Odrzuć, Naprawione, Działa/Dalej nie działa,
+    // Otwórz ponownie — jest wyłącznie dla moderatora (admin/co-admin/programmer).
+    // Wcześniej tylko „Akceptuj/Odrzuć" (pending) sprawdzało rolę, a pozostałe
+    // przejścia pokazywały się każdemu zalogowanemu — coworker/editor mógł
+    // oznaczyć cudze zgłoszenie „Działa" albo je otworzyć na nowo. Teraz
+    // decyduje o statusie tylko ten, kto moderuje.
+    const isModerator = canModerate(role);
+    const canModeratePending = report.status === 'pending' && isModerator;
     const hasStatusActions =
-      canModeratePending ||
-      report.status === 'new' ||
-      report.status === 'reopened' ||
-      report.status === 'fixed' ||
-      report.status === 'done';
-    const canEditReport = canModerate(role);
+      isModerator &&
+      (report.status === 'pending' ||
+        report.status === 'new' ||
+        report.status === 'reopened' ||
+        report.status === 'fixed' ||
+        report.status === 'done');
+    const canEditReport = isModerator;
     const hasActions = hasStatusActions || canDelete(role) || canEditReport;
 
     return (
