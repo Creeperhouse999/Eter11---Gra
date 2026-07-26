@@ -58,7 +58,12 @@ service firebase.storage {
      * także narzędziami spoza aplikacji.
      */
     match /reports/{file} {
-      allow read: if true;
+      // Odczyt tylko dla zespołu. Zrzut ekranu z błędem potrafi pokazać panel
+      // redakcyjny, cudze dane albo stan konta — nie ma powodu, by mógł go
+      // pobrać ktokolwiek z linkiem. Zgłoszenia ogląda się w panelu (tam
+      // redaktor jest zalogowany kontem zespołu), więc podgląd działa jak
+      // dotąd. Wcześniej było `read: if true`.
+      allow read: if czlonekZespolu();
       // Zgłoszenie z gry wysyła gracz zalogowany anonimowo (nie ma konta), więc
       // create musi puścić anonima — inaczej zrzut ekranu z błędem nie dołączy.
       // Ochroną jest `obrazek()` (typ + twardy limit 5 MB): ktoś obcy wgra co
@@ -75,7 +80,9 @@ service firebase.storage {
      * Dyskusje są dla zespołu i wymagają logowania — tak samo załączniki.
      */
     match /discussions/{file} {
-      allow read: if true;
+      // Dyskusje są wewnętrzne — obrazek z wątku zespołu też. Odczyt tylko dla
+      // zespołu (panel, gdzie i tak trzeba być zalogowanym). Było `if true`.
+      allow read: if czlonekZespolu();
       allow write: if czlonekZespolu() && obrazek();
     }
 
