@@ -58,12 +58,24 @@ service cloud.firestore {
             || rolaKonta() == 'coworker');
     }
 
+    /**
+     * Kto może zmieniać treść gry: wszyscy poza `viewer`.
+     *
+     * `viewer` to sam podgląd. Wcześniej regułą zapisu treści było samo
+     * `zalogowany()`, więc viewer mógł ominąć zablokowany w panelu przycisk
+     * (przez konsolę/API) i nadpisać całą grę. Teraz zapis wymaga roli
+     * edytującej — panel blokuje pola, a reguła domyka to od strony bazy.
+     */
+    function mozeEdytowac() {
+      return zalogowany() && rolaKonta() != 'viewer';
+    }
+
     // Zawartość gry: karty, problemy, postacie, parametry zasad.
     // Odczyt publiczny — gra ładuje dane bez logowania, także u dzieci,
     // które kont nie mają i mieć nie będą.
     match /content/{document} {
       allow read: if true;
-      allow write: if zalogowany();
+      allow write: if mozeEdytowac();
     }
 
     // Zgłoszenia błędów i pomysłów od zespołu.
@@ -94,7 +106,12 @@ service cloud.firestore {
       // `status`/`notes` są przypięte, a dozwolone przejścia wyliczone.
       allow update: if jestModeratorem()
                     || (
-                      zalogowany()
+                      // `viewer` to sam podgląd — nie tyka nawet statusu ani
+                      // notatek. Wcześniej wystarczało `zalogowany()`, więc
+                      // konto podglądowe mogło przestawiać status zgłoszeń
+                      // i dopisywać notatki. Teraz obieg naprawy jest dla ról
+                      // edytujących (coworker/editor/…), viewer tylko czyta.
+                      mozeEdytowac()
                       // Wolno ruszyć wyłącznie status i rozmowę.
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['status', 'notes'])
@@ -215,11 +232,15 @@ service cloud.firestore {
      * na wspólnym dokumencie. Historia pozwala cofnąć cudzy albo własny
      * zapis zamiast odtwarzać go z pamięci.
      *
-     * Odczyt otwarty tak jak reszta treści gry; pisze i przycina zespół.
+     * Odczyt TYLKO dla moderatorów (admin / co-admin). Historia to pełne
+     * poprzednie wersje całej treści — wgląd w cudzą pracę i możliwość
+     * cofnięcia. Zgłoszono, że nie powinni jej widzieć coworker/editor/viewer
+     * ani ktokolwiek niezalogowany. Zapis nadal cały zespół (redaktorzy
+     * dopisują wersje przy każdym zapisie treści).
      */
     match /contentHistory/{version} {
-      allow read: if true;
-      allow write: if zalogowany();
+      allow read: if jestModeratorem();
+      allow write: if mozeEdytowac();
     }
 
     /**
