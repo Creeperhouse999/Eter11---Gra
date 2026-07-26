@@ -3,7 +3,12 @@
 Webowa wersja karcianej gry edukacyjnej dla dzieci 8–12 lat i rodziców.
 
 **Gra:** https://savetheworld-eter11.web.app
-**Panel redakcyjny:** https://savetheworld-eter11.web.app/admin
+
+> Repozytorium jest publiczne, więc README nie podaje adresu panelu
+> redakcyjnego, konta administracyjnego ani linków do konsoli projektu —
+> te namiary zespół trzyma prywatnie. Panel jest pod ścieżką `/admin`
+> tego samego hostingu, ale dostęp i tak chronią reguły bazy: bez konta
+> (zakładanego wyłącznie w konsoli) żaden zapis nie przejdzie.
 
 ---
 
@@ -14,13 +19,14 @@ do wykonania w przeglądarce — jednorazowo.
 
 ### 1. Konto administracyjne
 
-1. [Firebase Console → Authentication](https://console.firebase.google.com/project/savetheworld-eter11/authentication/users)
+1. Firebase Console → Authentication → projekt gry
 2. Zakładka **Sign-in method** → włącz **Email/Password**
-3. Zakładka **Users** → **Add user** → `info@eter11.pl` + hasło
+3. Zakładka **Users** → **Add user** → e-mail zespołu + hasło
 4. Skopiuj **User UID** z listy (długi ciąg znaków)
 
-Hasła nie wpisujemy do repozytorium ani do kodu — przekaż je zespołowi
-prywatnie. Zmiana hasła później to jedno kliknięcie w konsoli, bez wdrożenia.
+Hasła ani adresu konta nie wpisujemy do repozytorium ani do kodu — przekaż
+je zespołowi prywatnie. Zmiana hasła później to jedno kliknięcie w konsoli,
+bez wdrożenia.
 
 ### 2. Reguły bazy
 
@@ -44,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Gra: http://localhost:5173 · Panel: http://localhost:5173/admin
+Gra: http://localhost:5173 (panel pod ścieżką `/admin` tego samego adresu)
 
 ## Testy
 
