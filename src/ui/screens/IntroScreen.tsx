@@ -98,7 +98,10 @@ export function IntroScreen({ onDone, onSkip, intro }: IntroScreenProps) {
               onClick={() => switchTab(item.id)}
               aria-current={active ? 'page' : undefined}
               className={[
-                'flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left transition',
+                // min-h-11 (44px): na telefonie podpowiedź pod nazwą jest ukryta
+                // (sm:block), więc bez tego tab miał ~36px — poniżej minimum celu
+                // dotyku dla dziecka, a to główna interakcja tego ekranu.
+                'flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left transition',
                 active
                   ? 'border-accent bg-raised'
                   : 'border-edge bg-surface hover:border-ink-dim',

@@ -6,8 +6,9 @@ import { Tooltip } from './controls/Tooltip';
  * Przełącznik jasny/ciemny w rogu ekranu.
  *
  * Stały punkt na górze, widoczny w grze i w panelu. Sam trzyma i stosuje tryb
- * (useThemeMode), więc wystarczy go raz osadzić. Ikona pokazuje tryb, w który
- * kliknięcie przełączy — słońce, gdy jest ciemno; księżyc, gdy jasno.
+ * (useThemeMode), więc wystarczy go raz osadzić. Ikona pokazuje tryb AKTUALNY,
+ * spójnie z Icon.tsx: księżyc, gdy ciemno; słońce, gdy jasno. Co zrobi
+ * kliknięcie, mówi etykieta („Włącz tryb jasny/ciemny").
  */
 interface ThemeToggleProps {
   /**

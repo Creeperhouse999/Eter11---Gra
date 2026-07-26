@@ -120,6 +120,26 @@ describe('loadContent — gałęzie sieci bezpieczeństwa', () => {
     expect(result.content.intro?.story.length ?? 0).toBeGreaterThan(0);
   });
 
+  it('brak `families` (starszy dokument) → migracja domyka mapę', async () => {
+    // Dokument sprzed dodania pola `families`: wszystkie sekcje wymagane oprócz
+    // rodzin. Bez domknięcia families[kategoria] było undefined i FamilyEditor
+    // wywracał się na `.map` — pusty ekran zamiast panelu.
+    const full = structuredClone(BUILTIN_CONTENT);
+    docData = {
+      cards: full.cards,
+      problems: full.problems,
+      characters: full.characters,
+      rules: full.rules,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const result = await loadContent();
+    expect(result.source, result.warning).toBe('firestore');
+    expect(result.content.families).toBeDefined();
+    expect(Array.isArray(result.content.families.psychological)).toBe(true);
+    expect(result.content.families.psychological.length).toBeGreaterThan(0);
+  });
+
   it('uszkodzona treść → wbudowane, powód „invalid" z opisem błędu', async () => {
     const broken = structuredClone(BUILTIN_CONTENT);
     broken.cards[0] = { ...broken.cards[0], name: '' };

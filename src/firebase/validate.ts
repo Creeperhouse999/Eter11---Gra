@@ -316,6 +316,20 @@ export function validateContent(content: unknown): ValidationResult {
     }
   }
 
+  // Gra przy stole ma co najmniej dwóch graczy, a każdy musi dostać INNĄ
+  // postać — postać identyfikuje gracza na planszy (awatar, kolor). Przy jednej
+  // postaci dwaj wymagani gracze dostaliby tę samą, nie do odróżnienia: ekran
+  // startowy nie ma z czego przydzielić drugiej. To konfiguracja nie do
+  // rozegrania, więc odrzucamy ją jak brak kart czy próg zwycięstwa ponad
+  // liczbę misji. (Pustą sekcję łapie osobny komunikat wyżej.)
+  const MIN_CHARACTERS = 2;
+  if (characterList.length >= 1 && characterList.length < MIN_CHARACTERS) {
+    add(
+      `Za mało postaci: jest ${characterList.length}, a gra przy stole wymaga co ` +
+        `najmniej ${MIN_CHARACTERS} różnych — każdy z dwóch graczy musi mieć inną.`,
+    );
+  }
+
   // --- Zasady ---
   // Wartości poza zakresem zablokowałyby rozgrywkę, np. 0 rund na misję.
   for (const [key, min, max] of NUMERIC_RULES) {

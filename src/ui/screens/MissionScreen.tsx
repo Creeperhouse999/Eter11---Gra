@@ -8,6 +8,7 @@ import { BlackSwanBanner } from '../components/BlackSwanBanner';
 import { CardView } from '../components/CardView';
 import { Coach } from '../components/Coach';
 import { DragGhost } from '../components/DragGhost';
+import { isOpenDropTarget } from '../components/dropTarget';
 import { CardZoom } from '../components/CardZoom';
 import { Icon, type IconName } from '../icons/Icon';
 import { MissionProgress } from '../components/MissionProgress';
@@ -601,14 +602,15 @@ export function MissionScreen({
           card={drag.payload.data.card}
           ghostRef={ghostRef}
           start={startPoint.current}
+          // `isOpenDropTarget` sprawdza to samo co silnik: karta pasuje kolorem
+          // ORAZ ścianka jest wolna. Wcześniej duch świecił na zielono także
+          // nad ścianką ZAJĘTĄ pasującej kategorii — sygnał „upuść tu", po
+          // którym upuszczenie i tak było odrzucane. `allowed('play')` zostaje,
+          // bo w samouczku ruch bywa zablokowany mimo pasującej wolnej ścianki.
           overValidTarget={Boolean(
             drag.overId &&
-              (() => {
-                const [problemId, slotKey] = drag.overId.split(':');
-                const problem = mission.problems.find((p) => p.id === problemId);
-                const slot = problem?.slots.find((s) => s.key === slotKey);
-                return slot && canPlay(drag.payload.data.card, slot.key, slot.family);
-              })(),
+              allowed('play') &&
+              isOpenDropTarget(mission, drag.overId, drag.payload.data.card),
           )}
         />
       )}

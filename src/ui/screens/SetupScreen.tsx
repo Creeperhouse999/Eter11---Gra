@@ -54,12 +54,18 @@ export function SetupScreen({
     { name: '', characterId: characters[Math.min(3, characters.length - 1)].id },
   ]);
 
+  // Każdy gracz musi mieć INNĄ postać (postać identyfikuje go na planszy).
+  // Liczba postaci pochodzi z panelu redakcyjnego i bywa mniejsza niż czterech
+  // graczy — wtedy górną granicą graczy jest liczba postaci, nie stałe MAX,
+  // inaczej dodany gracz dostawał duplikat (fallback `?? characters[0]`).
+  const maxPlayers = Math.min(MAX_PLAYERS, characters.length);
+
   const update = (index: number, patch: Partial<Draft>) => {
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
   };
 
   const addPlayer = () => {
-    if (drafts.length >= MAX_PLAYERS) return;
+    if (drafts.length >= maxPlayers) return;
     // Nowy gracz dostaje postać, której nikt jeszcze nie wziął.
     const taken = new Set(drafts.map((d) => d.characterId));
     const free = characters.find((c) => !taken.has(c.id)) ?? characters[0];
@@ -317,7 +323,7 @@ export function SetupScreen({
           );
         })}
 
-        {drafts.length < MAX_PLAYERS && (
+        {drafts.length < maxPlayers && (
           <Button icon="plus" size="sm" onClick={addPlayer} className="w-full">
             Dodaj gracza
           </Button>

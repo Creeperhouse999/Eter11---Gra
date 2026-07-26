@@ -37,6 +37,15 @@ function migrate(raw: Record<string, unknown>): GameContent {
       ...BUILTIN_CONTENT.categories,
       ...(raw.categories as object),
     } as GameContent['categories'],
+    // Rodziny scalamy po kluczu tak samo jak kategorie: zapis sprzed dodania
+    // tego pola (albo z okrojonym po którejś kategorii) nie ma pełnej mapy, a
+    // walidacja rodzin NIE sprawdza. Bez domknięcia `families[kategoria]` bywało
+    // `undefined`, więc edytor rodzin (i inne miejsca iterujące mapę) wywracały
+    // się na `.map` — pusty ekran zamiast panelu.
+    families: {
+      ...BUILTIN_CONTENT.families,
+      ...(raw.families as object),
+    } as GameContent['families'],
     customIcons: (raw.customIcons as GameContent['customIcons']) ?? [],
     intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
     tutorial: (raw.tutorial as GameContent['tutorial'])?.length

@@ -54,4 +54,16 @@ describe('nazwy kategorii', () => {
 
     expect(categoryLabel('blackswan')).toBe('Czarny Ptak');
   });
+
+  it('pusta nazwa z panelu wraca do wbudowanej (nie zostawia pustej etykiety)', () => {
+    // Redaktor wyczyścił pole nazwy i zapisał. `?? ` nie łapie pustego stringa,
+    // więc bez fixu ścianka/karta pokazywała puste miejsce.
+    setCategoryStyles({ psychological: { label: '', icon: 'brain' } });
+    expect(categoryLabel('psychological')).toBe(DEFAULT_CATEGORIES.psychological.label);
+
+    setCategoryStyles({ social: { label: '   ', icon: 'people' } });
+    expect(categoryLabel('social')).toBe(DEFAULT_CATEGORIES.social.label);
+    // Ścianka dziedziczy tę samą, niepustą nazwę.
+    expect(slotLabel('social')).toBe(DEFAULT_CATEGORIES.social.label);
+  });
 });
