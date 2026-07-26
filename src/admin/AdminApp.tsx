@@ -139,6 +139,11 @@ export function AdminApp() {
   }, [tab]);
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  // Problem z ładowaniem treści z bazy (uszkodzone dane). Osobno od `status`
+  // (neutralne info) i `errors` (odrzucony zapis), bo to inny stan: panel
+  // działa na danych wbudowanych, ale to, co w bazie, jest zepsute i wymaga
+  // uwagi — własny, czerwony komunikat, żeby nie mylił się z „wszystko OK".
+  const [loadIssue, setLoadIssue] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
@@ -185,6 +190,7 @@ export function AdminApp() {
       setBaseVersion(undefined);
       setStatus(null);
       setErrors([]);
+      setLoadIssue(null);
       applyThemeUnlessLight(BUILTIN_CONTENT.theme);
       return;
     }
@@ -200,7 +206,18 @@ export function AdminApp() {
       setThemeOverrides({ dark: result.content.theme, light: result.content.themeLight });
       const mode = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
       applyTheme(baseTheme(mode));
-      if (result.warning) setStatus(result.warning);
+      // Uszkodzone dane w bazie to realny problem — pokazujemy je osobnym,
+      // wyraźnym komunikatem (patrz `loadIssue` niżej), a nie neutralnym
+      // „info". Wcześniej szło to przez `status` (niebieski), a że panel
+      // ładował wtedy POPRAWNE dane wbudowane, walidacja u góry pokazywała OK —
+      // redaktor widział na raz „dane uszkodzone" i pozytywny stan panelu,
+      // czyli komunikat mówiący, że błąd jest i że go nie ma (zgłoszone).
+      // Łagodne stany (brak sieci, pusta baza) zostają neutralnym statusem.
+      if (result.reason === 'invalid' && result.warning) {
+        setLoadIssue(result.warning);
+      } else if (result.warning) {
+        setStatus(result.warning);
+      }
     });
 
     return () => {
@@ -542,6 +559,22 @@ export function AdminApp() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         {dialog}
+
+        {loadIssue && (
+          <div className="mb-4">
+            <Alert
+              tone="danger"
+              title="Dane w bazie są uszkodzone"
+              onDismiss={() => setLoadIssue(null)}
+            >
+              <p className="text-xs">
+                Panel i gra działają na wersji wbudowanej — Twoje zmiany zapisu
+                z bazy nie widać, dopóki tego nie naprawisz. Szczegóły:
+              </p>
+              <p className="mt-1 text-xs opacity-90">{loadIssue}</p>
+            </Alert>
+          </div>
+        )}
 
         {status && (
           <div className="mb-4">

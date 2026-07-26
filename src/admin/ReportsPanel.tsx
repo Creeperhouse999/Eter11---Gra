@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   addReport,
   deleteReport,
-  loadReports,
   setReportStatus,
   updateReport,
+  watchReports,
   type Report,
   type ReportKind,
   type ReportStatus,
@@ -18,6 +18,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { ImageUpload } from './ImageUpload';
+import { ImageLightbox } from './ImageLightbox';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { counted } from '../ui/plural';
 
@@ -170,6 +171,8 @@ export function ReportsPanel({
   /** Zrzuty ekranu dołączone do nowego zgłoszenia. */
   const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /** Obrazek otwarty w podglądzie (lightbox); `null` = zamknięte. */
+  const [preview, setPreview] = useState<string | null>(null);
 
   const [kind, setKind] = useState<ReportKind>('bug');
   const [title, setTitle] = useState('');
@@ -213,21 +216,25 @@ export function ReportsPanel({
     onOpenChange?.(next);
   };
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      setReports(await loadReports());
-      setError(null);
-    } catch {
-      setError('Nie udało się wczytać zgłoszeń. Sprawdź połączenie i reguły bazy.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Nasłuch na żywo: nowe zgłoszenie (a także zmiany statusu od innych osób
+  // z zespołu) wchodzą do listy natychmiast, bez ręcznego odświeżania ani
+  // przeładowania strony. Wcześniej panel czytał listę raz — po wysłaniu
+  // zgłoszenia zakładka „nowe"/„do akceptacji" pokazywała stary stan, dopóki
+  // ktoś nie kliknął „Odśwież" albo nie przeładował strony.
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const stop = watchReports(
+      (next) => {
+        setReports(next);
+        setError(null);
+        setLoading(false);
+      },
+      () => {
+        setError('Nie udało się wczytać zgłoszeń. Sprawdź połączenie i reguły bazy.');
+        setLoading(false);
+      },
+    );
+    return stop;
+  }, []);
 
   const submit = async () => {
     setSending(true);
@@ -252,7 +259,8 @@ export function ReportsPanel({
     setDescription('');
     setImages([]);
     toast('Zgłoszenie zapisane.', 'success');
-    void refresh();
+    // Bez ręcznego odświeżania — nasłuch (`watchReports`) dokłada nowe
+    // zgłoszenie do listy sam, w tej samej chwili, w której trafi do bazy.
   };
 
   /**
@@ -276,9 +284,16 @@ export function ReportsPanel({
     if (statusInFlight.current) return;
     statusInFlight.current = true;
     const text = commenting === report.id ? comment.trim() : '';
+    // Podpis notatki bierze imię zalogowanego, żeby co-admin/admin nie
+    // wyświetlał się jako „programista". `from` niesie tylko stronę obiegu.
+    const noteAuthor = author.trim() || undefined;
 
     try {
-      await setReportStatus(report.id, next, text ? { from, text } : undefined);
+      await setReportStatus(
+        report.id,
+        next,
+        text ? { from, text, author: noteAuthor } : undefined,
+      );
       setReports((prev) =>
         prev.map((r) =>
           r.id === report.id
@@ -286,7 +301,15 @@ export function ReportsPanel({
                 ...r,
                 status: next,
                 notes: text
-                  ? [...(r.notes ?? []), { from, text, at: new Date().toISOString() }]
+                  ? [
+                      ...(r.notes ?? []),
+                      {
+                        from,
+                        text,
+                        at: new Date().toISOString(),
+                        ...(noteAuthor ? { author: noteAuthor } : {}),
+                      },
+                    ]
                   : r.notes,
               }
             : r,
@@ -494,15 +517,17 @@ export function ReportsPanel({
             {(report.images?.length ?? 0) > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {report.images!.map((url) => (
-                  <a
+                  // Podgląd w miejscu (lightbox), nie link na surowy plik w
+                  // Storage: klik otwiera obraz w oknie nad panelem.
+                  <button
                     key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
+                    type="button"
+                    onClick={() => setPreview(url)}
+                    aria-label="Powiększ zrzut ekranu"
                     className="h-24 w-24 overflow-hidden rounded-lg border border-edge transition hover:border-accent"
                   >
                     <img src={url} alt="Zrzut ekranu" className="h-full w-full object-cover" />
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
@@ -539,7 +564,12 @@ export function ReportsPanel({
                                 : 'var(--eter-cat-social)',
                             }}
                           >
-                            {dev ? 'programista' : 'zgłaszający'}
+                            {/* Podpis: imię autora, gdy notatkę zapisano razem
+                                z nim. Bez tego każda notatka od zespołu stała
+                                pod „programista", nawet gdy pisał ją co-admin
+                                albo admin. Stare notatki bez `author` spadają
+                                do generycznej etykiety strony obiegu. */}
+                            {note.author || (dev ? 'programista' : 'zgłaszający')}
                           </span>
                           <span className="font-mono text-[10px] text-ink-dim">
                             {formatDate(note.at)}
@@ -757,6 +787,7 @@ export function ReportsPanel({
     return (
       <section aria-label={`Zgłoszenie: ${openReport.title}`}>
         {dialog}
+        <ImageLightbox src={preview} onClose={() => setPreview(null)} />
         <div
           className="sticky top-0 -mx-4 mb-3 flex items-center gap-2 border-b border-edge bg-bg/95 px-4 py-2 backdrop-blur"
           style={{ zIndex: 'var(--z-sticky)' }}
@@ -778,9 +809,8 @@ export function ReportsPanel({
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Zgłoszenia</h2>
-        <Button size="sm" icon="undo" onClick={() => void refresh()}>
-          Odśwież
-        </Button>
+        {/* Bez przycisku „Odśwież" — lista jest na żywo (nasłuch Firestore),
+            więc odświeżanie ręczne nic nie wnosi. */}
       </div>
       <p className="mt-1 max-w-prose text-sm text-ink-dim">
         Napisz, co nie działa albo co warto dodać. Zgłoszenia trafiają do

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ToastProvider } from '../ui/controls/Toast';
 
 // Klient Firebase inicjalizuje się przy imporcie (initializeApp/getDatabase);
@@ -8,14 +8,16 @@ vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
 // upload.ts woła getStorage(app) przy imporcie — na atrapie by się wywróciło.
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
 
-// Prawdziwy moduł (z atrapą klienta) minus loadReports — to podstawiamy sami.
+// Prawdziwy moduł (z atrapą klienta) minus watchReports — to podstawiamy sami.
+// Panel czyta listę na żywo przez nasłuch, więc atrapa od razu woła callback
+// z podstawionymi zgłoszeniami i zwraca no-op odpinający.
 vi.mock('../firebase/reports', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../firebase/reports')>();
-  return { ...actual, loadReports: vi.fn() };
+  return { ...actual, watchReports: vi.fn() };
 });
 
 import { ReportsPanel } from './ReportsPanel';
-import { loadReports, type Report } from '../firebase/reports';
+import { watchReports, type Report } from '../firebase/reports';
 
 const reportWithNotes = (count: number): Report => ({
   id: 'r1',
@@ -38,7 +40,10 @@ const reportWithNotes = (count: number): Report => ({
  */
 describe('ReportsPanel — odmiana liczby wpisów', () => {
   it('pięć wpisów to „wpisów", nie „wpisy"', async () => {
-    vi.mocked(loadReports).mockResolvedValue([reportWithNotes(5)]);
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([reportWithNotes(5)]);
+      return () => {};
+    });
 
     render(
       <ToastProvider>
@@ -51,5 +56,78 @@ describe('ReportsPanel — odmiana liczby wpisów', () => {
     expect(row?.textContent).toContain('5 wpisów');
     // Bez fixu: „5 wpisy" — regresja odmiany.
     expect(row?.textContent).not.toContain('5 wpisy');
+  });
+});
+
+/**
+ * Podpis notatki bierze imię autora, gdy je zapisano.
+ *
+ * Regresja: notatka od zespołu (`from: 'dev'`) ZAWSZE wyświetlała się jako
+ * „programista", nawet gdy pisał ją co-admin albo admin, który programistą nie
+ * jest. Teraz, gdy notatka niesie `author`, podpis bierze się z niego; stara
+ * notatka bez `author` dalej spada do generycznej etykiety strony obiegu.
+ */
+describe('ReportsPanel — podpis autora notatki', () => {
+  const openReport = () =>
+    fireEvent.click(screen.getByText('Tytuł testowy').closest('button')!);
+
+  it('notatka z autorem podpisuje się imieniem, nie „programista"', async () => {
+    const report: Report = {
+      id: 'r1',
+      kind: 'bug',
+      title: 'Tytuł testowy',
+      description: 'opis',
+      status: 'dismissed',
+      createdAt: '2026-07-24T10:00:00.000Z',
+      notes: [
+        {
+          from: 'dev',
+          text: 'Odrzucam — działa zgodnie z zasadami.',
+          at: '2026-07-24T10:00:00.000Z',
+          author: 'Kasia (co-admin)',
+        },
+      ],
+    };
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([report]);
+      return () => {};
+    });
+
+    render(
+      <ToastProvider>
+        <ReportsPanel author="Kasia (co-admin)" role="co-admin" statusTab="dismissed" />
+      </ToastProvider>,
+    );
+
+    openReport();
+    const note = (await screen.findByText('Odrzucam — działa zgodnie z zasadami.')).closest('div')!;
+    expect(within(note.parentElement!).getByText('Kasia (co-admin)')).toBeTruthy();
+    // Bez fixu: podpis „programista", choć pisze co-admin.
+    expect(within(note.parentElement!).queryByText('programista')).toBeNull();
+  });
+
+  it('stara notatka bez autora dalej pokazuje etykietę strony obiegu', async () => {
+    const report: Report = {
+      id: 'r1',
+      kind: 'bug',
+      title: 'Tytuł testowy',
+      description: 'opis',
+      status: 'fixed',
+      createdAt: '2026-07-24T10:00:00.000Z',
+      notes: [{ from: 'dev', text: 'Naprawione.', at: '2026-07-24T10:00:00.000Z' }],
+    };
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([report]);
+      return () => {};
+    });
+
+    render(
+      <ToastProvider>
+        <ReportsPanel author="Dev" role="admin" statusTab="fixed" />
+      </ToastProvider>,
+    );
+
+    openReport();
+    expect(await screen.findByText('programista')).toBeTruthy();
   });
 });

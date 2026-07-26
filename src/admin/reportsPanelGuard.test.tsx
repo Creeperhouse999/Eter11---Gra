@@ -20,14 +20,14 @@ vi.mock('../firebase/reports', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../firebase/reports')>();
   return {
     ...actual,
-    loadReports: vi.fn(),
+    watchReports: vi.fn(),
     setReportStatus: (...args: unknown[]) =>
       (setReportStatus as unknown as (...a: unknown[]) => Promise<void>)(...args),
   };
 });
 
 import { ReportsPanel } from './ReportsPanel';
-import { loadReports, type Report } from '../firebase/reports';
+import { watchReports, type Report } from '../firebase/reports';
 
 const report: Report = {
   id: 'r1',
@@ -41,7 +41,10 @@ const report: Report = {
 
 describe('ReportsPanel — blokada dwukliku statusu', () => {
   it('dwuklik „Naprawione" zapisuje status tylko raz', async () => {
-    vi.mocked(loadReports).mockResolvedValue([report]);
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([report]);
+      return () => {};
+    });
     setReportStatus.mockClear();
 
     render(

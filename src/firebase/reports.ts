@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   updateDoc,
@@ -44,6 +45,16 @@ export interface ReportNote {
   from: 'dev' | 'reporter';
   text: string;
   at: string;
+  /**
+   * Imię autora notatki — kto ją naprawdę napisał.
+   *
+   * `from` mówi tylko o STRONIE obiegu (programista/zgłaszający), więc każda
+   * notatka od zespołu podpisywała się „programista", nawet gdy pisał ją
+   * co-admin albo admin — a to wprowadzało w błąd (osoba, która nie jest
+   * programistą, wyświetlała się jako programista). Gdy `author` jest, podpis
+   * bierze się z niego; brak (stare notatki) — spada do generycznej etykiety.
+   */
+  author?: string;
 }
 
 export interface Report {
@@ -102,25 +113,51 @@ export async function addReport(input: {
   }
 }
 
+/** Wspólne mapowanie dokumentu na `Report` — dla odczytu i nasłuchu. */
+function toReport(id: string, data: Record<string, unknown>): Report {
+  return {
+    id,
+    kind: (data.kind as ReportKind) ?? 'bug',
+    title: (data.title as string) ?? '',
+    description: (data.description as string) ?? '',
+    status: (data.status as ReportStatus) ?? 'new',
+    author: (data.author as string) ?? undefined,
+    createdAt: (data.createdAt as string) ?? '',
+    images: (data.images as string[]) ?? [],
+    notes: (data.notes as ReportNote[]) ?? [],
+  };
+}
+
 export async function loadReports(): Promise<Report[]> {
   const snapshot = await getDocs(
     query(collection(db, COLLECTION), orderBy('createdAt', 'desc')),
   );
 
-  return snapshot.docs.map((entry) => {
-    const data = entry.data();
-    return {
-      id: entry.id,
-      kind: (data.kind as ReportKind) ?? 'bug',
-      title: (data.title as string) ?? '',
-      description: (data.description as string) ?? '',
-      status: (data.status as ReportStatus) ?? 'new',
-      author: (data.author as string) ?? undefined,
-      createdAt: (data.createdAt as string) ?? '',
-      images: (data.images as string[]) ?? [],
-      notes: (data.notes as ReportNote[]) ?? [],
-    };
-  });
+  return snapshot.docs.map((entry) => toReport(entry.id, entry.data()));
+}
+
+/**
+ * Podgląd zgłoszeń na żywo — nowe zgłoszenia i zmiany statusu wchodzą same.
+ *
+ * Wcześniej panel czytał listę raz (`loadReports` + „Odśwież"). Po wysłaniu
+ * nowego zgłoszenia trzeba było przeładować stronę, żeby je zobaczyć w
+ * zakładce „nowe"/„do akceptacji" — a zmiany od innych osób z zespołu nie
+ * pojawiały się wcale. Nasłuch (`onSnapshot`) rozwiązuje jedno i drugie:
+ * lista aktualizuje się natychmiast po każdym zapisie, bez ręcznego odświeżania.
+ *
+ * Zwraca funkcję odłączającą — wywołanie jej kończy nasłuch i naliczanie.
+ */
+export function watchReports(
+  onChange: (reports: Report[]) => void,
+  onError?: (message: string) => void,
+): () => void {
+  return onSnapshot(
+    query(collection(db, COLLECTION), orderBy('createdAt', 'desc')),
+    (snapshot) => {
+      onChange(snapshot.docs.map((entry) => toReport(entry.id, entry.data())));
+    },
+    (error) => onError?.(error.message),
+  );
 }
 
 /**
@@ -132,9 +169,10 @@ export async function loadReports(): Promise<Report[]> {
 export async function setReportStatus(
   id: string,
   status: ReportStatus,
-  note?: { from: ReportNote['from']; text: string },
+  note?: { from: ReportNote['from']; text: string; author?: string },
 ): Promise<void> {
   const text = note?.text.trim();
+  const author = note?.author?.trim();
 
   await updateDoc(doc(db, COLLECTION, id), {
     status,
@@ -144,6 +182,9 @@ export async function setReportStatus(
             from: note!.from,
             text,
             at: new Date().toISOString(),
+            // Podpis autorem tylko, gdy go znamy — pusty `author` w arrayUnion
+            // tworzyłby notatki różniące się pustym polem i psuł dedup.
+            ...(author ? { author } : {}),
           }),
         }
       : {}),

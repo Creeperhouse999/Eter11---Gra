@@ -14,6 +14,7 @@ import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { Avatar } from './Avatar';
 import { ImageUpload } from './ImageUpload';
+import { ImageLightbox } from './ImageLightbox';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { useToast } from '../ui/controls/Toast';
 
@@ -81,6 +82,8 @@ export function DiscussionsPanel({
   const [reply, setReply] = useState('');
   const [replyImages, setReplyImages] = useState<string[]>([]);
   const [replying, setReplying] = useState(false);
+  /** Obrazek otwarty w podglądzie (lightbox); `null` = zamknięte. */
+  const [preview, setPreview] = useState<string | null>(null);
 
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
@@ -274,14 +277,16 @@ export function DiscussionsPanel({
                       )}
 
                       {message.image && (
-                        <a
-                          href={message.image}
-                          target="_blank"
-                          rel="noreferrer"
+                        // Podgląd w miejscu (lightbox), nie link na surowy plik
+                        // w Storage: klik otwiera obraz w oknie nad panelem.
+                        <button
+                          type="button"
+                          onClick={() => setPreview(message.image!)}
+                          aria-label="Powiększ obrazek"
                           className="mt-1 block max-w-[12rem] overflow-hidden rounded-lg border border-edge transition hover:border-accent"
                         >
                           <img src={message.image} alt="" className="w-full" />
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -382,6 +387,7 @@ export function DiscussionsPanel({
     return (
       <section aria-label={`Wątek: ${openThread.title}`}>
         {dialog}
+        <ImageLightbox src={preview} onClose={() => setPreview(null)} />
 
         <div
           className="sticky top-0 -mx-4 mb-3 flex items-center gap-2 border-b border-edge bg-bg/95 px-4 py-2 backdrop-blur"

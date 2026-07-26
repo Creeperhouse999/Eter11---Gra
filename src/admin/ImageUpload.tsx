@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { uploadImage } from '../firebase/upload';
 import { Button } from '../ui/controls/Button';
 import { Icon } from '../ui/icons/Icon';
@@ -38,8 +38,10 @@ export function ImageUpload({
   const input = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  const pick = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const pick = async (files: FileList | File[] | null) => {
+    if (!files) return;
+    const list = Array.from(files);
+    if (list.length === 0) return;
 
     const room = max - value.length;
     if (room <= 0) {
@@ -48,7 +50,7 @@ export function ImageUpload({
     }
 
     setBusy(true);
-    const chosen = Array.from(files).slice(0, room);
+    const chosen = list.slice(0, room);
     const added: string[] = [];
 
     for (let i = 0; i < chosen.length; i += 1) {
@@ -75,6 +77,42 @@ export function ImageUpload({
     // ostatni wybór i bez tego drugie wybranie nie odpalałoby zdarzenia.
     if (input.current) input.current.value = '';
   };
+
+  // Wklejanie zrzutu ze schowka (Ctrl+V) — ta sama ścieżka co wybór pliku.
+  //
+  // Zgłoszono, że dołączanie obrazka powinno działać także przez wklejenie:
+  // robisz zrzut, wciskasz Ctrl+V i obraz ląduje w załącznikach, bez zapisywania
+  // pliku i klikania „Dodaj". Nasłuch jest na `document`, bo zdarzenie `paste`
+  // trafia do aktywnego pola (np. opisu zgłoszenia), nie do tego komponentu —
+  // a w danym momencie widoczny jest najwyżej jeden formularz z uploadem.
+  //
+  // `pickRef` trzyma aktualną wersję `pick` (świeże `value`/`busy`), żeby
+  // nasłuch nie musiał się przepinać przy każdym stanie, a mimo to wołał
+  // funkcję znającą bieżącą listę.
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
+  const roomLeft = max - value.length;
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      const files = Array.from(items)
+        .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+      if (files.length === 0) return;
+      // Brak miejsca albo trwa wysyłka — nie przechwytujemy wklejenia, żeby nie
+      // blokować normalnego wklejania tekstu, gdy załączać już nie ma czego.
+      if (busy || roomLeft <= 0) return;
+      // Blokujemy domyślne wklejenie obrazka jako zawartości pola, skoro
+      // przechwytujemy go do załączników.
+      event.preventDefault();
+      void pickRef.current(files);
+    };
+
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [busy, roomLeft]);
 
   const remove = (url: string) => onChange(value.filter((u) => u !== url));
 
