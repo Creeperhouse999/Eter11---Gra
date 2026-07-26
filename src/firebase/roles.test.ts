@@ -7,6 +7,7 @@ import {
   canEdit,
   canReport,
   canManageRoles,
+  canViewHistory,
   type Role,
 } from './roles';
 
@@ -31,6 +32,7 @@ const TABLE: Record<string, { fn: (r: Role) => boolean; allowed: Role[] }> = {
   canEdit: { fn: canEdit, allowed: ['admin', 'programmer', 'co-admin', 'coworker', 'editor'] },
   canReport: { fn: canReport, allowed: ['admin', 'programmer', 'co-admin', 'coworker', 'editor'] },
   canManageRoles: { fn: canManageRoles, allowed: ['admin', 'programmer'] },
+  canViewHistory: { fn: canViewHistory, allowed: ['admin', 'programmer', 'co-admin'] },
 };
 
 describe('uprawnienia ról', () => {

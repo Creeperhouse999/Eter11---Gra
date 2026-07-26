@@ -39,7 +39,11 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
       });
       onEnter(newCode, uid);
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Nie udało się założyć pokoju.', 'danger');
+      // Surowy błąd (uprawnienia, sieć, ślady Firebase) trafia do konsoli dla
+      // programisty, a gracz — to gra dla dzieci — widzi czytelny komunikat
+      // zamiast technicznego szumu w rodzaju „PERMISSION_DENIED at /rooms".
+      console.error('Zakładanie pokoju nie powiodło się:', e);
+      toast('Nie udało się założyć pokoju. Spróbuj ponownie.', 'danger');
       setBusy(false);
     }
   };
@@ -65,9 +69,11 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
     } catch (e) {
       // joinRoom woła Firebase (ensureSession/get/update) — sieć albo
       // uprawnienia mogą rzucić. Bez tego przechwycenia przycisk zostawał na
-      // zawsze „Dołączam…", bo `setBusy(false)` nigdy nie biegło. Tak samo
-      // jak w `create`: pokaż powód i odblokuj przycisk.
-      toast(e instanceof Error ? e.message : 'Nie udało się dołączyć.', 'danger');
+      // zawsze „Dołączam…", bo `setBusy(false)` nigdy nie biegło. Surowy błąd
+      // do konsoli (dla programisty), a graczowi czytelny komunikat zamiast
+      // technicznego śladu Firebase.
+      console.error('Dołączanie do pokoju nie powiodło się:', e);
+      toast('Nie udało się dołączyć. Sprawdź kod i spróbuj ponownie.', 'danger');
       setBusy(false);
     }
   };

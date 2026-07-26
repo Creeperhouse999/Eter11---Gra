@@ -77,16 +77,12 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          {/* Treść błędu dla kogoś, kto zgłasza problem. Zwinięta, bo dla
-              dziecka to szum, a dla programisty jedyny konkret. */}
-          <details className="mt-5 text-left">
-            <summary className="cursor-pointer text-xs text-ink-dim">
-              Szczegóły techniczne
-            </summary>
-            <pre className="mt-2 overflow-auto rounded bg-bg p-2 font-mono text-[10px] text-ink-dim">
-              {error.message}
-            </pre>
-          </details>
+          {/* Bez szczegółów technicznych na ekranie: to gra dla dzieci 8–13,
+              a treść błędu (ślady kodu, nazwy z konfiguracji) była dla nich
+              szumem, potrafiła przestraszyć („config firebase") i nic im nie
+              dawała. Pełny błąd i tak trafia do konsoli przeglądarki
+              (`console.error` w componentDidCatch) — programista ma go tam,
+              gdzie go szuka, a gracz widzi tylko czytelny komunikat. */}
         </div>
       </main>
     );

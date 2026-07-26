@@ -6,7 +6,7 @@ import { describeChanges, recordVersion } from '../firebase/history';
 import { HistoryPanel } from './HistoryPanel';
 import { StatsPanel } from './StatsPanel';
 import { TeamPanel } from './TeamPanel';
-import { canManageRoles, canDiscuss, canEdit } from '../firebase/roles';
+import { canManageRoles, canDiscuss, canEdit, canViewHistory } from '../firebase/roles';
 import type { GameContent } from '../firebase/validate';
 import { validateContent } from '../firebase/validate';
 import { Alert } from '../ui/controls/Alert';
@@ -115,6 +115,7 @@ export function AdminApp() {
   const visibleTabs = TABS.filter((item) => {
     if (item.key === 'team') return canManageRoles(auth.role);
     if (item.key === 'discussions') return canDiscuss(auth.role);
+    if (item.key === 'history') return canViewHistory(auth.role);
     return true;
   });
 
@@ -242,6 +243,12 @@ export function AdminApp() {
   }, [dirty]);
 
   const update = (patch: Partial<GameContent>) => {
+    // Rola bez prawa edycji (viewer) nie zmienia treści. Wcześniej blokowany
+    // był tylko przycisk Zapisz, ale pola edytorów zostawały aktywne — viewer
+    // mógł przestawiać karty, teksty i kolory (widział podgląd zmian, choć nie
+    // dało się ich zapisać). Guard u źródła, w jednym miejscu, chroni każdy
+    // edytor naraz — wszystkie wołają `update`.
+    if (!canEdit(auth.role)) return;
     setContent((prev) => ({ ...prev, ...patch }));
     setStatus(null);
     setErrors([]);

@@ -48,7 +48,10 @@ describe('LobbyScreen — błąd dołączania', () => {
     const button = screen.getByRole('button', { name: /Dołącz/ }) as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     expect(button.textContent).toBe('Dołącz');
-    // Gracz dostaje powód, a nie niemy martwy przycisk.
-    expect(screen.getByText('Brak sieci.')).toBeDefined();
+    // Gracz dostaje czytelny komunikat, a nie niemy martwy przycisk — ani
+    // surowy błąd Firebase. Techniczny „Brak sieci." (e.message) NIE wychodzi
+    // na ekran; trafia do konsoli. Na toaście zostaje komunikat po ludzku.
+    expect(screen.queryByText('Brak sieci.')).toBeNull();
+    expect(screen.getByText(/Nie udało się dołączyć/)).toBeDefined();
   });
 });

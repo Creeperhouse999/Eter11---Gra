@@ -18,11 +18,11 @@ export function WaitingOverlay({ activeName }: WaitingOverlayProps) {
       className="eter-fade-in pointer-events-none fixed inset-x-0 top-0 flex justify-center p-3"
       style={{ zIndex: 'var(--z-toast)' }}
     >
-      <div className="flex items-center gap-2 rounded-full border border-accent bg-surface/95 px-4 py-2 shadow-lg backdrop-blur">
-        <span className="eter-pulse text-accent">
+      <div className="flex max-w-full min-w-0 items-center gap-2 rounded-full border border-accent bg-surface/95 px-4 py-2 shadow-lg backdrop-blur">
+        <span className="eter-pulse shrink-0 text-accent">
           <Icon name="people" size={16} />
         </span>
-        <span className="text-sm font-semibold">
+        <span className="min-w-0 break-words text-sm font-semibold">
           Teraz gra <span className="text-accent">{activeName}</span> — poczekaj na swoją kolej
         </span>
       </div>

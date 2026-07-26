@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { applyBlackSwan, hasProblemToReveal } from '../engine/reducer';
-import type { BlackSwanKind } from '../engine/types';
+import type { BlackSwanKind, GameState } from '../engine/types';
 import type { GameContent } from '../firebase/validate';
 import { FinaleScreen } from '../ui/screens/FinaleScreen';
 import { MissionScreen } from '../ui/screens/MissionScreen';
@@ -62,7 +62,38 @@ function TestGame({
 
   const triggerSwan = (kind: BlackSwanKind) => {
     // Czarny Łabędź omija reducer — to narzędzie testowe, nie ruch gracza.
-    overrideState(applyBlackSwan(state, kind));
+    const next = applyBlackSwan(state, kind);
+    // W normalnej grze dobranie Łabędzia ustawia `pendingSwanEvents`, przez co
+    // wyświetla się baner z tytułem efektu („Pojawił się drugi problem" itd.).
+    // Ręczne wyzwolenie w trybie testowym omijało reducer i baneru nie było —
+    // tester widział zmianę na planszy bez żadnego tytułu (zgłoszone: „nie
+    // widać tytułu Łabędzia"). Dokładamy event, by baner (a z nim tytuł)
+    // pojawił się tak samo jak w grze. `applied` z realnej zmiany stanu:
+    // ten sam wariant nie kumuluje się drugi raz.
+    const applied =
+      !next.mission ||
+      next.mission.activeBlackSwans.length !==
+        (state.mission?.activeBlackSwans.length ?? 0) ||
+      kind === 'swapHands';
+    const withBanner: GameState = next.mission
+      ? {
+          ...next,
+          mission: {
+            ...next.mission,
+            pendingSwanEvents: [
+              ...next.mission.pendingSwanEvents,
+              {
+                playerId: players[0].id,
+                playerName: players[0].name,
+                cardName: 'Czarny Łabędź',
+                kind,
+                applied,
+              },
+            ],
+          },
+        }
+      : next;
+    overrideState(withBanner);
   };
 
   return (

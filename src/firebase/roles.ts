@@ -176,3 +176,15 @@ export function canReport(role: Role): boolean {
 export function canManageRoles(role: Role): boolean {
   return role === 'admin' || role === 'programmer';
 }
+
+/**
+ * Czy rola może przeglądać i wczytywać historię zapisów.
+ *
+ * Historia to pełne, poprzednie wersje treści — wgląd w cudzą pracę i
+ * możliwość cofnięcia zapisu. Zgłoszono, że powinien to widzieć tylko admin
+ * i co-admin (nie coworker/editor/viewer), bo wczytanie starej wersji
+ * podmienia całą treść w edytorze.
+ */
+export function canViewHistory(role: Role): boolean {
+  return role === 'admin' || role === 'programmer' || role === 'co-admin';
+}

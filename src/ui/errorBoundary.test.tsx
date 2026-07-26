@@ -55,13 +55,20 @@ describe('ErrorBoundary', () => {
     expect(reset).toBeDefined();
   });
 
-  it('pokazuje treść błędu dla zgłoszenia', () => {
+  it('NIE pokazuje technicznej treści błędu graczowi', () => {
+    // To gra dla dzieci 8–13. Surowy komunikat błędu (ślady kodu, nazwy
+    // z konfiguracji) był dla nich szumem i potrafił przestraszyć
+    // („config firebase"). Ma trafiać do konsoli, nie na ekran — na ekranie
+    // zostaje tylko czytelny komunikat i przyciski wyjścia.
     render(
       <ErrorBoundary>
         <Wybucha />
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText('celowa awaria testowa')).toBeDefined();
+    expect(screen.queryByText('celowa awaria testowa')).toBeNull();
+    expect(screen.queryByText(/Szczegóły techniczne/)).toBeNull();
+    // Czytelny komunikat i droga wyjścia zostają.
+    expect(screen.getByText(/Coś poszło nie tak/)).toBeDefined();
   });
 });

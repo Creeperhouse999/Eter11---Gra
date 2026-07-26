@@ -77,7 +77,7 @@ export function CardZoom({ card, onClose }: CardZoomProps) {
             {card.family && ` · ${FAMILY_LABELS[card.family] ?? card.family}`}
           </span>
 
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex items-start gap-3">
             <span
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl"
               style={{ background: 'var(--eter-raised)', color }}
