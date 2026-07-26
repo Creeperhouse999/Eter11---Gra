@@ -564,14 +564,22 @@ export function AdminApp() {
           <div className="mb-4">
             <Alert
               tone="danger"
-              title="Dane w bazie są uszkodzone"
+              title="Wersja z bazy została odrzucona — widzisz wersję wbudowaną"
               onDismiss={() => setLoadIssue(null)}
             >
               <p className="text-xs">
-                Panel i gra działają na wersji wbudowanej — Twoje zmiany zapisu
-                z bazy nie widać, dopóki tego nie naprawisz. Szczegóły:
+                Poniższe zakładki (łącznie z Przeglądem) pokazują zawartość
+                wbudowaną w aplikację, więc mogą mówić, że wszystko jest w
+                porządku — to ocena TEJ wersji, nie tej z bazy. Zapisanie
+                czegokolwiek nadpisze bazę tym, co widzisz. Co jest nie tak
+                z wersją w bazie:
               </p>
               <p className="mt-1 text-xs opacity-90">{loadIssue}</p>
+              <p className="mt-2 text-xs opacity-90">
+                Najczęstsza przyczyna: karta potrzebna do ścianki jest oznaczona
+                jako robocza. Karty robocze nie wchodzą do gry, więc ścianka
+                zostaje bez pokrycia — odznacz „robocza” przy takiej karcie.
+              </p>
             </Alert>
           </div>
         )}
