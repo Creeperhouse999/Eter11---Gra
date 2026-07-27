@@ -22,7 +22,11 @@ vi.mock('firebase/database', () => ({
   onDisconnect: vi.fn(),
   onValue: vi.fn(),
   remove: vi.fn(),
-  runTransaction: vi.fn(),
+  runTransaction: vi.fn(async (_ref: unknown, updateFn: (r: unknown) => unknown) => {
+    const next = updateFn(currentRoom);
+    if (next !== undefined) currentRoom = next as typeof currentRoom;
+    return { committed: next !== undefined, snapshot: { val: () => currentRoom } };
+  }),
   serverTimestamp: () => 0,
   set: vi.fn(),
 }));

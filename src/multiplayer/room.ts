@@ -116,42 +116,57 @@ export async function joinRoom(input: {
   const uid = await ensureSession();
   const code = input.code.trim().toUpperCase();
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
-  const snapshot = await get(roomRef);
 
-  if (!snapshot.exists()) {
-    return { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
-  }
-
-  const room = snapshot.val() as Room & { kicked?: Record<string, boolean> };
-
-  if (room.kicked?.[uid]) {
-    return { ok: false, error: 'Zostałeś usunięty z tego pokoju.' };
-  }
-  // Gracz wracający do swojego pokoju (rozłączenie) po prostu wchodzi znów.
-  // Limit i sprawdzenie liczą się po graczach PO `hydrateRoom` — surowy
-  // snapshot bywa zaśmiecony wpisem-widmem po wyrzuconym graczu (patrz
-  // `realPlayers` w hydrate.ts), który inaczej dożywotnio zajmowałby slot.
-  const players = hydrateRoom(room).players;
-  const rejoining = Boolean(players[uid]);
-  if (!rejoining) {
-    if (room.phase !== 'lobby') {
-      return { ok: false, error: 'Gra już się zaczęła.' };
-    }
-    if (Object.keys(players).length >= 4) {
-      return { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
-    }
-  }
-
-  const player: RoomPlayer = {
-    uid,
-    name: input.name.trim() || 'Gracz',
-    characterId: input.characterId,
-    online: true,
-    ready: players[uid]?.ready ?? false,
-    joinedAt: players[uid]?.joinedAt ?? Date.now(),
+  // Transakcja, bo dwóch graczy mogłoby dołączać do OSTATNIEGO wolnego
+  // miejsca w tej samej chwili — osobny `get()` + `update()` sprawdzał limit
+  // i zapisywał gracza nieatomowo, więc oboje przechodzili sprawdzenie i
+  // pokój kończył z pięcioma graczami mimo limitu czterech.
+  let result: { ok: boolean; error?: string } = {
+    ok: false,
+    error: 'Nie ma pokoju o takim kodzie.',
   };
 
-  await update(ref(rtdb, `${ROOMS}/${code}/players`), { [uid]: player });
+  await runTransaction(roomRef, (room: (Room & { kicked?: Record<string, boolean> }) | null) => {
+    if (!room) {
+      result = { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
+      return room;
+    }
+    if (room.kicked?.[uid]) {
+      result = { ok: false, error: 'Zostałeś usunięty z tego pokoju.' };
+      return room;
+    }
+    // Gracz wracający do swojego pokoju (rozłączenie) po prostu wchodzi znów.
+    // Limit i sprawdzenie liczą się po graczach PO `hydrateRoom` — surowy
+    // węzeł bywa zaśmiecony wpisem-widmem po wyrzuconym graczu (patrz
+    // `realPlayers` w hydrate.ts), który inaczej dożywotnio zajmowałby slot.
+    const players = hydrateRoom(room).players;
+    const rejoining = Boolean(players[uid]);
+    if (!rejoining) {
+      if (room.phase !== 'lobby') {
+        result = { ok: false, error: 'Gra już się zaczęła.' };
+        return room;
+      }
+      if (Object.keys(players).length >= 4) {
+        result = { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
+        return room;
+      }
+    }
+
+    const player: RoomPlayer = {
+      uid,
+      name: input.name.trim() || 'Gracz',
+      characterId: input.characterId,
+      online: true,
+      ready: players[uid]?.ready ?? false,
+      joinedAt: players[uid]?.joinedAt ?? Date.now(),
+    };
+    if (!room.players) room.players = {};
+    room.players[uid] = player;
+    result = { ok: true };
+    return room;
+  });
+
+  if (!result.ok) return result;
   // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
   return { ok: true, uid };
 }
