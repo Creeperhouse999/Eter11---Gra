@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { DEFAULT_CATEGORIES, type CategoryMap } from '../../data/categories';
 import type { CardCategory, ProblemType, SlotKey } from '../../engine/types';
 
@@ -29,6 +30,25 @@ export function setCustomIcons(next?: Array<{ name: string; url: string }>): voi
 
 export function getCustomIcons(): Array<{ name: string; url: string }> {
   return customIcons;
+}
+
+/**
+ * Utrzymuje rejestr modułowy w zgodzie z zawartością gry wczytaną w panelu.
+ *
+ * Osobny hook, nie inline `useEffect` w AdminApp: zależność wyłącznie od
+ * `categories` przegapiała zmiany `customIcons` (wgranie/usunięcie ikony nie
+ * odświeżało rejestru), więc świeżo wgrana ikona nie pojawiała się w żadnym
+ * IconPickerze, dopóki nie zmieniła się też nazwa jakiejś kategorii albo
+ * strona nie odświeżyła się od zera.
+ */
+export function useContentStyleSync(
+  categoryOverrides: Partial<CategoryMap> | undefined,
+  customIconsList: Array<{ name: string; url: string }> | undefined,
+): void {
+  useEffect(() => {
+    setCategoryStyles(categoryOverrides);
+    setCustomIcons(customIconsList);
+  }, [categoryOverrides, customIconsList]);
 }
 
 /** Podmienia nazwy i ikony kategorii na te z panelu redakcyjnego. */

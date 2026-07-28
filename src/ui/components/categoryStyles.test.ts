@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import {
   categoryLabel,
+  getCustomIcons,
   setCategoryStyles,
+  setCustomIcons,
   slotIcon,
   slotLabel,
+  useContentStyleSync,
 } from './categoryStyles';
 import { DEFAULT_CATEGORIES } from '../../data/categories';
 
@@ -65,5 +69,29 @@ describe('nazwy kategorii', () => {
     expect(categoryLabel('social')).toBe(DEFAULT_CATEGORIES.social.label);
     // Ścianka dziedziczy tę samą, niepustą nazwę.
     expect(slotLabel('social')).toBe(DEFAULT_CATEGORIES.social.label);
+  });
+});
+
+describe('useContentStyleSync', () => {
+  afterEach(() => {
+    setCategoryStyles(undefined);
+    setCustomIcons(undefined);
+  });
+
+  it('odświeża własne ikony, gdy zmieniają się bez zmiany kategorii', () => {
+    const { rerender } = renderHook(
+      ({ categories, customIcons }) => useContentStyleSync(categories, customIcons),
+      { initialProps: { categories: undefined, customIcons: [] as Array<{ name: string; url: string }> } },
+    );
+    expect(getCustomIcons()).toEqual([]);
+
+    // Redaktor wgrywa ikonę: `customIcons` się zmienia, `categories` nie —
+    // dokładnie tak, jak wygląda edycja w IconEditorze. Bez zależności od
+    // `customIcons` w efekcie rejestr modułowy zostawał stary, a IconPicker
+    // (który czyta go bezpośrednio, poza Reactem) nie widział nowej ikony.
+    const uploaded = [{ name: 'nowa', url: 'https://x/nowa.png' }];
+    rerender({ categories: undefined, customIcons: uploaded });
+
+    expect(getCustomIcons()).toEqual(uploaded);
   });
 });

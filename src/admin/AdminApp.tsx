@@ -33,7 +33,7 @@ import { TextEditor } from './TextEditor';
 import { StoryEditor, isStoryPart } from './StoryEditor';
 import { CategoryEditor } from './CategoryEditor';
 import { IconEditor } from './IconEditor';
-import { setCategoryStyles, setCustomIcons } from '../ui/components/categoryStyles';
+import { useContentStyleSync } from '../ui/components/categoryStyles';
 import { useTabRoute } from './useTabRoute';
 import { ThemeEditor } from './ThemeEditor';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -246,10 +246,7 @@ export function AdminApp() {
   // Redaktor zmienia nazwę i od razu widzi ją na kartach w zakładce „Karty”
   // oraz na ściankach problemów — bez zapisu i odświeżania gry. Bez tego
   // pisałby w ciemno i sprawdzał efekt dopiero po wdrożeniu.
-  useEffect(() => {
-    setCategoryStyles(content.categories);
-    setCustomIcons(content.customIcons);
-  }, [content.categories]);
+  useContentStyleSync(content.categories, content.customIcons);
 
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
   useEffect(() => {
