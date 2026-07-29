@@ -117,6 +117,22 @@ export async function joinRoom(input: {
   const code = input.code.trim().toUpperCase();
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
 
+  // Odczyt PRZED transakcją — dołączanie jest pierwszym dotykiem tej ścieżki
+  // przez klienta, więc lokalny cache RTDB jest zimny. Bez tego `get()`
+  // pierwszy przebieg `runTransaction` poniżej dostaje `null` (SDK zgaduje
+  // z pustego cache), a zwrócenie tego `null` to dla RTDB próba ZAPISANIA
+  // null — czyli skasowania — pod pokojem, który naprawdę istnieje. Reguła
+  // bazy (`!data.exists()`) taki zapis odrzuca jako PERMISSION_DENIED, a to
+  // odrzucenie z reguł (nie ze sporu o nieaktualne dane) SDK NIE ponawia —
+  // dołączenie do istniejącego pokoju wywalało się wyjątkiem, zanim
+  // transakcja w ogóle zobaczyła prawdziwy stan (dokładnie zgłoszony bug:
+  // kod poprawny, drugi gracz dostawał "Nie udało się dołączyć"). `get()`
+  // ogrzewa cache, więc poniższa transakcja startuje już z realnymi danymi.
+  const existing = await get(roomRef);
+  if (!existing.exists()) {
+    return { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
+  }
+
   // Transakcja, bo dwóch graczy mogłoby dołączać do OSTATNIEGO wolnego
   // miejsca w tej samej chwili — osobny `get()` + `update()` sprawdzał limit
   // i zapisywał gracza nieatomowo, więc oboje przechodzili sprawdzenie i
@@ -128,8 +144,10 @@ export async function joinRoom(input: {
 
   await runTransaction(roomRef, (room: (Room & { kicked?: Record<string, boolean> }) | null) => {
     if (!room) {
-      result = { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
-      return room;
+      // Pokój zniknął między odczytem wyżej a transakcją (skasowany w
+      // międzyczasie) — przerywamy BEZ zapisu (nie zwracamy `room`, bo to
+      // `null` skończyłoby się tą samą odmową z reguł co opisano wyżej).
+      return undefined;
     }
     if (room.kicked?.[uid]) {
       result = { ok: false, error: 'Zostałeś usunięty z tego pokoju.' };
