@@ -8,6 +8,7 @@ import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
 import type { CategoryMap } from '../data/categories';
+import type { CardImage } from '../data/cardImages';
 import type { CustomIcon } from '../data/customIcons';
 import type { IntroContent } from '../data/intro';
 import type { TutorialStep } from '../data/tutorial';
@@ -40,6 +41,12 @@ export interface GameContent {
    * w Storage. Wybór ikony pokazuje je obok wbudowanych.
    */
   customIcons?: CustomIcon[];
+  /**
+   * Biblioteka grafik kart. Osobna od `Card.image` (bieżące przypisanie) —
+   * trzyma też grafiki jeszcze nieprzypisane, czekające na dopasowanie
+   * w panelu „Grafiki kart".
+   */
+  cardImages?: CardImage[];
   intro?: IntroContent;
   tutorial?: TutorialStep[];
 }

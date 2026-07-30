@@ -19,6 +19,7 @@ import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { CardEditor } from './CardEditor';
+import { CardImagesEditor } from './CardImagesEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
@@ -43,6 +44,7 @@ type Tab =
   | 'overview'
   | 'problems'
   | 'cards'
+  | 'cardImages'
   | 'families'
   | 'categories'
   | 'icons'
@@ -69,6 +71,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   // Treść gry — od największych elementów do drobiazgów wizualnych
   { key: 'problems', label: 'Problemy', icon: 'clash' },
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
+  { key: 'cardImages', label: 'Grafiki kart', icon: 'upload' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'message' },
@@ -644,6 +647,13 @@ export function AdminApp() {
             key={route.params.filter ?? ''}
             initialSearch={route.params.filter ?? ''}
             onSearchChange={(value) => route.setParam('filter', value || null)}
+          />
+        )}
+        {tab === 'cardImages' && (
+          <CardImagesEditor
+            cardImages={content.cardImages}
+            cards={content.cards}
+            onChange={({ cardImages, cards }) => update({ cardImages, cards })}
           />
         )}
         {tab === 'families' && (
