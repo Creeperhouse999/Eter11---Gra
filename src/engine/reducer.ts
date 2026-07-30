@@ -458,7 +458,12 @@ function swapHand(
  * Zdarzenia dopisujemy do kolejki, żeby gracz zobaczył, co się stało.
  */
 function withResolvedSwans(state: GameState): GameState {
-  const resolved = resolveDrawnBlackSwans(state);
+  // Wymiana zużywa ruch gracza NA TO — jego kolej w tej rundzie już się
+  // liczy jako spożytkowana, więc do zabezpieczenia feasibility trafia
+  // liczba ruchów, które w tej rundzie ZOSTAŁY (bez własnego, właśnie
+  // zużytego). Gracze przed nim w kolejce też już swój ruch wykorzystali.
+  const movesRemainingThisRound = state.players.length - state.activePlayerIndex - 1;
+  const resolved = resolveDrawnBlackSwans(state, movesRemainingThisRound);
   if (resolved.events.length === 0) return resolved.state;
 
   return {
@@ -491,7 +496,10 @@ function withResolvedSwans(state: GameState): GameState {
  * Zwraca też opis tego, co się stało: gracz musi wiedzieć, dlaczego
  * plansza nagle wygląda inaczej.
  */
-export function resolveDrawnBlackSwans(state: GameState): {
+export function resolveDrawnBlackSwans(
+  state: GameState,
+  movesRemainingThisRound: number = state.players.length,
+): {
   state: GameState;
   events: BlackSwanEvent[];
 } {
@@ -554,7 +562,7 @@ export function resolveDrawnBlackSwans(state: GameState): {
 
     const kind = card.blackSwanKind ?? 'extraProblem';
     const before = withoutCard.mission!.activeBlackSwans.length;
-    next = applyBlackSwan(withoutCard, kind);
+    next = applyBlackSwan(withoutCard, kind, movesRemainingThisRound);
     const applied = next.mission!.activeBlackSwans.length > before;
 
     events.push({
@@ -571,7 +579,28 @@ export function resolveDrawnBlackSwans(state: GameState): {
   return { state: next, events };
 }
 
-export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState {
+/**
+ * `movesRemainingThisRound` — ile ruchów w BIEŻĄCEJ rundzie jeszcze może
+ * wypełnić slot, licząc od chwili wywołania.
+ *
+ * Domyślnie cała runda (`state.players.length`): tak liczy się to na
+ * początku rundy (rozdanie startowe misji albo nowej rundy), zanim
+ * ktokolwiek zagrał — wtedy każdy z n graczy ma jeszcze przed sobą swój
+ * ruch. Przy Łabędziu dobranym w trakcie wymiany karty (`withResolvedSwans`)
+ * `state.activePlayerIndex` wskazuje gracza, który WŁAŚNIE zużywa swój ruch
+ * na wymianę (nie na wypełnienie slotu), a gracze przed nim w tej rundzie
+ * już swój ruch zużyli — wywołanie przekazuje wtedy jawnie mniejszą liczbę.
+ *
+ * Regresja: liczenie zawsze jak przy starcie rundy (`(rundy - runda + 1) *
+ * gracze`) ignorowało już zużyte ruchy przy wymianie w trakcie rundy, więc
+ * zabezpieczenie przepuszczało utrudnienie w misji, której faktycznie nie
+ * dało się już domknąć — dokładnie to, przed czym ma chronić.
+ */
+export function applyBlackSwan(
+  state: GameState,
+  kind: BlackSwanKind,
+  movesRemainingThisRound: number = state.players.length,
+): GameState {
   const mission = state.mission;
   if (!mission || mission.phase !== 'playing') return state;
 
@@ -587,9 +616,9 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     const perCard = mission.activeBlackSwans.includes('doubleRequirements') ? 2 : 1;
     const movesLeft =
       (roundsForPlayers(state.players.length, state.config.roundsPerMission) -
-        mission.round +
-        1) *
-      state.players.length;
+        mission.round) *
+        state.players.length +
+      movesRemainingThisRound;
     const openSlots = mission.problems.reduce(
       (sum, problem) =>
         sum +
@@ -622,9 +651,9 @@ export function applyBlackSwan(state: GameState, kind: BlackSwanKind): GameState
     // a nie przegrana w chwili wylosowania karty.
     const movesLeft =
       (roundsForPlayers(state.players.length, state.config.roundsPerMission) -
-        mission.round +
-        1) *
-      state.players.length;
+        mission.round) *
+        state.players.length +
+      movesRemainingThisRound;
     const needed = mission.problems.reduce(
       (sum, problem) =>
         sum +
