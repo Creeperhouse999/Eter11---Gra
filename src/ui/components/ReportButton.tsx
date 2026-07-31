@@ -82,7 +82,7 @@ export function ReportButton() {
           // Prawy dolny róg kolidował z przyciskami „Pasuję"/„Wymień" i paskiem
           // ręki — na telefonie zasłaniał akcje gry. Lewy dolny róg jest wolny:
           // akcje są po prawej, ręka przewija się środkiem.
-          className="fixed bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
+          className="fixed bottom-3 left-3 flex h-11 w-11 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
           style={{ zIndex: 'var(--z-hint)' }}
         >
           <Icon name="megaphone" size={18} />
