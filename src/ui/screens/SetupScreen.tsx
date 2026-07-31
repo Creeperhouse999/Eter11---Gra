@@ -245,6 +245,7 @@ export function SetupScreen({
                   onChange={(e) => update(index, { name: e.target.value })}
                   placeholder="Imię"
                   aria-label={`Imię gracza ${index + 1}`}
+                  maxLength={24}
                   className={[
                     'min-w-0 flex-1 rounded-lg border bg-bg px-3 py-2 text-ink',
                     'placeholder:text-ink-dim/80 focus:border-accent focus:outline-none',

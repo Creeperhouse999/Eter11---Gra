@@ -106,7 +106,7 @@ export function SummaryScreen({
             const tookOwnCard = alreadyTook && !receivedThisMission;
             return (
               <div key={player.id} className="rounded-xl border border-edge bg-surface p-4">
-                <h2 className="font-display font-bold">{player.name}</h2>
+                <h2 className="truncate font-display font-bold">{player.name}</h2>
                 <p className="mt-1 text-sm text-ink-dim">
                   {sharedAway
                     ? 'Przekazał swoją wyłożoną kartę innemu graczowi w tej misji.'
@@ -121,7 +121,7 @@ export function SummaryScreen({
           return (
             <div key={player.id} className="rounded-xl border border-edge bg-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-display text-lg font-bold">{player.name}</h2>
+                <h2 className="min-w-0 truncate font-display text-lg font-bold">{player.name}</h2>
                 <span className="eter-label">
                   {alreadyTook
                     ? 'Karta zabrana'

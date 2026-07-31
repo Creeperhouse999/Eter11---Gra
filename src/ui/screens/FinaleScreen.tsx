@@ -121,7 +121,7 @@ export function FinaleScreen({
           return (
             <div key={player.id} className="rounded-xl border border-edge bg-surface p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-display text-lg font-bold">{player.name}</h3>
+                <h3 className="min-w-0 truncate font-display text-lg font-bold">{player.name}</h3>
                 <span className="font-mono text-2xl font-bold text-accent">
                   {playerScore(player, state.config)} pkt
                 </span>
