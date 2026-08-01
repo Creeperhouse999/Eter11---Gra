@@ -1,5 +1,12 @@
 import { draw, shuffle } from './deck';
-import { cardFitsSlot, isMissionSolved, isSlotFilled, slotId } from './rules';
+import {
+  cardFitsSlot,
+  cardsInSlot,
+  isMissionSolved,
+  isSlotFilled,
+  requiredCountForSlot,
+  slotId,
+} from './rules';
 // Jedno źródło reguły dzielenia się. Silnik miał własną kopię listy —
 // dokładnie ten rozjazd, przed którym ostrzega komentarz przy oryginale.
 import { isCompetence } from '../ui/components/categoryStyles';
@@ -619,15 +626,27 @@ export function applyBlackSwan(
         mission.round) *
         state.players.length +
       movesRemainingThisRound;
-    const openSlots = mission.problems.reduce(
+    // Deficyt liczony slot po slocie, nie „każdy niezapełniony × perCard" —
+    // przy aktywnym podwojeniu slot z 1 z 2 wymaganych kart potrzebuje już
+    // tylko 1, nie pełnych 2. Licząc ryczałtem zawyżało to wymóg i potrafiło
+    // zablokować dodatkowy problem, mimo że pozostałych ruchów starczało.
+    const cardsStillNeeded = mission.problems.reduce(
       (sum, problem) =>
         sum +
-        problem.slots.filter((slot) => !isSlotFilled(mission, problem.id, slot.key))
-          .length,
+        problem.slots.reduce(
+          (slotSum, slot) =>
+            slotSum +
+            Math.max(
+              0,
+              requiredCountForSlot(mission, problem.id, slot.key) -
+                cardsInSlot(mission, problem.id, slot.key),
+            ),
+          0,
+        ),
       0,
     );
     const extraSlots = state.problemPile[0].slots.length;
-    if ((openSlots + extraSlots) * perCard > movesLeft) return state;
+    if (cardsStillNeeded + extraSlots * perCard > movesLeft) return state;
 
     const [extra, ...rest] = state.problemPile;
     return {
