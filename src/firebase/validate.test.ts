@@ -399,4 +399,50 @@ describe('validateContent — świadomość wersji roboczych (draft)', () => {
     expect(result.ok).toBe(false);
     expect(result.errors.join(' ')).toMatch(/grywalnych problemów/i);
   });
+
+  // Zapis z panelu admina nie przechodzi przez nic poza `validateContent`
+  // (patrz AdminApp.tsx: przycisk Zapisz jest zablokowany tylko przez
+  // `!validation.ok`). Pusta scena wstępu albo pusty krok samouczka
+  // trafiłaby więc bez przeszkód do wszystkich graczy.
+  it('odrzuca scenę wstępu z pustym nagłówkiem, treścią albo ikoną', () => {
+    const content = validContent();
+    content.intro = {
+      story: [{ heading: '', body: 'Coś', icon: 'earth' }],
+      rules: [],
+      adults: [],
+    };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('wstęp');
+  });
+
+  it('akceptuje kompletny wstęp', () => {
+    const content = validContent();
+    content.intro = {
+      story: [{ heading: 'Tytuł', body: 'Treść', icon: 'earth' }],
+      rules: [],
+      adults: [],
+    };
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
+
+  it('odrzuca krok samouczka z pustą kwestią albo pochwałą', () => {
+    const content = validContent();
+    content.tutorial = [
+      { id: 'x', goal: 'intro', allow: [], say: '', praise: 'Brawo' },
+    ];
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('samouczek');
+  });
+
+  it('akceptuje kompletny krok samouczka', () => {
+    const content = validContent();
+    content.tutorial = [
+      { id: 'x', goal: 'intro', allow: [], say: 'Cześć', praise: 'Brawo' },
+    ];
+    const result = validateContent(content);
+    expect(result.ok, result.errors.join('; ')).toBe(true);
+  });
 });

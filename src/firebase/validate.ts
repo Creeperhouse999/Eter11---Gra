@@ -439,5 +439,48 @@ export function validateContent(content: unknown): ValidationResult {
   checkTheme('Motyw', themed.theme);
   checkTheme('Motyw jasny', themed.themeLight);
 
+  // --- Wstęp i samouczek ---
+  // Opcjonalne (starsze zapisy ich nie mają — patrz komentarz przy
+  // GameContent.intro), ale skoro admin edytuje je z panelu, a Zapisz jest
+  // zablokowany wyłącznie przez `validateContent(...).ok`, pusta scena albo
+  // pusty krok samouczka przechodziłyby bez przeszkód prosto do graczy.
+  if (data.intro && isObject(data.intro)) {
+    const introParts = ['story', 'rules', 'adults'] as const;
+    for (const part of introParts) {
+      const scenes = (data.intro as Record<string, unknown>)[part];
+      if (!Array.isArray(scenes)) continue;
+      scenes.forEach((scene, i) => {
+        if (!isObject(scene)) {
+          add(`Wstęp (${part}), scena #${i + 1}: nie jest obiektem.`);
+          return;
+        }
+        if (!isText(scene.heading) || !scene.heading.trim()) {
+          add(`Wstęp (${part}), scena #${i + 1}: brak nagłówka.`);
+        }
+        if (!isText(scene.body) || !scene.body.trim()) {
+          add(`Wstęp (${part}), scena #${i + 1}: brak treści.`);
+        }
+        if (!isText(scene.icon) || !scene.icon.trim()) {
+          add(`Wstęp (${part}), scena #${i + 1}: brak ikony.`);
+        }
+      });
+    }
+  }
+
+  if (Array.isArray(data.tutorial)) {
+    data.tutorial.forEach((step, i) => {
+      if (!isObject(step)) {
+        add(`Samouczek, krok #${i + 1}: nie jest obiektem.`);
+        return;
+      }
+      if (!isText(step.say) || !step.say.trim()) {
+        add(`Samouczek, krok #${i + 1}: brak kwestii ETER11.`);
+      }
+      if (!isText(step.praise) || !step.praise.trim()) {
+        add(`Samouczek, krok #${i + 1}: brak pochwały.`);
+      }
+    });
+  }
+
   return { ok: errors.length === 0, errors };
 }
