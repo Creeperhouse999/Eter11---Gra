@@ -100,7 +100,7 @@ export function OnlineGame({
   if (state.phase === 'missionSummary') {
     return (
       <>
-        <SummaryScreen game={game} />
+        <SummaryScreen game={game} viewerId={uid} />
         {/* Przekazanie karty odbywa się właśnie w podsumowaniu: dający
             proponuje, biorący przyjmuje w tym oknie. Bez niego tutaj biorący
             nie miał czego kliknąć i uczenie (warunek spełnienia) było online

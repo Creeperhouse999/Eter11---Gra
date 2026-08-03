@@ -28,6 +28,19 @@ interface SummaryScreenProps {
    * „Misji 2" bez talii i bez wyjścia — poza scenariuszem, w ślepym zaułku.
    */
   hideAdvance?: boolean;
+  /**
+   * UID gracza patrzącego na ekran (tylko online — patrz `OnlineGame`).
+   *
+   * Podsumowanie nie ma tury: każdy gracz działa niezależnie, więc — inaczej
+   * niż `MissionScreen`, gdzie tylko aktywny gracz ma interaktywną rękę —
+   * ten ekran pokazuje naraz przyciski WSZYSTKICH graczy. Bez `viewerId`
+   * (pass-and-play przy jednym urządzeniu) to poprawne: każdy po kolei bierze
+   * telefon. Online każdy siedzi na swoim urządzeniu i widzi ten sam ekran —
+   * bez tego pola dziecko mogło kliknąć przycisk pod cudzym imieniem i
+   * dopiero wtedy dostać odmowę z reduktora, mimo że przycisk wyglądał
+   * identycznie jak przy własnym wierszu.
+   */
+  viewerId?: string;
 }
 
 // Kategorie do spełnienia to te same ścianki co na karcie problemu —
@@ -46,6 +59,7 @@ export function SummaryScreen({
   text = DEFAULT_UI_TEXT,
   characters = ALL_CHARACTERS,
   hideAdvance = false,
+  viewerId,
 }: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
@@ -82,6 +96,7 @@ export function SummaryScreen({
         {state.players.map((player) => {
           const plays = mission.played.filter((p) => p.playerId === player.id);
           const alreadyTook = mission.takenToMat.includes(player.id);
+          const isOwn = viewerId === undefined || viewerId === player.id;
 
           // Zabrana ORAZ przekazana karta schodzi z `mission.played` (leży już
           // na macie — swojej albo odbiorcy — i nie liczy się dwa razy). Gdy
@@ -184,7 +199,8 @@ export function SummaryScreen({
                     !shared &&
                     !alreadyTook &&
                     isCompetence(play.card.category) &&
-                    hasReceiver;
+                    hasReceiver &&
+                    isOwn;
 
                   // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej
                   // gracz widzi cztery przygaszone kafle i nie wie, czy to
@@ -204,7 +220,13 @@ export function SummaryScreen({
                         // Ekran pokazuje karty wszystkich naraz, więc „zabrałeś"
                         // trafiało do osoby czytającej, nie do właściciela karty.
                         ? `${player.name} zabrał już kartę w tej misji.`
-                        : undefined;
+                        : !isOwn
+                          // Online każdy widzi ten sam ekran ze wszystkimi
+                          // wierszami naraz — bez tego przycisk pod cudzym
+                          // imieniem wyglądał identycznie jak własny, a klik
+                          // kończył się dopiero ciche odmową reduktora.
+                          ? `Tylko ${player.name} może zabrać tę kartę.`
+                          : undefined;
 
                   return (
                     <div
@@ -222,7 +244,7 @@ export function SummaryScreen({
                           size="sm"
                           variant="secondary"
                           data-tour="take-card"
-                          disabled={alreadyTook || shared || !keepable}
+                          disabled={alreadyTook || shared || !keepable || !isOwn}
                           className="w-full"
                           onClick={() =>
                             dispatch({
