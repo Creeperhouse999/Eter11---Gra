@@ -55,4 +55,31 @@ describe('IntroScreen', () => {
       expect(tab.className).toMatch(/\bmin-h-11\b/);
     }
   });
+
+  /**
+   * Nagłówek i treść sceny pochodzą z panelu redakcyjnego — wolny tekst bez
+   * limitu długości (patrz `StoryEditor`). Globalne `overflow-x: hidden`
+   * (patrz `index.css`) bez `overflow-wrap` na tym elemencie nie zawija
+   * długiego, niełamliwego ciągu (URL, e-mail) — po prostu go ucina, tak
+   * samo jak przy tekście problemu w `ProblemCard` przed jego fixem.
+   */
+  it('długi, niełamliwy tekst sceny ma overflow-wrap — nie ucina się po cichu', () => {
+    const long = 'a'.repeat(200);
+    const { container } = render(
+      <IntroScreen
+        onDone={noop}
+        onSkip={noop}
+        intro={{
+          story: [{ heading: long, body: long, icon: 'spark' }],
+          rules: [{ heading: long, body: long, icon: 'spark' }],
+          adults: [],
+        }}
+      />,
+    );
+
+    const heading = screen.getByText(long, { selector: 'h2' });
+    expect(heading.style.overflowWrap).toBe('anywhere');
+    const body = container.querySelector('p');
+    expect(body?.style.overflowWrap).toBe('anywhere');
+  });
 });

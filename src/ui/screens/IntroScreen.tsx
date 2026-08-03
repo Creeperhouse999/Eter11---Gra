@@ -145,13 +145,16 @@ export function IntroScreen({ onDone, onSkip, intro }: IntroScreenProps) {
               ref={headingRef}
               tabIndex={-1}
               className="mt-3 font-display text-xl font-bold leading-tight outline-none sm:text-2xl"
+              style={{ overflowWrap: 'anywhere' }}
             >
               {current.heading}
             </h2>
 
             <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-ink-dim">
               {current.body.split('\n\n').map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
+                <p key={index} style={{ overflowWrap: 'anywhere' }}>
+                  {paragraph}
+                </p>
               ))}
             </div>
 
@@ -209,10 +212,14 @@ export function IntroScreen({ onDone, onSkip, intro }: IntroScreenProps) {
                     <Icon name={item.icon as IconName} size={20} />
                   </span>
                   <div className="min-w-0">
-                    <h2 className="font-display font-bold">{item.heading}</h2>
+                    <h2 className="font-display font-bold" style={{ overflowWrap: 'anywhere' }}>
+                      {item.heading}
+                    </h2>
                     <div className="mt-1.5 space-y-2 text-sm leading-relaxed text-ink-dim">
                       {item.body.split('\n\n').map((paragraph, index) => (
-                        <p key={index}>{paragraph}</p>
+                        <p key={index} style={{ overflowWrap: 'anywhere' }}>
+                          {paragraph}
+                        </p>
                       ))}
                     </div>
                   </div>
