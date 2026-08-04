@@ -445,4 +445,37 @@ describe('validateContent — świadomość wersji roboczych (draft)', () => {
     const result = validateContent(content);
     expect(result.ok, result.errors.join('; ')).toBe(true);
   });
+
+  // Uszkodzony zapis (np. ręczna edycja bazy) mógłby wpisać zły KSZTAŁT —
+  // nie pustą wartość, tylko np. tekst zamiast obiektu/listy. Bez jawnej
+  // kontroli walidacja po cichu POMIJA taki fragment (żadnego błędu), a
+  // zepsute dane trafiają do wszystkich graczy i wywalają IntroScreen /
+  // samouczek na `.split is not a function` / podobnym TypeError.
+  it('odrzuca intro, które nie jest obiektem', () => {
+    const content = validContent();
+    (content as unknown as Record<string, unknown>).intro = 'nie obiekt';
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('wstęp');
+  });
+
+  it('odrzuca sekcję wstępu, która nie jest listą', () => {
+    const content = validContent();
+    content.intro = {
+      story: 'Kiedyś dawno temu...' as unknown as never,
+      rules: [],
+      adults: [],
+    };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('wstęp');
+  });
+
+  it('odrzuca samouczek, który nie jest listą', () => {
+    const content = validContent();
+    (content as unknown as Record<string, unknown>).tutorial = { krok: 1 };
+    const result = validateContent(content);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('samouczek');
+  });
 });

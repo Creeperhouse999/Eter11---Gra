@@ -444,11 +444,22 @@ export function validateContent(content: unknown): ValidationResult {
   // GameContent.intro), ale skoro admin edytuje je z panelu, a Zapisz jest
   // zablokowany wyłącznie przez `validateContent(...).ok`, pusta scena albo
   // pusty krok samouczka przechodziłyby bez przeszkód prosto do graczy.
-  if (data.intro && isObject(data.intro)) {
+  if (data.intro && !isObject(data.intro)) {
+    // Wstęp będący liczbą albo tekstem (uszkodzony zapis) wywracał niżej
+    // dostęp do `intro[part]` — ten sam rodzaj uszkodzenia co przy motywie.
+    add('Wstęp nie jest obiektem.');
+  } else if (data.intro && isObject(data.intro)) {
     const introParts = ['story', 'rules', 'adults'] as const;
     for (const part of introParts) {
       const scenes = (data.intro as Record<string, unknown>)[part];
-      if (!Array.isArray(scenes)) continue;
+      if (scenes === undefined) continue;
+      if (!Array.isArray(scenes)) {
+        // Sekcja obecna, ale złego kształtu (np. tekst zamiast listy) —
+        // IntroScreen indeksowałby ją jak listę i wywrócił się na
+        // `current.body.split(...)`, gdy `current` wychodzi znakiem tekstu.
+        add(`Wstęp (${part}): nie jest listą.`);
+        continue;
+      }
       scenes.forEach((scene, i) => {
         if (!isObject(scene)) {
           add(`Wstęp (${part}), scena #${i + 1}: nie jest obiektem.`);
@@ -467,19 +478,25 @@ export function validateContent(content: unknown): ValidationResult {
     }
   }
 
-  if (Array.isArray(data.tutorial)) {
-    data.tutorial.forEach((step, i) => {
-      if (!isObject(step)) {
-        add(`Samouczek, krok #${i + 1}: nie jest obiektem.`);
-        return;
-      }
-      if (!isText(step.say) || !step.say.trim()) {
-        add(`Samouczek, krok #${i + 1}: brak kwestii ETER11.`);
-      }
-      if (!isText(step.praise) || !step.praise.trim()) {
-        add(`Samouczek, krok #${i + 1}: brak pochwały.`);
-      }
-    });
+  if (data.tutorial !== undefined) {
+    if (!Array.isArray(data.tutorial)) {
+      // Samouczek obecny, ale złego kształtu (np. obiekt zamiast listy) —
+      // useTutorial zakłada listę kroków i wywróciłby się na iteracji.
+      add('Samouczek: nie jest listą.');
+    } else {
+      data.tutorial.forEach((step, i) => {
+        if (!isObject(step)) {
+          add(`Samouczek, krok #${i + 1}: nie jest obiektem.`);
+          return;
+        }
+        if (!isText(step.say) || !step.say.trim()) {
+          add(`Samouczek, krok #${i + 1}: brak kwestii ETER11.`);
+        }
+        if (!isText(step.praise) || !step.praise.trim()) {
+          add(`Samouczek, krok #${i + 1}: brak pochwały.`);
+        }
+      });
+    }
   }
 
   return { ok: errors.length === 0, errors };
