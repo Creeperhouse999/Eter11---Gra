@@ -21,8 +21,23 @@ export interface UploadResult {
   error?: string;
 }
 
-/** Dozwolone typy. SVG idzie bez kompresji — nie jest bitmapą. */
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+/** Dozwolone typy bitmapowe — wszystkie foldery. */
+const RASTER_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/**
+ * Foldery, do których SVG wolno wgrywać: tylko `icons` i `cards`, gdzie
+ * pisze wyłącznie zalogowany zespół (reguły Storage — `czlonekZespolu()`).
+ *
+ * `reports` przyjmuje pliki od anonima bez konta wprost z gry (reguła
+ * Storage celowo puszcza `create` bez logowania — zgłoszenie ma iść bez
+ * konta). SVG to XML, nie bitmapa: może zawierać `<script>`/`onload`, a
+ * `ImageLightbox` ma link „otwórz surowy plik", który otwiera Storage jako
+ * dokument najwyższego poziomu — tam taki skrypt by się wykonał w oczach
+ * zespołu przeglądającego zgłoszenie. `discussions` idzie tą samą ścieżką
+ * wysyłki (`ImageUpload`), więc dla spójności ograniczone tak samo, choć
+ * tam pisze już tylko zespół.
+ */
+const SVG_FOLDERS = new Set(['icons', 'cards']);
 
 /**
  * Zmniejsza bitmapę przed wysłaniem.
@@ -83,8 +98,15 @@ export async function uploadImage(input: {
   folder: 'icons' | 'reports' | 'discussions' | 'cards';
   name: string;
 }): Promise<UploadResult> {
-  if (!IMAGE_TYPES.includes(input.file.type)) {
-    return { ok: false, error: 'Dozwolone są obrazy PNG, JPG, WEBP i SVG.' };
+  const isSvg = input.file.type === 'image/svg+xml';
+  const allowed = RASTER_TYPES.includes(input.file.type) || (isSvg && SVG_FOLDERS.has(input.folder));
+  if (!allowed) {
+    return {
+      ok: false,
+      error: isSvg
+        ? 'SVG nie jest tu dozwolony. Wyślij PNG, JPG albo WEBP.'
+        : 'Dozwolone są obrazy PNG, JPG i WEBP.',
+    };
   }
 
   try {

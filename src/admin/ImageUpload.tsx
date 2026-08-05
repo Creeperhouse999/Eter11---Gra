@@ -116,6 +116,14 @@ export function ImageUpload({
 
   const remove = (url: string) => onChange(value.filter((u) => u !== url));
 
+  // SVG wolno tylko tam, gdzie wgrywa wyłącznie zalogowany zespół (patrz
+  // `upload.ts` — reguły Storage puszczają `reports`/`discussions` bez
+  // konta, a SVG to XML mogący zawierać skrypt).
+  const svgAllowed = folder === 'icons' || folder === 'cards';
+  const accept = svgAllowed
+    ? 'image/png,image/jpeg,image/webp,image/svg+xml'
+    : 'image/png,image/jpeg,image/webp';
+
   return (
     <div>
       {label && <span className="text-sm text-ink-dim">{label}</span>}
@@ -155,14 +163,14 @@ export function ImageUpload({
       <input
         ref={input}
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        accept={accept}
         multiple={max > 1}
         className="hidden"
         onChange={(e) => void pick(e.target.files)}
       />
 
       <p className="mt-1 text-[11px] text-ink-dim">
-        {value.length} / {max} · PNG, JPG lub SVG
+        {value.length} / {max} · {svgAllowed ? 'PNG, JPG lub SVG' : 'PNG lub JPG'}
       </p>
     </div>
   );
