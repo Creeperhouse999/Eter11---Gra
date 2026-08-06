@@ -354,8 +354,13 @@ export async function commitMove(
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
 
-    // Tylko gracz, którego jest kolej, może zapisać ruch.
-    const order = playersInOrder(room);
+    // Tylko gracz, którego jest kolej, może zapisać ruch. Kolejność liczymy
+    // z ODSIANEGO od widm `room` (patrz hydrate.ts) — transakcja dostaje
+    // SUROWĄ wartość z bazy, nie tę, co przeszła przez `watchRoom`. Widmo
+    // (wpis bez `uid`, patrz `realPlayers`) zajmowałoby slot w kolejności,
+    // więc indeks aktywnego gracza wskazywałby na nie zamiast na
+    // prawdziwego gracza — jego ruch byłby odrzucany na stałe.
+    const order = playersInOrder(hydrateRoom(room));
     const current = order[room.state.activePlayerIndex]?.uid;
     if (current !== uid) return room;
 
@@ -448,7 +453,11 @@ export async function commitMoveAsHost(
     // Skip liczy się tylko, gdy w chwili zapisu wciąż czekamy właśnie na TEGO
     // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
     // ruszył grę dalej i nadpisanie go spasowaniem byłoby cofnięciem.
-    const order = playersInOrder(room);
+    //
+    // `hydrateRoom` odsiewa widma (patrz `commitMove` wyżej) — bez tego
+    // widmo mogłoby zająć slot pominiętego gracza w kolejności i skip
+    // nigdy by się nie zgadzał.
+    const order = playersInOrder(hydrateRoom(room));
     if (order[room.state.activePlayerIndex]?.uid !== skippedUid) return room;
     if (room.players?.[skippedUid]?.online) return room;
 

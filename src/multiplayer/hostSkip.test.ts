@@ -128,4 +128,31 @@ describe('commitMoveAsHost — skip rozłączonego', () => {
     expect(lastResult?.lastAction).toBeNull();
     expect(lastResult?.state?.activePlayerIndex).toBe(0);
   });
+
+  /**
+   * Regresja: ten sam widmowy wpis co w commitMove.test.ts — wyrzucony
+   * TRZECI gracz, którego `onDisconnect` strzelił po `kickPlayer`, zajmował
+   * slot w `playersInOrder`. Skip sprawdza `order[activePlayerIndex]?.uid
+   * !== skippedUid` — z widmem na tym slocie porównanie nigdy się nie
+   * zgadzało, więc koordynator nie mógł spasować za naprawdę rozłączonego
+   * gracza. Gra wisiała bez żadnego komunikatu i bez żadnej ścieżki wyjścia
+   * (spasowanie to jedyny sposób na ruszenie tury rozłączonego gracza).
+   */
+  it('widmo po wcześniej wyrzuconym graczu nie blokuje spasowania rozłączonego', async () => {
+    const state = missionState(1); // aktywny drugi gracz (p2)
+    currentRoom = {
+      ...roomWith(state, /* p2online */ false),
+      players: {
+        p1: { uid: 'p1', name: 'Ala', characterId: 'ch-odkrywca', online: true, ready: true, joinedAt: 1 },
+        widmo: { online: false } as Room['players'][string],
+        p2: { uid: 'p2', name: 'Bo', characterId: 'ch-odkrywca', online: false, ready: true, joinedAt: 3 },
+      },
+    };
+    await commitMoveAsHost('ABCD', 'p1', 'p2', { type: 'PASS', playerId: 'p2' });
+
+    // Bez fixu: order[1] to widmo, nie p2 → skip nigdy się nie zgadza,
+    // gra wisi. Z fixem: widmo odsiane, order[1] to p2 → skip wchodzi.
+    expect(lastResult?.lastAction).toEqual({ type: 'PASS', playerId: 'p2' });
+    expect(lastResult?.state?.activePlayerIndex).not.toBe(1);
+  });
 });
