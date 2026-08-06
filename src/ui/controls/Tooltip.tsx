@@ -102,7 +102,28 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
             // ukryty) była szersza niż ekran; wtedy w clampie `min > max`, środek
             // przyklejał się do lewej, a prawy brzeg uciekał poza kadr. Ze
             // zwijaniem realna szerokość mieści się w kadrze i clamp działa.
-            className="eter-pop pointer-events-none fixed max-w-[calc(100vw-16px)] -translate-x-1/2 whitespace-normal break-words rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
+            //
+            // `w-max` jest tu konieczne, nie kosmetyczne: przy `width: auto`
+            // (domyślne) i pozycjonowaniu samym `left` (bez `right`) przeglądarka
+            // liczy dostępną szerokość jako odległość od `left` do prawej
+            // krawędzi ekranu — mimo że `-translate-x-1/2` wizualnie centruje
+            // dymek na `left`. Dla elementu blisko prawej krawędzi (np.
+            // przełącznik motywu w rogu) ta „dostępna" szerokość wychodziła
+            // parunastopikselowa, a krótka etykieta („Włącz tryb ciemny")
+            // zawijała się w wąską wieżyczkę z 2-3 znaków w linii, zamiast
+            // zmieścić się w jednej-dwóch liniach. `w-max` liczy szerokość
+            // z treści, niezależnie od `left` — `max-w-*` wyżej dalej ją tnie
+            // dla naprawdę długich podpowiedzi.
+            //
+            // `eter-fade-in`, NIE `eter-pop`: `eter-pop` kończy się klatką
+            // `to { transform: none }`, a animacja NADPISUJE `transform`
+            // z klasy statycznej przez cały czas trwania i po niej (fill-mode
+            // `both`) — więc `-translate-x-1/2` wyżej i tak nigdy by nie
+            // zadziałał, dymek zostawałby przyklejony lewym brzegiem do
+            // `left` zamiast wycentrowany, i uciekał poza ekran (zgłoszenie
+            // „Wychodzi poza"). `eter-fade-in` rusza tylko `opacity`, więc nie
+            // koliduje z transformem potrzebnym do centrowania.
+            className="eter-fade-in pointer-events-none fixed w-max max-w-[calc(100vw-16px)] -translate-x-1/2 whitespace-normal break-words rounded-md border border-edge bg-raised px-2 py-1 font-mono text-[11px] text-ink shadow-xl"
             style={{ top: box.top, left: box.left, zIndex: 'var(--z-tooltip)' }}
           >
             {label}
