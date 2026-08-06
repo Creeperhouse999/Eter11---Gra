@@ -294,27 +294,15 @@ export function ReportsPanel({
         next,
         text ? { from, text, author: noteAuthor } : undefined,
       );
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === report.id
-            ? {
-                ...r,
-                status: next,
-                notes: text
-                  ? [
-                      ...(r.notes ?? []),
-                      {
-                        from,
-                        text,
-                        at: new Date().toISOString(),
-                        ...(noteAuthor ? { author: noteAuthor } : {}),
-                      },
-                    ]
-                  : r.notes,
-              }
-            : r,
-        ),
-      );
+      // Bez ręcznej aktualizacji stanu tutaj: `watchReports` (onSnapshot)
+      // dokłada tę samą zmianę sam, i to często ZANIM ten `await` w ogóle
+      // się rozwiąże — Firestore odświeża lokalny cache (a więc i nasłuch)
+      // od razu po zapisie, a promise z `updateDoc` rozwiązuje się dopiero
+      // po potwierdzeniu. Ręczny dopisek do `r.notes` lądował wtedy NA
+      // wierzchu już odświeżonego przez nasłuch stanu — notatka dublowała
+      // się w widoku (choć w bazie była jedna kopia, stąd po odświeżeniu
+      // strony wracała do jednej). DiscussionsPanel.send już tak nie robi —
+      // ta sama zasada, jeden fix dla jednego wystąpienia.
       // Czyścimy tylko wtedy, gdy zmiana dotyczy komentowanego zgłoszenia.
       // Inaczej kliknięcie statusu przy innym zgłoszeniu kasowało tekst
       // wpisany dla tego pierwszego.
