@@ -146,7 +146,7 @@ export function useRoom(code: string | null, uid: string | null) {
 
   const propose = useCallback(
     (offer: Omit<CardOffer, 'at' | 'fromUid'>) =>
-      code && uid ? offerCard(code, { ...offer, fromUid: uid }) : Promise.resolve(),
+      code && uid ? offerCard(code, { ...offer, fromUid: uid }) : Promise.resolve(null),
     [code, uid],
   );
 

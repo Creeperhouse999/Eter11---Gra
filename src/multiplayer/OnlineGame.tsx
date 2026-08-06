@@ -19,7 +19,8 @@ interface OnlineGameProps {
   myTurn: boolean;
   activeUid?: string;
   dispatch: (action: Action) => Promise<string | null>;
-  propose: (offer: { toUid: string; cardId: string }) => Promise<void>;
+  /** Proponuje przekazanie karty; zwraca powód odrzucenia albo `null` przy sukcesie. */
+  propose: (offer: { toUid: string; cardId: string }) => Promise<string | null>;
   react: (kind: import('./types').ReactionKind, target?: string) => Promise<void>;
   reactions: import('./types').Reaction[];
   /** Biorący przyjmuje ofertę; zwraca powód odrzucenia albo `null` przy sukcesie. */
@@ -59,9 +60,14 @@ export function OnlineGame({
     dispatch: (action: Action) => {
       // Przekazanie karty online nie jest natychmiastowe — biorący musi
       // przyjąć. Zamiast wysyłać ruch, tworzymy ofertę; właściwy SHARE_CARD
-      // poleci dopiero po akceptacji (patrz Multiplayer.acceptOffer).
+      // poleci dopiero po akceptacji (patrz Multiplayer.acceptOffer). Gdy
+      // ktoś inny w tej samej chwili już coś proponuje (jeden wspólny slot
+      // oferty w pokoju), zapis jest odrzucony — pokazujemy powód zamiast po
+      // cichu gubić propozycję bez śladu.
       if (action.type === 'SHARE_CARD') {
-        void propose({ toUid: action.toPlayerId, cardId: action.cardId });
+        void propose({ toUid: action.toPlayerId, cardId: action.cardId }).then((error) => {
+          if (error) setRejection(error);
+        });
         return;
       }
       void dispatch(action).then((error) => setRejection(error));

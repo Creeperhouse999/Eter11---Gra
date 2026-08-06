@@ -51,7 +51,7 @@ function roomFor(state: GameState): Room {
 }
 
 const noopProps = {
-  propose: vi.fn(async () => {}),
+  propose: vi.fn(async () => null),
   react: vi.fn(async () => {}),
   reactions: [],
   onAcceptOffer: async () => null,

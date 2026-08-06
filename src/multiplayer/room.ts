@@ -553,9 +553,30 @@ export async function sendReaction(
   });
 }
 
-/** Prośba o przekazanie karty — czeka na potwierdzenie biorącego. */
-export async function offerCard(code: string, offer: Omit<CardOffer, 'at'>): Promise<void> {
-  await set(ref(rtdb, `${ROOMS}/${code}/offer`), { ...offer, at: Date.now() });
+/**
+ * Prośba o przekazanie karty — czeka na potwierdzenie biorącego.
+ *
+ * Transakcja, nie zwykły `set`: na podsumowaniu misji wielu graczy działa
+ * naraz (patrz `commitSummaryMove`), więc dwie osoby mogły zaproponować
+ * przekazanie w tej samej chwili — który zapis wygrał, po prostu kasował
+ * ofertę tamtego bez śladu i bez komunikatu (jego okno „Czekasz na
+ * odpowiedź" po prostu znikało). Zapisujemy tylko, gdy slot jest wolny;
+ * inaczej odrzucamy z powodem, tak jak `commitSummaryMove`.
+ */
+export async function offerCard(
+  code: string,
+  offer: Omit<CardOffer, 'at'>,
+): Promise<string | null> {
+  let rejection: string | null = null;
+  const offerRef = ref(rtdb, `${ROOMS}/${code}/offer`);
+  await runTransaction(offerRef, (current: CardOffer | null) => {
+    if (current) {
+      rejection = 'Ktoś inny już proponuje przekazanie karty — poczekaj na odpowiedź.';
+      return current; // Bez zmian — cudza oferta zostaje.
+    }
+    return { ...offer, at: Date.now() };
+  });
+  return rejection;
 }
 
 /** Biorący odpowiada na prośbę: przyjmuje albo odrzuca. */

@@ -61,7 +61,7 @@ function roomWithOffer(state: GameState): Room {
 
 const noopProps = {
   dispatch: vi.fn(async () => null),
-  propose: vi.fn(async () => {}),
+  propose: vi.fn(async () => null),
   react: vi.fn(async () => {}),
   reactions: [],
   onAcceptOffer: vi.fn(async () => null),
