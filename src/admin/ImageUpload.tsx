@@ -132,16 +132,21 @@ export function ImageUpload({
         {value.map((url) => (
           <div
             key={url}
-            className="group relative h-16 w-16 overflow-hidden rounded-lg border border-edge"
+            className="relative h-16 w-16 overflow-hidden rounded-lg border border-edge"
           >
             <img src={url} alt="" className="h-full w-full object-cover" />
+            {/* Zawsze widoczny, nie `opacity-0 group-hover:opacity-100`: na
+                dotyku hover nie istnieje (przycisk był NIEWIDOCZNY na stałe)
+                albo przeglądarka symuluje go na mgnienie po dotknięciu i od
+                razu gasi (błysk ikony) — obu tak nie da się trafić palcem.
+                Mały, stały znaczek w rogu działa identycznie myszą i dotykiem. */}
             <button
               type="button"
               onClick={() => remove(url)}
               aria-label="Usuń obraz"
-              className="absolute inset-0 flex items-center justify-center bg-bg/70 text-danger opacity-0 transition group-hover:opacity-100"
+              className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-bg/80 text-danger shadow transition hover:bg-bg"
             >
-              <Icon name="trash" size={18} />
+              <Icon name="trash" size={12} />
             </button>
           </div>
         ))}
