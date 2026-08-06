@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDebouncedValue } from './useDebouncedValue';
 import { applyTheme, applyThemeUnlessLight, baseTheme, setThemeOverrides } from '../data/theme';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { loadContent, saveContent } from '../firebase/content';
@@ -151,23 +152,34 @@ export function AdminApp() {
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
 
+  // `content` samo musi zostać żywe — pola edytorów są z nim związane wprost,
+  // inaczej pisanie czułoby się spóźnione. Ale dirty/walidacja/diff liczą coś
+  // kosztownego na całej treści (~100 KB): dwa JSON.stringify, pełna
+  // walidacja wszystkich kart/problemów/slotów, diff 12 sekcji. Licząc to
+  // wprost z `content`, każdy wpisany znak czekał na te obliczenia, zanim
+  // przeglądarka zdążyła pokazać go w polu — stąd zgłoszenie „Laguje pisanie".
+  // Debounce odrywa te pochodne od pola: nadganiają dopiero, gdy redaktor
+  // przestanie pisać na chwilę. `save()` niżej i tak zawsze bierze świeże
+  // `content`, nie tę wersję.
+  const debouncedContent = useDebouncedValue(content, 250);
+
   const dirty = useMemo(
-    () => JSON.stringify(content) !== JSON.stringify(savedContent),
-    [content, savedContent],
+    () => JSON.stringify(debouncedContent) !== JSON.stringify(savedContent),
+    [debouncedContent, savedContent],
   );
 
-  const validation = useMemo(() => validateContent(content), [content]);
+  const validation = useMemo(() => validateContent(debouncedContent), [debouncedContent]);
 
   const [hunt, setHunt] = useState('');
   const found = useMemo(
-    () => (hunt.trim().length > 1 ? searchContent(content, hunt) : []),
-    [content, hunt],
+    () => (hunt.trim().length > 1 ? searchContent(debouncedContent, hunt) : []),
+    [debouncedContent, hunt],
   );
 
   /** Które sekcje różnią się od ostatniego zapisu — po ludzku. */
   const pendingChanges = useMemo(
-    () => describeChanges(content, savedContent),
-    [content, savedContent],
+    () => describeChanges(debouncedContent, savedContent),
+    [debouncedContent, savedContent],
   );
 
   /**
