@@ -179,9 +179,13 @@ export function MissionScreen({
     // klawiaturze wracał na początek dokumentu. Przenosimy go na pasek ręki —
     // stały punkt, od którego łatwo dojść do kolejnej karty. `requestAnimationFrame`,
     // bo cel musi istnieć po przerysowaniu planszy.
+    //
+    // Zagranie OSTATNIEJ karty zostawia rękę pustą — nie ma na niej żadnego
+    // przycisku do złapania fokusu. Wtedy ląduje na nagłówku ekranu (`titleRef`,
+    // zawsze obecny i fokusowalny), zamiast znowu spadać na `body`.
     requestAnimationFrame(() => {
       const hand = document.querySelector<HTMLElement>('[data-tour="hand"] button');
-      hand?.focus();
+      (hand ?? titleRef.current)?.focus();
     });
   };
 
