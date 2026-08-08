@@ -139,8 +139,12 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       tone: 'danger',
     });
     if (!confirmed) return;
-    await removeRole(member.uid);
-    toast('Wpis roli usunięty.');
+    try {
+      await removeRole(member.uid);
+      toast('Wpis roli usunięty.');
+    } catch {
+      toast('Nie udało się usunąć wpisu roli.', 'danger');
+    }
   };
 
   return (

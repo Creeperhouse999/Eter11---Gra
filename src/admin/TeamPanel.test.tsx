@@ -125,4 +125,24 @@ describe('TeamPanel — ochrona przed samo-wylogowaniem', () => {
     await screen.findByText(/Rola nadana/i);
     expect(setRole).toHaveBeenCalledTimes(1);
   });
+
+  /**
+   * Regresja: w odróżnieniu od `changeRole`/`add` w tym samym pliku, `remove`
+   * wołało `removeRole` bez try/catch — odrzucony zapis (reguły, wygasła
+   * sesja) kończył się niewyłapanym odrzuceniem obietnicy i CISZĄ: brak
+   * toasta, admin nie wie, że kliknięcie „Usuń" nic nie zrobiło.
+   */
+  it('nieudane usunięcie wpisu roli pokazuje komunikat błędu, nie ciszę', async () => {
+    team = [
+      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
+      { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
+    ];
+    removeRole.mockRejectedValueOnce(new Error('permission-denied'));
+    renderPanel('me');
+
+    fireEvent.click(screen.getByLabelText('Usuń wpis roli kolega@eter11.pl'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Usuń' }));
+
+    expect(await screen.findByText(/nie udało się/i)).toBeTruthy();
+  });
 });
