@@ -46,8 +46,13 @@ function migrate(raw: Record<string, unknown>): GameContent {
       ...BUILTIN_CONTENT.families,
       ...(raw.families as object),
     } as GameContent['families'],
-    customIcons: (raw.customIcons as GameContent['customIcons']) ?? [],
-    cardImages: (raw.cardImages as GameContent['cardImages']) ?? [],
+    // `?? []` domyka tylko null/undefined. Ręczna edycja dokumentu w konsoli
+    // Firestore mogła zostawić te pola jako obiekt albo tekst zamiast tablicy
+    // — taka wartość przechodziła bez zmian i wywracała CardImagesEditor na
+    // `images.filter(...)` (bez żadnego `Array.isArray`), czyli crash całej
+    // zakładki „Grafiki kart" w panelu. Sprawdzamy więc kształt wprost.
+    customIcons: Array.isArray(raw.customIcons) ? (raw.customIcons as GameContent['customIcons']) : [],
+    cardImages: Array.isArray(raw.cardImages) ? (raw.cardImages as GameContent['cardImages']) : [],
     intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
     tutorial: (raw.tutorial as GameContent['tutorial'])?.length
       ? (raw.tutorial as GameContent['tutorial'])

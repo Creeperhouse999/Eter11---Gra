@@ -157,4 +157,24 @@ describe('loadContent — gałęzie sieci bezpieczeństwa', () => {
     expect(result.source).toBe('builtin');
     expect(result.reason).toBe('unreachable');
   });
+
+  it('uszkodzone cardImages/customIcons (nie-lista) → migracja domyka do pustej listy', async () => {
+    // Ręczna edycja dokumentu w konsoli Firestore (albo stary błąd zapisu) może
+    // zostawić `cardImages`/`customIcons` jako obiekt zamiast tablicy. `migrate`
+    // domyka je tylko przy `null`/`undefined` (`?? []`) — inny nie-array typ
+    // przechodził bez zmian i wywracał CardImagesEditor na `images.filter(...)`
+    // (nie chronione żadnym `Array.isArray`), czyli crash całej zakładki „Grafiki
+    // kart" w panelu admina.
+    docData = {
+      ...structuredClone(BUILTIN_CONTENT),
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      cardImages: { notAnArray: true },
+      customIcons: { notAnArray: true },
+    };
+
+    const result = await loadContent();
+    expect(result.source, result.warning).toBe('firestore');
+    expect(Array.isArray(result.content.cardImages)).toBe(true);
+    expect(Array.isArray(result.content.customIcons)).toBe(true);
+  });
 });
