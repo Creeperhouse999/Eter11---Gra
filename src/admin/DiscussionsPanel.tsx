@@ -205,6 +205,17 @@ export function DiscussionsPanel({
     }
   };
 
+  const toggleClosed = async (discussion: Discussion) => {
+    try {
+      await setDiscussionClosed(discussion.id, !discussion.closed);
+    } catch {
+      // Fire-and-forget bez tej gałęzi kończył się w ciszy: reguły odrzucają
+      // zapis (sesja wygasła, brak uprawnień), a admin nie dostaje żadnego
+      // sygnału — kliknięcie „Ustalone" wygląda, jakby nic się nie stało.
+      toast('Nie udało się zmienić statusu wątku. Sprawdź, czy jesteś zalogowany jako admin.', 'danger');
+    }
+  };
+
   const visible = discussions.filter((d) => (showClosed ? d.closed : !d.closed));
   const closedCount = discussions.filter((d) => d.closed).length;
 
@@ -338,7 +349,7 @@ export function DiscussionsPanel({
                 size="sm"
                 variant="ghost"
                 icon={thread.closed ? 'undo' : 'tick'}
-                onClick={() => void setDiscussionClosed(thread.id, !thread.closed)}
+                onClick={() => void toggleClosed(thread)}
               >
                 {thread.closed ? 'Otwórz ponownie' : 'Ustalone'}
               </Button>

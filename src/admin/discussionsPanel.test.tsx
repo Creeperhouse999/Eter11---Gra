@@ -21,6 +21,7 @@ vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
 
 const deleteDiscussion = vi.fn(async (_id: string) => {});
+const setDiscussionClosed = vi.fn(async (_id: string, _closed: boolean) => {});
 let thread: Discussion;
 
 vi.mock('../firebase/discussions', () => ({
@@ -30,7 +31,7 @@ vi.mock('../firebase/discussions', () => ({
   },
   addDiscussion: vi.fn(async () => ({ ok: true })),
   addMessage: vi.fn(async () => ({ ok: true })),
-  setDiscussionClosed: vi.fn(async () => {}),
+  setDiscussionClosed: (id: string, closed: boolean) => setDiscussionClosed(id, closed),
   deleteDiscussion: (id: string) => deleteDiscussion(id),
 }));
 
@@ -63,6 +64,8 @@ beforeEach(() => {
   thread = makeThread();
   deleteDiscussion.mockClear();
   deleteDiscussion.mockResolvedValue(undefined);
+  setDiscussionClosed.mockClear();
+  setDiscussionClosed.mockResolvedValue(undefined);
 });
 
 describe('DiscussionsPanel — usuwanie wątku', () => {
@@ -91,5 +94,37 @@ describe('DiscussionsPanel — usuwanie wątku', () => {
     expect(await screen.findByText(/Nie udało się usunąć/i)).toBeTruthy();
     // Bez fixu: „Wątek usunięty." mimo odrzuconego zapisu.
     expect(screen.queryByText('Wątek usunięty.')).toBeNull();
+  });
+});
+
+/**
+ * Zamykanie/otwieranie wątku („Ustalone" / „Otwórz ponownie").
+ *
+ * Regresja: w odróżnieniu od `remove` w tym samym pliku, przycisk wołał
+ * `setDiscussionClosed` z `void ...(...)` bez try/catch ani toasta — dokładnie
+ * ten sam rodzaj fałszywej ciszy, przed którym broni `remove` (komentarz przy
+ * `remove`: „Wzór jak w ReportsPanel.remove"), tylko nieprzeniesiony na tę
+ * ścieżkę. Odrzucony zapis (reguły, wygasła sesja) nie dawał wtedy żadnego
+ * sygnału — admin klikał „Ustalone" i nic się nie działo, bez wyjaśnienia.
+ */
+describe('DiscussionsPanel — zamykanie wątku', () => {
+  it('nieudane zamknięcie wątku pokazuje błąd, nie ciszę', async () => {
+    setDiscussionClosed.mockRejectedValueOnce(new Error('permission denied'));
+    renderPanel('admin');
+    openThread();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ustalone' }));
+
+    expect(await screen.findByText(/nie udało się/i)).toBeTruthy();
+  });
+
+  it('udane zamknięcie wątku nie pokazuje błędu', async () => {
+    renderPanel('admin');
+    openThread();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ustalone' }));
+
+    expect(setDiscussionClosed).toHaveBeenCalledWith('d1', true);
+    expect(screen.queryByText(/nie udało się/i)).toBeNull();
   });
 });
