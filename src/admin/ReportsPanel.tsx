@@ -30,6 +30,21 @@ const KIND_OPTIONS = [
 const KIND_LABELS: Record<ReportKind, string> = { bug: 'Błąd', idea: 'Pomysł' };
 
 /**
+ * Podpowiedzi w formularzu zależą od rodzaju — te same dla błędu i pomysłu
+ * pytały pomysłodawcę „co się dzieje" i „co powinno się wydarzyć zamiast
+ * tego", czyli językiem naprawiania czegoś zepsutego, nie propozycji.
+ */
+const TITLE_PLACEHOLDER: Record<ReportKind, string> = {
+  bug: 'Krótko: co się dzieje?',
+  idea: 'Krótko: co warto dodać?',
+};
+
+const DESCRIPTION_PLACEHOLDER: Record<ReportKind, string> = {
+  bug: 'Co dokładnie, w którym miejscu, co powinno się wydarzyć zamiast tego.',
+  idea: 'Co dokładnie proponujesz i po co — jaki problem to rozwiązuje.',
+};
+
+/**
  * Obieg zgłoszenia: zgłaszający pisze, programista naprawia, zgłaszający
  * sprawdza. Rozdzielenie „naprawione" od „potwierdzone" jest tu sednem —
  * naprawiający nie zamyka własnego zgłoszenia, bo to on właśnie uznał, że
@@ -828,7 +843,7 @@ export function ReportsPanel({
             label="Tytuł"
             value={title}
             maxLength={120}
-            placeholder="Krótko: co się dzieje?"
+            placeholder={TITLE_PLACEHOLDER[kind]}
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
@@ -839,7 +854,7 @@ export function ReportsPanel({
           rows={4}
           maxLength={4000}
           value={description}
-          placeholder="Co dokładnie, w którym miejscu, co powinno się wydarzyć zamiast tego."
+          placeholder={DESCRIPTION_PLACEHOLDER[kind]}
           onChange={(e) => setDescription(e.target.value)}
         />
 

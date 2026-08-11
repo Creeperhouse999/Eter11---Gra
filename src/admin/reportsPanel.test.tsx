@@ -132,3 +132,39 @@ describe('ReportsPanel — podpis autora notatki', () => {
     expect(await screen.findByText('Programista')).toBeTruthy();
   });
 });
+
+/**
+ * Podpowiedzi w formularzu nowego zgłoszenia zależą od rodzaju.
+ *
+ * Regresja: pola „Tytuł" i „Opis" miały te same podpowiedzi dla błędu i
+ * pomysłu — językiem naprawiania czegoś zepsutego („co się dzieje", „co
+ * powinno się wydarzyć zamiast tego"), które dla propozycji nie mają sensu.
+ */
+describe('ReportsPanel — podpowiedzi formularza zależne od rodzaju', () => {
+  it('zmiana rodzaju na Pomysł zmienia podpowiedzi pól', async () => {
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([]);
+      return () => {};
+    });
+
+    render(
+      <ToastProvider>
+        <ReportsPanel author="Tester" role="admin" statusTab="new" />
+      </ToastProvider>,
+    );
+
+    const title = await screen.findByLabelText('Tytuł');
+    // Domyślnie „Błąd" — podpowiedź w języku naprawiania.
+    expect(title.getAttribute('placeholder')).toMatch(/co się dzieje/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rodzaj' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Pomysł' }));
+
+    // Bez fixu: podpowiedź zostaje ta sama, choć rodzaj to już „Pomysł".
+    expect(title.getAttribute('placeholder')).not.toMatch(/co się dzieje/i);
+    expect(title.getAttribute('placeholder')).toMatch(/co warto dodać/i);
+
+    const description = screen.getByLabelText('Opis');
+    expect(description.getAttribute('placeholder')).toMatch(/proponujesz/i);
+  });
+});
