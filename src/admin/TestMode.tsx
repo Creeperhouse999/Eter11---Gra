@@ -18,6 +18,11 @@ const SWAN_LABELS: Array<[BlackSwanKind, string]> = [
   ['swapHands', 'Wymiana rąk'],
 ];
 
+/** Losowe ziarno 1–999999 — poza tym zakresem `useGame` działa tak samo. */
+function randomSeed(): number {
+  return Math.floor(Math.random() * 999_999) + 1;
+}
+
 /**
  * Tryb testowy do balansowania gry.
  *
@@ -29,9 +34,14 @@ const SWAN_LABELS: Array<[BlackSwanKind, string]> = [
  * przy montowaniu, więc samo zwiększenie licznika nie rozdawało kart od nowa
  * i „Nowa partia" w kółko powtarzała to samo rozdanie. `key` przemontowuje
  * partię, zostawiając ustawienia na miejscu.
+ *
+ * Startowe ziarno jest losowe, nie stałe `1` — testerzy zgłosili, że każde
+ * wejście do zakładki rozdawało identyczną partię, więc balansowanie karta
+ * po karcie sprawdzało w kółko to samo rozdanie, dopóki ktoś ręcznie nie
+ * wpisał innej liczby.
  */
 export function TestMode({ content }: TestModeProps) {
-  const [seed, setSeed] = useState(1);
+  const [seed, setSeed] = useState(randomSeed);
 
   return <TestGame key={seed} content={content} seed={seed} onReseed={setSeed} />;
 }
@@ -127,6 +137,14 @@ function TestGame({
             className="rounded border border-edge px-3 py-1 text-sm"
           >
             Nowa partia
+          </button>
+          <button
+            type="button"
+            onClick={() => onReseed(randomSeed)}
+            className="flex items-center gap-1.5 rounded border border-edge px-3 py-1 text-sm"
+          >
+            <Icon name="sparkle" size={14} />
+            Losuj
           </button>
           <button
             type="button"
