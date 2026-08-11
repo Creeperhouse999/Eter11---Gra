@@ -169,7 +169,14 @@ export function AdminApp() {
   // Debounce odrywa te pochodne od pola: nadganiają dopiero, gdy redaktor
   // przestanie pisać na chwilę. `save()` niżej i tak zawsze bierze świeże
   // `content`, nie tę wersję.
-  const debouncedContent = useDebouncedValue(content, 250);
+  //
+  // `savedContent` jako `resetKey`: przy wczytaniu z bazy (albo wylogowaniu)
+  // `content` i `savedContent` skaczą razem, w tym samym renderze, na nową
+  // treść — ale bez tego `debouncedContent` doganiałby dopiero po 250 ms.
+  // Przez tę chwilę `dirty` niżej porównywałby STARĄ, jeszcze niedogonioną
+  // treść ze świeżo wczytanym `savedContent` i fałszywie pokazywał
+  // „niezapisane zmiany" (np. „karty") na moment po każdym wejściu do panelu.
+  const debouncedContent = useDebouncedValue(content, 250, savedContent);
 
   const dirty = useMemo(
     () => JSON.stringify(debouncedContent) !== JSON.stringify(savedContent),

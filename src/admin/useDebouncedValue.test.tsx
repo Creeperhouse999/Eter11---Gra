@@ -52,4 +52,43 @@ describe('useDebouncedValue', () => {
 
     expect(input.value).toBe('x');
   });
+
+  /**
+   * Odtwarza wzorzec z AdminApp: `content` i `savedContent` (bez debounce)
+   * skaczą razem, w tym samym renderze, przy świeżym wczytaniu z bazy —
+   * niezwiązane z wpisywaniem znak po znaku. Bez `resetKey` debounced wersja
+   * doganiałaby dopiero po 250 ms, więc `dirty = debounced !== savedContent`
+   * przez tę chwilę fałszywie pokazywałby niezapisane zmiany zaraz po wejściu
+   * do panelu (zgłoszenie: „przy wejściu na admin flashuje... purpurowy
+   * błąd" — badge „niezapisane: karty").
+   */
+  function LoadProbe() {
+    const [content, setContent] = useState('stary');
+    const [saved, setSaved] = useState('stary');
+    const debounced = useDebouncedValue(content, 250, saved);
+    return (
+      <>
+        <span data-testid="debounced">{debounced}</span>
+        <button
+          type="button"
+          onClick={() => {
+            setContent('świeży-z-bazy');
+            setSaved('świeży-z-bazy');
+          }}
+        >
+          wczytaj
+        </button>
+      </>
+    );
+  }
+
+  it('resetKey dogania wartość NATYCHMIAST przy hurtowym skoku, bez czekania na delayMs', () => {
+    const { getByText, getByTestId } = render(<LoadProbe />);
+
+    fireEvent.click(getByText('wczytaj'));
+
+    // Bez fixu: tu dalej „stary" — dogoniłby dopiero po 250 ms, w międzyczasie
+    // fałszywie różniąc się od `saved` (już „świeży-z-bazy").
+    expect(getByTestId('debounced').textContent).toBe('świeży-z-bazy');
+  });
 });
