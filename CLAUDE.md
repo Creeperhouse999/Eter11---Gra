@@ -52,6 +52,7 @@ If you genuinely can't render (no browser/preview available), say so explicitly 
 - Commit after each fix, with a message that explains **why** (the root cause), not just what.
 - Deploy per the project's process (only when the change actually affects the deployed artifact — test-only or docs-only changes don't need a deploy).
 - If the fix answers a reported issue, mark that issue resolved with a comment (cause + what changed). Respect the project's status semantics — often "fixed / awaiting reporter verification" is a distinct state from "closed by reporter"; don't close on the reporter's behalf.
+- **Write the reporter-facing comment for a non-technical reader.** The `Report-Fixed`/dev-note comment is read by teammates who don't code — say what changed for them ("działa teraz X", "Y już się nie dzieje"), not implementation details (function/variable names, the specific backend/library involved, internal error strings). Save the technical explanation for the commit message, where it belongs.
 
 **Auto-deploy + auto-oznaczanie (od 2026-07-24):** push na `master` odpala GitHub Actions (`.github/workflows/deploy.yml`): tsc + testy + build + `firebase deploy` (hosting) + oznaczenie zgłoszenia. **Nie musisz ręcznie deployować ani wołać `mark-report`, jeśli pracujesz przez push na master** — Actions to robi. Aby Actions oznaczył zgłoszenie, dopisz do commita trailer (osobna linia na końcu):
 ```
