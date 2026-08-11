@@ -36,8 +36,17 @@ const PALETTE = [
  * Klucz to imię zapisane małymi literami bez ogonków — podpis bywa raz „Alan",
  * raz „alan", a kolor ma być ten sam.
  */
+/**
+ * Firmowy pomarańcz Claude.
+ *
+ * Znak nosi go zawsze — to jego kolor, nie kolor motywu. Pod spodem zmienia się
+ * tło kółka (jasne albo ciemne, zależnie od trybu), więc rozbłysk zostaje
+ * rozpoznawalny w obu.
+ */
+const CLAUDE_ORANGE = '#d97757';
+
 export const TEAM_COLORS: Record<string, string> = {
-  claude: '#d97757',
+  claude: CLAUDE_ORANGE,
   alan: '#38bdf8',
   adam: '#ef4444',
   marcin: '#22c55e',
@@ -104,20 +113,23 @@ export function Avatar({ name, size = 32, color: own }: AvatarProps) {
       style={{
         width: size,
         height: size,
-        background: color,
+        // Claude: tło z motywu (zmienia się jasny/ciemny), znak w stałym
+        // pomarańczu. Pozostali: kółko w swoim kolorze, inicjał na nim.
+        background: isClaude ? 'var(--eter-surface)' : color,
+        ...(isClaude ? { boxShadow: `inset 0 0 0 1px ${CLAUDE_ORANGE}` } : {}),
         fontSize: size * 0.42,
       }}
     >
       {isClaude ? (
         // 52% średnicy: przy większym znaku promienie dotykają krawędzi kółka,
         // przy mniejszym gubi się w 32 px, w których awatar stoi w wątku.
-        // `currentColor` bierze kolor tekstu (`text-bg`), więc znak jest w
-        // kolorze tła panelu i sam dopasowuje się do trybu jasnego i ciemnego.
+        // Znak zawsze w firmowym pomarańczu — to jego kolor, nie motywu;
+        // zmienia się pod nim tło (patrz niżej, kółko bierze kolor panelu).
         <svg
           viewBox="0 0 100 100"
           width={Math.round(size * 0.52)}
           height={Math.round(size * 0.52)}
-          fill="currentColor"
+          fill={CLAUDE_ORANGE}
         >
           <path d={CLAUDE_MARK} />
         </svg>

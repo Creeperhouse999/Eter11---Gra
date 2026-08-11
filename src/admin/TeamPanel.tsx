@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   watchTeam,
   setRole,
@@ -78,6 +78,14 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
    * wpisuje. Wpis zostaje tu do momentu wyjścia z pola.
    */
   const [names, setNames] = useState<Record<string, string>>({});
+  /**
+   * Kolory w trakcie wybierania, per konto — jak `names`.
+   *
+   * Pole pokazuje to, co użytkownik właśnie przeciąga, a do bazy idzie dopiero
+   * ustalona wartość (patrz `changeColor`). Bez tego suwak wracałby do starego
+   * koloru przy każdym renderze, dopóki zapis nie dojdzie.
+   */
+  const [colors, setColors] = useState<Record<string, string | undefined>>({});
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState('');
   const [newUid, setNewUid] = useState('');
@@ -116,14 +124,45 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
    * `color: undefined` znaczy „wróć do koloru z imienia": pole po prostu nie
    * trafia do zapisu.
    */
-  const changeColor = async (member: TeamMember, color: string | undefined) => {
-    try {
-      await setRole({ ...member, color });
-      toast(color ? `${member.email}: nowy kolor.` : `${member.email}: kolor domyślny.`, 'success');
-    } catch {
-      toast('Nie udało się zmienić koloru.', 'danger');
-    }
+  /**
+   * Zapis koloru po ustaniu ruchu, nie przy każdym drgnięciu suwaka.
+   *
+   * ColorPicker zgłasza każdą zmianę na bieżąco (w edytorze motywu to zaleta —
+   * widać podgląd). Tutaj każde zgłoszenie szło do bazy i wyskakiwał toast,
+   * więc jedno przeciągnięcie po polu koloru zasypywało ekran setką
+   * komunikatów i tyloma samymi zapisami. Czekamy pół sekundy na spokój i
+   * zapisujemy raz — kolor pod ręką aktualizuje się od razu, bo pole trzyma
+   * własny stan.
+   */
+  const colorTimers = useRef<Record<string, number>>({});
+  const changeColor = (member: TeamMember, color: string | undefined) => {
+    setColors((prev) => ({ ...prev, [member.uid]: color }));
+
+    window.clearTimeout(colorTimers.current[member.uid]);
+    colorTimers.current[member.uid] = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await setRole({ ...member, color });
+          toast(
+            color ? `${member.email}: nowy kolor.` : `${member.email}: kolor domyślny.`,
+            'success',
+          );
+        } catch {
+          toast('Nie udało się zmienić koloru.', 'danger');
+          // Cofamy podgląd do tego, co naprawdę jest w bazie.
+          setColors((prev) => ({ ...prev, [member.uid]: member.color }));
+        }
+      })();
+    }, 500);
   };
+
+  // Zaległy zapis nie ma po co odpalać się po zamknięciu zakładki.
+  useEffect(() => {
+    const timers = colorTimers.current;
+    return () => {
+      Object.values(timers).forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
 
   /**
    * Imię, którym podpisują się wpisy tej osoby.
@@ -261,7 +300,7 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
             className="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-surface p-3"
           >
             {/* Podgląd — dokładnie ten awatar, który zobaczą inni w wątkach. */}
-            <Avatar name={member.name || member.email} color={member.color} size={32} />
+            <Avatar name={member.name || member.email} color={colors[member.uid] ?? member.color} size={32} />
 
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">{member.email}</span>
@@ -295,12 +334,12 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
                   // Bez własnego koloru picker startuje od tego, który osoba ma
                   // teraz z imienia — inaczej otwierałby się na przypadkowym
                   // odcieniu, niezwiązanym z tym, co widać w wątku.
-                  value={member.color ?? colorFor(member.email)}
+                  value={colors[member.uid] ?? member.color ?? colorFor(member.name || member.email)}
                   presets={AVATAR_PRESETS}
                   onChange={(color) => void changeColor(member, color)}
                 />
               </div>
-              {member.color && (
+              {(colors[member.uid] ?? member.color) && (
                 <Button
                   size="sm"
                   variant="ghost"

@@ -39,10 +39,13 @@ describe('Avatar', () => {
     const colorOf = (name: string) =>
       (render(<Avatar name={name} />).container.firstChild as HTMLElement).style.background;
 
-    const team = ['Claude', 'Alan', 'Adam', 'Marcin', 'Joanna'].map(colorOf);
+    const team = ['Alan', 'Adam', 'Marcin', 'Joanna'].map(colorOf);
     expect(new Set(team).size).toBe(team.length);
     // Żaden nie spada do palety kategorii (te są zmiennymi CSS).
     team.forEach((color) => expect(color).not.toContain('var('));
+    // Claude stoi osobno: jego kółko bierze tło z motywu (zmienna CSS), bo to
+    // znak ma być zawsze pomarańczowy, a zmieniać się ma tło pod nim.
+    expect(colorOf('Claude')).toContain('var(');
   });
 
   /**
