@@ -17,6 +17,7 @@ import { DeckOverview } from './DeckOverview';
 import { RulesEditor } from './RulesEditor';
 import { TextEditor } from './TextEditor';
 import { ThemeEditor } from './ThemeEditor';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 /** Komponenty panelu korzystają z useToast — wymagają providera. */
 const render = (ui: ReactElement) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
@@ -316,6 +317,45 @@ describe('ThemeEditor', () => {
 
       // Przełącz na edycję jasnego, gdy strona jest ciemna.
       fireEvent.click(screen.getByRole('tab', { name: /Jasny/ }));
+
+      expect(screen.queryByText(/Zmiany widać natychmiast/)).toBeNull();
+      expect(screen.getByText(/Podgląd na żywo działa teraz w trybie/)).toBeDefined();
+    } finally {
+      if (previous === undefined) delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = previous;
+    }
+  });
+
+  /**
+   * Zgłoszenie: „Opis co teraz edytujesz w trybie jasnym/ciemnym w zakładce
+   * kolory” — nie aktualizuje się przy zmianie trybu panelu. Przełącznik
+   * jasny/ciemny w nagłówku panelu (ThemeToggle) ma WŁASNY stan i sam
+   * ustawia document.documentElement.dataset.theme — nie przechodzi przez
+   * propsy ThemeEditora. Test odtwarza realny układ panelu: ThemeToggle i
+   * ThemeEditor obok siebie, tak jak w AdminApp — klika w przełącznik w
+   * nagłówku (bez żadnej interakcji z samym ThemeEditorem) i sprawdza, że
+   * opis „w jakim trybie jest teraz podgląd na żywo” za tym nadąża.
+   */
+  it('aktualizuje opis trybu, gdy stronę przełączy toggle w nagłówku panelu', () => {
+    const previous = document.documentElement.dataset.theme;
+    // ThemeToggle na starcie sam sięga po zapamiętany wybór z localStorage
+    // (i nim nadpisuje dataset.theme) — czyścimy, żeby zacząć deterministycznie
+    // od ciemnego, niezależnie od tego, co zostawiły inne testy w tym pliku.
+    localStorage.removeItem('eter11:theme-mode');
+    document.documentElement.dataset.theme = 'dark';
+    try {
+      render(
+        <>
+          <ThemeToggle variant="inline" />
+          <ThemeEditor theme={DEFAULT_THEME} onChange={vi.fn()} />
+        </>,
+      );
+
+      // Domyślnie edytujemy ciemny = tryb strony → podgląd na żywo widoczny.
+      expect(screen.getByText(/Zmiany widać natychmiast/)).toBeDefined();
+
+      // Klik w przełącznik w nagłówku panelu — nie w samym ThemeEditorze.
+      fireEvent.click(screen.getByRole('button', { name: /Włącz tryb jasny/ }));
 
       expect(screen.queryByText(/Zmiany widać natychmiast/)).toBeNull();
       expect(screen.getByText(/Podgląd na żywo działa teraz w trybie/)).toBeDefined();

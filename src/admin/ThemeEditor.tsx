@@ -10,6 +10,7 @@ import {
 import { Button } from '../ui/controls/Button';
 import { ColorPicker } from '../ui/controls/ColorPicker';
 import { Icon } from '../ui/icons/Icon';
+import { usePageThemeMode } from '../ui/useThemeMode';
 
 interface ThemeEditorProps {
   /** Kolory trybu ciemnego. */
@@ -51,12 +52,17 @@ export function ThemeEditor({ theme, themeLight, onChange }: ThemeEditorProps) {
   const editing = mode === 'light' ? themeLight ?? LIGHT_THEME : theme;
   const fallback = mode === 'light' ? LIGHT_THEME : DEFAULT_THEME;
 
-  // Tryb, w którym jest teraz strona (z przełącznika jasny/ciemny). Podgląd
-  // na żywo pokazujemy TYLKO wtedy, gdy edytujesz właśnie ten tryb — inaczej
-  // edycja jasnego przy ciemnej stronie rozjeżdżałaby jej wygląd. Sam wybór
-  // „co edytuję" nie zmienia motywu strony.
-  const pageMode: ThemeMode =
-    document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  // Tryb, w którym jest teraz strona (z przełącznika jasny/ciemny w nagłówku
+  // panelu). Podgląd na żywo pokazujemy TYLKO wtedy, gdy edytujesz właśnie
+  // ten tryb — inaczej edycja jasnego przy ciemnej stronie rozjeżdżałaby jej
+  // wygląd. Sam wybór „co edytuję" nie zmienia motywu strony.
+  //
+  // ThemeToggle w nagłówku ma WŁASNY stan (useThemeMode) — czytanie
+  // document.documentElement.dataset.theme raz, przy renderze, nie
+  // przechodziło przez propsy tego komponentu i nie odświeżało się po
+  // kliknięciu przełącznika, dopóki coś innego nie odświeżyło tego
+  // komponentu z innego powodu. usePageThemeMode nasłuchuje zmiany wprost.
+  const pageMode = usePageThemeMode();
 
   const update = (patch: Partial<ThemeColors>) => {
     const next = { ...editing, ...patch };
