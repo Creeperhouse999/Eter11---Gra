@@ -12,14 +12,23 @@ import {
 import { Button } from '../ui/controls/Button';
 import { Select } from '../ui/controls/Select';
 import { TextField } from '../ui/controls/Field';
+import { ColorPicker } from '../ui/controls/ColorPicker';
 import { Icon } from '../ui/icons/Icon';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
+import { Avatar, colorFor, TEAM_COLORS } from './Avatar';
 
 interface TeamPanelProps {
   /** UID zalogowanego admina — nie pozwalamy odebrać roli samemu sobie. */
   currentUid: string;
 }
+
+/**
+ * Szybki wybór w pickerze: kolory, które zespół nosi od zawsze. ColorPicker
+ * i tak pozwala wybrać dowolny odcień — to tylko skrót do sprawdzonych,
+ * wzajemnie odróżnialnych barw.
+ */
+const AVATAR_PRESETS = Array.from(new Set(Object.values(TEAM_COLORS)));
 
 const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({
   value: role,
@@ -90,6 +99,21 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       toast(`${member.email}: ${ROLE_LABELS[role]}.`, 'success');
     } catch {
       toast('Nie udało się zmienić roli.', 'danger');
+    }
+  };
+
+  /**
+   * Kolor awatara. `setRole` zapisuje CAŁY dokument, więc rolę przekazujemy
+   * niezmienioną — zmiana koloru nie może przy okazji ruszyć uprawnień.
+   * `color: undefined` znaczy „wróć do koloru z imienia": pole po prostu nie
+   * trafia do zapisu.
+   */
+  const changeColor = async (member: TeamMember, color: string | undefined) => {
+    try {
+      await setRole({ ...member, color });
+      toast(color ? `${member.email}: nowy kolor.` : `${member.email}: kolor domyślny.`, 'success');
+    } catch {
+      toast('Nie udało się zmienić koloru.', 'danger');
     }
   };
 
@@ -204,12 +228,38 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
             key={member.uid}
             className="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-surface p-3"
           >
+            {/* Podgląd — dokładnie ten awatar, który zobaczą inni w wątkach. */}
+            <Avatar name={member.email} color={member.color} size={32} />
+
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">{member.email}</span>
               <span className="block truncate font-mono text-[10px] text-ink-dim">
                 {member.uid}
               </span>
             </span>
+
+            <div className="flex w-40 shrink-0 items-end gap-1">
+              <div className="min-w-0 flex-1">
+                <ColorPicker
+                  label={`Kolor ${member.email}`}
+                  // Bez własnego koloru picker startuje od tego, który osoba ma
+                  // teraz z imienia — inaczej otwierałby się na przypadkowym
+                  // odcieniu, niezwiązanym z tym, co widać w wątku.
+                  value={member.color ?? colorFor(member.email)}
+                  presets={AVATAR_PRESETS}
+                  onChange={(color) => void changeColor(member, color)}
+                />
+              </div>
+              {member.color && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon="undo"
+                  aria-label={`Przywróć domyślny kolor ${member.email}`}
+                  onClick={() => void changeColor(member, undefined)}
+                />
+              )}
+            </div>
 
             <div className="w-40 shrink-0">
               <Select

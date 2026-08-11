@@ -71,7 +71,20 @@ export interface TeamMember {
   uid: string;
   email: string;
   role: Role;
+  /**
+   * Kolor awatara nadany ręcznie w zakładce Zespół (`#rrggbb`).
+   *
+   * Nieustawiony znaczy „licz z imienia" — stała mapa zespołu, a poza nią
+   * paleta. Do bazy trafia tylko wtedy, gdy ktoś jawnie wybrał kolor: pusty
+   * string zapisany jako pole i tak nie przeszedłby reguł, które wymagają
+   * hexa, więc zapis roli padłby przy okazji zmiany czegoś zupełnie innego.
+   */
+  color?: string;
 }
+
+/** Kolor z bazy jest wart zapisania tylko wtedy, gdy to poprawny hex. */
+const isHexColor = (value: unknown): value is string =>
+  typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
 
 /**
  * Rola konta.
@@ -93,43 +106,52 @@ export async function loadRole(uid: string, email: string | null): Promise<Role>
   }
 }
 
+/**
+ * Dokument roli → `TeamMember`. Jedno miejsce dla obu ścieżek odczytu
+ * (`loadTeam` i `watchTeam`), żeby obsługa pól nie rozjechała się między nimi.
+ */
+function toMember(uid: string, data: Record<string, unknown>): TeamMember {
+  const member: TeamMember = {
+    uid,
+    email: (data.email as string) ?? '',
+    role: (data.role as Role) ?? DEFAULT_ROLE,
+  };
+  // Pole nieobecne albo uszkodzone traktujemy jak brak koloru — awatar wraca
+  // wtedy do koloru z imienia zamiast pokazywać puste tło.
+  if (isHexColor(data.color)) member.color = data.color;
+  return member;
+}
+
 export async function loadTeam(): Promise<TeamMember[]> {
   const snapshot = await getDocs(collection(db, COLLECTION));
-  return snapshot.docs.map((entry) => {
-    const data = entry.data();
-    return {
-      uid: entry.id,
-      email: (data.email as string) ?? '',
-      role: (data.role as Role) ?? DEFAULT_ROLE,
-    };
-  });
+  return snapshot.docs.map((entry) => toMember(entry.id, entry.data()));
 }
 
 export function watchTeam(onChange: (members: TeamMember[]) => void): () => void {
   return onSnapshot(
     collection(db, COLLECTION),
     (snapshot) => {
-      onChange(
-        snapshot.docs.map((entry) => {
-          const data = entry.data();
-          return {
-            uid: entry.id,
-            email: (data.email as string) ?? '',
-            role: (data.role as Role) ?? DEFAULT_ROLE,
-          };
-        }),
-      );
+      onChange(snapshot.docs.map((entry) => toMember(entry.id, entry.data())));
     },
     () => onChange([]),
   );
 }
 
-/** Nadaje rolę. Reguły dopuszczają to wyłącznie adminowi. */
+/**
+ * Nadaje rolę. Reguły dopuszczają to wyłącznie adminowi.
+ *
+ * `color` dopisujemy tylko, gdy jest poprawnym hexem. `setDoc` bez `merge`
+ * nadpisuje cały dokument, więc wywołanie bez koloru czyści kolor ustawiony
+ * wcześniej — i o to chodzi: „wróć do koloru z imienia" to po prostu zapis
+ * bez tego pola, bez osobnej ścieżki kasowania.
+ */
 export async function setRole(member: TeamMember): Promise<void> {
-  await setDoc(doc(db, COLLECTION, member.uid), {
+  const data: { email: string; role: Role; color?: string } = {
     email: member.email,
     role: member.role,
-  });
+  };
+  if (isHexColor(member.color)) data.color = member.color;
+  await setDoc(doc(db, COLLECTION, member.uid), data);
 }
 
 /** Usuwa wpis roli — konto wraca do domyślnej. Tylko admin. */

@@ -166,10 +166,18 @@ service cloud.firestore {
       allow read: if true;
 
       // Nadanie/zmiana roli: walidujemy kształt zapisu.
+      //
+      // `color` jest opcjonalny — kolor awatara nadany w zakładce Zespół.
+      // Gdy go nie ma, awatar liczy kolor z imienia jak dotąd. Gdy jest,
+      // musi być hexem `#rrggbb`: to leci prosto do `style.background`, więc
+      // dowolny string byłby wstrzyknięciem wartości CSS.
       allow create, update: if jestAdmin()
-                   && request.resource.data.keys().hasOnly(['email', 'role'])
+                   && request.resource.data.keys().hasOnly(['email', 'role', 'color'])
                    && request.resource.data.role in
-                        ['admin', 'programmer', 'co-admin', 'coworker', 'editor', 'viewer'];
+                        ['admin', 'programmer', 'co-admin', 'coworker', 'editor', 'viewer']
+                   && (!('color' in request.resource.data)
+                       || (request.resource.data.color is string
+                           && request.resource.data.color.matches('^#[0-9a-fA-F]{6}$')));
 
       // Usunięcie wpisu osobno: przy delete nie ma `request.resource.data`,
       // więc walidacja kształtu (jak wyżej) zawsze by je odrzuciła — dlatego
@@ -250,6 +258,55 @@ service cloud.firestore {
     match /contentHistory/{version} {
       allow read: if jestModeratorem();
       allow write: if mozeEdytowac();
+    }
+
+    /**
+     * Pamięć zespołu — wspólny notatnik o projekcie i o nas samych.
+     *
+     * Jedno zdanie na wpis, bez tytułu i bez wątków. Czyta cały zespół razem
+     * z Claude, więc kolejna rozmowa zaczyna się od tego, co już ustalone.
+     *
+     * Kto pisze: każdy poza `viewer` (ten sam próg co edycja treści). Swój wpis
+     * autor poprawia i kasuje sam, cudze sprząta admin.
+     *
+     * Właściciela rozpoznajemy po `authorUid`, NIE po widocznym podpisie:
+     * `author` to imię z konta, a konta bez ustawionego `displayName` w ogóle
+     * nie mają go w tokenie (jest wtedy adres e-mail) — porównanie po imieniu
+     * odcięłoby takim osobom poprawianie własnych wpisów. Uid jest zawsze
+     * i nie da się go podszyć. Ani `authorUid`, ani `author` nie mogą się
+     * zmienić przy poprawce, inaczej dałoby się przypisać sobie cudzy wpis.
+     */
+    match /memory/{note} {
+      // Odczyt dla tych, którzy przy grze pracują — czyli tak jak zapis,
+      // bez `viewer`. To notatki o nas i o pracy nad grą („kto za co
+      // odpowiada", „ustaliliśmy X"), nie treść dla graczy ani dla konta
+      // podglądowego. Gra tego nie czyta, więc zamknięcie niczego nie psuje.
+      allow read: if mozeEdytowac();
+
+      allow create: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['text', 'author', 'authorUid', 'createdAt'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 300
+                    && request.resource.data.author is string
+                    && request.resource.data.author.size() > 0
+                    // Wpis podpisuje się kontem piszącego — nie cudzym.
+                    && request.resource.data.authorUid == request.auth.uid;
+
+      // Poprawka: tylko treść i znacznik zmiany, tylko autor (albo admin).
+      allow update: if mozeEdytowac()
+                    && (jestAdmin() || resource.data.authorUid == request.auth.uid)
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['text', 'editedAt'])
+                    && request.resource.data.authorUid == resource.data.authorUid
+                    && request.resource.data.author == resource.data.author
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 300;
+
+      allow delete: if jestAdmin()
+                    || (mozeEdytowac() && resource.data.authorUid == request.auth.uid);
     }
 
     /**

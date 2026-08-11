@@ -28,6 +28,7 @@ import { LoginForm } from './LoginForm';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
+import { MemoryPanel } from './MemoryPanel';
 import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
@@ -57,6 +58,7 @@ type Tab =
   | 'test'
   | 'reports'
   | 'discussions'
+  | 'memory'
   | 'account'
   | 'history'
   | 'stats'
@@ -89,6 +91,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   // Komunikacja zespołu
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
+  { key: 'memory', label: 'Pamięć', icon: 'bulb' },
 
   // Dane i podgląd wstecz
   { key: 'stats', label: 'Statystyki', icon: 'chart' },
@@ -120,6 +123,10 @@ export function AdminApp() {
     if (item.key === 'team') return canManageRoles(auth.role);
     if (item.key === 'discussions') return canDiscuss(auth.role);
     if (item.key === 'history') return canViewHistory(auth.role);
+    // Pamięć to notatki zespołu o sobie i o pracy nad grą — konto podglądowe
+    // ich nie widzi. Ten sam próg co zapis, żeby zakładka nie pokazywała
+    // treści, której reguły bazy i tak nie wydadzą.
+    if (item.key === 'memory') return canEdit(auth.role);
     return true;
   });
 
@@ -766,6 +773,13 @@ export function AdminApp() {
             // link wprost do listy ustalonych da się wysłać dalej.
             showClosed={route.params.closed === '1'}
             onShowClosedChange={(v) => route.setParam('closed', v ? '1' : null)}
+          />
+        )}
+        {tab === 'memory' && (
+          <MemoryPanel
+            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            authorUid={auth.user?.uid ?? ''}
+            role={auth.role}
           />
         )}
         {tab === 'stats' && <StatsPanel content={content} />}
