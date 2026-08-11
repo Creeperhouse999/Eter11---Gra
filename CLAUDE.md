@@ -17,6 +17,8 @@ Read wherever users report problems (issue tracker, a reports collection, a chan
 
 **Priority order:** user-reported issues before self-found bugs. Among them: critical (product broken / core flow down) → normal bugs → cosmetics → features last.
 
+**Never leave a `new` report untouched, and never skip one because it's "just an idea" or looks too big/subjective.** Every open report — bug or feature idea, one-line fix or a request that touches the whole content library — gets a real attempt every run, not a deferral to "needs human discussion." Large or ambiguous asks (e.g. "rename all the cards") don't get skipped either: break them into a shippable first slice (propose and commit concrete values for one batch, one section, one clear interpretation) rather than leaving the report sitting at `new`. A report only stays unresolved if a genuine attempt at it fails 3 times (per the fix-attempt rule below) — record why in the report thread. Author identity is never a reason to skip a report.
+
 ### 2. Find bugs (when the queue is empty)
 Review the codebase adversarially, **one area at a time**. Dispatch a focused reviewer per area with a tight brief: *"Find REAL bugs, not style. Format `file:line: severity — problem. fix.` If nothing, say so plainly."* Typical areas: core domain logic, data/persistence layer, API/network boundaries, UI/rendering, auth/permissions, background jobs, edge-case inputs, static data integrity.
 
