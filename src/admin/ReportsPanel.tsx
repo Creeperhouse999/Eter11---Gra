@@ -562,10 +562,11 @@ export function ReportsPanel({
                           >
                             {/* Podpis: imię autora, gdy notatkę zapisano razem
                                 z nim. Bez tego każda notatka od zespołu stała
-                                pod „programista", nawet gdy pisał ją co-admin
+                                pod „Programista", nawet gdy pisał ją co-admin
                                 albo admin. Stare notatki bez `author` spadają
-                                do generycznej etykiety strony obiegu. */}
-                            {note.author || (dev ? 'programista' : 'zgłaszający')}
+                                do generycznej etykiety strony obiegu, pisanej
+                                wielką literą jak inne role (Admin, Co-admin…). */}
+                            {note.author || (dev ? 'Programista' : 'Zgłaszający')}
                           </span>
                           <span className="font-mono text-[10px] text-ink-dim">
                             {formatDate(note.at)}

@@ -102,8 +102,8 @@ describe('ReportsPanel — podpis autora notatki', () => {
     openReport();
     const note = (await screen.findByText('Odrzucam — działa zgodnie z zasadami.')).closest('div')!;
     expect(within(note.parentElement!).getByText('Kasia (co-admin)')).toBeTruthy();
-    // Bez fixu: podpis „programista", choć pisze co-admin.
-    expect(within(note.parentElement!).queryByText('programista')).toBeNull();
+    // Bez fixu: podpis „Programista", choć pisze co-admin.
+    expect(within(note.parentElement!).queryByText('Programista')).toBeNull();
   });
 
   it('stara notatka bez autora dalej pokazuje etykietę strony obiegu', async () => {
@@ -128,6 +128,7 @@ describe('ReportsPanel — podpis autora notatki', () => {
     );
 
     openReport();
-    expect(await screen.findByText('programista')).toBeTruthy();
+    // Etykieta strony obiegu pisana wielką literą, jak inne role (Admin, Co-admin…).
+    expect(await screen.findByText('Programista')).toBeTruthy();
   });
 });
