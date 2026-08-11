@@ -79,4 +79,23 @@ describe('opis zmian między wersjami', () => {
     expect(summary).not.toBe('bez zmian w treści');
     expect(summary).toContain('jasny');
   });
+
+  it('zmiana tylko biblioteki grafik kart jest widoczna w opisie', () => {
+    // Redaktor wgrywający grafikę, która nie dopasowała się automatycznie do
+    // żadnej karty po nazwie pliku (CardImagesEditor), zapisuje zmianę
+    // wyłącznie w `cardImages` — reszta treści zostaje identyczna. Bez tej
+    // sekcji w opisie historia mówiłaby „bez zmian w treści", choć zapisała
+    // pełną wersję z nową grafiką.
+    const next: GameContent = {
+      ...base,
+      cardImages: [
+        ...(base.cardImages ?? []),
+        { id: 'img-1', url: 'https://x/1.png', fileName: '1' },
+      ],
+    };
+
+    const summary = describeChanges(next, base);
+    expect(summary).not.toBe('bez zmian w treści');
+    expect(summary).toContain('grafiki kart');
+  });
 });

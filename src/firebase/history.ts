@@ -59,6 +59,11 @@ const SECTION_LABELS: Record<string, string> = {
   customIcons: 'ikony',
   intro: 'wstęp',
   tutorial: 'samouczek',
+  // Bez tej sekcji zapis dotykający wyłącznie biblioteki grafik kart
+  // (CardImagesEditor — wgranie grafiki, która nie dopasowała się
+  // automatycznie do żadnej karty po nazwie pliku) mówił „bez zmian
+  // w treści", choć wersja zapisała pełną kopię z inną `cardImages`.
+  cardImages: 'grafiki kart',
 };
 
 /**
