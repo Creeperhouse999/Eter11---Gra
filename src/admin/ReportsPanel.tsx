@@ -9,7 +9,16 @@ import {
   type ReportKind,
   type ReportStatus,
 } from '../firebase/reports';
-import { canDelete, canModerate, canReport, skipsApproval, type Role } from '../firebase/roles';
+import {
+  canDelete,
+  canModerate,
+  canReport,
+  skipsApproval,
+  watchTeam,
+  type Role,
+  type TeamMember,
+} from '../firebase/roles';
+import { notify, uidsForAuthor } from '../firebase/notifications';
 import { addDiscussion } from '../firebase/discussions';
 import { Alert } from '../ui/controls/Alert';
 import { Button } from '../ui/controls/Button';
@@ -156,6 +165,11 @@ interface ReportsPanelProps {
    */
   role: Role;
   /**
+   * Konto zalogowanego — potrzebne, by nie wysłać powiadomienia samemu sobie
+   * po własnym kliknięciu.
+   */
+  currentUid?: string;
+  /**
    * Aktywny filtr statusu — z adresu (`/admin/reports/fixed`). Steruje
    * widoczną listą, żeby dało się zalinkować wprost do danej pod-zakładki.
    */
@@ -174,12 +188,20 @@ interface ReportsPanelProps {
 export function ReportsPanel({
   author,
   role,
+  currentUid = '',
   statusTab,
   onStatusTabChange,
   openId: openIdProp,
   onOpenChange,
 }: ReportsPanelProps) {
   const toast = useToast();
+  /**
+   * Zespół — most między podpisem pod zgłoszeniem a kontem, do którego trafia
+   * powiadomienie. Zgłoszenia pamiętają tylko podpis („Adam"), bo powstały,
+   * zanim imiona trafiły do wpisów zespołu.
+   */
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  useEffect(() => watchTeam(setTeam), []);
   const { confirm, dialog } = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,6 +331,26 @@ export function ReportsPanel({
         next,
         text ? { from, text, author: noteAuthor } : undefined,
       );
+
+      // Autor zgłoszenia ma się dowiedzieć, że coś się z nim stało — bez
+      // zaglądania do panelu co chwilę. Powiadamiamy o dwóch przejściach:
+      // odrzuceniu (koniec sprawy) i „naprawione" (jest co sprawdzić).
+      if ((next === 'dismissed' || next === 'fixed') && report.author) {
+        const TITLES: Partial<Record<ReportStatus, string>> = {
+          dismissed: `Twoje zgłoszenie zostało odrzucone: „${report.title}"`,
+          fixed: `Twoje zgłoszenie czeka na sprawdzenie: „${report.title}"`,
+        };
+        void notify({
+          uids: uidsForAuthor(report.author, team),
+          kind: next === 'dismissed' ? 'report-dismissed' : 'report-fixed',
+          title: TITLES[next] ?? '',
+          body: text || undefined,
+          from: author,
+          link: `/admin/reports/${next}?open=${report.id}`,
+          // Nikt nie potrzebuje powiadomienia o własnym kliknięciu.
+          exceptUid: currentUid,
+        });
+      }
       // Bez ręcznej aktualizacji stanu tutaj: `watchReports` (onSnapshot)
       // dokłada tę samą zmianę sam, i to często ZANIM ten `await` w ogóle
       // się rozwiąże — Firestore odświeża lokalny cache (a więc i nasłuch)

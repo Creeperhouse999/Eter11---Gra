@@ -8,6 +8,19 @@ vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
 // upload.ts woła getStorage(app) przy imporcie — na atrapie by się wywróciło.
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
 
+// Zespół i powiadomienia: panele nasłuchują listy członków (most podpis→konto)
+// i wysyłają powiadomienia. W teście nie ma prawdziwej bazy, więc atrapy —
+// bez nich `watchTeam` sięga do Firestore i test wywala się na starcie.
+vi.mock("../firebase/roles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../firebase/roles")>();
+  return { ...actual, watchTeam: (cb: (m: unknown[]) => void) => { cb([]); return () => {}; } };
+});
+vi.mock("../firebase/notifications", () => ({
+  notify: vi.fn(async () => {}),
+  uidsForAuthor: () => [],
+}));
+
+
 // Prawdziwy moduł (z atrapą klienta) minus watchReports — to podstawiamy sami.
 // Panel czyta listę na żywo przez nasłuch, więc atrapa od razu woła callback
 // z podstawionymi zgłoszeniami i zwraca no-op odpinający.

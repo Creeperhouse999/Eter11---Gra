@@ -51,6 +51,16 @@ vi.mock('firebase/auth', () => ({
   updateProfile: vi.fn(),
 }));
 vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
+// Dzwonek w nagłówku nasłuchuje powiadomień — bez atrapy sięgnąłby do Firestore.
+vi.mock('../firebase/notifications', () => ({
+  watchMine: (_uid: string, cb: (items: unknown[]) => void) => { cb([]); return () => {}; },
+  notify: vi.fn(async () => {}),
+  uidsForAuthor: () => [],
+  markRead: vi.fn(),
+  markAllRead: vi.fn(),
+  removeNotification: vi.fn(),
+  removeAllMine: vi.fn(),
+}));
 vi.mock('../firebase/roles', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../firebase/roles')>();
   return {

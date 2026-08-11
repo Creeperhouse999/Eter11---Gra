@@ -13,7 +13,14 @@ import { ALL_CARDS } from '../data/cards';
 /** Edytor pokazuje powiadomienia, więc potrzebuje dostawcy w drzewie. */
 const render = (ui: ReactElement) => rtlRender(<ToastProvider>{ui}</ToastProvider>);
 
-describe('szukanie kart', () => {
+/**
+ * Hojniejszy limit czasu: każdy przypadek renderuje CAŁY edytor z pełną talią
+ * (65 kart, każda z polami i pickerami). W izolacji schodzi to poniżej sekundy,
+ * ale przy pełnym przebiegu, gdy kilkanaście plików walczy o procesor, potrafi
+ * przekroczyć domyślne 15 s — i test padał losowo, choć nic w nim nie było
+ * zepsute. Limit dotyczy tego pliku, nie całego zestawu.
+ */
+describe('szukanie kart', { timeout: 30_000 }, () => {
   const noop = () => {};
 
   it('znajduje kartę mimo odwróconej kolejności słów', () => {

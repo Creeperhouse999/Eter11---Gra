@@ -8,7 +8,15 @@ import {
   type Discussion,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
-import { canDelete, canModerate, skipsApproval, type Role } from '../firebase/roles';
+import {
+  canDelete,
+  canModerate,
+  skipsApproval,
+  watchTeam,
+  type Role,
+  type TeamMember,
+} from '../firebase/roles';
+import { notify, uidsForAuthor } from '../firebase/notifications';
 import { Button } from '../ui/controls/Button';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
@@ -23,6 +31,8 @@ interface DiscussionsPanelProps {
   author: string;
   /** Rola zalogowanego — decyduje, kto może zrobić z wątku zgłoszenie. */
   role: Role;
+  /** Konto zalogowanego — żeby nie powiadamiać go o własnej wypowiedzi. */
+  currentUid?: string;
   /**
    * Czy pokazać ustalone wątki — z adresu (`/admin/discussions?closed=1`).
    * Steruje przełącznikiem otwarte/ustalone, żeby dało się zalinkować widok.
@@ -58,10 +68,14 @@ function shortDate(iso: string): string {
 export function DiscussionsPanel({
   author,
   role,
+  currentUid = '',
   showClosed: showClosedProp,
   onShowClosedChange,
 }: DiscussionsPanelProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  // Most między podpisem a kontem — powiadomienie trafia do uid, nie do imienia.
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  useEffect(() => watchTeam(setTeam), []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Przełącznik sterowany adresem, gdy podano `showClosed`; inaczej własny
@@ -130,6 +144,24 @@ export function DiscussionsPanel({
       toast(result.error ?? 'Nie udało się wysłać.', 'danger');
       return;
     }
+
+    // Powiadamiamy tych, którzy w tym wątku już zabrali głos — założyciela
+    // i wszystkich odpowiadających. Kto nie pisał, nie dostaje nic: to nie
+    // ogłoszenie dla całego zespołu, tylko ciąg dalszy CZYJEJŚ rozmowy.
+    const involved = new Set(
+      [discussion.author, ...discussion.messages.map((message) => message.author)].filter(Boolean),
+    );
+    const uids = [...involved].flatMap((name) => uidsForAuthor(name, team));
+    void notify({
+      uids,
+      kind: 'discussion-reply',
+      title: `${author} odpisał(a) w wątku „${discussion.title}"`,
+      body: reply.trim().slice(0, 140),
+      from: author,
+      link: `/admin/discussions?open=${discussion.id}`,
+      exceptUid: currentUid,
+    });
+
     setReply('');
     setReplyImages([]);
   };

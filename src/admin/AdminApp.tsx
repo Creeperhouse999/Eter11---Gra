@@ -29,6 +29,7 @@ import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
 import { MemoryPanel } from './MemoryPanel';
+import { NotificationBell } from './NotificationBell';
 import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
 import { TestMode } from './TestMode';
@@ -482,6 +483,21 @@ export function AdminApp() {
                 {saving ? 'Zapisywanie…' : 'Zapisz'}
               </Button>
             </Tooltip>
+            {/* Dzwonek: co się wydarzyło w sprawach tej osoby — odrzucone albo
+                naprawione zgłoszenie, odpowiedź w jej wątku, ogłoszenie. */}
+            <NotificationBell
+              uid={auth.user?.uid ?? ''}
+              onOpen={(link) => {
+                const [path, params] = link.split('?');
+                const slug = path.replace(/^\/admin\/?/, '').split('/');
+                if (isTab(slug[0])) setTab(slug[0]);
+                // Reszta ścieżki i parametry (np. `?open=<id>`) prowadzą wprost
+                // do konkretnego zgłoszenia albo wątku.
+                const open = new URLSearchParams(params ?? '').get('open');
+                if (slug[1] && isReportStatus(slug[1])) route.setParam('status', slug[1]);
+                route.setParam('open', open);
+              }}
+            />
             {/* Przełącznik jasny/ciemny — jak w grze, ten sam wybór
                 (wspólny localStorage), tu w pasku, żeby nie nachodził. */}
             <ThemeToggle variant="inline" />
@@ -745,6 +761,7 @@ export function AdminApp() {
         {tab === 'reports' && (
           <ReportsPanel
             author={auth.displayName}
+            currentUid={auth.user?.uid ?? ''}
             role={auth.role}
             // Filtr statusu to pod-zakładka (`/admin/reports/fixed`); nieznany
             // slug zostawia widok domyślny. Otwarte zgłoszenie żyje w query
@@ -768,6 +785,7 @@ export function AdminApp() {
         {tab === 'discussions' && canDiscuss(auth.role) && (
           <DiscussionsPanel
             author={auth.displayName}
+            currentUid={auth.user?.uid ?? ''}
             role={auth.role}
             // Przełącznik otwarte/ustalone żyje w adresie (`?closed=1`), więc
             // link wprost do listy ustalonych da się wysłać dalej.

@@ -18,6 +18,16 @@ import { ToastProvider } from '../ui/controls/Toast';
  */
 vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
+// Panel nasłuchuje zespołu i wysyła powiadomienia — w teście atrapy, żeby nie
+// sięgał do prawdziwego Firestore.
+vi.mock('../firebase/roles', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../firebase/roles')>();
+  return { ...actual, watchTeam: (cb: (m: unknown[]) => void) => { cb([]); return () => {}; } };
+});
+vi.mock('../firebase/notifications', () => ({
+  notify: vi.fn(async () => {}),
+  uidsForAuthor: () => [],
+}));
 
 const report: Report = {
   id: 'r1',

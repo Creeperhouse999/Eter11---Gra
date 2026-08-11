@@ -17,7 +17,7 @@ export type IconName =
   // Kompetencje cyfrowe
   | 'code' | 'robot' | 'chart' | 'network' | 'search' | 'globe' | 'lock' | 'bulb' | 'map' | 'radio'
   // Kompetencje społeczne
-  | 'message' | 'puzzle' | 'wrench' | 'telescope' | 'hearts' | 'megaphone'
+  | 'message' | 'puzzle' | 'wrench' | 'telescope' | 'hearts' | 'megaphone' | 'bell'
   | 'cape' | 'check' | 'heartHands' | 'peace' | 'earth'
   // Talenty
   | 'palette' | 'heart' | 'lion' | 'mountain' | 'lens' | 'clipboard' | 'bolt' | 'people'
@@ -89,6 +89,7 @@ const PATHS: Record<IconName, string> = {
   telescope: 'm3 15 12-8 3 4-12 8-3-4Zm8 0 3 6M6 17l2 4M18 4l2 3',
   hearts: 'M8 6c1.5 0 2.5 1 3 2 .5-1 1.5-2 3-2a3 3 0 0 1 3 3c0 3.5-6 8-6 8s-6-4.5-6-8a3 3 0 0 1 3-3Z',
   megaphone: 'M4 10v4l10 5V5L4 10Zm10-1 6-3v12l-6-3M6 15v4h3',
+  bell: 'M18 16V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2ZM10 21a2 2 0 0 0 4 0',
   cape: 'M12 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-6 8 6-2 6 2-2 8H8l-2-8Zm0 0-3 6m15-6 3 6',
   check: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-4 9 3 3 5-6',
   heartHands: 'M12 8c.6-1 1.6-2 3-2a2.5 2.5 0 0 1 2.5 2.5C17.5 11 12 15 12 15S6.5 11 6.5 8.5A2.5 2.5 0 0 1 9 6c1.4 0 2.4 1 3 2ZM4 14v5m16-5v5M7 20h10',

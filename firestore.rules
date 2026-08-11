@@ -318,6 +318,43 @@ service cloud.firestore {
     }
 
     /**
+     * Powiadomienia — skrzynka konkretnej osoby.
+     *
+     * Powstają po stronie panelu w chwili zdarzenia (projekt nie używa Cloud
+     * Functions), więc tworzy je przeglądarka tego, kto zdarzenie wywołał:
+     * odrzucając zgłoszenie Marcina, panel Adama zapisuje wpis do skrzynki
+     * Marcina. Dlatego `create` wolno całemu zespołowi — inaczej powiadomienie
+     * o cudzej akcji nigdy by nie powstało.
+     *
+     * Czytać, oznaczać i kasować można WYŁĄCZNIE swoje: adresat jest w polu
+     * `uid`, a reguła porównuje je z zalogowanym. Przy oznaczaniu wolno ruszyć
+     * tylko `read` — nikt nie podmieni treści powiadomienia po fakcie.
+     */
+    match /notifications/{item} {
+      allow read: if mozeEdytowac() && resource.data.uid == request.auth.uid;
+
+      allow create: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['uid', 'kind', 'title', 'body', 'from', 'link', 'createdAt', 'read'])
+                    && request.resource.data.uid is string
+                    && request.resource.data.uid.size() > 0
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 200
+                    && request.resource.data.kind in
+                         ['report-dismissed', 'report-fixed', 'discussion-reply', 'announcement']
+                    && request.resource.data.read == false;
+
+      // Oznaczenie jako przeczytane — nic poza tym.
+      allow update: if mozeEdytowac()
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['read']);
+
+      allow delete: if mozeEdytowac() && resource.data.uid == request.auth.uid;
+    }
+
+    /**
      * Licznik rozegranych partii.
      *
      * Pisze go gra, a gra działa bez logowania — dzieci kont nie mają

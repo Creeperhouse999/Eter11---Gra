@@ -102,6 +102,17 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
     return stop;
   }, []);
 
+  /**
+   * Konto założyciela bywa nieobecne na liście.
+   *
+   * Jest adminem po adresie (patrz `rolaKonta` w regułach), więc wpis w bazie
+   * nie jest mu potrzebny — ale bez wpisu nie ma też imienia ani koloru, a
+   * powiadomienia nie mają po czym go rozpoznać. Podpowiadamy więc adminowi,
+   * żeby dodał sobie wpis, zamiast zostawiać ten przypadek w cieniu.
+   */
+  const founderMissing =
+    !loading && !members.some((member) => member.email === ROOT_ADMIN_EMAIL);
+
   const changeRole = async (member: TeamMember, role: Role) => {
     // Bezpiecznik degradacji (własne konto, konto założyciela) — wspólny z
     // formularzem „Nadaj rolę", żeby żadna ścieżka go nie obeszła.
@@ -251,6 +262,27 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
         Adres <span className="text-ink">{ROOT_ADMIN_EMAIL}</span> jest adminem
         zawsze i nie da się tego zmienić.
       </p>
+
+      {founderMissing && (
+        <div className="mt-4 rounded-xl border border-accent bg-surface p-4">
+          <p className="text-sm">
+            Twojego konta nie ma jeszcze na liście — a to z niej biorą się imię,
+            kolor i powiadomienia. Adminem jesteś tak czy inaczej.
+          </p>
+          <Button
+            className="mt-3"
+            size="sm"
+            icon="plus"
+            onClick={() => {
+              setNewEmail(ROOT_ADMIN_EMAIL);
+              setNewUid(currentUid);
+              setNewRole('admin');
+            }}
+          >
+            Wypełnij moimi danymi
+          </Button>
+        </div>
+      )}
 
       {/* Nadanie roli nowemu kontu */}
       <div className="mt-4 rounded-xl border border-edge bg-surface p-4">

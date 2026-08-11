@@ -20,6 +20,19 @@ import type { Role } from '../firebase/roles';
 vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
 
+// Zespół i powiadomienia: panele nasłuchują listy członków (most podpis→konto)
+// i wysyłają powiadomienia. W teście nie ma prawdziwej bazy, więc atrapy —
+// bez nich `watchTeam` sięga do Firestore i test wywala się na starcie.
+vi.mock("../firebase/roles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../firebase/roles")>();
+  return { ...actual, watchTeam: (cb: (m: unknown[]) => void) => { cb([]); return () => {}; } };
+});
+vi.mock("../firebase/notifications", () => ({
+  notify: vi.fn(async () => {}),
+  uidsForAuthor: () => [],
+}));
+
+
 const deleteDiscussion = vi.fn(async (_id: string) => {});
 const setDiscussionClosed = vi.fn(async (_id: string, _closed: boolean) => {});
 let thread: Discussion;
