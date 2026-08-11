@@ -29,6 +29,7 @@ import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
 import { MemoryPanel } from './MemoryPanel';
+import { AnnouncementsPanel } from './AnnouncementsPanel';
 import { NotificationBell } from './NotificationBell';
 import { AccountPanel } from './AccountPanel';
 import { RulesEditor } from './RulesEditor';
@@ -60,6 +61,7 @@ type Tab =
   | 'reports'
   | 'discussions'
   | 'memory'
+  | 'announcements'
   | 'account'
   | 'history'
   | 'stats'
@@ -93,6 +95,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'memory', label: 'Pamięć', icon: 'bulb' },
+  { key: 'announcements', label: 'Ogłoszenia', icon: 'megaphone' },
 
   // Dane i podgląd wstecz
   { key: 'stats', label: 'Statystyki', icon: 'chart' },
@@ -100,7 +103,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
 
   // Ustawienia na końcu
   { key: 'account', label: 'Konto', icon: 'people' },
-  { key: 'team', label: 'Zespół', icon: 'people' },
+  { key: 'team', label: 'Admin', icon: 'people' },
 ];
 
 export function AdminApp() {
@@ -128,6 +131,8 @@ export function AdminApp() {
     // ich nie widzi. Ten sam próg co zapis, żeby zakładka nie pokazywała
     // treści, której reguły bazy i tak nie wydadzą.
     if (item.key === 'memory') return canEdit(auth.role);
+    // Ogłoszenia czyta zespół; wysyła je admin (formularz w środku panelu).
+    if (item.key === 'announcements') return canEdit(auth.role);
     return true;
   });
 
@@ -787,6 +792,10 @@ export function AdminApp() {
             author={auth.displayName}
             currentUid={auth.user?.uid ?? ''}
             role={auth.role}
+            // Otwarty wątek żyje w adresie (`?open=<id>`), tak jak zgłoszenie —
+            // powiadomienie o odpowiedzi prowadzi wprost do tej rozmowy.
+            openId={route.params.open ?? null}
+            onOpenChange={(id) => route.setParam('open', id)}
             // Przełącznik otwarte/ustalone żyje w adresie (`?closed=1`), więc
             // link wprost do listy ustalonych da się wysłać dalej.
             showClosed={route.params.closed === '1'}
@@ -797,6 +806,13 @@ export function AdminApp() {
           <MemoryPanel
             author={auth.displayName}
             authorUid={auth.user?.uid ?? ''}
+            role={auth.role}
+          />
+        )}
+        {tab === 'announcements' && (
+          <AnnouncementsPanel
+            author={auth.displayName}
+            currentUid={auth.user?.uid ?? ''}
             role={auth.role}
           />
         )}

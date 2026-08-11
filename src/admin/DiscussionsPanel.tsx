@@ -34,6 +34,14 @@ interface DiscussionsPanelProps {
   /** Konto zalogowanego — żeby nie powiadamiać go o własnej wypowiedzi. */
   currentUid?: string;
   /**
+   * Id otwartego wątku — z adresu (`?open=<id>`). Dzięki temu link prowadzi
+   * wprost do rozmowy: powiadomienie o odpowiedzi otwiera właśnie ją, a nie
+   * listę, na której trzeba jej szukać.
+   */
+  openId?: string | null;
+  /** Zgłasza otwarcie/zamknięcie wątku w górę, żeby trafiło do adresu. */
+  onOpenChange?: (id: string | null) => void;
+  /**
    * Czy pokazać ustalone wątki — z adresu (`/admin/discussions?closed=1`).
    * Steruje przełącznikiem otwarte/ustalone, żeby dało się zalinkować widok.
    */
@@ -69,6 +77,8 @@ export function DiscussionsPanel({
   author,
   role,
   currentUid = '',
+  openId: openIdProp,
+  onOpenChange,
   showClosed: showClosedProp,
   onShowClosedChange,
 }: DiscussionsPanelProps) {
@@ -92,7 +102,17 @@ export function DiscussionsPanel({
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
 
-  const [openId, setOpenId] = useState<string | null>(null);
+  /**
+   * Otwarty wątek: z adresu, gdy podano `openId`; inaczej własny stan.
+   * Dzięki temu link `?open=<id>` otwiera właściwą rozmowę, a bez adresu
+   * (np. w teście jednostkowym) panel działa jak dawniej.
+   */
+  const [localOpenId, setLocalOpenId] = useState<string | null>(null);
+  const openId = openIdProp !== undefined ? openIdProp : localOpenId;
+  const setOpenId = (next: string | null) => {
+    setLocalOpenId(next);
+    onOpenChange?.(next);
+  };
   const [reply, setReply] = useState('');
   const [replyImages, setReplyImages] = useState<string[]>([]);
   const [replying, setReplying] = useState(false);

@@ -165,7 +165,9 @@ describe('AdminApp — zakładka Zespół i deep-link do niej', () => {
       roleResolvers['me']('admin');
     });
 
-    fireEvent.click(await screen.findByRole('button', { name: /Zespół/ }));
+    // Zakładka nazywa się teraz „Admin" (dawniej „Zespół") — zmieniła się sama
+    // nazwa, uprawnienia i zawartość zostały te same.
+    fireEvent.click(await screen.findByRole('button', { name: /Admin/ }));
 
     expect(teamPanelMounts).toHaveBeenCalledWith({ currentUid: 'me' });
   });

@@ -318,6 +318,33 @@ service cloud.firestore {
     }
 
     /**
+     * Ogłoszenia dla zespołu.
+     *
+     * Jedna wiadomość od admina do wszystkich — nie zgłoszenie (brak obiegu)
+     * i nie dyskusja (nikt nie odpowiada). Czyta cały zespół, pisze, przypina
+     * i kasuje wyłącznie admin.
+     */
+    match /announcements/{item} {
+      allow read: if mozeEdytowac();
+
+      allow create: if jestAdmin()
+                    && request.resource.data.keys()
+                         .hasOnly(['title', 'body', 'author', 'createdAt', 'pinned'])
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 120
+                    && request.resource.data.body is string
+                    && request.resource.data.body.size() <= 2000;
+
+      // Po wysłaniu wolno zmienić samo przypięcie — treści nie przepisujemy.
+      allow update: if jestAdmin()
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['pinned']);
+
+      allow delete: if jestAdmin();
+    }
+
+    /**
      * Powiadomienia — skrzynka konkretnej osoby.
      *
      * Powstają po stronie panelu w chwili zdarzenia (projekt nie używa Cloud
