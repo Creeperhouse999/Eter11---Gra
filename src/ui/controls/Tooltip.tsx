@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
@@ -7,6 +7,16 @@ interface TooltipProps {
   children: ReactNode;
   /** Dodatkowe klasy owijki — domyślnie zachowuje się jak `inline-flex`. */
   className?: string;
+  /**
+   * Style owijki — potrzebne, gdy dziecko ma być `position: fixed` (np.
+   * pływający przycisk w rogu ekranu). Fixed/absolute NIE może siedzieć na
+   * dziecku: taki element wypada z przepływu i nie wnosi rozmiaru do
+   * `wrapRef`, więc `getBoundingClientRect()` mierzy zapadniętą owijkę w jej
+   * miejscu w drzewie DOM, a nie rzeczywistą pozycję przycisku na ekranie —
+   * dymek wtedy renderuje się gdzie indziej niż przycisk. Pozycjonowanie musi
+   * więc siedzieć na owijce, którą Tooltip mierzy.
+   */
+  style?: CSSProperties;
 }
 
 /** Odstęp między elementem a dymkiem. */
@@ -29,7 +39,7 @@ const GAP = 8;
 /** Margines od krawędzi ekranu, żeby dymek nigdy nie dotykał brzegu. */
 const EDGE = 8;
 
-export function Tooltip({ label, children, className = '' }: TooltipProps) {
+export function Tooltip({ label, children, className = '', style }: TooltipProps) {
   const [box, setBox] = useState<{ top: number; left: number } | null>(null);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
@@ -83,6 +93,7 @@ export function Tooltip({ label, children, className = '' }: TooltipProps) {
     <span
       ref={wrapRef}
       className={`inline-flex ${className}`}
+      style={style}
       onPointerEnter={show}
       onPointerLeave={hide}
       // Podpowiedź musi być dostępna z klawiatury, nie tylko spod myszy.

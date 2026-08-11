@@ -74,16 +74,21 @@ export function ReportButton() {
     <>
       {/* Custom podpowiedź zamiast natywnego `title` (szary systemowy dymek,
           na telefonie tłumaczony przez Google Translate). */}
-      <Tooltip label="Zgłoś błąd">
+      {/* `fixed` musi siedzieć na owijce Tooltip, nie na przycisku: dymek mierzy
+          `wrapRef` (owijkę), a fixed-owy przycisk wewnątrz niej wypadałby
+          z przepływu i nie wnosił rozmiaru do owijki — dymek renderował się
+          w miejscu owijki w drzewie DOM, wysoko nad realną, przypiętą do dołu
+          pozycją przycisku (zgłoszenie: „hover w grze jest dużo nad przyciskiem"). */}
+      <Tooltip
+        label="Zgłoś błąd"
+        className="fixed bottom-3 left-3"
+        style={{ zIndex: 'var(--z-hint)' }}
+      >
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Zgłoś błąd"
-          // Prawy dolny róg kolidował z przyciskami „Pasuję"/„Wymień" i paskiem
-          // ręki — na telefonie zasłaniał akcje gry. Lewy dolny róg jest wolny:
-          // akcje są po prawej, ręka przewija się środkiem.
-          className="fixed bottom-3 left-3 flex h-11 w-11 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
-          style={{ zIndex: 'var(--z-hint)' }}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-edge bg-surface/90 text-ink-dim shadow-lg backdrop-blur transition hover:border-accent hover:text-accent"
         >
           <Icon name="megaphone" size={18} />
         </button>
