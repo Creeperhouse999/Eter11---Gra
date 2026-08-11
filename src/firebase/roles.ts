@@ -72,6 +72,17 @@ export interface TeamMember {
   email: string;
   role: Role;
   /**
+   * Imię, którym podpisują się wpisy tej osoby (zgłoszenia, dyskusje, Pamięć).
+   *
+   * Trzymane tutaj, a nie w koncie Firebase: `displayName` może zmienić
+   * wyłącznie właściciel konta po zalogowaniu, więc podpisy rozjeżdżały się
+   * („Adam", „ADam", „marcin@eter11.pl") i nie dało się ich uporządkować
+   * z panelu. Wpis członka ustawia admin, więc imiona są w jednym miejscu
+   * i wyglądają tak samo wszędzie. Nieustawione znaczy „użyj tego, co konto
+   * poda samo" (displayName, w zapasie e-mail).
+   */
+  name?: string;
+  /**
    * Kolor awatara nadany ręcznie w zakładce Zespół (`#rrggbb`).
    *
    * Nieustawiony znaczy „licz z imienia" — stała mapa zespołu, a poza nią
@@ -94,15 +105,33 @@ const isHexColor = (value: unknown): value is string =>
  * naprawić.
  */
 export async function loadRole(uid: string, email: string | null): Promise<Role> {
-  if (email === ROOT_ADMIN_EMAIL) return 'admin';
+  return (await loadAccount(uid, email)).role;
+}
 
+/**
+ * Rola i imię jednym odczytem.
+ *
+ * Podpis bierze się z wpisu członka, nie z konta Firebase — inaczej ta sama
+ * osoba podpisywała się raz „Adam", raz „ADam", raz adresem e-mail, i nie dało
+ * się tego uporządkować z panelu (imienia w cudzym koncie zmienić nie można).
+ * Gdy admin nie nadał imienia, zostaje to, co poda samo konto.
+ */
+export async function loadAccount(
+  uid: string,
+  email: string | null,
+): Promise<{ role: Role; name?: string }> {
   try {
     const snapshot = await getDoc(doc(db, COLLECTION, uid));
-    const role = snapshot.data()?.role as Role | undefined;
-    return role ?? DEFAULT_ROLE;
+    const data = snapshot.data();
+    const name = typeof data?.name === 'string' && data.name.trim() ? data.name.trim() : undefined;
+    // Założyciel jest adminem zawsze, także gdy w bazie nic o nim nie ma —
+    // inaczej pomyłka w kolekcji ról odcięłaby jedyną osobę, która może ją
+    // naprawić. Imię i tak bierzemy z wpisu, jeśli istnieje.
+    const role = email === ROOT_ADMIN_EMAIL ? 'admin' : ((data?.role as Role) ?? DEFAULT_ROLE);
+    return name ? { role, name } : { role };
   } catch {
-    // Gdy odczyt roli padnie, dajemy najniższy sensowny poziom, nie admina.
-    return DEFAULT_ROLE;
+    // Gdy odczyt padnie, dajemy najniższy sensowny poziom, nie admina.
+    return { role: email === ROOT_ADMIN_EMAIL ? 'admin' : DEFAULT_ROLE };
   }
 }
 
@@ -119,6 +148,7 @@ function toMember(uid: string, data: Record<string, unknown>): TeamMember {
   // Pole nieobecne albo uszkodzone traktujemy jak brak koloru — awatar wraca
   // wtedy do koloru z imienia zamiast pokazywać puste tło.
   if (isHexColor(data.color)) member.color = data.color;
+  if (typeof data.name === 'string' && data.name.trim()) member.name = data.name.trim();
   return member;
 }
 
@@ -146,11 +176,14 @@ export function watchTeam(onChange: (members: TeamMember[]) => void): () => void
  * bez tego pola, bez osobnej ścieżki kasowania.
  */
 export async function setRole(member: TeamMember): Promise<void> {
-  const data: { email: string; role: Role; color?: string } = {
+  const data: { email: string; role: Role; color?: string; name?: string } = {
     email: member.email,
     role: member.role,
   };
   if (isHexColor(member.color)) data.color = member.color;
+  // Tak samo jak kolor: zapis bez imienia czyści imię ustawione wcześniej,
+  // czyli podpis wraca do tego, co poda samo konto.
+  if (member.name?.trim()) data.name = member.name.trim();
   await setDoc(doc(db, COLLECTION, member.uid), data);
 }
 

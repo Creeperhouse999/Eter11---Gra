@@ -171,8 +171,16 @@ service cloud.firestore {
       // Gdy go nie ma, awatar liczy kolor z imienia jak dotąd. Gdy jest,
       // musi być hexem `#rrggbb`: to leci prosto do `style.background`, więc
       // dowolny string byłby wstrzyknięciem wartości CSS.
+      // `name` — imię, którym podpisują się wpisy tej osoby. Trzymane tutaj,
+      // bo `displayName` konta może zmienić wyłącznie jego właściciel, więc
+      // podpisy tej samej osoby rozjeżdżały się i nie dało się ich uporządkować
+      // z panelu. Nadaje je admin, jak rolę i kolor.
       allow create, update: if jestAdmin()
-                   && request.resource.data.keys().hasOnly(['email', 'role', 'color'])
+                   && request.resource.data.keys().hasOnly(['email', 'role', 'color', 'name'])
+                   && (!('name' in request.resource.data)
+                       || (request.resource.data.name is string
+                           && request.resource.data.name.size() > 0
+                           && request.resource.data.name.size() <= 40))
                    && request.resource.data.role in
                         ['admin', 'programmer', 'co-admin', 'coworker', 'editor', 'viewer']
                    && (!('color' in request.resource.data)

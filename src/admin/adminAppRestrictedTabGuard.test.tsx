@@ -32,11 +32,14 @@ const onAuthStateChanged = vi.fn((_auth: unknown, cb: (u: unknown) => void) => {
   return vi.fn();
 });
 
+// Rozwiązywane ręcznie w teście — chodzi o okno, w którym rola jest jeszcze
+// nieznana. Hook czyta rolę i imię jednym wywołaniem, więc atrapa oddaje
+// obiekt, nie samą rolę.
 const roleResolvers: Record<string, (r: Role) => void> = {};
-const loadRole = vi.fn(
+const loadAccount = vi.fn(
   (uid: string, _email?: string | null) =>
-    new Promise<Role>((resolve) => {
-      roleResolvers[uid] = resolve;
+    new Promise<{ role: Role }>((resolve) => {
+      roleResolvers[uid] = (role: Role) => resolve({ role });
     }),
 );
 
@@ -52,7 +55,7 @@ vi.mock('../firebase/roles', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../firebase/roles')>();
   return {
     ...actual,
-    loadRole: (uid: string, email: string | null) => loadRole(uid, email),
+    loadAccount: (uid: string, email: string | null) => loadAccount(uid, email),
     watchTeam: (cb: (m: unknown[]) => void) => {
       cb([]);
       return () => {};
@@ -90,7 +93,7 @@ const { AdminApp } = await import('./AdminApp');
 beforeEach(() => {
   authCb = null;
   onAuthStateChanged.mockClear();
-  loadRole.mockClear();
+  loadAccount.mockClear();
   teamPanelMounts.mockClear();
   for (const k of Object.keys(roleResolvers)) delete roleResolvers[k];
 });

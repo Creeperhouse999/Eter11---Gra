@@ -7,7 +7,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../firebase/client';
-import { loadRole, type Role } from '../firebase/roles';
+import { loadAccount, type Role } from '../firebase/roles';
 
 /**
  * Rola do czasu ustalenia prawdziwej — najniższy poziom, żeby guardy
@@ -40,6 +40,15 @@ export function useAdminAuth() {
   // inaczej admin wchodzący wprost na /admin/team zawsze lądował na
   // przeglądzie, bo w chwili sprawdzenia rola była jeszcze nieznana.
   const [roleReady, setRoleReady] = useState(false);
+  /**
+   * Imię nadane przez admina w zakładce zespołu — nim podpisują się wpisy.
+   *
+   * Trzymane przy wpisie członka, a nie w koncie Firebase, bo imienia w cudzym
+   * koncie nie da się zmienić z panelu; efektem były trzy zapisy tej samej
+   * osoby („Adam", „ADam", adres e-mail). Gdy admin nic nie nadał, zostaje to,
+   * co poda samo konto.
+   */
+  const [teamName, setTeamName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let disposed = false;
@@ -69,11 +78,13 @@ export function useAdminAuth() {
       // Bez użytkownika nie ma czego wczytywać — ROLE_UNKNOWN jest tu od razu
       // ostateczną (i poprawną) wartością, nie tymczasowym zgadywaniem.
       setRoleReady(!nextUser);
+      setTeamName(undefined);
       if (nextUser) {
-        void loadRole(nextUser.uid, nextUser.email).then((resolved) => {
+        void loadAccount(nextUser.uid, nextUser.email).then((resolved) => {
           // Tylko gdy to wciąż aktualne logowanie i komponent żyje.
           if (!disposed && gen === authGen) {
-            setRole(resolved);
+            setRole(resolved.role);
+            setTeamName(resolved.name);
             setRoleReady(true);
           }
         });
@@ -128,6 +139,15 @@ export function useAdminAuth() {
     }
   };
 
+  /**
+   * Podpis pod wpisami tej osoby — jedno miejsce dla całego panelu.
+   *
+   * Kolejność: imię nadane przez admina, potem to, co poda konto, na końcu
+   * adres e-mail. Wcześniej każdy panel składał to sobie sam i wychodziły
+   * z tego różne zapisy tej samej osoby.
+   */
+  const displayName = teamName || user?.displayName || user?.email || 'Zespół';
+
   return {
     user,
     checking,
@@ -138,5 +158,6 @@ export function useAdminAuth() {
     setDisplayName,
     role,
     roleReady,
+    displayName,
   };
 }

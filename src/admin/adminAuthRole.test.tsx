@@ -18,10 +18,15 @@ const onAuthStateChanged = vi.fn((_auth: unknown, cb: (u: unknown) => void) => {
   return vi.fn();
 });
 
+// Rozwiązywane ręcznie w teście, żeby dało się sterować kolejnością odpowiedzi
+// dla dwóch kont (wyścig przy przelogowaniu). Hook czyta rolę i imię jednym
+// wywołaniem `loadAccount`, więc atrapa oddaje obiekt, nie samą rolę.
 const roleResolvers: Record<string, (r: Role) => void> = {};
-const loadRole = vi.fn(
+const loadAccount = vi.fn(
   (uid: string, _email?: string | null) =>
-    new Promise<Role>((resolve) => { roleResolvers[uid] = resolve; }),
+    new Promise<{ role: Role }>((resolve) => {
+      roleResolvers[uid] = (role: Role) => resolve({ role });
+    }),
 );
 
 vi.mock('firebase/auth', () => ({
@@ -33,7 +38,7 @@ vi.mock('firebase/auth', () => ({
 }));
 vi.mock('../firebase/client', () => ({ auth: {} }));
 vi.mock('../firebase/roles', () => ({
-  loadRole: (uid: string, email: string | null) => loadRole(uid, email),
+  loadAccount: (uid: string, email: string | null) => loadAccount(uid, email),
   DEFAULT_ROLE: 'coworker',
 }));
 
@@ -42,7 +47,7 @@ const { useAdminAuth } = await import('./useAdminAuth');
 beforeEach(() => {
   authCb = null;
   onAuthStateChanged.mockClear();
-  loadRole.mockClear();
+  loadAccount.mockClear();
   for (const k of Object.keys(roleResolvers)) delete roleResolvers[k];
 });
 

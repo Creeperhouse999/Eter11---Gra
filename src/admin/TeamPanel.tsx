@@ -70,6 +70,14 @@ export function roleGuardReason(
  */
 export function TeamPanel({ currentUid }: TeamPanelProps) {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  /**
+   * Imiona w trakcie wpisywania, per konto.
+   *
+   * Osobno od `members`, bo ta lista przychodzi z bazy na żywo — gdyby pole
+   * czytało wprost z niej, każdy cudzy zapis kasowałby to, co admin właśnie
+   * wpisuje. Wpis zostaje tu do momentu wyjścia z pola.
+   */
+  const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState('');
   const [newUid, setNewUid] = useState('');
@@ -114,6 +122,30 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       toast(color ? `${member.email}: nowy kolor.` : `${member.email}: kolor domyślny.`, 'success');
     } catch {
       toast('Nie udało się zmienić koloru.', 'danger');
+    }
+  };
+
+  /**
+   * Imię, którym podpisują się wpisy tej osoby.
+   *
+   * Ustawia je tutaj admin, bo imienia w cudzym koncie nie da się zmienić
+   * z aplikacji — a bez jednego miejsca ta sama osoba podpisywała się raz
+   * „Adam", raz „ADam", raz adresem e-mail. Puste pole znaczy „wróć do tego,
+   * co poda samo konto".
+   */
+  const saveName = async (member: TeamMember) => {
+    const next = (names[member.uid] ?? member.name ?? '').trim();
+    // Bez zmiany nie ma po co pisać do bazy — `onBlur` odpala się przy każdym
+    // wyjściu z pola, także gdy nikt nic nie wpisał.
+    if (next === (member.name ?? '')) return;
+
+    try {
+      await setRole({ ...member, name: next || undefined });
+      toast(next ? `${member.email}: podpisuje się „${next}".` : `${member.email}: imię z konta.`, 'success');
+    } catch {
+      toast('Nie udało się zapisać imienia.', 'danger');
+      // Cofamy pole do stanu z bazy, żeby nie pokazywało zmiany, której nie ma.
+      setNames((prev) => ({ ...prev, [member.uid]: member.name ?? '' }));
     }
   };
 
@@ -229,7 +261,7 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
             className="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-surface p-3"
           >
             {/* Podgląd — dokładnie ten awatar, który zobaczą inni w wątkach. */}
-            <Avatar name={member.email} color={member.color} size={32} />
+            <Avatar name={member.name || member.email} color={member.color} size={32} />
 
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">{member.email}</span>
@@ -237,6 +269,24 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
                 {member.uid}
               </span>
             </span>
+
+            <div className="w-40 shrink-0">
+              <TextField
+                label="Imię"
+                value={names[member.uid] ?? member.name ?? ''}
+                placeholder={member.email.split('@')[0]}
+                maxLength={40}
+                onChange={(e) =>
+                  setNames((prev) => ({ ...prev, [member.uid]: e.target.value }))
+                }
+                // Zapis po wyjściu z pola, nie po każdej literze: inaczej każde
+                // naciśnięcie klawisza szłoby do bazy.
+                onBlur={() => void saveName(member)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                }}
+              />
+            </div>
 
             <div className="flex w-40 shrink-0 items-end gap-1">
               <div className="min-w-0 flex-1">

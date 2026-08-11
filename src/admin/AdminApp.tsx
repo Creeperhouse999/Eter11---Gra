@@ -327,7 +327,7 @@ export function AdminApp() {
       void recordVersion({
         content,
         previous: savedContent,
-        author: auth.user?.displayName || auth.user?.email || 'Zespół',
+        author: auth.displayName,
         at: result.updatedAt ?? new Date().toISOString(),
       }).catch(() => {
         // Cicho: brak wpisu w historii nie jest powodem, by straszyć
@@ -744,7 +744,7 @@ export function AdminApp() {
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
         {tab === 'reports' && (
           <ReportsPanel
-            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            author={auth.displayName}
             role={auth.role}
             // Filtr statusu to pod-zakładka (`/admin/reports/fixed`); nieznany
             // slug zostawia widok domyślny. Otwarte zgłoszenie żyje w query
@@ -767,7 +767,7 @@ export function AdminApp() {
             zanim jeszcze wiadomo, czy zalogowany w ogóle ma do tego prawo. */}
         {tab === 'discussions' && canDiscuss(auth.role) && (
           <DiscussionsPanel
-            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            author={auth.displayName}
             role={auth.role}
             // Przełącznik otwarte/ustalone żyje w adresie (`?closed=1`), więc
             // link wprost do listy ustalonych da się wysłać dalej.
@@ -777,7 +777,7 @@ export function AdminApp() {
         )}
         {tab === 'memory' && (
           <MemoryPanel
-            author={auth.user?.displayName || auth.user?.email || 'Zespół'}
+            author={auth.displayName}
             authorUid={auth.user?.uid ?? ''}
             role={auth.role}
           />
@@ -799,8 +799,9 @@ export function AdminApp() {
         {tab === 'account' && (
           <AccountPanel
             email={auth.user?.email ?? null}
-            displayName={auth.user?.displayName ?? null}
-            onSaveName={auth.setDisplayName}
+            // Ten sam podpis, który trafia pod wpisy — imię nadane przez
+            // admina, a gdy go nie ma, to co poda samo konto.
+            displayName={auth.displayName}
           />
         )}
         </div>

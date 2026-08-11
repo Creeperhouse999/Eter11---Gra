@@ -1,53 +1,36 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ToastProvider } from '../ui/controls/Toast';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { AccountPanel } from './AccountPanel';
 
 /**
- * Zapis imienia konta.
+ * Konto pokazuje, kim jesteś — ale imienia się tu nie zmienia.
  *
- * Regresja: Enter w polu sprawdzał tylko `nameChanged`, nie długość — więc
- * wyczyszczenie pola i Enter zapisywało PUSTE imię (wymazywało je), choć
- * przycisk „Zapisz" był wtedy wyłączony. Do tego zapis szedł nieprzycięty.
+ * Wcześniej każdy wpisywał je sobie sam (`displayName` konta) i ta sama osoba
+ * podpisywała się raz „Adam", raz „ADam", raz adresem e-mail; uporządkować się
+ * tego nie dało, bo imienia w cudzym koncie zmienić nie można. Teraz nadaje je
+ * admin przy wpisie członka, a Konto ma je tylko pokazać — gdyby wróciło tu
+ * pole edycji, podpisy znów zaczęłyby się rozjeżdżać.
  */
-const renderPanel = (
-  displayName: string | null,
-  onSaveName: (n: string) => Promise<{ ok: boolean; error?: string }> = vi.fn(async () => ({ ok: true })),
-) => {
-  render(
-    <ToastProvider>
-      <AccountPanel email="a@x" displayName={displayName} onSaveName={onSaveName} />
-    </ToastProvider>,
-  );
-  return onSaveName;
-};
-
-describe('AccountPanel — imię', () => {
-  it('Enter przy pustym polu nie zapisuje (nie wymazuje imienia)', () => {
-    const onSaveName = renderPanel('Jan');
-    const input = screen.getByLabelText('Twoje imię');
-
-    fireEvent.change(input, { target: { value: '' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(onSaveName).not.toHaveBeenCalled();
+describe('AccountPanel', () => {
+  it('pokazuje imię, którym podpisują się wpisy', () => {
+    render(<AccountPanel email="adam@eter11.pl" displayName="Adam" />);
+    expect(screen.getByText('Adam')).toBeTruthy();
   });
 
-  it('Enter zapisuje przycięte imię', () => {
-    const onSaveName = renderPanel('Jan');
-    const input = screen.getByLabelText('Twoje imię');
-
-    fireEvent.change(input, { target: { value: '  Nowy  ' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    // Bez fixu: '  Nowy  ' (nieprzycięte). Z fixem: 'Nowy'.
-    expect(onSaveName).toHaveBeenCalledWith('Nowy');
+  it('pokazuje adres konta', () => {
+    render(<AccountPanel email="adam@eter11.pl" displayName="Adam" />);
+    expect(screen.getByText('adam@eter11.pl')).toBeTruthy();
   });
 
-  it('przycisk „Zapisz" jest wyłączony przy pustym polu', () => {
-    renderPanel('Jan');
-    fireEvent.change(screen.getByLabelText('Twoje imię'), { target: { value: '   ' } });
+  it('bez nadanego imienia pokazuje adres zamiast pustego miejsca', () => {
+    render(<AccountPanel email="adam@eter11.pl" displayName={null} />);
+    // Adres pojawia się dwa razy: jako konto i jako podpis zastępczy.
+    expect(screen.getAllByText('adam@eter11.pl').length).toBeGreaterThan(1);
+  });
 
-    expect((screen.getByRole('button', { name: /Zapisz/ }) as HTMLButtonElement).disabled).toBe(true);
+  it('nie da się tu zmienić imienia', () => {
+    render(<AccountPanel email="adam@eter11.pl" displayName="Adam" />);
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Zapisz/ })).toBeNull();
   });
 });
