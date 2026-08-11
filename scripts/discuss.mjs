@@ -1,0 +1,211 @@
+/**
+ * Dyskusje zespołu z terminala — zakładanie wątków i odpowiadanie.
+ *
+ * Odpowiednik `mark-report.mjs`, tylko dla kolekcji `discussions`. Loguje się
+ * kontem redakcyjnym przez REST Auth (to samo, co robi panel), więc pod
+ * wypowiedzią stoi prawdziwe imię z konta — reguły Firestore i tak wpuszczają
+ * zapis tylko zalogowanemu członkowi zespołu.
+ *
+ * Wątek jest append-only: reguły pozwalają wyłącznie DOPISAĆ jedną wypowiedź
+ * na końcu (`messages[0:n] == stare`), nigdy podmienić cudzej. Skrypt trzyma
+ * się tego samego — czyta wątek, dokłada jedną wypowiedź, zapisuje.
+ *
+ * Użycie:
+ *   node scripts/discuss.mjs --list
+ *   node scripts/discuss.mjs new "<tytuł>" "<treść pierwszej wypowiedzi>"
+ *   node scripts/discuss.mjs reply "<fragment tytułu>" "<treść odpowiedzi>"
+ */
+import { readFileSync } from 'node:fs';
+
+const API_KEY = 'AIzaSyAaA1OJrJSjmDU7RPo6KXv0HhzVG9OI1X0';
+const PROJECT = 'savetheworld-eter11';
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+/** Podpis pod wypowiedziami — rola programisty w tym zespole nazywa się Claude. */
+const AUTHOR = 'Claude';
+
+/** Wczytuje .env ręcznie — bez zależności, tylko KLUCZ=wartość. */
+function loadEnv() {
+  try {
+    const text = readFileSync(new URL('../.env', import.meta.url), 'utf-8');
+    const env = {};
+    for (const line of text.split('\n')) {
+      const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/);
+      if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+// Zmienne środowiskowe procesu mają pierwszeństwo przed .env — dzięki temu
+// skrypt działa i lokalnie, i w CI (sekrety przez process.env).
+const env = { ...loadEnv(), ...process.env };
+const EMAIL = env.BOT_EMAIL ?? env.ADMIN_EMAIL;
+const PASSWORD = env.BOT_PASSWORD ?? env.ADMIN_PASSWORD;
+
+if (!EMAIL || !PASSWORD) {
+  console.error('Brak BOT_EMAIL / BOT_PASSWORD (albo ADMIN_*) w .env.');
+  process.exit(1);
+}
+
+async function signIn() {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: EMAIL, password: PASSWORD, returnSecureToken: true }),
+    },
+  );
+  const data = await res.json();
+  if (data.error) throw new Error(`Logowanie nieudane: ${data.error.message}`);
+  return data.idToken;
+}
+
+const field = (doc, name) =>
+  doc.fields?.[name]?.stringValue ?? doc.fields?.[name]?.timestampValue ?? '';
+
+/** Wypowiedzi wątku w postaci zwykłych obiektów. */
+function readMessages(doc) {
+  const values = doc.fields?.messages?.arrayValue?.values ?? [];
+  return values.map((v) => {
+    const f = v.mapValue?.fields ?? {};
+    return {
+      author: f.author?.stringValue ?? '',
+      text: f.text?.stringValue ?? '',
+      at: f.at?.stringValue ?? '',
+      ...(f.image?.stringValue ? { image: f.image.stringValue } : {}),
+    };
+  });
+}
+
+/** Wypowiedzi z powrotem do formatu Firestore REST. */
+function writeMessages(messages) {
+  return {
+    arrayValue: {
+      values: messages.map((m) => ({
+        mapValue: {
+          fields: {
+            author: { stringValue: m.author },
+            text: { stringValue: m.text },
+            at: { stringValue: m.at },
+            ...(m.image ? { image: { stringValue: m.image } } : {}),
+          },
+        },
+      })),
+    },
+  };
+}
+
+async function listDiscussions() {
+  const res = await fetch(`${BASE}/discussions?key=${API_KEY}&pageSize=100`);
+  const data = await res.json();
+  return (data.documents ?? []).sort((a, b) =>
+    field(b, 'createdAt').localeCompare(field(a, 'createdAt')),
+  );
+}
+
+const [, , command, ...rest] = process.argv;
+
+if (!command || command === '--list') {
+  const threads = await listDiscussions();
+  console.log(`Wątków: ${threads.length}\n`);
+  for (const doc of threads) {
+    const count = readMessages(doc).length;
+    const closed = doc.fields?.closed?.booleanValue ? ' [ustalone]' : '';
+    console.log(`[${String(count).padStart(2)} wyp.]${closed} ${field(doc, 'title')}`);
+  }
+  if (!command) {
+    console.log('\nUżycie:');
+    console.log('  node scripts/discuss.mjs new "<tytuł>" "<treść>"');
+    console.log('  node scripts/discuss.mjs reply "<fragment tytułu>" "<treść>"');
+  }
+  process.exit(0);
+}
+
+const now = new Date().toISOString();
+
+if (command === 'new') {
+  const [title, description] = rest;
+  if (!title || !description) {
+    console.error('Użycie: node scripts/discuss.mjs new "<tytuł>" "<treść>"');
+    process.exit(1);
+  }
+
+  const token = await signIn();
+  // Identyfikatorem jest znacznik czasu — jak w historii treści, sortowanie po
+  // nazwie dokumentu daje kolejność chronologiczną bez dodatkowego indeksu.
+  const id = now;
+  const res = await fetch(`${BASE}/discussions/${encodeURIComponent(id)}?key=${API_KEY}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      fields: {
+        title: { stringValue: title },
+        description: { stringValue: description },
+        author: { stringValue: AUTHOR },
+        createdAt: { stringValue: now },
+        messages: { arrayValue: { values: [] } },
+      },
+    }),
+  });
+  const result = await res.json();
+  if (result.error) {
+    console.error(`Nie udało się założyć wątku: ${result.error.message}`);
+    process.exit(1);
+  }
+  console.log(`✓ Założono wątek „${title}" (jako ${AUTHOR})`);
+  process.exit(0);
+}
+
+if (command === 'reply') {
+  const [query, text] = rest;
+  if (!query || !text) {
+    console.error('Użycie: node scripts/discuss.mjs reply "<fragment tytułu>" "<treść>"');
+    process.exit(1);
+  }
+
+  const threads = await listDiscussions();
+  const needle = query.toLowerCase();
+  const matches = threads.filter((d) => field(d, 'title').toLowerCase().includes(needle));
+
+  if (matches.length === 0) {
+    console.error(`Nie znaleziono wątku z tytułem zawierającym „${query}".`);
+    process.exit(1);
+  }
+  if (matches.length > 1) {
+    console.error('Wiele pasujących wątków — doprecyzuj tytuł:');
+    for (const doc of matches) console.error(`  - ${field(doc, 'title')}`);
+    process.exit(1);
+  }
+
+  const doc = matches[0];
+  const id = doc.name.split('/').pop();
+  const token = await signIn();
+
+  // Dopisujemy JEDNĄ wypowiedź na końcu — reguły odrzucą każdą inną zmianę
+  // historii wątku (stare wypowiedzi muszą zostać nietknięte).
+  const messages = readMessages(doc);
+  messages.push({ author: AUTHOR, text, at: now });
+
+  const res = await fetch(
+    `${BASE}/discussions/${encodeURIComponent(id)}?key=${API_KEY}&updateMask.fieldPaths=messages`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ fields: { messages: writeMessages(messages) } }),
+    },
+  );
+  const result = await res.json();
+  if (result.error) {
+    console.error(`Nie udało się dopisać wypowiedzi: ${result.error.message}`);
+    process.exit(1);
+  }
+  console.log(`✓ Odpowiedziano w „${field(doc, 'title')}" (jako ${AUTHOR})`);
+  process.exit(0);
+}
+
+console.error(`Nieznane polecenie: ${command}. Dozwolone: --list, new, reply.`);
+process.exit(1);

@@ -128,8 +128,9 @@ describe('ReportsPanel — podpis autora notatki', () => {
     );
 
     openReport();
-    // Etykieta strony obiegu pisana wielką literą, jak inne role (Admin, Co-admin…).
-    expect(await screen.findByText('Programista')).toBeTruthy();
+    // Stara notatka bez `author` po stronie naprawiającego podpisuje się „Claude"
+    // — tak nazywa się ta rola w zespole (wcześniej: „Programista").
+    expect(await screen.findByText('Claude')).toBeTruthy();
   });
 });
 
