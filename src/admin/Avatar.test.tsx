@@ -31,4 +31,29 @@ describe('Avatar', () => {
     const { container } = render(<Avatar name="" />);
     expect(container.textContent).toBe('?');
   });
+
+  it('zespół ma swoje stałe kolory, każdy inny', () => {
+    // Kolor z sumy znaków trafiał kilka osób w ten sam odcień — w wątku
+    // wyglądali tak samo. Ustalone kolory: Claude pomarańczowy, Alan
+    // jasnoniebieski, Adam czerwony, Marcin zielony, Joanna purpurowa.
+    const colorOf = (name: string) =>
+      (render(<Avatar name={name} />).container.firstChild as HTMLElement).style.background;
+
+    const team = ['Claude', 'Alan', 'Adam', 'Marcin', 'Joanna'].map(colorOf);
+    expect(new Set(team).size).toBe(team.length);
+    // Żaden nie spada do palety kategorii (te są zmiennymi CSS).
+    team.forEach((color) => expect(color).not.toContain('var('));
+  });
+
+  it('kolor nie zależy od zapisu imienia', () => {
+    // Podpis bywa raz „Adam", raz „adam", raz z nazwiskiem albo adresem —
+    // to wciąż ta sama osoba, więc kolor musi być ten sam.
+    const colorOf = (name: string) =>
+      (render(<Avatar name={name} />).container.firstChild as HTMLElement).style.background;
+
+    const expected = colorOf('Adam');
+    expect(colorOf('adam')).toBe(expected);
+    expect(colorOf('  Adam  ')).toBe(expected);
+    expect(colorOf('Adam Kotlorz')).toBe(expected);
+  });
 });
