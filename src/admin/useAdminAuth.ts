@@ -31,6 +31,15 @@ export function useAdminAuth() {
   // Rola zalogowanego — decyduje, co widać i wolno w panelu. Startuje jako
   // nieznana (najniższy poziom) do czasu odczytu.
   const [role, setRole] = useState<Role>(ROLE_UNKNOWN);
+  // Czy `role` to już PRAWDZIWA, odczytana wartość — nie tylko domyślna
+  // ROLE_UNKNOWN sprzed odczytu. Bez tego rozróżnienia panel nie umie
+  // odróżnić „ta osoba naprawdę nie ma dostępu" od „jeszcze nie wiadomo",
+  // a te dwa stany wymagają różnej reakcji: zakładka niedozwolona dla
+  // faktycznej roli ma cofnąć na przegląd, ale zakładka z adresu (deep link)
+  // nie może zostać cofnięta tylko dlatego, że rola jeszcze się wczytuje —
+  // inaczej admin wchodzący wprost na /admin/team zawsze lądował na
+  // przeglądzie, bo w chwili sprawdzenia rola była jeszcze nieznana.
+  const [roleReady, setRoleReady] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -57,10 +66,16 @@ export function useAdminAuth() {
       setChecking(false);
       // Rola nieznana do czasu odczytu — do wtedy blokujemy uprawnienia.
       setRole(ROLE_UNKNOWN);
+      // Bez użytkownika nie ma czego wczytywać — ROLE_UNKNOWN jest tu od razu
+      // ostateczną (i poprawną) wartością, nie tymczasowym zgadywaniem.
+      setRoleReady(!nextUser);
       if (nextUser) {
         void loadRole(nextUser.uid, nextUser.email).then((resolved) => {
           // Tylko gdy to wciąż aktualne logowanie i komponent żyje.
-          if (!disposed && gen === authGen) setRole(resolved);
+          if (!disposed && gen === authGen) {
+            setRole(resolved);
+            setRoleReady(true);
+          }
         });
       }
     });
@@ -122,5 +137,6 @@ export function useAdminAuth() {
     logout,
     setDisplayName,
     role,
+    roleReady,
   };
 }

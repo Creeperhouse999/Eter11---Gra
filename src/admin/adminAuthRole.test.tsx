@@ -78,4 +78,34 @@ describe('useAdminAuth — rola', () => {
     });
     expect(result.current.role).toBe('co-admin');
   });
+
+  /**
+   * `roleReady` odróżnia „naprawdę viewer" od „jeszcze nie wiadomo" — bez
+   * tego AdminApp nie umiał odróżnić tych dwóch stanów i cofał deep-linki do
+   * zakładek wymagających roli (Zespół/Dyskusja/Historia) na przegląd nawet
+   * dla użytkowników, którzy mieli do nich prawo — patrz
+   * adminAppRestrictedTabGuard.test.tsx.
+   */
+  it('roleReady: fałsz do czasu odczytu roli, prawda po jej ustaleniu', async () => {
+    const { result } = renderHook(() => useAdminAuth());
+    expect(result.current.roleReady).toBe(false);
+
+    act(() => authCb!({ uid: 'u1', email: 'a@x' }));
+    // Zalogowano, ale loadRole jeszcze nie rozwiązane.
+    expect(result.current.roleReady).toBe(false);
+
+    await act(async () => {
+      roleResolvers['u1']('admin');
+    });
+    expect(result.current.roleReady).toBe(true);
+  });
+
+  it('roleReady: prawda od razu, gdy nikt nie jest zalogowany — nie ma czego wczytywać', () => {
+    const { result } = renderHook(() => useAdminAuth());
+
+    act(() => authCb!(null));
+
+    expect(result.current.roleReady).toBe(true);
+    expect(result.current.role).toBe('viewer');
+  });
 });

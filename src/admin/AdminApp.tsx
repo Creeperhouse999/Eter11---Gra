@@ -130,10 +130,18 @@ export function AdminApp() {
   // z adresu (np. /admin/team) może być widoczna, zanim okaże się, że ta
   // rola jej nie ma. Gdy rola dojedzie i aktywna zakładka nie jest dla niej
   // dozwolona, wracamy na przegląd — inaczej edytor zobaczyłby listę kont.
+  //
+  // `auth.roleReady` musi bramkować ten efekt, nie tylko `tabAllowed` —
+  // dopóki rola się nie ustali, jest tymczasowo `viewer` (ROLE_UNKNOWN, patrz
+  // useAdminAuth), a `visibleTabs` liczony z niej wyklucza Zespół/Dyskusję/
+  // Historię dla KAŻDEGO, łącznie z prawdziwym adminem. Bez tej bramki efekt
+  // odpalał się już na samym montażu panelu — ZANIM logowanie w ogóle się
+  // rozstrzygnęło — i cofał każdy deep-link do tych zakładek na przegląd, nie
+  // tylko dla kogoś bez uprawnień.
   const tabAllowed = visibleTabs.some((item) => item.key === tab);
   useEffect(() => {
-    if (!tabAllowed) setTab('overview');
-  }, [tabAllowed]);
+    if (auth.roleReady && !tabAllowed) setTab('overview');
+  }, [tabAllowed, auth.roleReady]);
 
   // Nowa zakładka zaczyna się od góry. Bez tego przejście z długiej listy
   // (karty) na krótszą (konto) zostawiało widok przewinięty w połowie, na
@@ -734,8 +742,16 @@ export function AdminApp() {
           />
         )}
         {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
-            ma stać podpis, którego nie da się podszyć. */}
-        {tab === 'discussions' && (
+            ma stać podpis, którego nie da się podszyć.
+
+            Zakładki poniżej sprawdzają rolę WPROST, nie tylko przez
+            `visibleTabs`/`tabAllowed` (które gatują tylko przyciski nawigacji
+            i przekierowanie) — dopóki rola się nie ustali (`auth.roleReady`),
+            jest tymczasowo `viewer`, a `tab` może wciąż być tym z adresu
+            (deep link). Bez tego sprawdzenia tutaj panel montowałby np.
+            TeamPanel — który od razu pyta o listę kont/ról — na tę chwilę,
+            zanim jeszcze wiadomo, czy zalogowany w ogóle ma do tego prawo. */}
+        {tab === 'discussions' && canDiscuss(auth.role) && (
           <DiscussionsPanel
             author={auth.user?.displayName || auth.user?.email || 'Zespół'}
             role={auth.role}
@@ -746,8 +762,10 @@ export function AdminApp() {
           />
         )}
         {tab === 'stats' && <StatsPanel content={content} />}
-        {tab === 'team' && auth.user && <TeamPanel currentUid={auth.user.uid} />}
-        {tab === 'history' && (
+        {tab === 'team' && auth.user && canManageRoles(auth.role) && (
+          <TeamPanel currentUid={auth.user.uid} />
+        )}
+        {tab === 'history' && canViewHistory(auth.role) && (
           <HistoryPanel
             currentVersion={baseVersion}
             onRestore={(restored) => {
