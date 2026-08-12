@@ -24,6 +24,77 @@ const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/
 /** Podpis pod wypowiedziami — rola programisty w tym zespole nazywa się Claude. */
 const AUTHOR = 'Claude';
 
+/** Znacznik czasu tej operacji — jeden dla wpisu i powiadomień o nim. */
+const now = new Date().toISOString();
+
+/**
+ * Powiadamia tych, którzy w wątku już zabrali głos.
+ *
+ * Panel robi to przy każdej odpowiedzi, a ten skrypt do tej pory NIE — więc
+ * gdy pisałem z terminala, nikt się o tym nie dowiadywał. Alan zauważył to po
+ * pustym dzwonku mimo pięciu moich wypowiedzi w wątkach tego samego dnia.
+ *
+ * Kogo powiadamiamy: założyciela wątku i wszystkich, którzy w nim odpisali —
+ * ale nie tego, kto właśnie pisze. To nie ogłoszenie dla całego zespołu, tylko
+ * ciąg dalszy CZYJEJŚ rozmowy.
+ *
+ * Podpisy w wątkach to imiona, nie konta, więc most robimy tak samo jak panel:
+ * po imieniu z wpisu roli, po adresie i po jego części przed małpą.
+ */
+async function powiadomUczestnikow(token, { tytul, id, poprzednieWypowiedzi, zalozyciel, tresc }) {
+  const zainteresowani = new Set(
+    [zalozyciel, ...poprzednieWypowiedzi.map((m) => m.author)].filter(Boolean),
+  );
+  zainteresowani.delete(AUTHOR);
+  if (zainteresowani.size === 0) return;
+
+  const res = await fetch(`${BASE}/roles?key=${API_KEY}&pageSize=100`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const dane = await res.json();
+  if (dane.error) return; // Powiadomienie to dodatek — brak listy nie psuje wpisu.
+
+  const zespol = (dane.documents ?? []).map((doc) => ({
+    uid: doc.name.split('/').pop(),
+    email: doc.fields?.email?.stringValue ?? '',
+    name: doc.fields?.name?.stringValue ?? '',
+  }));
+
+  const uidy = new Set();
+  for (const podpis of zainteresowani) {
+    const szukany = podpis.trim().toLowerCase();
+    for (const osoba of zespol) {
+      const email = osoba.email.trim().toLowerCase();
+      if (
+        osoba.name.trim().toLowerCase() === szukany ||
+        email === szukany ||
+        email.split('@')[0] === szukany
+      ) {
+        uidy.add(osoba.uid);
+      }
+    }
+  }
+
+  for (const uid of uidy) {
+    await fetch(`${BASE}/notifications?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        fields: {
+          uid: { stringValue: uid },
+          kind: { stringValue: 'discussion-reply' },
+          title: { stringValue: `${AUTHOR} odpisał(a) w wątku „${tytul}"` },
+          body: { stringValue: tresc.trim().slice(0, 140) },
+          from: { stringValue: AUTHOR },
+          link: { stringValue: `/admin/discussions?open=${id}` },
+          createdAt: { stringValue: now },
+          read: { booleanValue: false },
+        },
+      }),
+    }).catch(() => {});
+  }
+}
+
 /** Wczytuje .env ręcznie — bez zależności, tylko KLUCZ=wartość. */
 function loadEnv() {
   try {
@@ -125,7 +196,6 @@ if (!command || command === '--list') {
   process.exit(0);
 }
 
-const now = new Date().toISOString();
 
 if (command === 'new') {
   const [title, description] = rest;
@@ -203,6 +273,14 @@ if (command === 'reply') {
     console.error(`Nie udało się dopisać wypowiedzi: ${result.error.message}`);
     process.exit(1);
   }
+  await powiadomUczestnikow(token, {
+    tytul: field(doc, 'title'),
+    id,
+    poprzednieWypowiedzi: messages.slice(0, -1),
+    zalozyciel: field(doc, 'author'),
+    tresc: text,
+  });
+
   console.log(`✓ Odpowiedziano w „${field(doc, 'title')}" (jako ${AUTHOR})`);
   process.exit(0);
 }

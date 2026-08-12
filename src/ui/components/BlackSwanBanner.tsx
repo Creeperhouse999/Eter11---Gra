@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { BlackSwanEvent, BlackSwanKind } from '../../engine/types';
 import { Button } from '../controls/Button';
 import { Icon } from '../icons/Icon';
+import { counted } from '../plural';
 
 interface BlackSwanBannerProps {
   events: BlackSwanEvent[];
@@ -100,9 +101,13 @@ export function BlackSwanBanner({ events, onDismiss }: BlackSwanBannerProps) {
               Czarny Łabędź
             </span>
             <p className="font-display text-lg font-bold leading-tight">
+              {/* Odmiana przez `counted`, nie na sztywno: zdarzenia kumulują
+                  się, dopóki dziecko nie zamknie okna, więc przy dłuższej
+                  partii może ich być pięć i więcej — a wtedy „5 niespodzianki"
+                  brzmi jak błąd w grze, która uczy czytać. */}
               {events.length === 1
                 ? 'Coś poszło nie tak'
-                : `${events.length} niespodzianki naraz`}
+                : `${counted(events.length, 'niespodzianka', 'niespodzianki', 'niespodzianek')} naraz`}
             </p>
           </div>
         </div>

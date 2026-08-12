@@ -418,8 +418,14 @@ service cloud.firestore {
                     && request.resource.data.get('from', '') is string
                     && request.resource.data.get('from', '').size() <= 60
                     && request.resource.data.get('link', '') is string
+                    // Dwukropek i kropka są konieczne: identyfikatorem wątku
+                    // jest znacznik czasu (`?open=2026-08-12T15:23:21.928Z`),
+                    // więc bez nich reguła odrzucała KAŻDE powiadomienie
+                    // o odpowiedzi w dyskusji — cicho, bo panel wysyła je
+                    // w tle. Nadal bez dwukropka na POCZĄTKU, żeby nie dało
+                    // się wstawić `javascript:` ani adresu zewnętrznego.
                     && request.resource.data.get('link', '')
-                         .matches('^(/[A-Za-z0-9/_?=&#-]{0,200})?$')
+                         .matches('^(/[A-Za-z0-9/_?=&#:.-]{0,200})?$')
                     && request.resource.data.read == false;
 
       // Oznaczenie jako przeczytane — nic poza tym.
