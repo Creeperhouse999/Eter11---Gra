@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   watchTeam,
   setRole,
-  removeRole,
   ROLE_LABELS,
   ROLE_HINTS,
   ROOT_ADMIN_EMAIL,
@@ -86,6 +85,10 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
    */
   const [removals, setRemovals] = useState<AccountRemoval[]>([]);
   useEffect(() => watchRemovals(setRemovals), []);
+  /** Konta ze zleceniem, którego jeszcze nie wykonano — kosz im nie przysługuje. */
+  const pendingRemoval = new Set(
+    removals.filter((item) => !item.doneAt).map((item) => item.uid),
+  );
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState('');
   const [newUid, setNewUid] = useState('');
@@ -259,35 +262,6 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
       return;
     }
     toast(`${member.email}: konto zostanie usunięte w ciągu kilku minut.`, 'success');
-  };
-
-  const remove = async (member: TeamMember) => {
-    // Te same zabezpieczenia co przy zmianie roli — inaczej „kosz" na
-    // własnym wierszu obchodził je bokiem: usunięcie własnego wpisu cofa
-    // rolę do coworkera, a wtedy znika zakładka Zespół i nie ma jak
-    // przywrócić sobie admina (poza kontem założyciela). Guard MUSI stać
-    // przed potwierdzeniem, żeby dialog w ogóle się nie pokazał.
-    if (member.uid === currentUid) {
-      toast('Nie usuniesz własnego wpisu roli — stracił(a)byś dostęp do zarządzania zespołem.', 'danger');
-      return;
-    }
-    if (member.email === ROOT_ADMIN_EMAIL) {
-      toast('Wpisu konta założyciela nie da się usunąć.', 'danger');
-      return;
-    }
-    const confirmed = await confirm({
-      title: 'Usunąć wpis roli?',
-      message: `${member.email} wróci do domyślnej roli (coworker). Konto nie znika — tylko jego wpis roli.`,
-      confirmLabel: 'Usuń',
-      tone: 'danger',
-    });
-    if (!confirmed) return;
-    try {
-      await removeRole(member.uid);
-      toast('Wpis roli usunięty.');
-    } catch {
-      toast('Nie udało się usunąć wpisu roli.', 'danger');
-    }
   };
 
   return (
@@ -467,25 +441,28 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
               />
             </div>
 
-            <Button
-              size="sm"
-              variant="ghost"
-              icon="trash"
-              aria-label={`Usuń wpis roli ${member.email}`}
-              className="shrink-0 text-danger"
-              onClick={() => void remove(member)}
-            />
+            {/* Jeden kosz, i kasuje konto na stałe. Osobny przycisk „odbierz
+                rolę" tylko mylił: koncie podglądowemu PODNOSIŁ uprawnienia
+                (wracało do domyślnego coworkera), czyli robił odwrotność tego,
+                po co sięga się po kosz.
 
-            {/* Trwałe usunięcie konta — osobno od odebrania roli, bo tego nie
-                da się cofnąć. Zlecenie wykonuje Actions (patrz removeAccount). */}
-            <Button
-              size="sm"
-              variant="ghost"
-              icon="ban"
-              aria-label={`Usuń konto ${member.email} na stałe`}
-              className="shrink-0 text-danger"
-              onClick={() => void removeAccount(member)}
-            />
+                Gdy zlecenie już czeka, kosz ustępuje miejsca informacji —
+                konto znika dopiero po chwili (kasuje je Actions), a bez tego
+                admin klikałby w kółko, nie widząc żadnej zmiany. */}
+            {pendingRemoval.has(member.uid) ? (
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-danger">
+                Usuwanie…
+              </span>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="trash"
+                aria-label={`Usuń konto ${member.email} na stałe`}
+                className="shrink-0 text-danger"
+                onClick={() => void removeAccount(member)}
+              />
+            )}
           </li>
         ))}
       </ul>

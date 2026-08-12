@@ -60,6 +60,11 @@ Report-Fixed: <fragment tytułu zgłoszenia> | <krótki komentarz>
 ```
 Fragment musi jednoznacznie pasować do jednego zgłoszenia. Bez trailera oznaczanie się pomija (fix znaleziony samodzielnie, nie ze zgłoszenia → trailera nie dodawaj). Reguły Firestore (`--only firestore:rules` itd.) NIE są w tym workflow — jeśli zmieniasz reguły, wdróż je osobno ręcznie. Sekrety Actions (repo secrets): `FIREBASE_TOKEN`, `BOT_EMAIL`, `BOT_PASSWORD`.
 
+**Praca bez nadzoru:** gdy Alan idzie AFK i prosi o pętlę, trzymaj się
+[`docs/PETLA.md`](docs/PETLA.md) — zasada zerowa (nigdy nie kończ sam), oba
+źródła zgłoszeń, pisanie na bieżąco w dyskusjach i lista pułapek, które już raz
+kosztowały godziny.
+
 ## Pamięć zespołu (zakładka Pamięć w panelu)
 
 Panel ma zakładkę **Pamięć** — wspólny notatnik zespołu, kolekcja `memory` w Firestore. Jedno zdanie na wpis, bez tytułu; czyta go cały zespół razem z Tobą, więc kolejna sesja zaczyna się od tego, co już ustalone.

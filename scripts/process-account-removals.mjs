@@ -35,16 +35,11 @@ initializeApp({ credential: cert(credentials) });
 const auth = getAuth();
 const db = getFirestore();
 
-const pending = await db
-  .collection('accountRemovals')
-  .where('doneAt', '==', null)
-  .get()
-  .catch(() => null);
-
-// `where('doneAt','==',null)` nie łapie dokumentów BEZ tego pola, a takie
-// właśnie tworzy panel. Bierzemy więc wszystkie i filtrujemy u siebie —
-// zleceń są jednostki, nie tysiące.
-const snapshot = pending ?? (await db.collection('accountRemovals').get());
+// Bez zapytania po `doneAt`: Firestore pomija dokumenty, które tego pola NIE
+// MAJĄ — a panel tworzy zlecenia właśnie bez niego. Zapytanie kończyło się
+// więc powodzeniem i pustą listą, przez co skrypt raportował „brak zleceń",
+// choć czekały. Bierzemy wszystkie i filtrujemy u siebie; zleceń są jednostki.
+const snapshot = await db.collection('accountRemovals').get();
 const todo = snapshot.docs.filter((doc) => !doc.data().doneAt);
 
 if (todo.length === 0) {

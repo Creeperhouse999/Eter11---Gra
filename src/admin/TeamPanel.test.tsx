@@ -30,7 +30,9 @@ vi.mock('../firebase/roles', async (importOriginal) => {
 
 // Trwałe usunięcie konta zleca się przez osobną kolekcję — w teście atrapa,
 // żeby panel nie sięgał do prawdziwej bazy.
-const requestRemoval = vi.fn(async (_input: unknown) => ({ ok: true }));
+const requestRemoval = vi.fn(
+  async (_input: unknown): Promise<{ ok: boolean; error?: string }> => ({ ok: true }),
+);
 vi.mock('../firebase/accountRemovals', () => ({
   requestRemoval: (input: unknown) => requestRemoval(input),
   watchRemovals: (cb: (items: unknown[]) => void) => {
@@ -111,44 +113,6 @@ describe('TeamPanel — trwałe usunięcie konta', () => {
 });
 
 describe('TeamPanel — ochrona przed samo-wylogowaniem', () => {
-  it('nie usuwa własnego wpisu roli: pokazuje ostrzeżenie zamiast pytać o potwierdzenie', async () => {
-    team = [
-      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
-      { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
-    ];
-    renderPanel('me');
-
-    fireEvent.click(screen.getByLabelText('Usuń wpis roli admin@eter11.pl'));
-
-    // Buggy wersja otwierała dialog potwierdzenia — poprawka spina go PRZED.
-    expect(screen.queryByText('Usunąć wpis roli?')).toBeNull();
-    expect(await screen.findByText(/własnego wpisu/i)).toBeTruthy();
-    expect(removeRole).not.toHaveBeenCalled();
-  });
-
-  it('nie usuwa wpisu konta założyciela', async () => {
-    team = [{ uid: 'root', email: ROOT_ADMIN_EMAIL, role: 'admin' }];
-    renderPanel('me');
-
-    fireEvent.click(screen.getByLabelText(`Usuń wpis roli ${ROOT_ADMIN_EMAIL}`));
-
-    expect(screen.queryByText('Usunąć wpis roli?')).toBeNull();
-    expect(await screen.findByText(/założyciela/i)).toBeTruthy();
-    expect(removeRole).not.toHaveBeenCalled();
-  });
-
-  it('cudzy wpis nadal da się usunąć — pojawia się pytanie o potwierdzenie', async () => {
-    team = [
-      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
-      { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
-    ];
-    renderPanel('me');
-
-    fireEvent.click(screen.getByLabelText('Usuń wpis roli kolega@eter11.pl'));
-
-    // Dla cudzego konta „kosz" działa jak dotąd: prosi o potwierdzenie.
-    expect(await screen.findByText('Usunąć wpis roli?')).toBeTruthy();
-  });
 
   /**
    * „Nadaj rolę" obchodziło te same guardy, które ma changeRole/remove: admin
@@ -194,22 +158,23 @@ describe('TeamPanel — ochrona przed samo-wylogowaniem', () => {
   });
 
   /**
-   * Regresja: w odróżnieniu od `changeRole`/`add` w tym samym pliku, `remove`
-   * wołało `removeRole` bez try/catch — odrzucony zapis (reguły, wygasła
-   * sesja) kończył się niewyłapanym odrzuceniem obietnicy i CISZĄ: brak
-   * toasta, admin nie wie, że kliknięcie „Usuń" nic nie zrobiło.
+   * Odrzucony zapis (reguły, wygasła sesja) nie może kończyć się ciszą: bez
+   * komunikatu admin nie wie, że kliknięcie nic nie zrobiło, i klika dalej.
    */
-  it('nieudane usunięcie wpisu roli pokazuje komunikat błędu, nie ciszę', async () => {
+  it('nieudane zlecenie usunięcia pokazuje komunikat błędu, nie ciszę', async () => {
     team = [
       { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
       { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
     ];
-    removeRole.mockRejectedValueOnce(new Error('permission-denied'));
+    // Treść unikalna dla tego zlecenia: sama fraza „nie udało się" pojawia się
+    // też na liście nieudanych usunięć, więc przechodziłaby nawet bez toasta.
+    requestRemoval.mockResolvedValueOnce({ ok: false, error: 'Reguły odrzuciły zlecenie.' });
     renderPanel('me');
 
-    fireEvent.click(screen.getByLabelText('Usuń wpis roli kolega@eter11.pl'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Usuń' }));
+    fireEvent.click(screen.getByLabelText('Usuń konto kolega@eter11.pl na stałe'));
+    await screen.findByText('Usunąć konto na stałe?');
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń konto' }));
 
-    expect(await screen.findByText(/nie udało się/i)).toBeTruthy();
+    expect(await screen.findByText('Reguły odrzuciły zlecenie.')).toBeTruthy();
   });
 });
