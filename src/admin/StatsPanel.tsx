@@ -41,6 +41,16 @@ function Tile({ entry }: { entry: StatEntry }) {
  * wyliczyć z zawartości. Nie ma w nich nic o graczach: cztery liczby zbiorcze,
  * żadnych imion ani identyfikatorów.
  */
+/**
+ * Ile partii musi się uzbierać, zanim odsetek wygranych zacznie coś znaczyć.
+ *
+ * Przy jednej rozegranej wynik to zawsze 0% albo 100%, przy dwóch — 0, 50 lub
+ * 100. Kafel świecił więc ostrzeżeniem „poza widełkami" od pierwszej partii,
+ * a to najważniejsza liczba dla osoby układającej zasady: ktoś mógłby na jej
+ * podstawie zmienić próg wygranej, choć liczba jest jeszcze przypadkowa.
+ */
+const MIN_PARTII_DO_OCENY = 10;
+
 export function StatsPanel({ content }: StatsPanelProps) {
   const [play, setPlay] = useState<PlayStats>(EMPTY_STATS);
   const [reports, setReports] = useState<Report[]>([]);
@@ -112,10 +122,20 @@ export function StatsPanel({ content }: StatsPanelProps) {
               note:
                 winRate === null
                   ? 'za mało partii'
-                  : `${play.won} z ${play.finished} · cel: 60–75%`,
+                  : play.finished < MIN_PARTII_DO_OCENY
+                    ? `${play.won} z ${play.finished} — za mało, żeby coś z tego wnioskować`
+                    : `${play.won} z ${play.finished} · cel: 60–75%`,
               // Poza widełkami gra jest za łatwa albo za trudna, a to
               // najważniejsza liczba dla osoby układającej zasady.
-              warn: winRate !== null && (winRate < 60 || winRate > 75),
+              //
+              // Ale dopiero przy sensownej liczbie partii: przy jednej
+              // rozegranej wynik to zawsze 0% albo 100%, więc kafel świecił
+              // ostrzeżeniem „gra za łatwa" po pierwszej wygranej. Ktoś mógłby
+              // na tej podstawie ruszyć zasady, choć liczba nic nie znaczy.
+              warn:
+                winRate !== null &&
+                play.finished >= MIN_PARTII_DO_OCENY &&
+                (winRate < 60 || winRate > 75),
             }}
           />
           <Tile
