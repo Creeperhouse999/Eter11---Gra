@@ -113,7 +113,13 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'finish',
     goal: 'finish',
-    allow: ['play', 'swap'],
+    // Bez wymiany: każda zużywa rundę, a na tym kroku zostało ich niewiele.
+    // Dziecko, które zamiast położyć kartę kilka razy kliknęło „Wymieniam
+    // karty", przegrywało misję samouczka i utykało — dymek dalej prosił
+    // o dokończenie problemu, którego nie było już jak dokończyć. Tutaj
+    // wymiana nie jest do niczego potrzebna: dymek sam mówi, że dziecko ma
+    // w ręku wszystko.
+    allow: ['play'],
     say: 'Została ostatnia ścianka. Dokończ problem — masz w ręku wszystko, czego trzeba.',
     praise: 'Problem rozwiązany! Zostało jeszcze jedno.',
   },

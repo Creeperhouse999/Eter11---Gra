@@ -155,9 +155,14 @@ export function isGoalMet(
       // Czwarta karta: trzy czerwone plus jedna zagrana po wymianie.
       return played >= 4;
     case 'finish':
-      // Tylko wygrana: `phase === 'missionSummary'` obejmuje też porażkę,
-      // a pochwała mówi „problem rozwiązany".
-      return state.mission?.phase === 'won';
+      // Wygrana kończy krok — po to on jest. Ale przegrana też musi go
+      // domykać, choć inaczej: dopóki liczyła się wyłącznie wygrana, misja
+      // przegrana w samouczku zostawiała dziecko bez żadnego wyjścia. Dymek
+      // prosił o dokończenie problemu, którego nie dało się już dokończyć,
+      // „Dalej" od ETER11 nie pojawiał się nigdy (pokazuje się dopiero po
+      // zaliczeniu kroku), a zwykły „Dalej" jest w samouczku schowany.
+      // Zostawało tylko „Pomiń", czyli porzucenie nauki.
+      return state.mission?.phase === 'won' || state.mission?.phase === 'lost';
     case 'takeCard':
       return (state.mission?.takenToMat.length ?? 0) > 0;
     // Krok czytany — bez zadania, jak `intro`.
@@ -320,9 +325,16 @@ export function useTutorial(
 
   // Krok czytany nie ma czego chwalić — gracz jeszcze nic nie zrobił,
   // więc pokazujemy treść wyjaśnienia aż do naciśnięcia „Dalej".
+  // Przegrana misja też domyka krok (patrz `isGoalMet`), ale pochwała
+  // „Problem rozwiązany!" byłaby wtedy nieprawdą. Dziecko ma usłyszeć, co
+  // się stało, i że to nie koniec świata — zaraz zagra na serio.
+  const missionLost = state.mission?.phase === 'lost';
   const message =
     done && !step.readOnly
-      ? step.praise
+      ? missionLost
+        ? 'Skończyły się rundy i tym razem problem wygrał. Nic straconego — ' +
+          'w prawdziwej grze macie ich więcej i gracie razem. Idziemy dalej.'
+        : step.praise
       : wrongCardMessage(step.goal, context) ??
         swapStageMessage(step.goal, context) ??
         (stuck && step.nudge ? step.nudge : step.say);
