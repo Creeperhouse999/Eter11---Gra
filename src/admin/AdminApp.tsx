@@ -289,7 +289,7 @@ export function AdminApp() {
   // Redaktor zmienia nazwę i od razu widzi ją na kartach w zakładce „Karty”
   // oraz na ściankach problemów — bez zapisu i odświeżania gry. Bez tego
   // pisałby w ciemno i sprawdzał efekt dopiero po wdrożeniu.
-  useContentStyleSync(content.categories, content.customIcons);
+  useContentStyleSync(content.categories, content.customIcons, content.families);
 
   // Ostrzeżenie przed zamknięciem karty z niezapisanymi zmianami.
   useEffect(() => {

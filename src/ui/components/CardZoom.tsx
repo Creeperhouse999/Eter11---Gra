@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
-import { categoryColorVar, categoryLabel } from './categoryStyles';
+import { categoryColorVar, categoryLabel, familyLabel } from './categoryStyles';
 
 interface CardZoomProps {
   card: Card | null;
@@ -10,13 +10,6 @@ interface CardZoomProps {
 }
 
 /** Nazwy rodzin — ta sama kolejność co kolory w motywie. */
-const FAMILY_LABELS: Record<string, string> = {
-  red: 'Czerwona',
-  blue: 'Niebieska',
-  yellow: 'Żółta',
-  green: 'Zielona',
-};
-
 /**
  * Karta na cały ekran.
  *
@@ -74,7 +67,7 @@ export function CardZoom({ card, onClose }: CardZoomProps) {
         <div className="overflow-y-auto p-5">
           <span className="eter-label" style={{ color }}>
             {categoryLabel(card.category)}
-            {card.family && ` · ${FAMILY_LABELS[card.family] ?? card.family}`}
+            {card.family && ` · ${familyLabel(card.family, card.category)}`}
           </span>
 
           <div className="mt-3 flex items-start gap-3">

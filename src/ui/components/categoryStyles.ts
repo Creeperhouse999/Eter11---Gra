@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { DEFAULT_CATEGORIES, type CategoryMap } from '../../data/categories';
-import type { CardCategory, ProblemType, SlotKey } from '../../engine/types';
+import type { CardCategory, FamilyId, ProblemType, SlotKey } from '../../engine/types';
+import { FAMILY_LABELS, type FamilyMap } from '../../data/families';
 
 /**
  * Nazwy i ikony kategorii, ustawiane raz po wczytaniu zawartości.
@@ -44,11 +45,15 @@ export function getCustomIcons(): Array<{ name: string; url: string }> {
 export function useContentStyleSync(
   categoryOverrides: Partial<CategoryMap> | undefined,
   customIconsList: Array<{ name: string; url: string }> | undefined,
+  familyNames?: FamilyMap,
 ): void {
   useEffect(() => {
     setCategoryStyles(categoryOverrides);
     setCustomIcons(customIconsList);
-  }, [categoryOverrides, customIconsList]);
+    // Nazwy rodzin razem z resztą: bez tego podgląd karty w panelu pokazywałby
+    // „Czerwona", choć redaktor właśnie wpisał obok własną nazwę.
+    setFamilyNames(familyNames);
+  }, [categoryOverrides, customIconsList, familyNames]);
 }
 
 /** Podmienia nazwy i ikony kategorii na te z panelu redakcyjnego. */
@@ -66,6 +71,34 @@ export function categoryLabel(category: CardCategory): string {
   // po kluczu, ale gracz musi widzieć jakąś nazwę.
   const label = categories[category]?.label;
   return label && label.trim() ? label : DEFAULT_CATEGORIES[category].label;
+}
+
+/**
+ * Nazwy rodzin ustawione przez zespół w zakładce „Rodziny".
+ *
+ * Ten sam rejestr modułowy co nazwy kategorii i z tego samego powodu: nazwę
+ * rodziny czyta kilkanaście miejsc, w tym funkcje bez dostępu do Reacta.
+ */
+let families: FamilyMap = {} as FamilyMap;
+
+export function setFamilyNames(next?: FamilyMap): void {
+  families = next ?? ({} as FamilyMap);
+}
+
+/**
+ * Nazwa rodziny w danej kategorii — „Siła wewnętrzna" zamiast „Czerwona”.
+ *
+ * Rodzina jest przypisana do PARY kategoria+kolor, bo czerwony w kategorii
+ * psychologicznej znaczy co innego niż w cyfrowej. Gdy zespół nie nazwał danej
+ * pary (albo wyczyścił pole), wracamy do nazwy koloru — dopasowanie karty do
+ * ścianki i tak idzie po kluczu, ale dziecko musi widzieć jakąś nazwę.
+ */
+export function familyLabel(family: FamilyId, category?: CardCategory): string {
+  if (category) {
+    const nazwa = families[category]?.find((f) => f.id === family)?.name;
+    if (nazwa && nazwa.trim()) return nazwa;
+  }
+  return FAMILY_LABELS[family];
 }
 
 export function categoryColorVar(category: CardCategory): string {

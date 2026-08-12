@@ -1,10 +1,9 @@
-import { FAMILY_LABELS } from '../../data/families';
 import { roundsForPlayers } from '../../engine/reducer';
 import { cardFitsSlot, isSlotFilled } from '../../engine/rules';
 import type { Card, GameState, Player } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
 import { counted } from '../plural';
-import { slotLabel } from './categoryStyles';
+import { familyLabel, slotLabel } from './categoryStyles';
 
 interface CoachProps {
   state: GameState;
@@ -65,7 +64,7 @@ function buildHint(props: CoachProps): Hint | null {
             !isSlotFilled(mission, problem.id, slot.key) &&
             cardFitsSlot(selectedCard, slot.key, slot.family),
         )
-        .map((slot) => `${slotLabel(slot.key)} ${FAMILY_LABELS[slot.family].toLowerCase()}`),
+        .map((slot) => `${slotLabel(slot.key)} ${familyLabel(slot.family, slot.key).toLowerCase()}`),
     );
 
     if (targets.length === 0) {

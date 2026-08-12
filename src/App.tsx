@@ -1,4 +1,8 @@
-import { setCategoryStyles, setCustomIcons } from './ui/components/categoryStyles';
+import {
+  setCategoryStyles,
+  setCustomIcons,
+  setFamilyNames,
+} from './ui/components/categoryStyles';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { applyTheme, baseTheme, setThemeOverrides } from './data/theme';
 import { BUILTIN_CONTENT } from './data/builtinContent';
@@ -99,6 +103,9 @@ function Game() {
         // ustawiany raz, zamiast właściwości wleczonej przez całe drzewo.
         setCategoryStyles(result.content.categories);
         setCustomIcons(result.content.customIcons);
+        // Nazwy rodzin z zakładki „Rodziny" — bez tego gra pokazywałaby same
+        // kolory, choć zespół nazwał je po swojemu.
+        setFamilyNames(result.content.families);
         // Pusta baza to stan normalny — gra ma komplet kart w kodzie.
         // Gracza informujemy tylko wtedy, gdy coś naprawdę poszło nie tak.
         if (result.reason === 'unreachable' || result.reason === 'invalid') {

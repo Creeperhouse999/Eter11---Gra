@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { FAMILY_LABELS } from '../../data/families';
 import { cardsInSlot, requiredCountForSlot } from '../../engine/rules';
 import type { Card, MissionState, Problem, ProblemSlot, SlotKey } from '../../engine/types';
 import { Tooltip } from '../controls/Tooltip';
@@ -10,6 +9,7 @@ import {
   problemTypeLabel,
   slotIcon,
   slotLabel,
+  familyLabel,
 } from './categoryStyles';
 
 interface ProblemCardProps {
@@ -88,10 +88,10 @@ export function ProblemCard({
           // każdej ściance po kolei. Przy dopasowaniu dodajemy jasny sygnał.
           aria-label={
             filled
-              ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ścianka zamknięta`
+              ? `${slotLabel(key)} ${familyLabel(slot.family, key)} — ścianka zamknięta`
               : playable
-                ? `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — tutaj pasuje Twoja karta, naciśnij Enter`
-                : `${slotLabel(key)} ${FAMILY_LABELS[slot.family]} — ${slot.hint}`
+                ? `${slotLabel(key)} ${familyLabel(slot.family, key)} — tutaj pasuje Twoja karta, naciśnij Enter`
+                : `${slotLabel(key)} ${familyLabel(slot.family, key)} — ${slot.hint}`
           }
           data-slot={dropId}
           {...(dropTargetProps?.(dropId) ?? {})}
@@ -163,7 +163,7 @@ export function ProblemCard({
                 className="mt-0.5 font-mono text-[10px] uppercase tracking-wide"
                 style={{ color: familyColor }}
               >
-                {FAMILY_LABELS[slot.family]}
+                {familyLabel(slot.family, key)}
               </span>
               {/* Przy trzech ściankach w rzędzie zostaje ~105 px szerokości —
                   podpowiedź byłaby wtedy dwoma uciętymi słowami. Kolor i
