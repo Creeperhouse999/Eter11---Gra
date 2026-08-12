@@ -123,9 +123,20 @@ export async function recordVersion(input: {
 
   // Przycinanie po zapisie, nie przed: gdyby padło, historia jest o jedną
   // wersję za długa, a nie o jedną za krótka.
-  const all = await getDocs(query(collection(db, COLLECTION), orderBy('at', 'desc')));
-  const stale = all.docs.slice(HISTORY_LIMIT);
-  await Promise.all(stale.map((entry) => deleteDoc(entry.ref)));
+  //
+  // I bez wywracania zapisu, gdy się nie uda: kasować stare wersje może tylko
+  // admin (historia ma chronić przed nieodwracalnym nadpisaniem, więc nie
+  // każdy redaktor ma prawo jej ruszać). Redaktorowi bez tego prawa odmowa
+  // wracała jako niewyłapane odrzucenie obietnicy, choć jego treść ZAPISAŁA
+  // SIĘ poprawnie. Sprzątanie jest najlepszym staraniem — nadmiarowe wersje
+  // usunie następny zapis admina.
+  try {
+    const all = await getDocs(query(collection(db, COLLECTION), orderBy('at', 'desc')));
+    const stale = all.docs.slice(HISTORY_LIMIT);
+    await Promise.all(stale.map((entry) => deleteDoc(entry.ref)));
+  } catch (error) {
+    console.warn('Nie udało się przyciąć historii — wersje zostają:', error);
+  }
 }
 
 export function watchHistory(
