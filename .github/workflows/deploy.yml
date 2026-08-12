@@ -82,4 +82,12 @@ jobs:
           TITLE="$(echo "$TITLE" | sed 's/^ *//;s/ *$//')"
           COMMENT="$(echo "$COMMENT" | sed 's/^ *//;s/ *$//')"
           echo "Oznaczam zgłoszenie: \"$TITLE\" → fixed"
-          node scripts/mark-report.mjs "$TITLE" fixed "$COMMENT"
+          # Nieudane oznaczenie NIE może wywrócić wdrożenia: kod jest już na
+          # produkcji, a to tylko dopisek w panelu. Zdarza się, gdy fragment
+          # tytułu nie pasuje do żadnego zgłoszenia — np. gdy trailer wskazuje
+          # wątek dyskusji zamiast zgłoszenia. Czerwony przebieg wyglądałby
+          # wtedy jak nieudany deploy i kazał szukać problemu tam, gdzie go nie
+          # ma.
+          if ! node scripts/mark-report.mjs "$TITLE" fixed "$COMMENT"; then
+            echo "::warning::Nie udało się oznaczyć zgłoszenia \"$TITLE\" — sprawdź, czy taki tytuł istnieje. Wdrożenie przebiegło poprawnie."
+          fi

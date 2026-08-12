@@ -100,6 +100,10 @@ Nie zostawiaj commitów lokalnie.
   w połowie wiersza, bez wielokropka — i nie widać tego w kodzie, tylko
   w arkuszu. Poprawnie: samo `sm:line-clamp-N`. Trafiło się dwa razy, pilnuje
   tego `src/ui/components/matCardClamp.test.tsx`.
+- `Report-Fixed:` w commicie szuka **wyłącznie w zgłoszeniach**. Wskazanie
+  wątku dyskusji nie zadziała — fragment tytułu nie pasuje do niczego i krok
+  oznaczania kończy się błędem (od teraz tylko ostrzeżeniem). Odpowiedź
+  w wątku pisz przez `scripts/discuss.mjs reply`.
 - **Zanim napiszesz nowy plik testowy — sprawdź, czy nie istnieje.** `Write`
   nadpisuje bez ostrzeżenia. Raz skasowałem tak cały test regresji do zgłoszenia
   Adama; wyszło dopiero z tego, że liczba plików w przebiegu się nie zmieniła.
