@@ -116,7 +116,7 @@ export const INTRO_RULES: IntroScene[] = [
     icon: 'medal',
     heading: 'Po misji zabierasz kartę',
     body:
-      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nMożesz też oddać ją innemu graczowi. Dostajesz wtedy punkt doświadczenia, bo uczenie innych też się liczy.',
+      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nKartę kompetencji — psychologiczną, cyfrową albo społeczną — możesz zamiast tego oddać innemu graczowi i dostać za to doświadczenie, bo uczenie innych też się liczy. Talent i mentor zostają przy Tobie.',
   },
   {
     icon: 'sprout',
@@ -169,7 +169,7 @@ export const INTRO_FOR_ADULTS: IntroScene[] = [
     icon: 'peace',
     heading: 'Dla kogo i na jak długo',
     body:
-      'Wiek 8–13 lat, od dwóch do czterech osób, jedna misja to około piętnastu minut. Gra jest zaprojektowana dla mieszanych drużyn: dziecko z rodzicem, klasa z nauczycielem.\n\nRola dorosłego nie jest tu dekoracją — karty mentorów działają wyłącznie wtedy, gdy ktoś naprawdę usiądzie do stołu.',
+      'Wiek 8–13 lat, od dwóch do czterech osób, jedna misja to około piętnastu minut. Gra jest zaprojektowana dla mieszanych drużyn: dziecko z rodzicem, klasa z nauczycielem.\n\nKażdy problem wymaga pięciu różnych kart naraz, a jedna ręka rzadko ma wszystkie — dlatego drużyna musi się dogadać, kto co wykłada. To rozmowa przy stole jest tu mechaniką, nie dodatkiem.',
   },
 ];
 

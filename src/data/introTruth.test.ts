@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createGame, reduce, DEFAULT_CONFIG } from '../engine/reducer';
 import { ALL_CARDS } from './cards';
 import { ALL_PROBLEMS } from './problems';
-import { INTRO_FOR_ADULTS } from './intro';
+import { INTRO_FOR_ADULTS, INTRO_RULES } from './intro';
 
 /**
  * Wstęp dla rodziców musi mówić prawdę o mechanice.
@@ -84,6 +84,29 @@ describe('wstęp dla dorosłych mówi prawdę', () => {
     const scena = INTRO_FOR_ADULTS.find((s) => s.heading === 'Porażka bez kary');
     expect(scena, 'scena „Porażka bez kary" istnieje').toBeDefined();
     expect(scena!.body).not.toMatch(/doświadczenie także za przegraną/i);
+  });
+
+  it('nie obiecuje, że każdą kartę da się oddać innemu graczowi', () => {
+    // Oddać wolno wyłącznie kompetencje — talent i mentor zostają u właściciela
+    // (`isCompetence` w reduktorze). Wstęp mówił „możesz też oddać ją innemu
+    // graczowi" o KAŻDEJ zabieranej karcie, a UI tłumaczyło się dopiero po
+    // kliknięciu: „Mentor zostaje przy Tobie".
+    const scena = INTRO_RULES.find((s) => s.heading === 'Po misji zabierasz kartę');
+    expect(scena, 'scena o zabieraniu karty istnieje').toBeDefined();
+
+    expect(scena!.body).toMatch(/talent i mentor zostają/i);
+  });
+
+  it('nie obiecuje mechaniki zależnej od tego, kto siedzi przy stole', () => {
+    // `kind` postaci (dziecko/rodzic/nauczyciel) nie jest czytane ANI przez
+    // silnik, ani przez interfejs — sprawdziłem wszystkie użycia. Zdanie
+    // „karty mentorów działają wyłącznie wtedy, gdy ktoś naprawdę usiądzie do
+    // stołu" sprzedawało rodzicowi mechanikę, której nie ma: troje dzieci
+    // grających samo zagra kartę mentora dokładnie tak samo.
+    const scena = INTRO_FOR_ADULTS.find((s) => s.heading === 'Dla kogo i na jak długo');
+    expect(scena, 'scena „Dla kogo i na jak długo" istnieje').toBeDefined();
+
+    expect(scena!.body).not.toMatch(/działają wyłącznie wtedy/i);
   });
 
   it('to, co obiecuje zamiast tego, jest prawdą: karta na postać mimo przegranej', () => {
