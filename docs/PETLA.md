@@ -36,10 +36,14 @@ Zgłoszenie po naprawie: trailer `Report-Fixed:` w commicie albo
 Status zawsze `fixed`, nigdy `done` — to należy do zgłaszającego.
 **Nigdy nie kasuj zgłoszenia.**
 
-## Pisz na bieżąco
+## Dyskusje to nie dziennik zmian
 
-Nie milcz do końca pracy. Zostawiaj ślad w dyskusjach: co robisz, co znalazłeś,
-co wdrożyłeś. Alan czyta to po powrocie i chce widzieć bieg pracy, nie sam wynik.
+Wątek zakładasz, gdy potrzebujesz **decyzji** albo opinii zespołu — nie po to,
+żeby zrelacjonować naprawy. Te zostają w commitach.
+
+Zespół czyta dyskusje, żeby coś rozstrzygnąć. Zalew relacji sprawia, że
+przewijają wszystko, w tym pytania, na które czekasz. Gdy poprawka zmienia coś,
+co zobaczą na ekranie — wystarczy dwa zdania.
 
 ## Polowanie na błędy
 
