@@ -6,6 +6,15 @@ dist-ssr
 .firebase
 .env
 .env.local
+
+# Klucz konta usługi Firebase — daje pełną władzę nad projektem (omija reguły,
+# kasuje konta i bazę). Repozytorium jest publiczne, więc ten plik NIGDY nie
+# może do niego trafić. Trzymamy go poza gitem; do GitHub Actions trafia jako
+# sekret FIREBASE_SERVICE_ACCOUNT, nie jako plik.
+serviceAccount*.json
+service-account*.json
+firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
 .DS_Store
 *.log
 
