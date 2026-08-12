@@ -55,6 +55,13 @@ Gdy obszar przestaje przynosić znaleziska, **zmień oś, nie tylko moduł**:
 równoległość, sprzątanie po sobie, brak sieci, uszkodzone i stare dane, dwa konta
 naraz, uprawnienia, nieświeże dokumenty.
 
+Jedna z osi, która się opłaciła: **czy tekst zgadza się z mechaniką**. Weź
+zdania z `uiText.ts`, `intro.ts`, `tutorial.ts` i sprawdź w silniku, czy gra
+naprawdę tak działa. W jednym przebiegu wyszły cztery rozjazdy — m.in. wstęp dla
+rodziców obiecywał doświadczenie za przegraną misję i mechanikę zależną od tego,
+kto siedzi przy stole. Żadnego z nich nie złapałby test jednostkowy: kod działał
+poprawnie, kłamał opis.
+
 ## Wysyłka
 
 Po każdej partii: `npx tsc --noEmit`, `npx vitest run`, commit z opisem
