@@ -30,6 +30,17 @@ export interface GameContentInput {
  * kodem, którym gra aplikacja — zrekonstruowany stan potrafiłby przechodzić
  * testy mimo błędu w prawdziwej ścieżce.
  */
+/**
+ * Ile stanów wstecz trzymamy do cofania.
+ *
+ * Każdy wpis to pełna kopia gry — talia, ręce, maty, log — czyli ~27 KB.
+ * Historia rosła bez ograniczeń: po jednej partii uzbierało się ponad 800 KB
+ * w pamięci karty, a przy kilku partiach pod rząd bez przeładowania strony
+ * starszy telefon ubijał zakładkę w środku gry. Cofanie ma zresztą tylko tryb
+ * testowy w panelu, i nikt nie sięga tam po trzydziesty ruch wstecz.
+ */
+const HISTORY_LIMIT = 20;
+
 export function setupGame(
   players: PlayerSetup[],
   seed: number,
@@ -143,7 +154,7 @@ export function useGame(
         return current;
       }
       setRejection(null);
-      setHistory((prev) => [...prev, current]);
+      setHistory((prev) => [...prev, current].slice(-HISTORY_LIMIT));
       return result.state;
     });
   }, []);
@@ -151,7 +162,7 @@ export function useGame(
   /** Podmiana stanu z pominięciem reducera — wyłącznie dla trybu testowego. */
   const overrideState = useCallback((next: GameState) => {
     setState((current) => {
-      setHistory((prev) => [...prev, current]);
+      setHistory((prev) => [...prev, current].slice(-HISTORY_LIMIT));
       return next;
     });
   }, []);

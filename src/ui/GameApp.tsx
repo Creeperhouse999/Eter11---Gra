@@ -24,7 +24,7 @@ import { TutorialDone } from './tutorial/TutorialDone';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { useTutorial, type TutorialContext } from './tutorial/useTutorial';
 import { useConfirm } from './controls/useConfirm';
-import { savedSeed } from './savedGame';
+import { clearSavedGame, savedSeed } from './savedGame';
 import { useScreenTitle } from './useScreenTitle';
 import { useGame, type PlayerSetup } from './useGame';
 
@@ -383,9 +383,15 @@ export function GameApp({ content = {}, notice }: GameAppProps) {
           characters={content.characters ?? ALL_CHARACTERS}
           onPlayOnline={() => setOnline(true)}
           // Ziarno z zegara — każda rozgrywka tasuje talię inaczej.
-          onStart={(players, tutorial) =>
-            setSession({ players, seed: Date.now(), tutorial })
-          }
+          onStart={(players, tutorial) => {
+            // Stary zapis idzie do kosza, ZANIM powstanie nowa partia.
+            // `loadGame` uznaje zapis za „ten sam" po zgodności ziarna, a
+            // ziarno bierze się z zegara: gdy nowa gra trafi w tę samą
+            // milisekundę co poprzednia, wczytałaby cudzy stan — z obcymi
+            // imionami i rozegranymi misjami zamiast świeżego rozdania.
+            clearSavedGame();
+            setSession({ players, seed: Date.now(), tutorial });
+          }}
           onShowIntro={() => setShowIntro(true)}
           // Rozpoczęta partia czeka w menu zamiast wznawiać się sama —
           // gracz może do niej wrócić albo zacząć coś innego.
