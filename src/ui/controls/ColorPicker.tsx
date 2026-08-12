@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icons/Icon';
 import { Tooltip } from './Tooltip';
+import { useFocusTrap } from './useFocusTrap';
 
 interface ColorPickerProps {
   value: string;
@@ -96,17 +97,16 @@ export function ColorPicker({ value, onChange, label, presets = [] }: ColorPicke
       if (triggerRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-
     document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
+
+  // Escape, uwięzienie Tab i powrót fokusu na przycisk koloru po zamknięciu.
+  // Bez tego admin ustawiający kolor tracił miejsce i tabował przez całą listę
+  // kont, żeby wrócić do wiersza, w którym był.
+  useFocusTrap(open, panelRef, () => setOpen(false));
 
   const apply = (hex: string) => {
     setDraft(hex);

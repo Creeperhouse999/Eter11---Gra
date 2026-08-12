@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TextField } from '../ui/controls/Field';
 import { Tooltip } from '../ui/controls/Tooltip';
+import { useFocusTrap } from '../ui/controls/useFocusTrap';
 import { ICON_NAMES, CUSTOM_ICON_PREFIX, Icon } from '../ui/icons/Icon';
 import { getCustomIcons } from '../ui/components/categoryStyles';
 
@@ -67,10 +68,6 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
       setOpen(false);
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-
     /**
      * Przewinięcie STRONY rozjeżdża panel z przyciskiem, więc go zamykamy.
      *
@@ -86,15 +83,17 @@ export function IconPicker({ value, onChange, label = 'Ikona' }: IconPickerProps
     };
 
     document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
     window.addEventListener('scroll', onScroll, true);
 
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('scroll', onScroll, true);
     };
   }, [open]);
+
+  // Escape, uwięzienie Tab i oddanie fokusu przyciskowi po zamknięciu.
+  // `autoFocus` wyłączony, bo pole szukania ustawia fokus samo.
+  useFocusTrap(open, panelRef, () => setOpen(false), false);
 
   const choose = (name: string) => {
     onChange(name);

@@ -548,8 +548,15 @@ export function DiscussionsPanel({
 
       {loading && <p className="mt-4 text-sm text-ink-dim">Wczytuję…</p>}
 
+      {/* `role="alert"`: komunikat pojawia się dopiero po nieudanym wczytaniu,
+          więc bez tego czytnik ekranu w ogóle o nim nie mówi — użytkownik widzi
+          pustą listę i nie wie, że coś poszło nie tak. Zgłoszenia robią to tak
+          samo (`Alert tone="danger"`). */}
       {error && (
-        <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger"
+        >
           Nie udało się wczytać dyskusji: {error}
         </p>
       )}

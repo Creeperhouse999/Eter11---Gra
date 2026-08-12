@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../ui/icons/Icon';
+import { useFocusTrap } from '../ui/controls/useFocusTrap';
 
 interface ImageLightboxProps {
   /** Adres obrazka do pokazania; `null` = zamknięte. */
@@ -19,29 +20,28 @@ interface ImageLightboxProps {
  * karcie osobnym przyciskiem, gdy ktoś naprawdę chce surowy plik.
  */
 export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Escape, uwięzienie Tab i powrót fokusu na miniaturę po zamknięciu.
+  // `aria-modal` obiecuje czytnikowi, że tła nie ma — bez uwięzienia Tab i tak
+  // po nim chodził, więc obietnica była nieprawdziwa: osoba na czytniku nie
+  // wiedziała, że podgląd się otworzył, i nie trafiała do „Zamknij".
+  useFocusTrap(Boolean(src), panelRef, onClose);
+
   useEffect(() => {
     if (!src) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
     const { overflow } = document.body.style;
     document.body.style.overflow = 'hidden';
-
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = overflow;
     };
-  }, [src, onClose]);
+  }, [src]);
 
   if (!src) return null;
 
   return createPortal(
     <div
+      ref={panelRef}
       className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: 'var(--z-modal)' }}
       role="dialog"

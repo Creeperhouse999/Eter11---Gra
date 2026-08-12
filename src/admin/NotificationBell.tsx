@@ -49,6 +49,7 @@ export function NotificationBell({ uid, onOpen }: NotificationBellProps) {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => watchMine(uid, setItems), [uid]);
 
@@ -60,7 +61,11 @@ export function NotificationBell({ uid, onOpen }: NotificationBellProps) {
       if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      // Fokus wraca na dzwonek. Bez tego zamknięcie listy zostawiało go na
+      // znikającym elemencie, więc kolejny Tab startował od góry strony.
+      bellRef.current?.focus();
     };
 
     document.addEventListener('mousedown', onPointerDown);
@@ -84,6 +89,7 @@ export function NotificationBell({ uid, onOpen }: NotificationBellProps) {
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={bellRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label={unread > 0 ? `Powiadomienia: ${unread} nowe` : 'Powiadomienia'}
@@ -152,6 +158,10 @@ export function NotificationBell({ uid, onOpen }: NotificationBellProps) {
                     disabled={!item.link}
                     className="min-w-0 flex-1 text-left disabled:cursor-default"
                   >
+                    {/* Przeczytane różni się tylko przygaszeniem, a licznik
+                        w odznace jest ukryty przed czytnikiem — bez tego
+                        wszystkie wpisy brzmiałyby dla niego identycznie. */}
+                    {!item.read && <span className="sr-only">Nowe: </span>}
                     <span className="block text-sm leading-snug">{item.title}</span>
                     {item.body && (
                       <span className="mt-0.5 block truncate text-xs text-ink-dim">
