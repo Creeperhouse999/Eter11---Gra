@@ -821,6 +821,19 @@ function shareCard(
     return reject(state, 'Ta karta leży już na czyjejś karcie postaci.');
   }
 
+  // Karta pożyczona z własnej karty postaci wraca do właściciela, nie idzie
+  // dalej. Warunek wyżej jej nie łapie: zagranie z maty najpierw z tej maty ją
+  // ZDEJMUJE, więc w chwili przekazywania nie leży nigdzie i sprawdzenie
+  // przechodzi. Bez tego gracz oddawał trwale kompetencję uzbieraną
+  // w poprzednich misjach, a odbiorca dostawał kartę, której w tej misji wcale
+  // nie zdobył — obchodząc przy okazji zasadę „jedna karta na misję".
+  if (play.fromMat) {
+    return reject(
+      state,
+      'Ta karta jest z Twojej karty postaci — wraca do Ciebie, nie można jej przekazać.',
+    );
+  }
+
   // Karty specjalne zostają u tego, kto je zagrał: ETER11 jest jokerem,
   // a Czarny Łabędź utrudnieniem — żadna nie jest kompetencją do nauczenia.
   if (!isCompetence(play.card.category)) {

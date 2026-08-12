@@ -393,6 +393,18 @@ export async function commitSummaryMove(
     // Piszący musi być w pokoju; reguła RTDB pilnuje tego samego.
     if (!room.players?.[uid]) return room;
 
+    // Zamknięcie podsumowania kończy je WSZYSTKIM naraz: niezabrane karty lecą
+    // na stos odrzuconych, a wisząca oferta przekazania znika. Dopóki mógł to
+    // zrobić dowolny gracz, najszybciej klikające dziecko ucinało reszcie
+    // zabieranie karty na matę — jedyną nagrodę z misji. Decyduje więc ten sam
+    // wyznaczony gracz co przy odkrywaniu problemu (`commitReveal`): pierwszy
+    // online w kolejności, żeby partia nie stanęła, gdy host padnie.
+    // Pozostałe ruchy w tej fazie (zabranie własnej karty) zostają wolne.
+    if (action.type === 'END_MISSION_SUMMARY' && revealerUid(room) !== uid) {
+      rejection = 'Czekaj, aż podsumowanie zamknie wyznaczony gracz.';
+      return room;
+    }
+
     // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
     // reduktorem, inaczej `.some`/`.filter` w silniku by się wysypały.
     const result = reduce(hydrateState(room.state), action);

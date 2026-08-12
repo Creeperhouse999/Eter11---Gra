@@ -159,4 +159,53 @@ describe('przekazanie karty', () => {
 
     throw new Error('Żadne ziarno nie doprowadziło do przekazania karty.');
   });
+
+  /**
+   * Karta pożyczona z własnej karty postaci wraca do właściciela, nie idzie
+   * dalej. Zabezpieczenie „karta leży już na czyjejś macie" jej nie łapało:
+   * zagranie z maty najpierw z tej maty ją ZDEJMUJE, więc w chwili
+   * przekazywania nie leżała nigdzie i warunek przechodził. Gracz oddawał
+   * wtedy trwale kompetencję uzbieraną w poprzednich misjach, a odbiorca
+   * dostawał kartę, której w tej misji wcale nie zdobył.
+   */
+  it('nie przekazuje karty zagranej z własnej karty postaci', () => {
+    const base = newGame(1);
+    const mission = reduce(base, { type: 'START_MISSION' }).state;
+    // Musi być kompetencja: mentor/talent odpada wcześniej z innego powodu,
+    // a wtedy test przechodziłby, nie sprawdzając tego, o co w nim chodzi.
+    const card = ALL_CARDS.find((c) =>
+      ['psychological', 'digital', 'social'].includes(c.category),
+    )!;
+
+    // Stan jak po zagraniu karty Z MATY: nie ma jej już na macie, leży
+    // w `played` ze znacznikiem `fromMat`.
+    const state: GameState = {
+      ...mission,
+      phase: 'missionSummary',
+      mission: {
+        ...mission.mission!,
+        phase: 'won',
+        played: [
+          {
+            card,
+            playerId: 'p1',
+            slotKey: mission.mission!.problems[0].slots[0].key,
+            problemId: mission.mission!.problems[0].id,
+            fromMat: true,
+          },
+        ],
+      },
+    };
+
+    const result = reduce(state, {
+      type: 'SHARE_CARD',
+      fromPlayerId: 'p1',
+      toPlayerId: 'p2',
+      cardId: card.id,
+    });
+
+    expect(result.rejected).toBeTruthy();
+    const receiver = result.state.players.find((p) => p.id === 'p2')!;
+    expect(receiver.mat.map((c) => c.id)).not.toContain(card.id);
+  });
 });

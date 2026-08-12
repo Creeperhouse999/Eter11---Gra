@@ -97,8 +97,16 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
 
+  // Opóźnione zapisy (kolor) muszą czytać AKTUALNĄ listę, nie tę z renderu,
+  // w którym je zaplanowano — patrz `changeColor`.
+  // Uzupełniamy przy NAPŁYWIE danych, nie przy renderze: opóźniony zapis
+  // potrafi odpalić się, zanim React zdąży przerenderować po `setMembers`,
+  // i wtedy widziałby jeszcze poprzednią listę.
+  const membersRef = useRef<TeamMember[]>([]);
+
   useEffect(() => {
     const stop = watchTeam((next) => {
+      membersRef.current = next;
       setMembers(next);
       setLoading(false);
     });
@@ -153,7 +161,13 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
     colorTimers.current[member.uid] = window.setTimeout(() => {
       void (async () => {
         try {
-          await setRole({ ...member, color });
+          // Wpis bierzemy świeży, z listy w chwili ZAPISU, a nie ten sprzed pół
+          // sekundy. `setRole` zapisuje cały dokument (bez `merge` — inaczej nie
+          // dałoby się skasować koloru), więc stary wpis cofałby imię zapisane
+          // w międzyczasie: pole „Imię" pustoszało, a podpisy tej osoby
+          // w wątkach wracały do adresu e-mail.
+          const fresh = membersRef.current.find((m) => m.uid === member.uid) ?? member;
+          await setRole({ ...fresh, color });
           toast(
             color ? `${member.email}: nowy kolor.` : `${member.email}: kolor domyślny.`,
             'success',

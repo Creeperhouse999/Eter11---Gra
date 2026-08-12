@@ -104,9 +104,19 @@ export function OnlineGame({
   }
 
   if (state.phase === 'missionSummary') {
+    // Zamknięcie podsumowania kończy je wszystkim naraz (niezabrane karty lecą
+    // na stos odrzuconych), więc — jak przy odkrywaniu problemu — decyduje
+    // jeden wyznaczony gracz. Bez tego najszybciej klikające dziecko ucinało
+    // reszcie zabieranie karty na matę, czyli jedyną nagrodę z misji.
+    const closer = revealerUid(room);
+    const closerName = room.players[closer ?? '']?.name;
     return (
       <>
-        <SummaryScreen game={game} viewerId={uid} />
+        <SummaryScreen
+          game={game}
+          viewerId={uid}
+          advanceWaitFor={closer === uid ? undefined : closerName}
+        />
         {/* Przekazanie karty odbywa się właśnie w podsumowaniu: dający
             proponuje, biorący przyjmuje w tym oknie. Bez niego tutaj biorący
             nie miał czego kliknąć i uczenie (warunek spełnienia) było online

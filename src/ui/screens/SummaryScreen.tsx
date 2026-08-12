@@ -41,6 +41,15 @@ interface SummaryScreenProps {
    * identycznie jak przy własnym wierszu.
    */
   viewerId?: string;
+  /**
+   * Imię gracza, który zamyka podsumowanie za wszystkich (tylko online).
+   *
+   * Zamknięcie kończy podsumowanie WSZYSTKIM naraz — niezabrane karty lecą na
+   * stos odrzuconych — więc decyduje jedna osoba, jak przy odkrywaniu problemu.
+   * Reszcie zamiast przycisku pokazujemy, na kogo czekają: samo zniknięcie
+   * „Dalej" wyglądałoby jak zawieszona gra.
+   */
+  advanceWaitFor?: string;
 }
 
 // Kategorie do spełnienia to te same ścianki co na karcie problemu —
@@ -60,6 +69,7 @@ export function SummaryScreen({
   characters = ALL_CHARACTERS,
   hideAdvance = false,
   viewerId,
+  advanceWaitFor,
 }: SummaryScreenProps) {
   const { state, dispatch, rejection, dismissRejection } = game;
   const [sharing, setSharing] = useState<{ card: Card; fromPlayerId: string } | null>(null);
@@ -200,7 +210,12 @@ export function SummaryScreen({
                     !alreadyTook &&
                     isCompetence(play.card.category) &&
                     hasReceiver &&
-                    isOwn;
+                    isOwn &&
+                    // Karta pożyczona z własnej karty postaci wraca do
+                    // właściciela — przekazanie jej oddałoby trwale kompetencję
+                    // z poprzednich misji. Reduktor to odrzuca; tu chowamy
+                    // przycisk, żeby dziecko nie klikało w komunikat błędu.
+                    !play.fromMat;
 
                   // Wyłączony przycisk musi powiedzieć, dlaczego — inaczej
                   // gracz widzi cztery przygaszone kafle i nie wie, czy to
@@ -341,13 +356,18 @@ export function SummaryScreen({
         })}
       </section>
 
-      {!hideAdvance && (
-        <div className="relative mt-8">
-          <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}>
-            Dalej
-          </Button>
-        </div>
-      )}
+      {!hideAdvance &&
+        (advanceWaitFor ? (
+          <p className="relative mt-8 text-sm text-ink-dim">
+            Zabierz swoją kartę — dalej poprowadzi {advanceWaitFor}.
+          </p>
+        ) : (
+          <div className="relative mt-8">
+            <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'END_MISSION_SUMMARY' })}>
+              Dalej
+            </Button>
+          </div>
+        ))}
     </main>
   );
 }
