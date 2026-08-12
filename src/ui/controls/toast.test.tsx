@@ -72,6 +72,12 @@ describe('ToastProvider', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Zamknij powiadomienie' }));
     });
+    // Komunikat gaśnie przez chwilę, zanim zniknie z listy: bez tego ubywał
+    // skokiem i sąsiednie kafle podskakiwały. Test przesuwa czas o tyle, ile
+    // trwa wygaszenie.
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
     expect(screen.queryByText('Pierwszy')).toBeNull();
   });
 });

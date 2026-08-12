@@ -65,18 +65,42 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Ile trwa wygaszenie — tyle samo, co przejście w stylu poniżej. */
+const WYGASZANIE_MS = 200;
+
 function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => void }) {
   const config = TONES[toast.tone];
+  /**
+   * Wygaszenie przed usunięciem.
+   *
+   * Komunikat wjeżdżał płynnie, a znikał skokiem — w połowie ekranu nagle
+   * ubywało kafla i sąsiednie podskakiwały. Najpierw więc gasimy go na miejscu,
+   * a dopiero potem wyjmujemy z listy.
+   */
+  const [odchodzi, setOdchodzi] = useState(false);
+
+  const zamknij = useCallback(() => {
+    setOdchodzi(true);
+    window.setTimeout(() => onDone(toast.id), WYGASZANIE_MS);
+  }, [onDone, toast.id]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => onDone(toast.id), 4000);
+    const timer = window.setTimeout(zamknij, 4000);
     return () => window.clearTimeout(timer);
-  }, [onDone, toast.id]);
+  }, [zamknij]);
 
   return (
     <div
       className="eter-slide-left pointer-events-auto flex items-center gap-3 rounded-lg border border-edge bg-surface px-4 py-3 shadow-2xl"
-      style={{ borderLeftColor: config.color, borderLeftWidth: 4 }}
+      style={{
+        borderLeftColor: config.color,
+        borderLeftWidth: 4,
+        // Wygaszanie na `opacity` i `transform` — nie ruszają układu strony,
+        // więc nie zmuszają przeglądarki do przeliczania go co klatkę.
+        opacity: odchodzi ? 0 : 1,
+        transform: odchodzi ? 'translateX(1rem)' : 'none',
+        transition: `opacity ${WYGASZANIE_MS}ms ease, transform ${WYGASZANIE_MS}ms ease`,
+      }}
     >
       <span style={{ color: config.color }}>
         <Icon name={config.icon} size={17} />
@@ -84,7 +108,7 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => vo
       <p className="flex-1 text-sm">{toast.message}</p>
       <button
         type="button"
-        onClick={() => onDone(toast.id)}
+        onClick={zamknij}
         aria-label="Zamknij powiadomienie"
         className="rounded p-1 text-ink-dim transition hover:text-ink"
       >
