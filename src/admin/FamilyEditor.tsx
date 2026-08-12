@@ -1,6 +1,7 @@
 import { FAMILY_LABELS, type FamilyMap } from '../data/families';
 import type { Card, CardCategory } from '../engine/types';
 import { categoryLabel } from '../ui/components/categoryStyles';
+import { Alert } from '../ui/controls/Alert';
 import { TextField } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
@@ -52,6 +53,21 @@ export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
         konkretnej rodziny, więc dziecko dopasowuje kolor do koloru. Same kolory
         zmienia się w sekcji „Kolory” — tu ustawiasz nazwę, symbol i opis.
       </p>
+
+      {/* Uczciwie o stanie rzeczy: gra pokazuje dziś zaszyte „Czerwona /
+          Niebieska / Żółta / Zielona" w jedenastu miejscach i nie sięga po to,
+          co tu wpisano. Bez tego ostrzeżenia ktoś poświęciłby godzinę na
+          wypełnienie dwudziestu pól i zdziwił się, że w grze nic się nie
+          zmieniło. Zespół decyduje w wątku, czy podłączyć te nazwy, czy
+          usunąć zakładkę — do tego czasu zakładka ma mówić prawdę. */}
+      <div className="mt-3">
+        <Alert tone="warning" title="Nazwy stąd nie pokazują się jeszcze w grze">
+          Gra wyświetla na razie same kolory („Czerwona”, „Niebieska”…). Zanim
+          zaczniemy tu wpisywać na poważnie, zespół decyduje, czy podłączyć te
+          nazwy do gry — pytanie czeka w dyskusjach. Symbol i opis możesz
+          ustawiać już teraz; zostaną zapisane.
+        </Alert>
+      </div>
 
       <div className="mt-5 space-y-6">
         {CATEGORIES.map((category) => (
