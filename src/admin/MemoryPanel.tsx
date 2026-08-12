@@ -15,6 +15,7 @@ import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Avatar } from './Avatar';
 import { Icon } from '../ui/icons/Icon';
+import { formatDate } from './formatDate';
 
 interface MemoryPanelProps {
   /** Imię zalogowanego — podpisuje wpis. */
@@ -25,15 +26,6 @@ interface MemoryPanelProps {
   role: Role;
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('pl-PL', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * Pamięć zespołu — wspólny notatnik o projekcie i o nas samych.

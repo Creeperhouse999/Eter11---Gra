@@ -9,6 +9,7 @@ import {
 } from '../firebase/notifications';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { Avatar } from './Avatar';
+import { formatDate } from './formatDate';
 
 interface NotificationBellProps {
   /** Konto zalogowanego — czyja to skrzynka. */
@@ -25,15 +26,6 @@ const KIND_ICON: Record<Notification['kind'], IconName> = {
   announcement: 'megaphone',
 };
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('pl-PL', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * Dzwonek powiadomień w nagłówku panelu.

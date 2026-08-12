@@ -30,6 +30,7 @@ import { ImageUpload } from './ImageUpload';
 import { ImageLightbox } from './ImageLightbox';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { counted } from '../ui/plural';
+import { formatDate } from './formatDate';
 
 const KIND_OPTIONS = [
   { value: 'bug' as const, label: 'Błąd', icon: 'warning' as const, color: 'var(--eter-danger)' },
@@ -133,16 +134,6 @@ const STATUS_TOAST: Record<ReportStatus, string> = {
   done: 'Potwierdzone. Dziękujemy za sprawdzenie!',
 };
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  return date.toLocaleString('pl-PL', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * Zgłoszenia błędów i pomysłów.
