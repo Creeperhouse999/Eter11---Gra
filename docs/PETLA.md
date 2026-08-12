@@ -79,6 +79,12 @@ Nie zostawiaj commitów lokalnie.
   tryb urządzenia i MIERZY, czy strona wychodzi poza ekran).
 - Cloud agent nie ma sekretów: nie wdraża i nie oznacza zgłoszeń sam (robi to
   Actions), nie odpala Monitora ani nie planuje kolejnych biegów.
+- `line-clamp` **nie działa obok `sm:block`** (ani `md:`/`lg:`). Obie klasy mają
+  równą specyficzność, a responsywna wypada w zbudowanym CSS później i nadpisuje
+  `display:-webkit-box`, którego `line-clamp` potrzebuje. Tekst ucina się wtedy
+  w połowie wiersza, bez wielokropka — i nie widać tego w kodzie, tylko
+  w arkuszu. Poprawnie: samo `sm:line-clamp-N`. Trafiło się dwa razy, pilnuje
+  tego `src/ui/components/matCardClamp.test.tsx`.
 - **Po podagencie zawsze `git diff` na kodzie produkcyjnym.** Podagent proszony
   wyłącznie o testy potrafi zostawić w źródłach własny break-test
   (`// MUTACJA TESTOWA` zamiast sprawdzenia) albo „naprawić" kod pod test —
