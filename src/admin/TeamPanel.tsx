@@ -16,19 +16,12 @@ import { ColorPicker } from '../ui/controls/ColorPicker';
 import { Icon } from '../ui/icons/Icon';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
-import { Avatar, colorFor, TEAM_COLORS } from './Avatar';
+import { Avatar, colorFor, COLOR_PRESETS } from './Avatar';
 
 interface TeamPanelProps {
   /** UID zalogowanego admina — nie pozwalamy odebrać roli samemu sobie. */
   currentUid: string;
 }
-
-/**
- * Szybki wybór w pickerze: kolory, które zespół nosi od zawsze. ColorPicker
- * i tak pozwala wybrać dowolny odcień — to tylko skrót do sprawdzonych,
- * wzajemnie odróżnialnych barw.
- */
-const AVATAR_PRESETS = Array.from(new Set(Object.values(TEAM_COLORS)));
 
 const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({
   value: role,
@@ -132,11 +125,8 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
   /**
    * Kolor awatara. `setRole` zapisuje CAŁY dokument, więc rolę przekazujemy
    * niezmienioną — zmiana koloru nie może przy okazji ruszyć uprawnień.
-   * `color: undefined` znaczy „wróć do koloru z imienia": pole po prostu nie
-   * trafia do zapisu.
-   */
-  /**
-   * Zapis koloru po ustaniu ruchu, nie przy każdym drgnięciu suwaka.
+   *
+   * Zapis po ustaniu ruchu, nie przy każdym drgnięciu suwaka.
    *
    * ColorPicker zgłasza każdą zmianę na bieżąco (w edytorze motywu to zaleta —
    * widać podgląd). Tutaj każde zgłoszenie szło do bazy i wyskakiwał toast,
@@ -359,27 +349,16 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
               />
             </div>
 
-            <div className="flex w-40 shrink-0 items-end gap-1">
-              <div className="min-w-0 flex-1">
-                <ColorPicker
-                  label={`Kolor ${member.email}`}
-                  // Bez własnego koloru picker startuje od tego, który osoba ma
-                  // teraz z imienia — inaczej otwierałby się na przypadkowym
-                  // odcieniu, niezwiązanym z tym, co widać w wątku.
-                  value={colors[member.uid] ?? member.color ?? colorFor(member.name || member.email)}
-                  presets={AVATAR_PRESETS}
-                  onChange={(color) => void changeColor(member, color)}
-                />
-              </div>
-              {(colors[member.uid] ?? member.color) && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon="undo"
-                  aria-label={`Przywróć domyślny kolor ${member.email}`}
-                  onClick={() => void changeColor(member, undefined)}
-                />
-              )}
+            <div className="w-40 shrink-0">
+              <ColorPicker
+                label={`Kolor ${member.email}`}
+                // Dopóki admin nie nada koloru, picker startuje od tego, który
+                // osoba ma teraz — inaczej otwierałby się na przypadkowym
+                // odcieniu, niezwiązanym z tym, co widać w wątku.
+                value={colors[member.uid] ?? member.color ?? colorFor(member.name || member.email)}
+                presets={COLOR_PRESETS}
+                onChange={(color) => void changeColor(member, color)}
+              />
             </div>
 
             <div className="w-40 shrink-0">

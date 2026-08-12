@@ -80,13 +80,13 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'cardImages', label: 'Grafiki kart', icon: 'upload' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
-  { key: 'text', label: 'Teksty', icon: 'message' },
+  { key: 'text', label: 'Teksty', icon: 'bubbles' },
   { key: 'story', label: 'Wstęp i ETER11', icon: 'spark' },
   // Systemy wizualne kart
   { key: 'families', label: 'Rodziny', icon: 'palette' },
-  { key: 'categories', label: 'Kategorie', icon: 'clipboard' },
-  { key: 'icons', label: 'Ikony', icon: 'palette' },
-  { key: 'theme', label: 'Kolory', icon: 'palette' },
+  { key: 'categories', label: 'Kategorie', icon: 'checklist' },
+  { key: 'icons', label: 'Ikony', icon: 'sparkle' },
+  { key: 'theme', label: 'Kolory', icon: 'brush' },
 
   // Narzędzie sprawdzające
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
@@ -95,15 +95,15 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'memory', label: 'Pamięć', icon: 'bulb' },
-  { key: 'announcements', label: 'Ogłoszenia', icon: 'megaphone' },
+  { key: 'announcements', label: 'Ogłoszenia', icon: 'flag' },
 
   // Dane i podgląd wstecz
-  { key: 'stats', label: 'Statystyki', icon: 'chart' },
+  { key: 'stats', label: 'Statystyki', icon: 'medal' },
   { key: 'history', label: 'Historia', icon: 'undo' },
 
   // Ustawienia na końcu
-  { key: 'account', label: 'Konto', icon: 'people' },
-  { key: 'team', label: 'Admin', icon: 'people' },
+  { key: 'account', label: 'Konto', icon: 'gear' },
+  { key: 'team', label: 'Admin', icon: 'shield' },
 ];
 
 export function AdminApp() {

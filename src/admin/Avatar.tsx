@@ -45,16 +45,22 @@ const PALETTE = [
  */
 const CLAUDE_ORANGE = '#d97757';
 
-export const TEAM_COLORS: Record<string, string> = {
-  claude: CLAUDE_ORANGE,
-  alan: '#38bdf8',
-  adam: '#ef4444',
-  marcin: '#22c55e',
-  joanna: '#a855f7',
-  // Milena nie pracuje już przy grze, ale jej wypowiedzi zostają w wątkach —
-  // niech mają swój kolor zamiast losowego z palety.
-  milena: '#ec4899',
-};
+/**
+ * Podpowiedzi w pickerze — odcienie, które dobrze się od siebie odróżniają.
+ *
+ * To tylko skrót do wyboru, nie przypisanie do osób: kolory nadaje admin
+ * w zakładce i one wygrywają ze wszystkim innym. Wcześniej stała mapa
+ * przypisywała kolor po imieniu, przez co ustawienie własnego bywało
+ * nadpisywane tym, co ktoś kiedyś wpisał w kodzie.
+ */
+export const COLOR_PRESETS = [
+  CLAUDE_ORANGE,
+  '#38bdf8',
+  '#ef4444',
+  '#22c55e',
+  '#a855f7',
+  '#ec4899',
+];
 
 /** Imię do postaci porównywalnej: małe litery, bez ogonków, bez spacji wokół. */
 function normalizeName(name: string): string {
@@ -72,13 +78,8 @@ function normalizeName(name: string): string {
  * własny; inaczej picker startowałby od przypadkowego odcienia.
  */
 export function colorFor(name: string): string {
-  // Pierwsze słowo — podpis bywa pełnym imieniem i nazwiskiem albo adresem
-  // e-mail, a kolor ma zależeć od osoby, nie od zapisu.
-  const first = normalizeName(name).split(/[\s@._-]+/)[0];
-  const own = TEAM_COLORS[first];
-  if (own) return own;
-
   // Suma kodów znaków — stabilna, więc kolor nie skacze między renderami.
+  // Dotyczy tylko osób, którym admin nie nadał koloru: nadany zawsze wygrywa.
   let sum = 0;
   for (let i = 0; i < name.length; i += 1) sum += name.charCodeAt(i);
   return PALETTE[sum % PALETTE.length];

@@ -32,19 +32,13 @@ describe('Avatar', () => {
     expect(container.textContent).toBe('?');
   });
 
-  it('zespół ma swoje stałe kolory, każdy inny', () => {
-    // Kolor z sumy znaków trafiał kilka osób w ten sam odcień — w wątku
-    // wyglądali tak samo. Ustalone kolory: Claude pomarańczowy, Alan
-    // jasnoniebieski, Adam czerwony, Marcin zielony, Joanna purpurowa.
+  it('Claude ma tło z motywu, nie kolor z palety', () => {
+    // Jego znak jest zawsze pomarańczowy, a zmieniać się ma tło pod nim —
+    // dlatego kółko bierze kolor motywu (zmienna CSS), w odróżnieniu od
+    // pozostałych, którzy mają zwykłe tło.
     const colorOf = (name: string) =>
       (render(<Avatar name={name} />).container.firstChild as HTMLElement).style.background;
 
-    const team = ['Alan', 'Adam', 'Marcin', 'Joanna'].map(colorOf);
-    expect(new Set(team).size).toBe(team.length);
-    // Żaden nie spada do palety kategorii (te są zmiennymi CSS).
-    team.forEach((color) => expect(color).not.toContain('var('));
-    // Claude stoi osobno: jego kółko bierze tło z motywu (zmienna CSS), bo to
-    // znak ma być zawsze pomarańczowy, a zmieniać się ma tło pod nim.
     expect(colorOf('Claude')).toContain('var(');
   });
 
@@ -107,15 +101,18 @@ describe('Avatar', () => {
     expect(container.textContent).toBe('A');
   });
 
-  it('kolor nie zależy od zapisu imienia', () => {
-    // Podpis bywa raz „Adam", raz „adam", raz z nazwiskiem albo adresem —
-    // to wciąż ta sama osoba, więc kolor musi być ten sam.
-    const colorOf = (name: string) =>
-      (render(<Avatar name={name} />).container.firstChild as HTMLElement).style.background;
+  it('kolor nadany przez admina bije wyliczony z imienia', () => {
+    // Kolory nie są już zaszyte w kodzie — ustawia je admin przy członku
+    // zespołu i to one obowiązują. Kolor z imienia zostaje wyłącznie dla kont,
+    // którym nikt jeszcze nic nie nadał, żeby awatar nie był pusty.
+    const colorOf = (element: HTMLElement) => element.style.background;
 
-    const expected = colorOf('Adam');
-    expect(colorOf('adam')).toBe(expected);
-    expect(colorOf('  Adam  ')).toBe(expected);
-    expect(colorOf('Adam Kotlorz')).toBe(expected);
+    const nadany = render(
+      <Avatar name="Adam" color="#123456" />,
+    ).container.firstChild as HTMLElement;
+    const wyliczony = render(<Avatar name="Adam" />).container.firstChild as HTMLElement;
+
+    expect(colorOf(nadany)).toBe('rgb(18, 52, 86)');
+    expect(colorOf(nadany)).not.toBe(colorOf(wyliczony));
   });
 });
