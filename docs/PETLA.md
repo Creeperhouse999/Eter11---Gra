@@ -95,6 +95,10 @@ Nie zostawiaj commitów lokalnie.
   w połowie wiersza, bez wielokropka — i nie widać tego w kodzie, tylko
   w arkuszu. Poprawnie: samo `sm:line-clamp-N`. Trafiło się dwa razy, pilnuje
   tego `src/ui/components/matCardClamp.test.tsx`.
+- **Zanim napiszesz nowy plik testowy — sprawdź, czy nie istnieje.** `Write`
+  nadpisuje bez ostrzeżenia. Raz skasowałem tak cały test regresji do zgłoszenia
+  Adama; wyszło dopiero z tego, że liczba plików w przebiegu się nie zmieniła.
+  Po dodaniu testu porównaj `Test Files` przed i po.
 - **Po podagencie zawsze `git diff` na kodzie produkcyjnym.** Podagent proszony
   wyłącznie o testy potrafi zostawić w źródłach własny break-test
   (`// MUTACJA TESTOWA` zamiast sprawdzenia) albo „naprawić" kod pod test —
