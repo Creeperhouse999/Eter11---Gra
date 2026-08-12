@@ -70,6 +70,12 @@ Nie zostawiaj commitów lokalnie.
 - Test, który powtarza logikę zamiast jej używać, sprawdza własną kopię.
 - Jeśli break-test dalej przechodzi, zepsuty jest TEST, nie zabezpieczenie.
 - Druga reguła `allow` w Firestore **rozluźnia** dostęp, nigdy go nie zacieśnia.
+- Po **zaostrzeniu reguły** przejdź po wszystkich miejscach w kodzie, które tej
+  operacji używają — i sprawdź je kontem o NAJNIŻSZEJ roli, która ma tam
+  sięgać. Zaostrzenie kasowania `contentHistory` do admina wywaliło ciche
+  przycinanie historii u redaktorów (coworker), bo `recordVersion` woła
+  `deleteDoc` przy każdym zapisie treści. Bot ma rolę `programmer`, którą
+  `jestAdmin()` obejmuje — więc test botem NICZEGO tu nie udowadnia.
 - Zielone testy nie dowodzą, że coś wygląda dobrze — przy zmianach wizualnych
   **popatrz na render**, nie na liczby.
 - Ale zrzut z `chrome --headless --window-size=390,844` **kłamie na telefonie**:
