@@ -35,7 +35,34 @@ export type IconName =
   | 'lockedSlot' | 'plus' | 'trash' | 'download' | 'upload' | 'logout' | 'undo' | 'eyeOff'
   | 'tick' | 'close' | 'chevronDown' | 'warning' | 'info' | 'dot' | 'eyeOn'
   // Tryb jasny/ciemny
-  | 'sun' | 'moon';
+  | 'sun' | 'moon'
+  // Twarze i emocje
+  | 'faceSmile' | 'faceLaugh' | 'faceSad' | 'faceSurprised' | 'faceWink' | 'faceThinking'
+  | 'faceSleep' | 'faceAngry' | 'faceCalm' | 'faceNeutral' | 'faceCool' | 'faceLove'
+  // Gesty
+  | 'thumbUp' | 'thumbDown' | 'handStop' | 'handWave' | 'clap' | 'salute' | 'fist' | 'handOk'
+  | 'pointUp' | 'handshakeDeal'
+  // Reakcje i symbole
+  | 'starFilledOutline' | 'heartPlus' | 'fire' | 'sparkles' | 'exclamation' | 'question'
+  | 'minus' | 'ban' | 'checkBox' | 'crossBox' | 'crownIcon' | 'lightning' | 'shieldCheck'
+  // Strzałki i kierunki
+  | 'arrowUp' | 'arrowDown' | 'arrowRight' | 'refresh' | 'back' | 'forward' | 'swap'
+  | 'sortAsc' | 'sortDesc' | 'expand' | 'collapse' | 'triangleUp' | 'triangleDown'
+  // Przyroda
+  | 'tree' | 'leaf' | 'flower' | 'cloud' | 'rain' | 'snow' | 'wind' | 'frog' | 'cat' | 'dog'
+  | 'bird' | 'fish' | 'butterfly' | 'paw' | 'mushroom' | 'seedling'
+  // Przedmioty i szkoła
+  | 'book' | 'notebook' | 'pencil' | 'backpack' | 'ruler' | 'scissors' | 'mug' | 'apple'
+  | 'gift' | 'balloon' | 'cake' | 'paperclip' | 'pin' | 'folder' | 'bookmark' | 'note'
+  // Czas i miejsca
+  | 'clock' | 'calendar' | 'home' | 'school' | 'door' | 'key' | 'signpost' | 'hourglass'
+  | 'alarm' | 'pinMap'
+  // Technika
+  | 'laptop' | 'battery' | 'wifi' | 'envelope' | 'cloudData' | 'usb' | 'camera' | 'headphones'
+  | 'printer' | 'database' | 'link' | 'settingsSliders'
+  // Gra i zabawa
+  | 'dice' | 'trophy' | 'target' | 'gamepad' | 'cards' | 'chess' | 'ticket' | 'music'
+  | 'football' | 'kite' | 'magnet' | 'crownSimple';
 
 interface IconProps {
   /**
@@ -167,6 +194,138 @@ const PATHS: Record<IconName, string> = {
   sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM12 2v2m0 16v2M4 12H2m20 0h-2M5.6 5.6 4.2 4.2m15.6 15.6-1.4-1.4M18.4 5.6l1.4-1.4M4.2 19.8l1.4-1.4',
   // Księżyc: półksiężyc. Tryb ciemny.
   moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z',
+
+  // --- Twarze i emocje ---
+  faceSmile: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3 6.5h.01M15 9.5h.01M8.5 14a4.5 4.5 0 0 0 7 0',
+  faceLaugh: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7.5 9.5 10 11l-2.5 1.5M16.5 9.5 14 11l2.5 1.5M8 14.5h8a4 4 0 0 1-8 0Z',
+  faceSad: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3 6.5h.01M15 9.5h.01M8.5 16a4.5 4.5 0 0 1 7 0',
+  faceSurprised: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3 6.5h.01M15 9.5h.01M12 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
+  faceWink: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7.5 10h3M15 9.5h.01M8.5 14a4.5 4.5 0 0 0 7 0',
+  faceThinking: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3 6.5h.01M15 9.5h.01M9 15.5h4M17 17a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',
+  faceSleep: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7.5 10h3m4 0h3M9.5 15h5M16 4h4l-4 4h4',
+  faceAngry: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7.5 8.5 10.5 10M16.5 8.5 13.5 10M9 11h.01M15 11h.01M8.5 16.5a4.5 4.5 0 0 1 7 0',
+  faceCalm: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7.5 10h3m4 0h3M9.5 15h5',
+  faceNeutral: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3 6.5h.01M15 9.5h.01M9 15h6',
+  faceCool: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM6.5 9.5h4v2h-4v-2Zm7 0h4v2h-4v-2Zm-3 1h3M8.5 15a4.5 4.5 0 0 0 7 0',
+  faceLove: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM7 8.5 9 11l2-2.5M13 8.5l2 2.5 2-2.5M8.5 14a4.5 4.5 0 0 0 7 0',
+
+  // --- Gesty ---
+  thumbUp: 'M7 21V10l4-7a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2.4l-1.4 7A2 2 0 0 1 16.6 21H7Zm0 0H3V10h4',
+  thumbDown: 'M7 3v11l4 7a2 2 0 0 0 2-2v-4h5a2 2 0 0 0 2-2.4l-1.4-7A2 2 0 0 0 16.6 3H7Zm0 0H3v11h4',
+  handStop: 'M9 11V5a1.5 1.5 0 0 1 3 0v5m0-1V4.5a1.5 1.5 0 0 1 3 0V10m0-1a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6v-4a1.5 1.5 0 0 1 3 0v1',
+  handWave: 'M8 12V6a1.5 1.5 0 0 1 3 0v4m0-1V4.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-11 3l-2-4a1.5 1.5 0 0 1 2.5-1.6L8 14M19 4l2-1M20 8h2',
+  clap: 'M8 13 5 10a1.5 1.5 0 0 1 2-2l3 3m0 0-2-4a1.5 1.5 0 0 1 2.6-1.4L13 9m0 0-1-3a1.5 1.5 0 0 1 3-.8l1.5 5a5 5 0 0 1-7.5 6L6 13M18 4l2-1M19 8h3M17 2v-1',
+  salute: 'M4 21v-6a2 2 0 0 1 2-2h5l8-4 1 2-7 4h6a2 2 0 0 1 0 4H9M4 21h6',
+  fist: 'M5 11a3 3 0 0 1 3-3h7a4 4 0 0 1 4 4v3a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5v-4Zm3 2h9M9 8V6.5a2.5 2.5 0 0 1 5 0V8',
+  handOk: 'M6 20a5 5 0 0 1-1-3v-4a1.5 1.5 0 0 1 3 0v1M9 13V5a1.5 1.5 0 0 1 3 0v6M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm3-1a1.5 1.5 0 0 1 3 0v6',
+  pointUp: 'M11 11V5a1.5 1.5 0 0 1 3 0v6m0-2a1.5 1.5 0 0 1 3 0v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5v-2a1.5 1.5 0 0 1 3 0v1',
+  handshakeDeal: 'M2 8h4v8H2V8Zm20 0h-4v8h4V8ZM6 9h3l3 2 3-2h3M6 15l4 3 2-1 2 1 4-3',
+
+  // --- Reakcje i symbole ---
+  starFilledOutline: 'm12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8L12 3Zm0 5.2 1.2 2.6 2.8.4-2 2 .5 2.8-2.5-1.4-2.5 1.4.5-2.8-2-2 2.8-.4L12 8.2Z',
+  heartPlus: 'M12 20S5 15 5 10a3.5 3.5 0 0 1 7-1 3.5 3.5 0 0 1 7 1c0 1-.3 2-.9 3M18 15v6m-3-3h6',
+  fire: 'M12 21a6 6 0 0 0 6-6c0-5-6-12-6-12S6 10 6 15a6 6 0 0 0 6 6Zm0 0a3 3 0 0 0 3-3c0-2-3-5-3-5s-3 3-3 5a3 3 0 0 0 3 3Z',
+  sparkles: 'm9 3 1.6 4.4L15 9l-4.4 1.6L9 15l-1.6-4.4L3 9l4.4-1.6L9 3Zm8 9 1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1 1-2.6Z',
+  exclamation: 'M12 4v11m0 4h.01',
+  question: 'M8.5 8.5a3.5 3.5 0 1 1 4.5 3.4c-.7.2-1 .9-1 1.6v1M12 19h.01',
+  minus: 'M5 12h14',
+  ban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-6.4 2.6 12.8 12.8',
+  checkBox: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm3 8 3 3 5-6',
+  crossBox: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm4 4 6 6m0-6-6 6',
+  crownIcon: 'M4 18h16M4 18l1-9 4 4 3-6 3 6 4-4 1 9M5 9a1 1 0 1 0 0 .01ZM12 7a1 1 0 1 0 0 .01ZM19 9a1 1 0 1 0 0 .01Z',
+  lightning: 'M13 2 4 13h7l-1 9 9-11h-7l1-9Z',
+  shieldCheck: 'M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Zm-3 8.5 2.5 2.5 4.5-5',
+
+  // --- Strzałki i kierunki ---
+  arrowUp: 'M12 20V5m0 0-6 6m6-6 6 6',
+  arrowDown: 'M12 4v15m0 0 6-6m-6 6-6-6',
+  arrowRight: 'M5 12h14m0 0-6-6m6 6-6 6',
+  refresh: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
+  back: 'M9 6 3 12l6 6M3 12h12a6 6 0 0 1 0 12h-1',
+  forward: 'm15 6 6 6-6 6M21 12H9a6 6 0 0 0 0 12h1',
+  swap: 'M4 8h13m0 0-4-4m4 4-4 4M20 16H7m0 0 4-4m-4 4 4 4',
+  sortAsc: 'M4 6h12M4 12h8M4 18h4m10 3V9m0 0-3 3m3-3 3 3',
+  sortDesc: 'M4 6h4M4 12h8M4 18h12m2-15v12m0 0 3-3m-3 3-3-3',
+  expand: 'M9 4H4v5M4 4l6 6m5-6h5v5m0-5-6 6M9 20H4v-5m0 5 6-6m5 6h5v-5m0 5-6-6',
+  collapse: 'M4 9h5V4M9 9 3 3m17 6h-5V4m0 5 6-6M4 15h5v5m-5 0 6-6m10 6h-5v-5m5 5-6-6',
+  triangleUp: 'M12 6 4 17h16L12 6Z',
+  triangleDown: 'M12 18 4 7h16l-8 11Z',
+
+  // --- Przyroda ---
+  tree: 'M12 3 6 11h12L12 3Zm0 5-4 6h8l-4-6Zm0 6v7M8 21h8',
+  leaf: 'M4 20C4 11 10 5 20 4c0 10-5 16-14 16Zm2-2 9-9',
+  flower: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-6a3 3 0 0 1 0 6 3 3 0 0 1 0-6Zm0 12a3 3 0 0 1 0 6 3 3 0 0 1 0-6ZM6 9a3 3 0 0 1 0 6 3 3 0 0 1 0-6Zm12 0a3 3 0 0 1 0 6 3 3 0 0 1 0-6Z',
+  cloud: 'M7 19a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 19H7Z',
+  rain: 'M7 15a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 15M8 18l-1 3m5-3-1 3m5-3-1 3',
+  snow: 'M7 14a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 14M8 18h.01M12 20h.01M16 18h.01',
+  wind: 'M3 8h11a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 18h8',
+  frog: 'M5 10a3 3 0 0 1 6 0m2 0a3 3 0 0 1 6 0M8 10h.01M16 10h.01M5 13c0 4 3 6 7 6s7-2 7-6M9 16h6M4 19l3-2m13 2-3-2',
+  cat: 'M5 8 4 4l4 2.4A8 8 0 0 1 12 6c1.5 0 2.9.3 4 .9L20 4l-1 4a7 7 0 0 1 1 3.5c0 4-3.6 6.5-8 6.5s-8-2.5-8-6.5A7 7 0 0 1 5 8Zm4.5 4h.01M14.5 12h.01M12 14v1m-3 .5h6M3 13h3m12 0h3',
+  dog: 'M7 7 5 5v4a7 6.5 0 0 0-1 3.5C4 16.5 7.6 19 12 19s8-2.5 8-6.5A7 6.5 0 0 0 19 9V5l-2 2a9 9 0 0 0-10 0Zm2.5 5h.01M14.5 12h.01M12 14.5v1m-1.5 1h3',
+  bird: 'M3 14c2.5 0 4-1 5.5-2.5S11 8 12 8s2 2 3.5 3.5S18.5 14 21 14M12 8v3',
+  fish: 'M4 12c3-4 8-5 12-3 2 1 3 2 4 3-1 1-2 2-4 3-4 2-9 1-12-3Zm14 0h.01M4 12 2 9m2 3-2 3',
+  butterfly: 'M12 6v12M12 7 5 4v7l7 1M12 7l7-3v7l-7 1M12 13l-7 1v6l7-3M12 13l7 1v6l-7-3M12 6l-2-2m2 2 2-2',
+  paw: 'M12 13c2.5 0 4 1.6 4 3.4 0 1.6-1.4 2.6-4 2.6s-4-1-4-2.6C8 14.6 9.5 13 12 13ZM7 9.5a1.6 2 0 1 0 0 .01Zm10 0a1.6 2 0 1 0 0 .01ZM10 6a1.5 2 0 1 0 0 .01Zm4 0a1.5 2 0 1 0 0 .01Z',
+  mushroom: 'M3 12a9 7 0 0 1 18 0H3Zm6 0v5a3 3 0 0 0 6 0v-5M8 8.5h.01M14.5 7.5h.01M11.5 10h.01',
+  seedling: 'M12 21v-8m0 0c0-3-2-5-6-5 0 3 2 5 6 5Zm0 0c0-3 2-5 6-5 0 3-2 5-6 5ZM8 21h8',
+
+  // --- Przedmioty i szkoła ---
+  book: 'M5 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5V4Zm14 0h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6V4Z',
+  notebook: 'M7 3h12v18H7V3Zm0 4H4m3 5H4m3 5H4m8-9h4m-4 5h4',
+  pencil: 'm4 20 1-4L16 5l3 3L8 19l-4 1Zm10-14 3 3M5 16l3 3',
+  backpack: 'M7 8h10a3 3 0 0 1 3 3v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a3 3 0 0 1 3-3Zm2 0V6a3 3 0 0 1 6 0v2m-6 5h6m-4 4h2',
+  ruler: 'M4 15 15 4l5 5L9 20l-5-5Zm4-1 2 2m1-5 2 2m1-5 2 2',
+  scissors: 'M7 4l10 12m0-12L7 16M6 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm12 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+  mug: 'M5 6h11v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V6Zm11 2h2a3 3 0 0 1 0 6h-2M8 3v1m4-1v1',
+  apple: 'M12 8c-1-1.5-3-2-4.5-1C5.5 8 5 10.5 6 14s3 6 4.5 6 1.5-1 1.5-1 0 1 1.5 1 3-2.5 4-6 .5-6-1.5-7c-1.5-1-3.5-.5-4.5 1Zm0 0V5m0 0c0-1.5 1.5-2.5 3-2',
+  gift: 'M4 10h16v10H4V10Zm0-3h16v3H4V7Zm8 0v13M12 7c-1-3-5-4-5-1.5S10 7 12 7Zm0 0c1-3 5-4 5-1.5S14 7 12 7Z',
+  balloon: 'M12 3a5 5 0 0 1 5 5c0 3.5-3 7-5 7s-5-3.5-5-7a5 5 0 0 1 5-5Zm0 12-1 2h2l-1 2m0 0c0 1-3 1-3 2',
+  cake: 'M4 20h16v-6a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v6Zm0-3c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2M9 8V6m3 2V5m3 3V6',
+  paperclip: 'M18 10 10 18a4 4 0 0 1-6-6l8-8a3 3 0 0 1 4 4l-8 8a2 2 0 0 1-3-3l7-7',
+  pin: 'M9 3h6l-1 6 4 4H6l4-4-1-6Zm3 10v8',
+  folder: 'M3 6h6l2 3h10v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6Z',
+  bookmark: 'M6 3h12v18l-6-5-6 5V3Z',
+  note: 'M5 3h9l5 5v13H5V3Zm9 0v5h5M8 13h8m-8 4h5',
+
+  // --- Czas i miejsca ---
+  clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3.5 2',
+  calendar: 'M4 6h16v14H4V6Zm4-3v5m8-5v5M4 11h16M9 15h.01M13 15h.01M17 15h.01',
+  home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z',
+  school: 'M12 3 3 8v12h18V8l-9-5Zm0 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-2 12v-4h4v4',
+  door: 'M6 3h12v18H6V3Zm9 9h.01M4 21h16',
+  key: 'M8 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm4 4h9m-2 0v3m-3-3v2',
+  signpost: 'M12 3v18M12 5h6l2 2.5L18 10h-6V5Zm0 7H6l-2 2.5L6 17h6v-5Z',
+  hourglass: 'M6 3h12M6 21h12M7 3v3c0 3 5 4 5 6s-5 3-5 6v3m10-18v3c0 3-5 4-5 6s5 3 5 6v3',
+  alarm: 'M12 6a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 3.5V13l2.5 1.5M5 6 3 4m16 2 2-2M6 19l-2 2m14-2 2 2',
+  pinMap: 'M12 3a6 6 0 0 1 6 6c0 4.5-6 12-6 12S6 13.5 6 9a6 6 0 0 1 6-6Zm0 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z',
+
+  // --- Technika ---
+  laptop: 'M5 6h14v10H5V6Zm-3 10h20l-2 3H4l-2-3Z',
+  battery: 'M3 8h15v8H3V8Zm18 2v4M6 11v2m4-2v2',
+  wifi: 'M2 9c6-5 14-5 20 0M5.5 12.5c4-3.5 9-3.5 13 0M9 16c2-1.7 4-1.7 6 0M12 20h.01',
+  envelope: 'M3 6h18v12H3V6Zm0 0 9 7 9-7',
+  cloudData: 'M7 18a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 18M9 14h6m-5 3h4',
+  usb: 'M9 3h6v5H9V3Zm3 5v13M12 14l-3-2v-2m3 4 3-2v-2M6 10h.01M18 10h.01',
+  camera: 'M3 8h4l2-3h6l2 3h4v12H3V8Zm9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
+  headphones: 'M4 16v-4a8 8 0 0 1 16 0v4M4 14h3v6H5a1 1 0 0 1-1-1v-5Zm16 0h-3v6h2a1 1 0 0 0 1-1v-5Z',
+  printer: 'M7 9V4h10v5M7 20v-5h10v5H7ZM4 9h16v7h-3M7 16H4V9m3 3h3',
+  database: 'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3ZM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+  link: 'M10 14a4 4 0 0 0 6 .5l3-3a4 4 0 0 0-6-6l-1.5 1.5M14 10a4 4 0 0 0-6-.5l-3 3a4 4 0 0 0 6 6L12.5 17',
+  settingsSliders: 'M4 7h9m4 0h3M4 17h3m4 0h9M15 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM9 14.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z',
+
+  // --- Gra i zabawa ---
+  dice: 'M5 5h14v14H5V5Zm3.5 3.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0V4Zm0 1H5v2a3 3 0 0 0 3 3m8-5h3v2a3 3 0 0 1-3 3m-4 3v4m-3 0h6m-8 3h10',
+  target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z',
+  gamepad: 'M8 8h8a5 5 0 0 1 5 5v2a3 3 0 0 1-5.5 1.7L15 15H9l-.5 1.7A3 3 0 0 1 3 15v-2a5 5 0 0 1 5-5Zm-2 3v3m-1.5-1.5h3M16 11h.01M18 13h.01',
+  cards: 'M9 6h9v13H9V6ZM6 8 4 9l3 9M12 10h3m-3 3h3',
+  chess: 'M10 5a2 2 0 1 1 4 0c0 1-1 1.5-1 2h2l-1 3h-4l-1-3h2c0-.5-1-1-1-2Zm0 5-1 6h6l-1-6M7 19h10M7 19l1-3h8l1 3',
+  ticket: 'M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V8Zm7 0v2m0 3v2m0 3v-2',
+  music: 'M9 18V5l10-2v13M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Zm10-2a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM9 9l10-2',
+  football: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4.5 4 3-1.5 5h-5L8 10.5l4-3Zm0-4.5v4.5M4 9l4 1.5M20 9l-4 1.5M7 19l2.5-5.5M17 19l-2.5-5.5',
+  kite: 'M12 2 4 10l8 10 8-10-8-8Zm0 0v18M4 10h16m-8 10c0 1-2 1-2 2',
+  magnet: 'M5 5v7a7 7 0 0 0 14 0V5h-5v7a2 2 0 0 1-4 0V5H5Zm0 3.5h5m4 0h5',
+  crownSimple: 'M4 18h16M4 18l1-9 4 4 3-6 3 6 4-4 1 9',
 };
 
 /** Prefiks nazwy własnej ikony — po nim odróżniamy URL od klucza z zestawu. */
