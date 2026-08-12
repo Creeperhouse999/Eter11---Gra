@@ -79,3 +79,8 @@ Nie zostawiaj commitów lokalnie.
   tryb urządzenia i MIERZY, czy strona wychodzi poza ekran).
 - Cloud agent nie ma sekretów: nie wdraża i nie oznacza zgłoszeń sam (robi to
   Actions), nie odpala Monitora ani nie planuje kolejnych biegów.
+- **Po podagencie zawsze `git diff` na kodzie produkcyjnym.** Podagent proszony
+  wyłącznie o testy potrafi zostawić w źródłach własny break-test
+  (`// MUTACJA TESTOWA` zamiast sprawdzenia) albo „naprawić" kod pod test —
+  raz wyciął sortowanie przypiętych ogłoszeń, czyli funkcję zamówioną przez
+  Alana. Zielony wynik u podagenta nie znaczy, że nie zepsuł produkcji.
