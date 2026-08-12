@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { FADE_MS, useClosingFade } from './useClosingFade';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icons/Icon';
 
@@ -97,9 +98,17 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
     };
   }, [open]);
 
-  if (!open) return null;
+  const { widoczna, odchodzi } = useClosingFade(open);
+
+  if (!widoczna) return null;
 
   const accent = tone === 'danger' ? 'var(--eter-danger)' : 'var(--eter-accent)';
+
+  // Wygaszanie przy zamykaniu: okno wjeżdżało animacją, a znikało w jednej
+  // klatce. Przy oknie potwierdzenia, zamykanym kilkanaście razy w partii, to
+  // szarpnięcie widać najbardziej. Po `opacity` i `transform`, żeby nie
+  // zmuszać przeglądarki do przeliczania układu strony co klatkę.
+  const przejscie = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`;
 
   // Portal do body: bez tego modal renderuje się w miejscu wywołania, a gdy
   // przodek animuje przezroczystość (`eter-fade-in` na zawartości zakładki
@@ -114,6 +123,7 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
     >
       <div
         className="eter-fade-in absolute inset-0 bg-bg/80 backdrop-blur-sm"
+        style={{ opacity: odchodzi ? 0 : 1, transition: przejscie }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -124,7 +134,12 @@ export function Modal({ open, title, children, onClose, footer, tone = 'default'
         aria-modal="true"
         aria-label={title}
         className="eter-pop relative w-full max-w-md overflow-hidden rounded-xl border bg-surface shadow-2xl"
-        style={{ borderColor: accent }}
+        style={{
+          borderColor: accent,
+          opacity: odchodzi ? 0 : 1,
+          transform: odchodzi ? 'scale(0.97)' : 'none',
+          transition: przejscie,
+        }}
       >
         <div aria-hidden="true" className="h-1" style={{ background: accent }} />
 

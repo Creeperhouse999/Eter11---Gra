@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { ToastProvider } from './controls/Toast';
 import { GameApp } from './GameApp';
@@ -97,7 +97,14 @@ describe('wznowienie partii', () => {
 
     // Przycisk powrotu musi zniknąć razem z zapisem — inaczej prowadziłby
     // do partii, której już nie ma.
-    expect(screen.queryByRole('button', { name: /Wróć do gry/ })).toBeNull();
+    //
+    // `waitFor`, nie natychmiastowe sprawdzenie: okno potwierdzenia gaśnie
+    // przez chwilę przed usunięciem z drzewa (patrz `useClosingFade`), więc
+    // tuż po kliknięciu jego przyciski jeszcze istnieją. Bez czekania test
+    // padał losowo — i to nie na tym, co sprawdza.
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Wróć do gry/ })).toBeNull();
+    });
   });
 
   it('pozwala zacząć drugą grę po powrocie do menu', async () => {
