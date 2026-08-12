@@ -163,7 +163,7 @@ export const INTRO_FOR_ADULTS: IntroScene[] = [
     icon: 'sprout',
     heading: 'Porażka bez kary',
     body:
-      'Nierozwiązany problem nie kończy gry ani nikogo nie eliminuje. Wraca po dwóch misjach, gdy drużyna ma lepsze karty.\n\nDziecko dostaje doświadczenie także za przegraną misję — komunikat jest jasny: próbowanie się liczy, a porażka jest etapem, nie wyrokiem.',
+      'Nierozwiązany problem nie kończy gry ani nikogo nie eliminuje. Wraca po dwóch misjach, gdy drużyna ma lepsze karty.\n\nKażdy, kto wyłożył kartę, i tak zabiera jedną na swoją postać — także po przegranej. Komunikat jest jasny: próbowanie się liczy, a porażka jest etapem, nie wyrokiem.',
   },
   {
     icon: 'peace',
