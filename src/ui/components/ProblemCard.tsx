@@ -168,8 +168,13 @@ export function ProblemCard({
               {/* Przy trzech ściankach w rzędzie zostaje ~105 px szerokości —
                   podpowiedź byłaby wtedy dwoma uciętymi słowami. Kolor i
                   kategoria wystarczą do ruchu, a pełną treść niesie podpowiedź. */}
+              {/* `sm:line-clamp-3` zamiast pary `line-clamp-3` + `sm:block`:
+                  ta druga klasa wypada w wygenerowanym CSS później i przy
+                  równej specyficzności nadpisywała `display:-webkit-box`,
+                  którego `line-clamp` potrzebuje do działania. Podpowiedź
+                  ucinała się więc w połowie wiersza, bez wielokropka. */}
               <span
-                className="mt-1 hidden line-clamp-3 text-xs leading-snug text-ink-dim sm:block"
+                className="mt-1 hidden text-xs leading-snug text-ink-dim sm:line-clamp-3"
                 style={{ overflowWrap: 'anywhere' }}
               >
                 {slot.hint}
