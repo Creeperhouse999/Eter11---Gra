@@ -165,7 +165,15 @@ export function PlayerMat({
                             więc nazwa schodziła do 8 px — nieczytelnej plamy.
                             Zostaje ikona i kolor, a pełna nazwa jest w podpowiedzi
                             przycisku wyżej. */}
-                        <span className="hidden line-clamp-2 text-[8px] leading-tight sm:line-clamp-2 sm:block">
+                        {/* Bez `sm:block`: `line-clamp` sam ustawia
+                            `display:-webkit-box`, a `sm:block` trafiał
+                            w wygenerowanym CSS PÓŹNIEJ (bajt 36471 wobec 36368)
+                            i przy równej specyficzności nadpisywał ten display.
+                            Przycinanie do dwóch linii przestawało wtedy działać
+                            i długa nazwa karty na macie była ucinana w połowie
+                            wiersza, bez wielokropka. `sm:line-clamp-2` odsłania
+                            napis od tabletu w górę tak samo jak `sm:block`. */}
+                        <span className="hidden text-[8px] leading-tight sm:line-clamp-2">
                           {matCard.name}
                         </span>
                       </button>
