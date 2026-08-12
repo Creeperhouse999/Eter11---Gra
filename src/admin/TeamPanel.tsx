@@ -17,6 +17,7 @@ import { Icon } from '../ui/icons/Icon';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { Avatar, colorFor, COLOR_PRESETS } from './Avatar';
+import { requestRemoval, watchRemovals, type AccountRemoval } from '../firebase/accountRemovals';
 
 interface TeamPanelProps {
   /** UID zalogowanego admina — nie pozwalamy odebrać roli samemu sobie. */
@@ -79,6 +80,12 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
    * koloru przy każdym renderze, dopóki zapis nie dojdzie.
    */
   const [colors, setColors] = useState<Record<string, string | undefined>>({});
+  /**
+   * Zlecone usunięcia kont. Konto znika po chwili (wykonuje je Actions), więc
+   * bez tej listy admin klikałby drugi raz, nie widząc żadnej zmiany.
+   */
+  const [removals, setRemovals] = useState<AccountRemoval[]>([]);
+  useEffect(() => watchRemovals(setRemovals), []);
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState('');
   const [newUid, setNewUid] = useState('');
@@ -214,6 +221,46 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
     }
   };
 
+  /**
+   * Trwałe usunięcie konta z Firebase.
+   *
+   * Panel tylko zleca: konta kasuje Admin SDK, którego klucz daje pełną władzę
+   * nad projektem i w przeglądarce byłby do wyjęcia przez każdego. Zlecenie
+   * podejmuje GitHub Actions (co dziesięć minut), więc konto znika po chwili,
+   * a nie natychmiast — i tak to opisujemy, żeby admin nie klikał drugi raz.
+   */
+  const removeAccount = async (member: TeamMember) => {
+    // Te same bezpieczniki co przy odbieraniu roli, tylko stawka wyższa:
+    // tu nie ma czego przywracać.
+    if (member.uid === currentUid) {
+      toast('Nie usuniesz własnego konta — stracił(a)byś dostęp do panelu.', 'danger');
+      return;
+    }
+    if (member.email === ROOT_ADMIN_EMAIL) {
+      toast('Konta założyciela nie da się usunąć.', 'danger');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: 'Usunąć konto na stałe?',
+      message: `${member.email} zniknie z Firebase razem z dostępem do panelu. Tego nie da się cofnąć — konto trzeba by założyć od nowa.`,
+      confirmLabel: 'Usuń konto',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    const result = await requestRemoval({
+      uid: member.uid,
+      email: member.email,
+      requestedBy: currentUid,
+    });
+    if (!result.ok) {
+      toast(result.error ?? 'Nie udało się zlecić usunięcia.', 'danger');
+      return;
+    }
+    toast(`${member.email}: konto zostanie usunięte w ciągu kilku minut.`, 'success');
+  };
+
   const remove = async (member: TeamMember) => {
     // Te same zabezpieczenia co przy zmianie roli — inaczej „kosz" na
     // własnym wierszu obchodził je bokiem: usunięcie własnego wpisu cofa
@@ -252,6 +299,41 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
         Adres <span className="text-ink">{ROOT_ADMIN_EMAIL}</span> jest adminem
         zawsze i nie da się tego zmienić.
       </p>
+
+      {/* Konta usuwa GitHub Actions, więc między kliknięciem a zniknięciem
+          mija chwila. Bez tej listy admin nie wiedziałby, czy kliknięcie
+          w ogóle zadziałało, i klikał drugi raz. */}
+      {removals.filter((item) => !item.doneAt).length > 0 && (
+        <div className="mt-4 rounded-xl border border-accent bg-surface p-3">
+          <p className="text-sm font-semibold">Konta w trakcie usuwania</p>
+          <ul className="mt-1 space-y-0.5">
+            {removals
+              .filter((item) => !item.doneAt)
+              .map((item) => (
+                <li key={item.id} className="text-xs text-ink-dim">
+                  {item.email || item.uid} — zniknie w ciągu kilku minut
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
+      {removals.some((item) => item.error) && (
+        <div className="mt-4 rounded-xl border border-danger bg-surface p-3">
+          <p className="text-sm font-semibold text-danger">
+            Nie udało się usunąć konta
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {removals
+              .filter((item) => item.error)
+              .map((item) => (
+                <li key={item.id} className="text-xs text-ink-dim">
+                  {item.email || item.uid}: {item.error}
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       {founderMissing && (
         <div className="mt-4 rounded-xl border border-accent bg-surface p-4">
@@ -392,6 +474,17 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
               aria-label={`Usuń wpis roli ${member.email}`}
               className="shrink-0 text-danger"
               onClick={() => void remove(member)}
+            />
+
+            {/* Trwałe usunięcie konta — osobno od odebrania roli, bo tego nie
+                da się cofnąć. Zlecenie wykonuje Actions (patrz removeAccount). */}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="ban"
+              aria-label={`Usuń konto ${member.email} na stałe`}
+              className="shrink-0 text-danger"
+              onClick={() => void removeAccount(member)}
             />
           </li>
         ))}

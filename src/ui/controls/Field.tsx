@@ -25,7 +25,7 @@ const base =
 export function TextField({ label, hint, error, className, ...rest }: TextFieldProps) {
   return (
     <label className={`block ${className ?? ''}`}>
-      {label && <span className="text-sm text-ink-dim">{label}</span>}
+      {label && <span className="block text-sm text-ink-dim">{label}</span>}
       <input
         aria-label={label}
         {...rest}
@@ -76,7 +76,7 @@ export function TextArea({ label, hint, error, className, rows = 3, ...rest }: T
 
   return (
     <label className={`block ${className ?? ''}`}>
-      {label && <span className="text-sm text-ink-dim">{label}</span>}
+      {label && <span className="block text-sm text-ink-dim">{label}</span>}
       <textarea
         ref={ref}
         aria-label={label}
@@ -137,7 +137,7 @@ export function NumberField({
 
   return (
     <div className={className}>
-      {label && <span className="text-sm text-ink-dim">{label}</span>}
+      {label && <span className="block text-sm text-ink-dim">{label}</span>}
       <div className="mt-1 flex items-stretch overflow-hidden rounded-lg border border-edge bg-bg focus-within:border-accent">
         <button
           type="button"

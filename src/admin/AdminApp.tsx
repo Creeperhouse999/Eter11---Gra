@@ -98,7 +98,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'announcements', label: 'Ogłoszenia', icon: 'flag' },
 
   // Dane i podgląd wstecz
-  { key: 'stats', label: 'Statystyki', icon: 'medal' },
+  { key: 'stats', label: 'Statystyki', icon: 'pieChart' },
   { key: 'history', label: 'Historia', icon: 'undo' },
 
   // Ustawienia na końcu

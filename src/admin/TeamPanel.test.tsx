@@ -28,6 +28,17 @@ vi.mock('../firebase/roles', async (importOriginal) => {
   };
 });
 
+// Trwałe usunięcie konta zleca się przez osobną kolekcję — w teście atrapa,
+// żeby panel nie sięgał do prawdziwej bazy.
+const requestRemoval = vi.fn(async (_input: unknown) => ({ ok: true }));
+vi.mock('../firebase/accountRemovals', () => ({
+  requestRemoval: (input: unknown) => requestRemoval(input),
+  watchRemovals: (cb: (items: unknown[]) => void) => {
+    cb([]);
+    return () => {};
+  },
+}));
+
 const { TeamPanel } = await import('./TeamPanel');
 const { ROOT_ADMIN_EMAIL } = await import('../firebase/roles');
 
@@ -41,6 +52,62 @@ const renderPanel = (currentUid: string) =>
 beforeEach(() => {
   removeRole.mockClear();
   setRole.mockClear();
+  requestRemoval.mockClear();
+});
+
+/**
+ * Trwałe usunięcie konta jest nieodwracalne — konta nie da się przywrócić,
+ * trzeba je założyć od nowa. Te same bezpieczniki co przy odbieraniu roli
+ * muszą więc trzymać tym mocniej: admin nie usuwa własnego konta (straciłby
+ * dostęp do panelu) ani konta założyciela.
+ */
+describe('TeamPanel — trwałe usunięcie konta', () => {
+  it('nie zleca usunięcia własnego konta', async () => {
+    team = [
+      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
+      { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
+    ];
+    renderPanel('me');
+
+    fireEvent.click(screen.getByLabelText('Usuń konto admin@eter11.pl na stałe'));
+
+    expect(screen.queryByText('Usunąć konto na stałe?')).toBeNull();
+    expect(await screen.findByText(/własnego konta/i)).toBeTruthy();
+    expect(requestRemoval).not.toHaveBeenCalled();
+  });
+
+  it('nie zleca usunięcia konta założyciela', async () => {
+    team = [
+      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
+      { uid: 'root', email: ROOT_ADMIN_EMAIL, role: 'admin' },
+    ];
+    renderPanel('me');
+
+    fireEvent.click(screen.getByLabelText(`Usuń konto ${ROOT_ADMIN_EMAIL} na stałe`));
+
+    expect(screen.queryByText('Usunąć konto na stałe?')).toBeNull();
+    expect(requestRemoval).not.toHaveBeenCalled();
+  });
+
+  it('cudze konto usuwa dopiero po potwierdzeniu', async () => {
+    team = [
+      { uid: 'me', email: 'admin@eter11.pl', role: 'admin' },
+      { uid: 'other', email: 'kolega@eter11.pl', role: 'coworker' },
+    ];
+    renderPanel('me');
+
+    fireEvent.click(screen.getByLabelText('Usuń konto kolega@eter11.pl na stałe'));
+
+    // Najpierw pytanie — nieodwracalnej operacji nie robimy na jedno kliknięcie.
+    expect(await screen.findByText('Usunąć konto na stałe?')).toBeTruthy();
+    expect(requestRemoval).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń konto' }));
+    await screen.findByText(/zostanie usunięte/i);
+    expect(requestRemoval).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: 'other', email: 'kolega@eter11.pl' }),
+    );
+  });
 });
 
 describe('TeamPanel — ochrona przed samo-wylogowaniem', () => {

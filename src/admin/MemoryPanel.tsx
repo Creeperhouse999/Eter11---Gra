@@ -183,7 +183,9 @@ export function MemoryPanel({ author, authorUid, role }: MemoryPanelProps) {
         ) : (
           <ul className="space-y-2">
             {notes.map((note) => {
-              const canEditThis = mayWrite && mine(note);
+              // Swoje poprawia i kasuje autor; cudze — admin, żeby dało się
+              // uporządkować wpis, którego autora akurat nie ma pod ręką.
+              const canEditThis = mayWrite && (mine(note) || mayDeleteAny);
               const canRemoveThis = mine(note) || mayDeleteAny;
               const editing = editingId === note.id;
 

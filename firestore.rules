@@ -318,6 +318,31 @@ service cloud.firestore {
     }
 
     /**
+     * Zlecenia trwałego usunięcia konta.
+     *
+     * Konta kasuje Admin SDK, a jego klucz daje pełną władzę nad projektem —
+     * w przeglądarce byłby do wyjęcia przez każdego, kto otworzy narzędzia
+     * deweloperskie. Panel więc tylko ZLECA, a wykonuje GitHub Actions, gdzie
+     * klucz jest sekretem repozytorium.
+     *
+     * Zlecać i oglądać może wyłącznie admin. Wpisu nie da się zmienić ani
+     * skasować z panelu: odznaczenie „wykonano" należy do Actions, które
+     * działa z pominięciem reguł.
+     */
+    match /accountRemovals/{item} {
+      allow read: if jestAdmin();
+
+      allow create: if jestAdmin()
+                    && request.resource.data.keys()
+                         .hasOnly(['uid', 'email', 'requestedBy', 'requestedAt'])
+                    && request.resource.data.uid is string
+                    && request.resource.data.uid.size() > 0
+                    && request.resource.data.email is string;
+
+      allow update, delete: if false;
+    }
+
+    /**
      * Ogłoszenia dla zespołu.
      *
      * Jedna wiadomość od admina do wszystkich — nie zgłoszenie (brak obiegu)

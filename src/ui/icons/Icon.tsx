@@ -62,7 +62,7 @@ export type IconName =
   | 'printer' | 'database' | 'link' | 'settingsSliders'
   // Gra i zabawa
   | 'dice' | 'trophy' | 'target' | 'gamepad' | 'cards' | 'chess' | 'ticket' | 'music'
-  | 'football' | 'kite' | 'magnet' | 'crownSimple';
+  | 'football' | 'kite' | 'magnet' | 'crownSimple' | 'pieChart';
 
 interface IconProps {
   /**
@@ -326,6 +326,7 @@ const PATHS: Record<IconName, string> = {
   kite: 'M12 2 4 10l8 10 8-10-8-8Zm0 0v18M4 10h16m-8 10c0 1-2 1-2 2',
   magnet: 'M5 5v7a7 7 0 0 0 14 0V5h-5v7a2 2 0 0 1-4 0V5H5Zm0 3.5h5m4 0h5',
   crownSimple: 'M4 18h16M4 18l1-9 4 4 3-6 3 6 4-4 1 9',
+  pieChart: 'M12 3a9 9 0 1 0 9 9h-9V3Zm3.5-.5A9 9 0 0 1 21.5 8.5H15.5V2.5Z',
 };
 
 /** Prefiks nazwy własnej ikony — po nim odróżniamy URL od klucza z zestawu. */

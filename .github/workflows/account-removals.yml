@@ -1,0 +1,48 @@
+name: Usuwanie kont zleconych w panelu
+
+# Konta z Firebase kasuje wyłącznie Admin SDK, a jego klucz daje pełną władzę
+# nad projektem — w przeglądarce byłby do wyjęcia przez każdego, kto otworzy
+# narzędzia deweloperskie. Panel więc tylko zleca (kolekcja `accountRemovals`),
+# a wykonuje to ten workflow, gdzie klucz jest sekretem repozytorium.
+on:
+  # Co 10 minut: admin klika w panelu i konto znika w ciągu kilku minut.
+  schedule:
+    - cron: '*/10 * * * *'
+  # Do ręcznego odpalenia, gdy ktoś nie chce czekać na najbliższy przebieg.
+  workflow_dispatch:
+
+# Jedno wykonanie naraz — dwa równoległe próbowałyby skasować to samo konto.
+concurrency:
+  group: account-removals
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Tylko tutaj, nie w zależnościach gry: Admin SDK jest ciężki, a do
+      # samej gry i panelu niepotrzebny.
+      - name: Zainstaluj Admin SDK
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: npm install --no-save firebase-admin@13
+
+      - name: Wykonaj zlecenia
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: node scripts/process-account-removals.mjs
+
+      - name: Brak klucza
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT == '' }}
+        run: |
+          echo "Nie ustawiono sekretu FIREBASE_SERVICE_ACCOUNT — nie ma czym kasować kont."
+          echo "Firebase Console → Ustawienia projektu → Konta usługi → Wygeneruj nowy klucz,"
+          echo "a zawartość pliku JSON wklej jako sekret repozytorium o tej nazwie."
