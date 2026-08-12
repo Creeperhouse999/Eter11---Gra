@@ -380,6 +380,18 @@ export function validateContent(content: unknown): ValidationResult {
     );
   }
 
+  // Zero grywalnych problemów to nie „mniej misji", tylko gra bez treści:
+  // talia problemów jest pusta, „Odkryj problem" nie działa i jedynym wyjściem
+  // jest powrót do menu. Sprawdzenie niżej ten przypadek POMIJAŁO (warunek
+  // `> 0`), więc panel przepuszczał taką zawartość bez słowa, a dziecko
+  // dostawało grę, której nie da się rozegrać.
+  if (problemList.length > 0 && playableProblems.length === 0) {
+    add(
+      'Wszystkie problemy są wersjami roboczymi — nie ma czego rozgrywać. ' +
+        'Odznacz „wersja robocza" przy co najmniej jednym problemie.',
+    );
+  }
+
   // Misji nie może być więcej niż GRYWALNYCH problemów: gra dobiega wtedy końca
   // wcześniej, niż zapowiada, a ekran „odkryj problem" zostaje bez treści.
   // Liczymy problemy nierobocze, bo tylko one trafiają do partii — szkice nie.

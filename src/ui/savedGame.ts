@@ -77,7 +77,17 @@ export function loadGame(seed: number): GameState | null {
       }
     }
 
-    if (!Array.isArray(state.drawPile) || !Array.isArray(state.problemPile)) {
+    // `solvedProblems`/`unsolvedProblems` czyta ekran gry i ekran końcowy —
+    // bez sprawdzenia `.length` na `undefined` wywalało cały widok na biały
+    // ekran, zamiast po prostu zacząć partię od nowa. `discardPile` tak samo:
+    // sięga po niego dobieranie kart.
+    if (
+      !Array.isArray(state.drawPile) ||
+      !Array.isArray(state.problemPile) ||
+      !Array.isArray(state.discardPile) ||
+      !Array.isArray(state.solvedProblems) ||
+      !Array.isArray(state.unsolvedProblems)
+    ) {
       return null;
     }
 

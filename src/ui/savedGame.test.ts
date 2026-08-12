@@ -129,4 +129,28 @@ describe('zapis partii', () => {
     saveGame(1, { ...state, mission: null });
     expect(loadGame(1)).not.toBeNull();
   });
+
+  /**
+   * Listy problemów czyta ekran gry (statystyki po partii) i ekran końcowy.
+   * Zapis bez nich — uszkodzony wpis, ręczna edycja, stara wersja formatu —
+   * kończył się wyjątkiem `Cannot read properties of undefined (reading
+   * 'length')` i BIAŁYM EKRANEM zamiast po prostu nowej partii.
+   */
+  it.each(['solvedProblems', 'unsolvedProblems', 'discardPile'])(
+    'odrzuca zapis bez pola %s zamiast wywalać grę',
+    (pole) => {
+      const state = started() as unknown as Record<string, unknown>;
+      const uszkodzony = { ...state };
+      delete uszkodzony[pole];
+      localStorage.setItem(
+        'eter11:game',
+        JSON.stringify({ version: 1, seed: 1, state: uszkodzony }),
+      );
+
+      expect(loadGame(1)).toBeNull();
+      // I nie udaje, że jest co wznawiać — inaczej menu proponowałoby
+      // „Wróć do gry", które od razu wywala biały ekran.
+      expect(savedSeed()).toBeNull();
+    },
+  );
 });

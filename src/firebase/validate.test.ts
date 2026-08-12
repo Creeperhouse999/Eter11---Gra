@@ -478,4 +478,21 @@ describe('validateContent — świadomość wersji roboczych (draft)', () => {
     expect(result.ok).toBe(false);
     expect(result.errors.join(' ').toLowerCase()).toContain('samouczek');
   });
+
+  /**
+   * Zero grywalnych problemów to nie „krótsza gra", tylko gra bez treści:
+   * talia problemów jest pusta, „Odkryj problem" nie działa i jedynym wyjściem
+   * jest powrót do menu. Sprawdzenie liczby problemów ten przypadek POMIJAŁO
+   * (wyłączał je warunek `playableProblems.length > 0`), więc panel
+   * przepuszczał taką zawartość bez słowa ostrzeżenia.
+   */
+  it("wszystkie problemy robocze = zawartość odrzucona, nie cicha zgoda", () => {
+    const content = validContent();
+    for (const problem of content.problems) problem.draft = true;
+
+    const result = validateContent(content);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ").toLowerCase()).toContain("wersjami roboczymi");
+  });
 });

@@ -68,9 +68,13 @@ function Game() {
      * blokuje — ale po pięciu sekundach przestajemy liczyć na bazę i mówimy
      * o tym graczowi, zamiast w nieskończoność trzymać nieaktualne dane.
      */
+    // `done` znaczy „komponent zniknął", nie „skończyliśmy czekać": limit ma
+    // tylko UPRZEDZIĆ gracza. Wcześniej gasił też samo oczekiwanie, więc
+    // odpowiedź, która przyszła po pięciu sekundach (wolne łącze, słaby
+    // zasięg), lądowała w koszu — redaktor zmieniał kartę w panelu, a dziecko
+    // grało starą wersją, chociaż dane dotarły.
     const timeout = window.setTimeout(() => {
       if (done) return;
-      done = true;
       setNotice('Baza nie odpowiada — gramy na kartach wbudowanych w grę.');
     }, 5000);
 
@@ -81,7 +85,6 @@ function Game() {
       .then(({ loadContent }) => loadContent())
       .then((result) => {
         if (done) return;
-        done = true;
         window.clearTimeout(timeout);
 
         setContent(result.content);
@@ -100,18 +103,26 @@ function Game() {
         // Gracza informujemy tylko wtedy, gdy coś naprawdę poszło nie tak.
         if (result.reason === 'unreachable' || result.reason === 'invalid') {
           setNotice(result.warning ?? null);
+        } else {
+          // Baza odezwała się mimo wcześniejszego „nie odpowiada" — pasek
+          // przestał być prawdą, więc go zdejmujemy.
+          setNotice(null);
         }
       })
       .catch(() => {
         // Gra toczy się dalej na danych wbudowanych — nie ma czego ratować,
         // wystarczy powiedzieć, że nowszej zawartości nie będzie.
         if (done) return;
-        done = true;
         window.clearTimeout(timeout);
         setNotice('Nie udało się wczytać danych — gramy na kartach wbudowanych.');
       });
 
-    return () => window.clearTimeout(timeout);
+    // `done` zapala się przy odmontowaniu: po zniknięciu komponentu nie mamy
+    // już czego ustawiać.
+    return () => {
+      done = true;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
 
