@@ -130,6 +130,11 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
       return 0;
     });
 
+  // Ile zaznaczonych kart wypadło poza bieżący filtr. Zmiana hurtem ruszy je
+  // razem z widocznymi, więc redaktor musi o nich wiedzieć, zanim kliknie.
+  const widoczneId = new Set(visible.map((card) => card.id));
+  const pickedOffScreen = [...picked].filter((id) => !widoczneId.has(id)).length;
+
   const toggle = (id: string) => {
     setPicked((prev) => {
       const next = new Set(prev);
@@ -296,8 +301,19 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
 
       {picked.size > 0 && (
         <div className="eter-rise mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-accent bg-raised p-3">
+          {/* Zaznaczenie przeżywa zmianę filtra, a zmiana hurtem działa na
+              WSZYSTKICH zaznaczonych — także na tych, których po przefiltrowaniu
+              nie widać. Bez tej informacji redaktor zaznaczał kilkanaście kart,
+              przełączał kategorię i zmieniał rodzinę „temu, co przed oczami",
+              po cichu ruszając zupełnie inne karty. */}
           <span className="text-sm font-semibold text-accent">
             Zaznaczono {picked.size}
+            {pickedOffScreen > 0 && (
+              <span className="font-normal text-ink-dim">
+                {' '}
+                (w tym {pickedOffScreen} poza widokiem)
+              </span>
+            )}
           </span>
 
           <Select
