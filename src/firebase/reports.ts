@@ -57,6 +57,30 @@ export interface ReportNote {
   author?: string;
 }
 
+/**
+ * Jak pilne jest zgłoszenie — ustawia zgłaszający, bo to on wie, czy gra stoi,
+ * czy chodzi o literówkę.
+ *
+ * Cztery poziomy, nie trzy: „ultra" jest po to, żeby dało się odróżnić „gra
+ * nie działa, dzieci siedzą przy stole" od zwykłego pilnego błędu.
+ */
+export type ReportPriority = 'low' | 'medium' | 'high' | 'ultra';
+
+/** Kolejność do sortowania — najpilniejsze na górze listy. */
+export const PRIORITY_ORDER: Record<ReportPriority, number> = {
+  ultra: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+export const PRIORITY_LABELS: Record<ReportPriority, string> = {
+  ultra: 'Krytyczny',
+  high: 'Wysoki',
+  medium: 'Zwykły',
+  low: 'Niski',
+};
+
 export interface Report {
   id: string;
   kind: ReportKind;
@@ -64,6 +88,11 @@ export interface Report {
   description: string;
   status: ReportStatus;
   author?: string;
+  /**
+   * Pilność. Starsze zgłoszenia jej nie mają — czytamy je wtedy jako
+   * „zwykły", żeby nie wypychały nowych ani nie spadały na sam dół.
+   */
+  priority?: ReportPriority;
   createdAt: string;
   /** Adresy zrzutów ekranu wgranych do Storage. Najwyżej pięć. */
   images?: string[];
@@ -86,6 +115,8 @@ export async function addReport(input: {
    * pominięcie roli nie wpuszczało zgłoszenia od razu do realizacji.
    */
   status?: 'pending' | 'new';
+  /** Pilność — bez niej zgłoszenie liczy się jako zwykłe. */
+  priority?: ReportPriority;
 }): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz tytuł zgłoszenia.' };
@@ -98,6 +129,9 @@ export async function addReport(input: {
       author: input.author?.trim() ?? '',
       status: (input.status ?? 'pending') satisfies ReportStatus,
       createdAt: new Date().toISOString(),
+      // Pilność zapisujemy tylko wtedy, gdy ktoś ją wybrał: brak pola czyta
+      // się jako „zwykły", więc wartość domyślna niczego nie wnosi.
+      ...(input.priority ? { priority: input.priority } : {}),
       // Puste pole pomijamy: reguły dopuszczają `images`, ale pusta lista
       // niczego nie wnosi, a odczyt i tak podstawia [].
       ...(input.images?.length ? { images: input.images.slice(0, 5) } : {}),
@@ -122,6 +156,7 @@ function toReport(id: string, data: Record<string, unknown>): Report {
     description: (data.description as string) ?? '',
     status: (data.status as ReportStatus) ?? 'new',
     author: (data.author as string) ?? undefined,
+    priority: (data.priority as ReportPriority) ?? undefined,
     createdAt: (data.createdAt as string) ?? '',
     images: (data.images as string[]) ?? [],
     notes: (data.notes as ReportNote[]) ?? [],

@@ -149,7 +149,14 @@ service cloud.firestore {
       // - każdy inny (coworker, edytor, gracz z gry bez konta) tworzy tylko
       //   `pending` — trafia do akceptacji.
       allow create: if request.resource.data.keys().hasOnly(
-                         ['kind', 'title', 'description', 'author', 'status', 'createdAt', 'images'])
+                         ['kind', 'title', 'description', 'author', 'status',
+                          'createdAt', 'images', 'priority'])
+                    // Pilność ustawia zgłaszający — to on wie, czy gra stoi,
+                    // czy chodzi o literówkę. Pole jest opcjonalne: starsze
+                    // zgłoszenia go nie mają i czytamy je jako „zwykłe".
+                    && (!('priority' in request.resource.data)
+                        || request.resource.data.priority
+                             in ['low', 'medium', 'high', 'ultra'])
                     && request.resource.data.kind in ['bug', 'idea']
                     && (request.resource.data.status == 'pending'
                         || (request.resource.data.status == 'new' && jestModeratorem()))

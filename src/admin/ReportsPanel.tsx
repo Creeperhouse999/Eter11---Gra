@@ -8,6 +8,9 @@ import {
   type Report,
   type ReportKind,
   type ReportStatus,
+  type ReportPriority,
+  PRIORITY_LABELS,
+  PRIORITY_ORDER,
 } from '../firebase/reports';
 import {
   canDelete,
@@ -38,6 +41,27 @@ const KIND_OPTIONS = [
 ];
 
 const KIND_LABELS: Record<ReportKind, string> = { bug: 'Błąd', idea: 'Pomysł' };
+
+/**
+ * Pilność do wyboru przy zgłaszaniu.
+ *
+ * Kolory od spokojnego do alarmowego, żeby lista dała się czytać rzutem oka —
+ * przy kilkudziesięciu zgłoszeniach sam napis ginie.
+ */
+const PRIORITY_OPTIONS = [
+  { value: 'low' as const, label: 'Niski', color: 'var(--eter-ink-dim)' },
+  { value: 'medium' as const, label: 'Zwykły', color: 'var(--eter-accent)' },
+  { value: 'high' as const, label: 'Wysoki', color: 'var(--eter-accent-2)' },
+  { value: 'ultra' as const, label: 'Krytyczny', color: 'var(--eter-danger)' },
+];
+
+/** Kolor odznaki pilności na liście — ten sam, co w wyborze. */
+const PRIORITY_COLOR: Record<ReportPriority, string> = {
+  low: 'var(--eter-ink-dim)',
+  medium: 'var(--eter-accent)',
+  high: 'var(--eter-accent-2)',
+  ultra: 'var(--eter-danger)',
+};
 
 /**
  * Podpowiedzi w formularzu zależą od rodzaju — te same dla błędu i pomysłu
@@ -203,6 +227,9 @@ export function ReportsPanel({
   const [preview, setPreview] = useState<string | null>(null);
 
   const [kind, setKind] = useState<ReportKind>('bug');
+  // „Zwykły" na start: większość zgłoszeń nim jest, a wymuszanie wyboru przy
+  // każdym wpisie tylko spowalnia zgłaszanie.
+  const [priority, setPriority] = useState<ReportPriority>('medium');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
@@ -272,6 +299,7 @@ export function ReportsPanel({
       description,
       author,
       images,
+      priority,
       // Admin i co-admin wysyłają od razu do realizacji; reszta czeka na
       // akceptację.
       status: skipsApproval(role) ? 'new' : 'pending',
@@ -463,7 +491,20 @@ export function ReportsPanel({
     dismissed: reports.filter((r) => r.status === 'dismissed').length,
     done: reports.filter((r) => r.status === 'done').length,
   };
-  const visible = reports.filter((r) => r.status === tab);
+  /**
+   * Najpilniejsze na górze, a przy równej pilności — najnowsze.
+   *
+   * Bez tego pilność byłaby samą etykietą: przy kilkudziesięciu zgłoszeniach
+   * krytyczne i tak ginęłoby w środku listy ułożonej po dacie. Zgłoszenia bez
+   * pilności (sprzed jej wprowadzenia) czytamy jako „zwykłe", żeby nie wypadły
+   * ani na samą górę, ani na sam dół.
+   */
+  const visible = reports
+    .filter((r) => r.status === tab)
+    .sort((a, b) => {
+      const roznica = PRIORITY_ORDER[a.priority ?? 'medium'] - PRIORITY_ORDER[b.priority ?? 'medium'];
+      return roznica !== 0 ? roznica : b.createdAt.localeCompare(a.createdAt);
+    });
   // Otwarte zgłoszenie bierzemy z listy po id, nie z kopii — status
   // i komentarze zmieniają się w tym samym oknie, więc muszą się w nim
   // odświeżać na miejscu.
@@ -866,12 +907,20 @@ export function ReportsPanel({
       {/* Formularz — ukryty dla podglądu, który zgłaszać nie może. */}
       {canReport(role) && (
       <div className="mt-5 rounded-xl border border-edge bg-surface p-4">
-        <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+        <div className="grid gap-3 sm:grid-cols-[10rem_10rem_1fr]">
           <Select
             label="Rodzaj"
             value={kind}
             options={KIND_OPTIONS}
             onChange={setKind}
+          />
+          {/* Pilność ustawia zgłaszający — to on wie, czy gra stoi przy stole
+              z dziećmi, czy chodzi o literówkę w opisie karty. */}
+          <Select
+            label="Pilność"
+            value={priority}
+            options={PRIORITY_OPTIONS}
+            onChange={(value) => setPriority(value as ReportPriority)}
           />
           <TextField
             label="Tytuł"
@@ -996,6 +1045,21 @@ export function ReportsPanel({
                     style={{ overflowWrap: 'anywhere' }}
                   >
                     {report.title}
+                    {/* Odznaka tylko przy pilnych: „zwykły" to większość, więc
+                        znaczek przy każdym wpisie byłby szumem, a nie
+                        informacją. Kolor niesie to samo co napis — sam kolor
+                        gubi się przy czytaniu ekranu. */}
+                    {(report.priority === 'high' || report.priority === 'ultra') && (
+                      <span
+                        className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
+                        style={{
+                          color: PRIORITY_COLOR[report.priority],
+                          border: `1px solid ${PRIORITY_COLOR[report.priority]}`,
+                        }}
+                      >
+                        {PRIORITY_LABELS[report.priority]}
+                      </span>
+                    )}
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-ink-dim">
                     {KIND_LABELS[report.kind]} · {formatDate(report.createdAt)}

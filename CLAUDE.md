@@ -17,6 +17,13 @@ Read wherever users report problems (issue tracker, a reports collection, a chan
 
 **Priority order:** user-reported issues before self-found bugs. Among them: critical (product broken / core flow down) → normal bugs → cosmetics → features last.
 
+**Pilność ze zgłoszenia (pole `priority`).** Zgłaszający ustawia ją w panelu:
+`ultra` (gra stoi, dzieci siedzą przy stole) → `high` → `medium` → `low`.
+Bierz zgłoszenia w tej kolejności, a dopiero przy równej pilności — od
+najnowszych. Zgłoszenia bez tego pola pochodzą sprzed jego wprowadzenia i
+liczą się jako `medium`. Panel sortuje listę tak samo, więc to, co widzisz na
+górze, jest tym, co masz wziąć.
+
 ### 2. Find bugs (when the queue is empty)
 Review the codebase adversarially, **one area at a time**. Dispatch a focused reviewer per area with a tight brief: *"Find REAL bugs, not style. Format `file:line: severity — problem. fix.` If nothing, say so plainly."* Typical areas: core domain logic, data/persistence layer, API/network boundaries, UI/rendering, auth/permissions, background jobs, edge-case inputs, static data integrity.
 
