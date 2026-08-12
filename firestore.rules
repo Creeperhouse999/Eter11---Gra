@@ -130,9 +130,18 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data)
                            .affectedKeys().hasOnly(['notes'])
                       && request.resource.data.status == resource.data.status
-                      // Notatek tylko przybywa — nie kasuje się cudzych.
-                      && request.resource.data.get('notes', []).size()
-                         >= resource.data.get('notes', []).size()
+                      && request.resource.data.notes is list
+                      // DOKŁADNIE jedna nowa notatka na końcu, a cała
+                      // wcześniejsza rozmowa bez zmian. Sam warunek „nie
+                      // ubywa" pozwalał przepisać cudze notatki (byle nie
+                      // skrócić listy) i dorzucić naraz dowolnie wiele —
+                      // jak w wątkach, tak i tutaj porównujemy prefiks.
+                      && request.resource.data.notes.size()
+                         == resource.data.get('notes', []).size() + 1
+                      && request.resource.data.notes[0:resource.data.get('notes', []).size()]
+                         == resource.data.get('notes', [])
+                      // Rozmowa pod zgłoszeniem nie rośnie w nieskończoność.
+                      && request.resource.data.notes.size() <= 100
                     );
 
       // Tworzenie:
@@ -265,7 +274,12 @@ service cloud.firestore {
      */
     match /contentHistory/{version} {
       allow read: if jestModeratorem();
-      allow write: if mozeEdytowac();
+      // Dopisywać może cały zespół redakcyjny, ale RUSZAĆ zapisanych wersji
+      // już nie: `write` obejmowało też `update` i `delete`, więc historia,
+      // która ma chronić przed nieodwracalnym nadpisaniem treści, dawała się
+      // skasować przez tę samą osobę, przed której pomyłką chroni.
+      allow create: if mozeEdytowac();
+      allow update, delete: if jestAdmin();
     }
 
     /**
@@ -395,6 +409,17 @@ service cloud.firestore {
                     && request.resource.data.title.size() <= 200
                     && request.resource.data.kind in
                          ['report-dismissed', 'report-fixed', 'discussion-reply', 'announcement']
+                    // Pola opcjonalne też mają granice: bez nich wpis
+                    // z ogromnym tekstem rozwalał cudzy dzwonek, a `link` idzie
+                    // wprost do kliknięcia, więc musi być ścieżką w panelu —
+                    // nie adresem na zewnątrz ani `javascript:`.
+                    && request.resource.data.get('body', '') is string
+                    && request.resource.data.get('body', '').size() <= 1000
+                    && request.resource.data.get('from', '') is string
+                    && request.resource.data.get('from', '').size() <= 60
+                    && request.resource.data.get('link', '') is string
+                    && request.resource.data.get('link', '')
+                         .matches('^(/[A-Za-z0-9/_?=&#-]{0,200})?$')
                     && request.resource.data.read == false;
 
       // Oznaczenie jako przeczytane — nic poza tym.
