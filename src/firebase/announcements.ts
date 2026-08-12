@@ -65,20 +65,36 @@ export async function addAnnouncement(input: {
   }
 }
 
-/** Przypina albo odpina — przypięte trzyma się góry listy. */
-export async function setPinned(id: string, pinned: boolean): Promise<void> {
+/**
+ * Przypina albo odpina — przypięte trzyma się góry listy.
+ *
+ * Wynik wraca do panelu (jak przy wysyłce), bo odrzucony zapis kończył się
+ * ciszą: gwiazdka nie zmieniała stanu i nic nie tłumaczyło dlaczego, więc
+ * wyglądało to na zawieszony przycisk.
+ */
+export async function setPinned(
+  id: string,
+  pinned: boolean,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await updateDoc(doc(db, COLLECTION, id), { pinned });
+    return { ok: true };
   } catch (error) {
     console.error('Nie udało się zmienić przypięcia:', error);
+    return { ok: false, error: 'Nie udało się zmienić wyróżnienia.' };
   }
 }
 
-export async function removeAnnouncement(id: string): Promise<void> {
+/** Kasuje ogłoszenie. Wynik wraca do panelu — patrz `setPinned`. */
+export async function removeAnnouncement(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await deleteDoc(doc(db, COLLECTION, id));
+    return { ok: true };
   } catch (error) {
     console.error('Nie udało się usunąć ogłoszenia:', error);
+    return { ok: false, error: 'Nie udało się usunąć ogłoszenia.' };
   }
 }
 

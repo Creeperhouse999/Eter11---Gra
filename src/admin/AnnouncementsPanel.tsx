@@ -99,7 +99,20 @@ export function AnnouncementsPanel({ author, currentUid, role }: AnnouncementsPa
       tone: 'danger',
     });
     if (!ok) return;
-    await removeAnnouncement(item.id);
+    // Odrzucony zapis musi się odezwać: bez tego ogłoszenie zostawało na
+    // liście bez słowa wyjaśnienia, a admin klikał kosz w kółko.
+    const result = await removeAnnouncement(item.id);
+    if (!result.ok) {
+      toast(result.error ?? 'Nie udało się usunąć ogłoszenia.', 'danger');
+      return;
+    }
+    toast('Ogłoszenie usunięte.', 'success');
+  };
+
+  /** Wyróżnienie na górze listy. Nieudany zapis mówi dlaczego. */
+  const togglePinned = async (id: string, pinned: boolean) => {
+    const result = await setPinned(id, pinned);
+    if (!result.ok) toast(result.error ?? 'Nie udało się zmienić wyróżnienia.', 'danger');
   };
 
   return (
@@ -186,7 +199,7 @@ export function AnnouncementsPanel({ author, currentUid, role }: AnnouncementsPa
                       <button
                         type="button"
                         aria-label={item.pinned ? 'Przestań wyróżniać' : 'Wyróżnij'}
-                        onClick={() => void setPinned(item.id, !item.pinned)}
+                        onClick={() => void togglePinned(item.id, !item.pinned)}
                         className={`rounded p-1.5 transition hover:text-accent ${
                           item.pinned ? 'text-accent' : 'text-ink-dim'
                         }`}

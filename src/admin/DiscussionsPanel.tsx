@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   addDiscussion,
   addMessage,
@@ -137,10 +137,19 @@ export function DiscussionsPanel({
     return stop;
   }, []);
 
+  // Blokada natychmiastowa, nie przez stan: `setSending(true)` wyłącza przycisk
+  // dopiero przy następnym renderze, więc dwa szybkie kliknięcia (albo dwuklik)
+  // zdążyły wejść oba i na liście lądowały DWA identyczne wątki — usunąć mógł
+  // je tylko admin. Ten sam wzorzec pilnuje statusów w `ReportsPanel`.
+  const createInFlight = useRef(false);
+
   const create = async () => {
+    if (createInFlight.current) return;
+    createInFlight.current = true;
     setSending(true);
     const result = await addDiscussion({ title, description, author });
     setSending(false);
+    createInFlight.current = false;
 
     if (!result.ok) {
       toast(result.error ?? 'Nie udało się założyć wątku.', 'danger');
@@ -151,7 +160,13 @@ export function DiscussionsPanel({
     toast('Wątek założony.', 'success');
   };
 
+  // Ta sama blokada co przy zakładaniu wątku — dwuklik dokładał wypowiedź dwa
+  // razy, a wypowiedzi w wątku są dopisywane, nie da się ich cofnąć.
+  const sendInFlight = useRef(false);
+
   const send = async (discussion: Discussion) => {
+    if (sendInFlight.current) return;
+    sendInFlight.current = true;
     setReplying(true);
     const result = await addMessage(discussion, {
       author,
@@ -159,6 +174,7 @@ export function DiscussionsPanel({
       image: replyImages[0],
     });
     setReplying(false);
+    sendInFlight.current = false;
 
     if (!result.ok) {
       toast(result.error ?? 'Nie udało się wysłać.', 'danger');
