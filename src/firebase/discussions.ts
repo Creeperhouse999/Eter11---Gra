@@ -27,8 +27,17 @@ export interface DiscussionMessage {
    * nazwisko, którego nie da się podszyć.
    */
   author: string;
+  /**
+   * Konto autora — po nim, nie po widocznym podpisie, poznajemy właściciela
+   * wypowiedzi przy poprawianiu i usuwaniu. Imię bywa takie samo u dwóch osób
+   * i da się je zmienić w zakładce Admin, więc jako dowód własności się nie
+   * nadaje. Starsze wypowiedzi go nie mają — wtedy ruszyć je może tylko admin.
+   */
+  authorUid?: string;
   text: string;
   at: string;
+  /** Kiedy poprawiono treść — puste, gdy wypowiedź jest w pierwotnej formie. */
+  editedAt?: string;
   /** Jeden obrazek na wypowiedź — zrzut ekranu albo szkic pomysłu. */
   image?: string;
 }
@@ -60,7 +69,10 @@ export async function addDiscussion(input: {
    * komentarz odrzucenia jako pierwsze wypowiedzi, żeby dyskusja miała kontekst.
    */
   messages?: DiscussionMessage[];
-}): Promise<{ ok: boolean; error?: string }> {
+  // `id` wraca do panelu, żeby powiadomienie o nowym wątku mogło prowadzić
+  // wprost do niego. Bez tego zespół dostawał informację „jest nowy temat"
+  // i musiał go szukać na liście.
+}): Promise<{ ok: boolean; error?: string; id?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz temat dyskusji.' };
 
@@ -68,7 +80,7 @@ export async function addDiscussion(input: {
   if (!author) return { ok: false, error: 'Podaj swoje imię — inaczej nikt nie wie, kto pisze.' };
 
   try {
-    await addDoc(collection(db, COLLECTION), {
+    const entry = await addDoc(collection(db, COLLECTION), {
       title,
       description: input.description.trim(),
       author,
@@ -76,7 +88,7 @@ export async function addDiscussion(input: {
       messages: input.messages ?? [],
       closed: false,
     });
-    return { ok: true };
+    return { ok: true, id: entry.id };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Nie udało się założyć wątku: ${message}` };
@@ -157,7 +169,7 @@ export function watchDiscussions(
  */
 export async function addMessage(
   discussion: Discussion,
-  input: { author: string; text: string; image?: string },
+  input: { author: string; authorUid?: string; text: string; image?: string },
 ): Promise<{ ok: boolean; error?: string }> {
   const text = input.text.trim();
   // Sam obrazek bez słowa też jest wypowiedzią — „o to mi chodziło" + zrzut.
@@ -168,6 +180,8 @@ export async function addMessage(
 
   const message: DiscussionMessage = {
     author,
+    // Konto autora — po nim poznajemy właściciela przy poprawianiu i usuwaniu.
+    ...(input.authorUid ? { authorUid: input.authorUid } : {}),
     text,
     at: new Date().toISOString(),
     ...(input.image ? { image: input.image } : {}),
@@ -192,6 +206,98 @@ export async function addMessage(
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Nie udało się wysłać: ${reason}` };
+  }
+}
+
+/**
+ * Czy dana osoba może ruszyć tę wypowiedź.
+ *
+ * Właściciela poznajemy po koncie (`authorUid`), nie po widocznym podpisie:
+ * imię bywa takie samo u dwóch osób i da się je zmienić w zakładce Admin,
+ * więc jako dowód własności się nie nadaje.
+ *
+ * Wypowiedzi sprzed wprowadzenia `authorUid` nie mają czym się wylegitymować —
+ * ruszyć je może wyłącznie admin. Inaczej wystarczyłoby zmienić sobie imię na
+ * cudze, żeby przejąć stare wpisy.
+ */
+export function canEditMessage(
+  message: DiscussionMessage,
+  viewerUid: string,
+  isAdmin: boolean,
+): boolean {
+  if (isAdmin) return true;
+  return Boolean(message.authorUid) && message.authorUid === viewerUid;
+}
+
+/**
+ * Poprawa własnej wypowiedzi (admin: dowolnej).
+ *
+ * Zostawia znacznik `editedAt`, żeby dało się poznać, że treść zmieniła się po
+ * publikacji — w rozmowie, do której inni się odnoszą, cicha podmiana byłaby
+ * myląca.
+ */
+export async function editMessage(
+  discussion: Discussion,
+  index: number,
+  text: string,
+  viewer: { uid: string; isAdmin: boolean },
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmed = text.trim();
+  if (!trimmed) return { ok: false, error: 'Wypowiedź nie może być pusta.' };
+
+  try {
+    const ref = doc(db, COLLECTION, discussion.id);
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { ok: false, error: 'Tego wątku już nie ma.' };
+
+      // Stan z bazy, nie z kopii na ekranie: ktoś mógł w międzyczasie dopisać
+      // wypowiedź i indeksy by się rozjechały.
+      const current = (snap.data()?.messages ?? []) as DiscussionMessage[];
+      const message = current[index];
+      if (!message) return { ok: false, error: 'Tej wypowiedzi już nie ma.' };
+      if (!canEditMessage(message, viewer.uid, viewer.isAdmin)) {
+        return { ok: false, error: 'To nie Twoja wypowiedź.' };
+      }
+
+      const next = [...current];
+      next[index] = { ...message, text: trimmed, editedAt: new Date().toISOString() };
+      // `editIndex` mówi regule, którego elementu dotyczy zmiana — reguły nie
+      // mają pętli po tablicy, więc same nie znajdą różnicy.
+      tx.update(ref, { messages: next, editIndex: index });
+      return { ok: true };
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { ok: false, error: `Nie udało się poprawić: ${reason}` };
+  }
+}
+
+/** Usunięcie własnej wypowiedzi (admin: dowolnej). */
+export async function removeMessage(
+  discussion: Discussion,
+  index: number,
+  viewer: { uid: string; isAdmin: boolean },
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const ref = doc(db, COLLECTION, discussion.id);
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { ok: false, error: 'Tego wątku już nie ma.' };
+
+      const current = (snap.data()?.messages ?? []) as DiscussionMessage[];
+      const message = current[index];
+      if (!message) return { ok: false, error: 'Tej wypowiedzi już nie ma.' };
+      if (!canEditMessage(message, viewer.uid, viewer.isAdmin)) {
+        return { ok: false, error: 'To nie Twoja wypowiedź.' };
+      }
+
+      tx.update(ref, { messages: current.filter((_, i) => i !== index), editIndex: index });
+      return { ok: true };
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { ok: false, error: `Nie udało się usunąć: ${reason}` };
   }
 }
 

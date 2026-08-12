@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import {
   addDiscussion,
   addMessage,
+  editMessage,
+  removeMessage,
+  canEditMessage,
   deleteDiscussion,
   setDiscussionClosed,
   watchDiscussions,
@@ -116,6 +119,10 @@ export function DiscussionsPanel({
   const [reply, setReply] = useState('');
   const [replyImages, setReplyImages] = useState<string[]>([]);
   const [replying, setReplying] = useState(false);
+  /** Wypowiedź w trakcie poprawiania: który wątek, który element, jaka treść. */
+  const [editing, setEditing] = useState<{ id: string; index: number; text: string } | null>(
+    null,
+  );
   /** Obrazek otwarty w podglądzie (lightbox); `null` = zamknięte. */
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -162,6 +169,42 @@ export function DiscussionsPanel({
 
   // Ta sama blokada co przy zakładaniu wątku — dwuklik dokładał wypowiedź dwa
   // razy, a wypowiedzi w wątku są dopisywane, nie da się ich cofnąć.
+  /** Zapisuje poprawioną wypowiedź. Własność sprawdza transakcja i reguły. */
+  const saveEdit = async (discussion: Discussion) => {
+    if (!editing) return;
+    const result = await editMessage(discussion, editing.index, editing.text, {
+      uid: currentUid,
+      isAdmin: role === 'admin',
+    });
+    if (!result.ok) {
+      toast(result.error ?? 'Nie udało się poprawić.', 'danger');
+      return;
+    }
+    setEditing(null);
+    toast('Poprawione.', 'success');
+  };
+
+  /** Usuwa wypowiedź — nieodwracalnie, więc pytamy. */
+  const removeOne = async (discussion: Discussion, index: number) => {
+    const ok = await confirm({
+      title: 'Usunąć tę wypowiedź?',
+      message: 'Zniknie z wątku i nie da się jej przywrócić.',
+      confirmLabel: 'Usuń',
+      tone: 'danger',
+    });
+    if (!ok) return;
+
+    const result = await removeMessage(discussion, index, {
+      uid: currentUid,
+      isAdmin: role === 'admin',
+    });
+    if (!result.ok) {
+      toast(result.error ?? 'Nie udało się usunąć.', 'danger');
+      return;
+    }
+    toast('Wypowiedź usunięta.', 'success');
+  };
+
   const sendInFlight = useRef(false);
 
   const send = async (discussion: Discussion) => {
@@ -346,13 +389,43 @@ export function DiscussionsPanel({
                         </div>
                       )}
 
-                      {message.text && (
-                        <p
-                          className="whitespace-pre-wrap text-sm leading-relaxed"
-                          style={{ overflowWrap: 'anywhere' }}
-                        >
-                          {message.text}
-                        </p>
+                      {editing?.id === thread.id && editing.index === index ? (
+                        <div className="mt-1">
+                          <TextArea
+                            label=""
+                            aria-label="Popraw wypowiedź"
+                            value={editing.text}
+                            onChange={(e) =>
+                              setEditing({ ...editing, text: e.target.value })
+                            }
+                            rows={3}
+                          />
+                          <div className="mt-1 flex gap-2">
+                            <Button size="sm" variant="primary" onClick={() => void saveEdit(thread)}>
+                              Zapisz
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
+                              Anuluj
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        message.text && (
+                          <p
+                            className="whitespace-pre-wrap text-sm leading-relaxed"
+                            style={{ overflowWrap: 'anywhere' }}
+                          >
+                            {message.text}
+                            {message.editedAt && (
+                              // Widoczny ślad poprawki: w rozmowie, do której
+                              // inni się odnoszą, cicha podmiana treści byłaby
+                              // myląca.
+                              <span className="ml-1 font-mono text-[10px] text-ink-dim">
+                                (poprawione)
+                              </span>
+                            )}
+                          </p>
+                        )
                       )}
 
                       {message.image && (
@@ -368,6 +441,34 @@ export function DiscussionsPanel({
                         </button>
                       )}
                     </div>
+
+                    {/* Poprawa i usunięcie własnej wypowiedzi; admin sprząta
+                        wszystkie. Wypowiedzi sprzed wprowadzenia zapisu konta
+                        autora nie mają czym się wylegitymować — te ruszy tylko
+                        admin, inaczej wystarczyłoby zmienić sobie imię na cudze. */}
+                    {canEditMessage(message, currentUid, role === 'admin') &&
+                      editing?.index !== index && (
+                        <span className="flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            aria-label={`Popraw wypowiedź ${message.author}`}
+                            onClick={() =>
+                              setEditing({ id: thread.id, index, text: message.text })
+                            }
+                            className="rounded p-1 text-ink-dim transition hover:text-accent"
+                          >
+                            <Icon name="pencil" size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Usuń wypowiedź ${message.author}`}
+                            onClick={() => void removeOne(thread, index)}
+                            className="rounded p-1 text-ink-dim transition hover:text-danger"
+                          >
+                            <Icon name="trash" size={13} />
+                          </button>
+                        </span>
+                      )}
                   </div>
                 );
               })}

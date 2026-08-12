@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "//": "Dzwonek powiadomień: `where('uid') + orderBy('createdAt')`. Bez tego złożonego indeksu Firestore ODRZUCA całe zapytanie, więc lista zawsze była pusta — panel pokazywał „Nic nowego\", choć wpisy w bazie były.",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

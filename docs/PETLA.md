@@ -74,6 +74,11 @@ Nie zostawiaj commitów lokalnie.
 - Test, który powtarza logikę zamiast jej używać, sprawdza własną kopię.
 - Jeśli break-test dalej przechodzi, zepsuty jest TEST, nie zabezpieczenie.
 - Druga reguła `allow` w Firestore **rozluźnia** dostęp, nigdy go nie zacieśnia.
+- Zaostrzając **wzorzec** (regex w regule), sprawdź go na PRAWDZIWYCH danych
+  z bazy, nie na wymyślonym przykładzie. Wzorzec linku przepuszczał
+  `?open=abc` z mojego testu, a realne identyfikatory wątków to znaczniki czasu
+  z dwukropkami — więc każde powiadomienie o odpowiedzi w dyskusji odbijało się
+  o 403, cicho, bo panel wysyła je w tle.
 - Po **zaostrzeniu reguły** przejdź po wszystkich miejscach w kodzie, które tej
   operacji używają — i sprawdź je kontem o NAJNIŻSZEJ roli, która ma tam
   sięgać. Zaostrzenie kasowania `contentHistory` do admina wywaliło ciche

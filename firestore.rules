@@ -231,8 +231,11 @@ service cloud.firestore {
       //
       // Pola tematu, autora i daty wątku zostają; `closed` wolno przełączać.
       allow update: if mozeDyskutowac()
+                    // `editIndex` towarzyszy poprawie i usunięciu wypowiedzi —
+                    // mówi regule, którego elementu dotyczy zmiana, bo reguły
+                    // nie potrafią przejść po tablicy i znaleźć różnicy same.
                     && request.resource.data.diff(resource.data)
-                         .affectedKeys().hasOnly(['messages', 'closed'])
+                         .affectedKeys().hasOnly(['messages', 'closed', 'editIndex'])
                     && request.resource.data.messages is list
                     && request.resource.data.messages.size() <= 200
                     && (
@@ -254,6 +257,40 @@ service cloud.firestore {
                           == resource.data.messages.size() + 1
                         && request.resource.data.messages[0:resource.data.messages.size()]
                              == resource.data.messages
+                      )
+                      // Poprawa WŁASNEJ wypowiedzi: lista tej samej długości,
+                      // a wypowiedź pod wskazanym indeksem należy do piszącego
+                      // (albo robi to admin). Indeks przychodzi w polu
+                      // `editIndex`, bo reguły nie mają pętli po tablicy —
+                      // za to potrafią sięgnąć po element po indeksie i
+                      // porównać jego `authorUid` z zalogowanym.
+                      //
+                      // Autor i data zostają nietknięte; wolno zmienić treść,
+                      // obrazek i dopisać `editedAt`. Dzięki temu „poprawa"
+                      // nie może po cichu przerobić cudzego wpisu na własny.
+                      || (
+                        request.resource.data.messages.size()
+                          == resource.data.messages.size()
+                        && (
+                          jestAdmin()
+                          || resource.data.messages[request.resource.data.editIndex]
+                               .get('authorUid', '') == request.auth.uid
+                        )
+                        && request.resource.data.messages[request.resource.data.editIndex]
+                             .author == resource.data.messages[request.resource.data.editIndex].author
+                        && request.resource.data.messages[request.resource.data.editIndex]
+                             .at == resource.data.messages[request.resource.data.editIndex].at
+                      )
+                      // Usunięcie WŁASNEJ wypowiedzi: lista krótsza o jeden,
+                      // a znikający wpis (spod `editIndex`) był Twój.
+                      || (
+                        request.resource.data.messages.size()
+                          == resource.data.messages.size() - 1
+                        && (
+                          jestAdmin()
+                          || resource.data.messages[request.resource.data.editIndex]
+                               .get('authorUid', '') == request.auth.uid
+                        )
                       )
                     );
     }

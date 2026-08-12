@@ -88,31 +88,15 @@ describe('cała partia przez interfejs', () => {
     expect(screen.getByText(/Koniec gry/i)).toBeTruthy();
     // I da się z niego wyjść na nową grę — inaczej to ślepy zaułek.
     expect(screen.getByRole('button', { name: /Nowa gra/ })).toBeTruthy();
-  }, 60_000);
 
-  it('ekran końcowy pokazuje wynik obu graczy', () => {
-    // Krótsza droga: ten sam przebieg, ale sprawdzamy, co widać na końcu.
-    render(<GameApp />);
-    const inputs = screen.getAllByPlaceholderText('Imię');
-    fireEvent.change(inputs[0], { target: { value: 'Ala' } });
-    fireEvent.change(inputs[1], { target: { value: 'Bo' } });
-    fireEvent.click(screen.getByRole('button', { name: /Zaczynamy misję/ }));
-
-    for (let krok = 0; krok < 400; krok += 1) {
-      if (screen.queryByText(/Koniec gry/i)) break;
-      if (clickIfPresent(/Odkryj problem/)) continue;
-      if (clickIfPresent(/Zabieram na postać/)) continue;
-      if (clickIfPresent(/^Dalej$/)) continue;
-      if (clickIfPresent(/Rozumiem|Zamknij|Gramy dalej/)) continue;
-      if (tryPlayAnyCard()) continue;
-      if (clickIfPresent(/Pasuję|Kończę turę/)) continue;
-      break;
-    }
-
+    // Sprawdzenie ekranu końcowego siedzi w TYM SAMYM przebiegu, nie w drugim
+    // teście: przejście całej partii przez interfejs trwa kilkadziesiąt sekund,
+    // a powtarzanie go tylko po to, żeby zajrzeć na finał, podwajało czas
+    // i wpychało plik w limit czasu przy pełnym przebiegu.
     const wyniki = screen.getByText(/Wyniki indywidualne/i).closest('section');
     expect(wyniki).toBeTruthy();
     // `getAllBy`: imię pojawia się w nagłówku wyniku i na karcie postaci.
     expect(within(wyniki!).getAllByText('Ala').length).toBeGreaterThan(0);
     expect(within(wyniki!).getAllByText('Bo').length).toBeGreaterThan(0);
-  }, 60_000);
+  }, 90_000);
 });

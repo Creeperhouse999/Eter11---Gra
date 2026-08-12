@@ -82,8 +82,13 @@ describe('wznowienie partii', () => {
 
     render(<GameApp />);
     fireEvent.click(screen.getByRole('button', { name: /Wróć do gry/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Zakończ grę/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zakończ' }));
+    // Każdy klik dopiero po pojawieniu się celu. Bez tego test klikał trzy
+    // razy w jednym cyklu i pod obciążeniem pełnego przebiegu (kilkanaście
+    // plików naraz) ekran nie nadążał — okno potwierdzenia jeszcze nie
+    // istniało, a test i tak szukał w nim przycisku. Padał losowo, choć nic
+    // w grze nie było zepsute.
+    fireEvent.click(await screen.findByRole('button', { name: /Zakończ grę/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Zakończ' }));
 
     // Potwierdzenie kończy obietnicę, więc powrót do menu następuje
     // dopiero w kolejnym cyklu — czekamy na ekran ustawień.
@@ -101,8 +106,13 @@ describe('wznowienie partii', () => {
     startAndLeave();
     render(<GameApp />);
     fireEvent.click(screen.getByRole('button', { name: /Wróć do gry/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Zakończ grę/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zakończ' }));
+    // Każdy klik dopiero po pojawieniu się celu. Bez tego test klikał trzy
+    // razy w jednym cyklu i pod obciążeniem pełnego przebiegu (kilkanaście
+    // plików naraz) ekran nie nadążał — okno potwierdzenia jeszcze nie
+    // istniało, a test i tak szukał w nim przycisku. Padał losowo, choć nic
+    // w grze nie było zepsute.
+    fireEvent.click(await screen.findByRole('button', { name: /Zakończ grę/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Zakończ' }));
     await screen.findAllByPlaceholderText('Imię');
 
     const inputs = screen.getAllByPlaceholderText('Imię');
