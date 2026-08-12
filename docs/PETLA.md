@@ -72,5 +72,10 @@ Nie zostawiaj commitów lokalnie.
 - Druga reguła `allow` w Firestore **rozluźnia** dostęp, nigdy go nie zacieśnia.
 - Zielone testy nie dowodzą, że coś wygląda dobrze — przy zmianach wizualnych
   **popatrz na render**, nie na liczby.
+- Ale zrzut z `chrome --headless --window-size=390,844` **kłamie na telefonie**:
+  renderuje w stałej szerokości, więc wszystko wygląda na ucięte, choć na
+  prawdziwym telefonie jest dobrze. Zamiast patrzeć na taki obrazek —
+  `node scripts/check-overflow.mjs http://localhost:PORT` (ustawia prawdziwy
+  tryb urządzenia i MIERZY, czy strona wychodzi poza ekran).
 - Cloud agent nie ma sekretów: nie wdraża i nie oznacza zgłoszeń sam (robi to
   Actions), nie odpala Monitora ani nie planuje kolejnych biegów.
