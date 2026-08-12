@@ -18,6 +18,16 @@ interface Field {
 const FIELDS: Field[] = [
   { key: 'roundsPerMission', label: 'Rundy na misję', hint: 'Po tylu rundach problem wygrywa.', min: 1, max: 30 },
   { key: 'handSize', label: 'Kart na ręce', hint: 'Ile kart trzyma gracz.', min: 1, max: 12 },
+  // Bez tego pola dało się wpaść w pułapkę bez wyjścia: podniesienie „Kart na
+  // ręce" ponad limit blokowało ZAPIS CAŁEJ treści (przycisk jest wspólny dla
+  // kart, problemów i tekstów), a limitu nie było czym odkręcić.
+  {
+    key: 'maxHandSize',
+    label: 'Limit kart w ręce',
+    hint: 'Ponad tyle kart gracz nie dobiera. Nie może być mniejszy niż „Kart na ręce".',
+    min: 1,
+    max: 12,
+  },
   { key: 'missionsPerGame', label: 'Misji w grze', hint: 'Po tylu misjach gra się kończy.', min: 1, max: 20 },
   { key: 'teamWinThreshold', label: 'Próg zwycięstwa drużyny', hint: 'Tyle rozwiązanych problemów daje wspólną wygraną.', min: 1, max: 20 },
   { key: 'maxMatCardsPerMission', label: 'Kart z postaci na misję', hint: 'Ile kart ze swojej postaci gracz może użyć.', min: 0, max: 5 },
@@ -26,8 +36,12 @@ const FIELDS: Field[] = [
 ];
 
 export function RulesEditor({ rules, onChange }: RulesEditorProps) {
-  // Ten sam warunek pilnuje walidacja przed zapisem — tutaj ostrzegamy od razu.
+  // Te same warunki pilnuje walidacja przed zapisem — tutaj ostrzegamy od razu.
   const impossibleToWin = rules.teamWinThreshold > rules.missionsPerGame;
+  // Drugi warunek, który blokuje zapis, a nie miał tu ostrzeżenia: redaktor
+  // widział tylko martwy przycisk „Zapisz" i komunikat w pasku na górze strony,
+  // często poza widokiem po przewinięciu.
+  const handOverLimit = rules.maxHandSize < rules.handSize;
 
   return (
     <section>
@@ -41,6 +55,16 @@ export function RulesEditor({ rules, onChange }: RulesEditorProps) {
           <Alert tone="danger" title="Gry nie da się wygrać">
             Próg zwycięstwa ({rules.teamWinThreshold}) jest wyższy niż liczba misji (
             {rules.missionsPerGame}). Przy tych wartościach zapis zostanie odrzucony.
+          </Alert>
+        </div>
+      )}
+
+      {handOverLimit && (
+        <div className="mt-3">
+          <Alert tone="danger" title="Gracze nie dobraliby ani jednej karty">
+            Limit kart w ręce ({rules.maxHandSize}) jest mniejszy niż rozdanie (
+            {rules.handSize}) — ręka od startu byłaby ponad limitem. Podnieś limit
+            albo zmniejsz rozdanie; przy tych wartościach zapis zostanie odrzucony.
           </Alert>
         </div>
       )}
