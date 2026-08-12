@@ -279,17 +279,25 @@ export function ProblemCard({
           {problem.story}
         </p>
 
+        {/* Puste pole nie zostawia samego nagłówka. „Przeciwnik" i „Jeśli się
+            nie uda" są opcjonalne — walidacja ich nie wymaga, a nowy problem
+            zaczyna z nimi pustymi — więc redaktor, który wypełnił tylko
+            wymagane pola, zostawiał na karcie dwa podpisy bez treści. */}
         <dl className="mt-2 space-y-1.5 text-xs">
-          <div>
-            <dt className="eter-label">Przeciwnik</dt>
-            <dd style={{ overflowWrap: 'anywhere' }}>{problem.antagonist}</dd>
-          </div>
-          <div>
-            <dt className="eter-label">Jeśli się nie uda</dt>
-            <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
-              {problem.consequence}
-            </dd>
-          </div>
+          {problem.antagonist?.trim() && (
+            <div>
+              <dt className="eter-label">Przeciwnik</dt>
+              <dd style={{ overflowWrap: 'anywhere' }}>{problem.antagonist}</dd>
+            </div>
+          )}
+          {problem.consequence?.trim() && (
+            <div>
+              <dt className="eter-label">Jeśli się nie uda</dt>
+              <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
+                {problem.consequence}
+              </dd>
+            </div>
+          )}
         </dl>
       </details>
     </div>

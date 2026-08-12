@@ -98,8 +98,11 @@ export function FinaleScreen({
               ? `Do wspólnej wygranej wystarczyło rozwiązać ${state.config.teamWinThreshold} — udało się.`
               : `Do wspólnej wygranej trzeba było rozwiązać ${state.config.teamWinThreshold}.`}
           </p>
+          {/* `anywhere`: nazwa problemu może być długim jednym słowem — limit
+              długości jest, ale spacji nikt nie wymusza, więc bez tego ciąg
+              nazw rozpychał kafel w bok. Tak samo jak na karcie problemu. */}
           {state.unsolvedProblems.length > 0 && (
-            <p className="mt-2 text-xs text-ink-dim">
+            <p className="mt-2 text-xs text-ink-dim" style={{ overflowWrap: 'anywhere' }}>
               Nierozwiązane: {state.unsolvedProblems.map((p) => p.name).join(', ')}
             </p>
           )}
@@ -193,9 +196,14 @@ export function FinaleScreen({
         })}
       </section>
 
-      <p className="relative mt-6 text-xs text-ink-dim">
-        Przykłady zawodów przyszłości: {jobExamples.join(', ')}.
-      </p>
+      {/* Bez listy nie ma czego zapowiadać: przy pustym polu w Tekstach
+          zostawał sierocy wiersz „Przykłady zawodów przyszłości: ." z samą
+          kropką. Guard jak przy podpowiedzi w polu wyżej. */}
+      {jobExamples.length > 0 && (
+        <p className="relative mt-6 text-xs text-ink-dim">
+          Przykłady zawodów przyszłości: {jobExamples.join(', ')}.
+        </p>
+      )}
 
       {/* `relative mt-8` jak przy „Dalej" w podsumowaniu: bez `relative`
           przycisk stał w warstwie pod stałą siatką tła (.eter-grid, malowaną
