@@ -4,7 +4,7 @@
     "rooms": {
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && !data.exists() && newData.child('hostUid').val() === auth.uid",
+        ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || (!newData.exists() && data.child('players').child(auth.uid).exists()))",
         ".validate": "$code.length >= 4 && $code.length <= 8",
         "state": {
           ".write": "auth != null && root.child('rooms').child($code).child('players').child(auth.uid).exists()"

@@ -304,6 +304,26 @@ export function leaveActionFor(
 }
 
 /**
+ * Czy po wyjściu tego gracza pokój zostaje pusty.
+ *
+ * Rozpoczęta partia nie kasowała się NIGDY: wychodzący szedł tylko na
+ * `online: false`, a węzeł pokoju zostawał w bazie z pełnym stanem (talia,
+ * ręce, log — kilkadziesiąt KB) na zawsze. Przy każdej partii dochodził
+ * kolejny. Kod pokoju ma tylko cztery znaki, więc uzbierane śmieci zaczęłyby
+ * z czasem zjadać pulę kodów: `createRoom` trafiałby w zajęte, a ktoś
+ * wpisujący kod na chybił trafił wchodziłby do martwej partii.
+ *
+ * Kasujemy więc pokój, gdy wychodzi z niego OSTATNI obecny gracz. Czysta
+ * decyzja, bez sieci — sam zapis robi `leaveRoom`.
+ */
+export function roomBecomesEmpty(room: Room | null, uid: string): boolean {
+  if (!room?.players?.[uid]) return false;
+  return !Object.values(room.players).some(
+    (player) => player?.uid !== uid && player?.online,
+  );
+}
+
+/**
  * Dobrowolne wyjście z pokoju.
  *
  * Wcześniej `leave()` tylko czyścił stan lokalny (kod/uid), a wpisu gracza w
@@ -328,6 +348,27 @@ export async function leaveRoom(
   } catch {
     // Rozbrojenie obietnicy jest najlepszym staraniem — brak sieci nie może
     // zablokować wyjścia z pokoju.
+  }
+
+  // Ostatni gasi światło: pusty pokój znika w całości, żeby rozegrane partie
+  // nie zostawały w bazie na zawsze i nie zjadały puli czterozanakowych kodów.
+  // Transakcją, bo dwa równoczesne wyjścia ścigałyby się o ten sam węzeł —
+  // sprawdzenie „czy ktoś jeszcze jest" musi widzieć stan z chwili zapisu.
+  if (roomBecomesEmpty(room, uid)) {
+    await runTransaction(ref(rtdb, `${ROOMS}/${code}`), (current: Room | null) => {
+      if (!current) return current;
+      // Ktoś mógł wejść między odczytem a zapisem — wtedy pokój zostaje,
+      // a wychodzący tylko znika z listy.
+      const others = Object.values(current.players ?? {}).filter(
+        (player) => player?.uid !== uid && player?.online,
+      );
+      if (others.length > 0) {
+        if (current.players?.[uid]) current.players[uid].online = false;
+        return current;
+      }
+      return null; // null kasuje węzeł
+    });
+    return;
   }
 
   if (action === 'remove') {
