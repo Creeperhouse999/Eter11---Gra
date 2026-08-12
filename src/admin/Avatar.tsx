@@ -1,3 +1,5 @@
+import { colorForAuthor, useTeamColors } from './useTeamColors';
+
 interface AvatarProps {
   /** Imię — z niego bierze się inicjał i kolor. */
   name: string;
@@ -99,13 +101,25 @@ const CLAUDE_MARK =
 /** Kółko z inicjałem — jak w komunikatorze. */
 export function Avatar({ name, size = 32, color: own }: AvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
+  // Kolor nadany przy członku zespołu — awatar sam po niego sięga, bo w wątku,
+  // w pamięci czy w dzwonku zna wyłącznie podpis. Wcześniej podawała go tylko
+  // zakładka zespołu, więc ta sama osoba miała tam inny kolor niż w rozmowie.
+  const team = useTeamColors();
+  const fromTeam = colorForAuthor(name, team);
   // Claude zamiast litery nosi swój znak — w wątku widać od razu, że to nie
   // człowiek z zespołu. Rozpoznanie po pierwszym słowie, jak przy kolorze.
   const isClaude = normalizeName(name).split(/[\s@._-]+/)[0] === 'claude';
   // Tylko poprawny hex wygrywa z wyliczonym kolorem. Śmieć w bazie (pusty
   // string, ucięty zapis) dałby awatar bez tła — czyli inicjał w kolorze
   // tła, niewidoczny; wtedy lepiej wrócić do koloru z imienia.
-  const color = own && /^#[0-9a-fA-F]{6}$/.test(own) ? own : colorFor(name || '?');
+  // Kolejność: kolor podany wprost (zakładka zespołu, gdzie trwa wybór) →
+  // nadany przy członku → wyliczony z imienia dla kont bez własnego koloru.
+  const isHex = (value?: string) => Boolean(value) && /^#[0-9a-fA-F]{6}$/.test(value!);
+  const color = isHex(own)
+    ? own!
+    : isHex(fromTeam)
+      ? fromTeam!
+      : colorFor(name || '?');
 
   return (
     <span

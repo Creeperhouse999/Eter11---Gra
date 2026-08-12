@@ -331,35 +331,50 @@ export function TeamPanel({ currentUid }: TeamPanelProps) {
               </span>
             </span>
 
-            <div className="w-40 shrink-0">
-              <TextField
-                label="Imię"
-                value={names[member.uid] ?? member.name ?? ''}
-                placeholder={member.email.split('@')[0]}
-                maxLength={40}
-                onChange={(e) =>
-                  setNames((prev) => ({ ...prev, [member.uid]: e.target.value }))
-                }
-                // Zapis po wyjściu z pola, nie po każdej literze: inaczej każde
-                // naciśnięcie klawisza szłoby do bazy.
-                onBlur={() => void saveName(member)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                }}
-              />
-            </div>
+            {/* Claude ma stałą tożsamość: podpisuje się swoim imieniem i nosi
+                swój znak w firmowym pomarańczu. Nadanie mu innego imienia albo
+                koloru tylko rozjeżdżałoby to, po czym zespół go rozpoznaje —
+                więc zamiast pól pokazujemy, że tak zostaje. */}
+            {member.role === 'programmer' ? (
+              <div className="w-80 shrink-0 text-xs text-ink-dim">
+                Podpisuje się jako <span className="text-ink">Claude</span> i ma
+                swój znak — imienia ani koloru się tu nie zmienia.
+              </div>
+            ) : (
+              <>
+                <div className="w-40 shrink-0">
+                  <TextField
+                    label="Imię"
+                    value={names[member.uid] ?? member.name ?? ''}
+                    placeholder={member.email.split('@')[0]}
+                    maxLength={40}
+                    onChange={(e) =>
+                      setNames((prev) => ({ ...prev, [member.uid]: e.target.value }))
+                    }
+                    // Zapis po wyjściu z pola, nie po każdej literze: inaczej każde
+                    // naciśnięcie klawisza szłoby do bazy.
+                    onBlur={() => void saveName(member)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                    }}
+                  />
+                </div>
 
-            <div className="w-40 shrink-0">
-              <ColorPicker
-                label={`Kolor ${member.email}`}
-                // Dopóki admin nie nada koloru, picker startuje od tego, który
-                // osoba ma teraz — inaczej otwierałby się na przypadkowym
-                // odcieniu, niezwiązanym z tym, co widać w wątku.
-                value={colors[member.uid] ?? member.color ?? colorFor(member.name || member.email)}
-                presets={COLOR_PRESETS}
-                onChange={(color) => void changeColor(member, color)}
-              />
-            </div>
+                <div className="w-40 shrink-0">
+                  <ColorPicker
+                    label={`Kolor ${member.email}`}
+                    // Dopóki admin nie nada koloru, picker startuje od tego, który
+                    // osoba ma teraz — inaczej otwierałby się na przypadkowym
+                    // odcieniu, niezwiązanym z tym, co widać w wątku.
+                    value={
+                      colors[member.uid] ?? member.color ?? colorFor(member.name || member.email)
+                    }
+                    presets={COLOR_PRESETS}
+                    onChange={(color) => void changeColor(member, color)}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="w-40 shrink-0">
               <Select

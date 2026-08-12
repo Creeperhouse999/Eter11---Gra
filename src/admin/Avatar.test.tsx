@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { render } from '@testing-library/react';
-import { Avatar } from './Avatar';
+import { describe, expect, it, vi } from 'vitest';
+import { render, waitFor } from '@testing-library/react';
+
+// Awatar sam sięga po kolory zespołu — w teście podstawiamy listę zamiast
+// prawdziwej bazy. Marcin ma nadany kolor, Adam nie: sprawdzamy obie ścieżki.
+vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
+vi.mock('../firebase/roles', () => ({
+  watchTeam: (cb: (m: unknown[]) => void) => {
+    cb([{ uid: 'u1', email: 'marcin@eter11.pl', name: 'Marcin', color: '#22c55e' }]);
+    return () => {};
+  },
+}));
+
+const { Avatar } = await import('./Avatar');
 
 /**
  * Awatar niesie dwie rzeczy naraz: inicjał, żeby rozpoznać osobę, i kolor,
@@ -99,6 +110,15 @@ describe('Avatar', () => {
     const { container } = render(<Avatar name="Adam" />);
     expect(container.querySelector('svg')).toBeNull();
     expect(container.textContent).toBe('A');
+  });
+
+  it('sięga po kolor zespołu, gdy nikt nie podał go wprost', async () => {
+    // Awatar w wątku, w pamięci i w dzwonku zna sam podpis — kolor siedzi przy
+    // członku zespołu. Wcześniej podawała go tylko zakładka zespołu, więc ta
+    // sama osoba miała tam inny kolor niż w rozmowie.
+    const { container } = render(<Avatar name="Marcin" />);
+    const el = container.firstChild as HTMLElement;
+    await waitFor(() => expect(el.style.background).toBe('rgb(34, 197, 94)'));
   });
 
   it('kolor nadany przez admina bije wyliczony z imienia', () => {
