@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
 import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
 import { categoryColorVar, categoryLabel } from '../ui/components/categoryStyles';
@@ -83,6 +83,22 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  /**
+   * Fraza podana Z ZEWNĄTRZ (skok z wyszukiwarki globalnej, wklejony link)
+   * wchodzi do pola. Własne pisanie tego nie dotyczy: `search` już wtedy równa
+   * się temu, co poszło do adresu, więc warunek nie wpuszcza zmiany z powrotem.
+   *
+   * Wcześniej robił to `key` na komponencie w `AdminApp` — czyli przemontowanie
+   * całego edytora przy każdym wciśniętym klawiszu. Ginęło zaznaczenie kart do
+   * zmiany hurtem, filtr, sortowanie, a pole gubiło fokus w połowie wyrazu.
+   */
+  const zewnetrznaFraza = useRef(initialSearch);
+  useEffect(() => {
+    if (initialSearch === zewnetrznaFraza.current) return;
+    zewnetrznaFraza.current = initialSearch;
+    setSearch(initialSearch);
+  }, [initialSearch]);
 
   /**
    * Wyróżnienie nowo dodanej karty gaśnie po chwili.

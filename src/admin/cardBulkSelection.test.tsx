@@ -77,4 +77,5 @@ describe('zaznaczanie kart do zmiany hurtem', { timeout: 30_000 }, () => {
     const zapisane = onChange.mock.calls[onChange.mock.calls.length - 1][0] as Card[];
     expect(zapisane.find((c) => c.id === psych.id)?.family).toBe('green');
   });
+
 });

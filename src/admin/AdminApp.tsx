@@ -696,10 +696,15 @@ export function AdminApp() {
             cards={content.cards}
             onChange={(cards) => update({ cards })}
             // Fraza filtra żyje w adresie (`?filter=…`), więc link do
-            // przefiltrowanej listy da się wysłać dalej. `key` z tej frazy
-            // resetuje pole edytora, gdy adres wskaże nową frazę (np. z
-            // wyszukiwarki albo z wklejonego linku).
-            key={route.params.filter ?? ''}
+            // przefiltrowanej listy da się wysłać dalej.
+            //
+            // BEZ `key` z tej frazy: pisanie w wyszukiwarce zmienia adres, więc
+            // `key` zmieniał się przy KAŻDYM znaku i React montował edytor od
+            // nowa. Ginęło wtedy wszystko, co lokalne — zaznaczenie kart do
+            // zmiany hurtem, filtr kategorii, sortowanie — a pole traciło fokus
+            // w połowie wyrazu. Frazę z adresu przyjmuje teraz sam edytor
+            // (patrz `initialSearch` w `CardEditor`), i tylko wtedy, gdy
+            // naprawdę przyszła z zewnątrz.
             initialSearch={route.params.filter ?? ''}
             onSearchChange={(value) => route.setParam('filter', value || null)}
           />
