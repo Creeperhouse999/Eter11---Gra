@@ -35,18 +35,26 @@ vi.mock("../firebase/notifications", () => ({
 
 const deleteDiscussion = vi.fn(async (_id: string) => {});
 const setDiscussionClosed = vi.fn(async (_id: string, _closed: boolean) => {});
+const addMessage = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
 let thread: Discussion;
 
-vi.mock('../firebase/discussions', () => ({
-  watchDiscussions: (cb: (d: Discussion[]) => void) => {
-    cb([thread]);
-    return () => {};
-  },
-  addDiscussion: vi.fn(async () => ({ ok: true })),
-  addMessage: vi.fn(async () => ({ ok: true })),
-  setDiscussionClosed: (id: string, closed: boolean) => setDiscussionClosed(id, closed),
-  deleteDiscussion: (id: string) => deleteDiscussion(id),
-}));
+vi.mock('../firebase/discussions', async (importOriginal) => {
+  // `canEditMessage` musi być PRAWDZIWA implementacja — test niżej sprawdza,
+  // że panel przekazuje jej poprawny `authorUid`/`isAdmin`, więc atrapa, która
+  // zawsze zwraca to samo, niczego by nie udowodniła.
+  const actual = await importOriginal<typeof import('../firebase/discussions')>();
+  return {
+    ...actual,
+    watchDiscussions: (cb: (d: Discussion[]) => void) => {
+      cb([thread]);
+      return () => {};
+    },
+    addDiscussion: vi.fn(async () => ({ ok: true })),
+    addMessage: (discussion: Discussion, input: unknown) => addMessage(discussion, input),
+    setDiscussionClosed: (id: string, closed: boolean) => setDiscussionClosed(id, closed),
+    deleteDiscussion: (id: string) => deleteDiscussion(id),
+  };
+});
 
 vi.mock('../firebase/reports', () => ({ addReport: vi.fn(async () => ({ ok: true })) }));
 
@@ -62,10 +70,10 @@ const makeThread = (): Discussion => ({
   closed: false,
 });
 
-const renderPanel = (role: Role) =>
+const renderPanel = (role: Role, currentUid = 'u-tester') =>
   render(
     <ToastProvider>
-      <DiscussionsPanel author="Tester" role={role} />
+      <DiscussionsPanel author="Tester" role={role} currentUid={currentUid} />
     </ToastProvider>,
   );
 
@@ -79,6 +87,62 @@ beforeEach(() => {
   deleteDiscussion.mockResolvedValue(undefined);
   setDiscussionClosed.mockClear();
   setDiscussionClosed.mockResolvedValue(undefined);
+  addMessage.mockClear();
+  addMessage.mockResolvedValue({ ok: true });
+});
+
+/**
+ * Wysłana wypowiedź musi nieść konto autora (`authorUid`).
+ *
+ * Regresja: `send()` wołał `addMessage` bez `authorUid`, więc KAŻDA nowa
+ * wypowiedź lądowała bez konta właściciela — funkcja „popraw/usuń swoją
+ * wypowiedź" (dodana w 3dc2f05) nigdy nie działała, bo `canEditMessage`
+ * uznaje wypowiedź bez `authorUid` za niczyją (rusza ją tylko admin).
+ */
+describe('DiscussionsPanel — konto autora przy wysyłce', () => {
+  it('wysłanie odpowiedzi zapisuje authorUid piszącego', async () => {
+    renderPanel('coworker', 'u-tester');
+    openThread();
+
+    fireEvent.change(screen.getByLabelText('Twoja odpowiedź'), {
+      target: { value: 'Nowa wypowiedź' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Wyślij' }));
+
+    expect(addMessage).toHaveBeenCalledTimes(1);
+    const [, input] = addMessage.mock.calls[0] as [Discussion, { authorUid?: string }];
+    expect(input.authorUid).toBe('u-tester');
+  });
+});
+
+/**
+ * `programmer` ma te same prawa co `admin` wszędzie indziej w aplikacji
+ * (`roles.ts`: `canDelete`, reguła Firestore `jestAdmin()`). Regresja:
+ * przełącznik „czy ruszyć cudzą wypowiedź" w DiscussionsPanel porównywał
+ * rolę literalnie z `'admin'`, więc programista (Claude) nie widział
+ * przycisków przy CUDZYCH wypowiedziach, mimo że reguły na to pozwalają.
+ */
+describe('DiscussionsPanel — moderacja cudzych wypowiedzi', () => {
+  it('programmer rusza cudzą wypowiedź, tak jak admin', () => {
+    thread = { ...makeThread(), messages: [
+      { author: 'Ktoś Inny', authorUid: 'u-inny', text: 'cudza treść', at: '2026-08-01T00:00:00.000Z' },
+    ] };
+    renderPanel('programmer', 'u-tester');
+    openThread();
+
+    expect(screen.getByRole('button', { name: 'Popraw wypowiedź Ktoś Inny' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Usuń wypowiedź Ktoś Inny' })).toBeTruthy();
+  });
+
+  it('coworker NIE rusza cudzej wypowiedzi', () => {
+    thread = { ...makeThread(), messages: [
+      { author: 'Ktoś Inny', authorUid: 'u-inny', text: 'cudza treść', at: '2026-08-01T00:00:00.000Z' },
+    ] };
+    renderPanel('coworker', 'u-tester');
+    openThread();
+
+    expect(screen.queryByRole('button', { name: 'Popraw wypowiedź Ktoś Inny' })).toBeNull();
+  });
 });
 
 describe('DiscussionsPanel — usuwanie wątku', () => {

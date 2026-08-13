@@ -174,7 +174,7 @@ export function DiscussionsPanel({
     if (!editing) return;
     const result = await editMessage(discussion, editing.index, editing.text, {
       uid: currentUid,
-      isAdmin: role === 'admin',
+      isAdmin: canDelete(role),
     });
     if (!result.ok) {
       toast(result.error ?? 'Nie udało się poprawić.', 'danger');
@@ -196,7 +196,7 @@ export function DiscussionsPanel({
 
     const result = await removeMessage(discussion, index, {
       uid: currentUid,
-      isAdmin: role === 'admin',
+      isAdmin: canDelete(role),
     });
     if (!result.ok) {
       toast(result.error ?? 'Nie udało się usunąć.', 'danger');
@@ -213,6 +213,7 @@ export function DiscussionsPanel({
     setReplying(true);
     const result = await addMessage(discussion, {
       author,
+      authorUid: currentUid,
       text: reply,
       image: replyImages[0],
     });
@@ -446,7 +447,7 @@ export function DiscussionsPanel({
                         wszystkie. Wypowiedzi sprzed wprowadzenia zapisu konta
                         autora nie mają czym się wylegitymować — te ruszy tylko
                         admin, inaczej wystarczyłoby zmienić sobie imię na cudze. */}
-                    {canEditMessage(message, currentUid, role === 'admin') &&
+                    {canEditMessage(message, currentUid, canDelete(role)) &&
                       editing?.index !== index && (
                         <span className="flex shrink-0 gap-0.5">
                           <button
