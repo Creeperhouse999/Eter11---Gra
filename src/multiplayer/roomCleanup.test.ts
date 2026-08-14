@@ -104,9 +104,12 @@ describe('leaveRoom — sprzątanie po partii', () => {
 
     await leaveRoom('ABCD', 'p1', room);
 
-    // Nie kasujemy niczego — partia drugiego gracza toczy się dalej.
+    // Nie kasujemy niczego — partia drugiego gracza toczy się dalej, a
+    // wychodzący trafia na `online: false` przez tę samą transakcję (nie
+    // osobny `set`), żeby decyzja i zapis widziały to samo, świeże dane.
     expect(removed).toHaveLength(0);
-    expect(setCalls.some(([path]) => path.endsWith('players/p1/online'))).toBe(true);
+    expect(lastResult).not.toBeNull();
+    expect(lastResult?.players.p1.online).toBe(false);
   });
 
   it('gdy ktoś dołączy między odczytem a zapisem, pokój NIE znika', async () => {
@@ -119,5 +122,20 @@ describe('leaveRoom — sprzątanie po partii', () => {
 
     expect(lastResult).not.toBeNull();
     expect(lastResult?.players.p1.online).toBe(false);
+  });
+
+  it('dwa niemal równoczesne wyjścia wciąż kasują pokój, mimo nieaktualnego lokalnego stanu', async () => {
+    // Odwrotność testu wyżej: lokalny widok wychodzącego jest NIEAKTUALNY w
+    // drugą stronę — wciąż widzi drugiego gracza jako online (bo ten wyszedł
+    // chwilę wcześniej, a jego `watchRoom` jeszcze nie zdążył się odświeżyć),
+    // choć w bazie już nikogo online nie ma. Decyzja o kasowaniu musi się
+    // opierać na świeżym stanie z transakcji, nie na tym przekazanym widoku —
+    // inaczej pokój z pełnym stanem partii zostaje w bazie na zawsze.
+    const staleLocalView = roomWith({ p1: { online: true }, p2: { online: true } });
+    currentRoom = roomWith({ p1: { online: true }, p2: { online: false } });
+
+    await leaveRoom('ABCD', 'p1', staleLocalView);
+
+    expect(lastResult).toBeNull();
   });
 });

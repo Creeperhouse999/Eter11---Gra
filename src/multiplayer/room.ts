@@ -314,7 +314,10 @@ export function leaveActionFor(
  * wpisujący kod na chybił trafił wchodziłby do martwej partii.
  *
  * Kasujemy więc pokój, gdy wychodzi z niego OSTATNI obecny gracz. Czysta
- * decyzja, bez sieci — sam zapis robi `leaveRoom`.
+ * funkcja, bez sieci — testowalna sama, ale `leaveRoom` jej NIE używa do
+ * decyzji o zapisie: ten widok bywa nieaktualny (patrz komentarz w
+ * `leaveRoom`), więc o skasowaniu pokoju decyduje wyłącznie świeży odczyt
+ * wewnątrz jego własnej transakcji.
  */
 export function roomBecomesEmpty(room: Room | null, uid: string): boolean {
   if (!room?.players?.[uid]) return false;
@@ -350,32 +353,29 @@ export async function leaveRoom(
     // zablokować wyjścia z pokoju.
   }
 
-  // Ostatni gasi światło: pusty pokój znika w całości, żeby rozegrane partie
-  // nie zostawały w bazie na zawsze i nie zjadały puli czterozanakowych kodów.
-  // Transakcją, bo dwa równoczesne wyjścia ścigałyby się o ten sam węzeł —
-  // sprawdzenie „czy ktoś jeszcze jest" musi widzieć stan z chwili zapisu.
-  if (roomBecomesEmpty(room, uid)) {
-    await runTransaction(ref(rtdb, `${ROOMS}/${code}`), (current: Room | null) => {
-      if (!current) return current;
-      // Ktoś mógł wejść między odczytem a zapisem — wtedy pokój zostaje,
-      // a wychodzący tylko znika z listy.
-      const others = Object.values(current.players ?? {}).filter(
-        (player) => player?.uid !== uid && player?.online,
-      );
-      if (others.length > 0) {
-        if (current.players?.[uid]) current.players[uid].online = false;
-        return current;
-      }
-      return null; // null kasuje węzeł
-    });
-    return;
-  }
+  // Decyzja „czy pokój zostaje pusty" liczy się WYŁĄCZNIE na świeżym stanie z
+  // transakcji, nigdy na przekazanym `room` — ten bywa nieaktualny (dwóch
+  // graczy wychodzących niemal jednocześnie: każdy w swoim lokalnym stanie
+  // wciąż widzi TEGO DRUGIEGO jako online, bo jego `watchRoom` nie zdążył się
+  // jeszcze odświeżyć). Poleganie na takim widoku jako bramce przed
+  // transakcją gubiło kasowanie: oboje trafiali w gałąź „ktoś jeszcze gra" i
+  // pokój z pełnym stanem partii zostawał w bazie na zawsze. Transakcja sama
+  // odczytuje bazę w chwili zapisu, więc to ona — i tylko ona — decyduje.
+  await runTransaction(ref(rtdb, `${ROOMS}/${code}`), (current: Room | null) => {
+    if (!current?.players?.[uid]) return current;
 
-  if (action === 'remove') {
-    await remove(ref(rtdb, `${ROOMS}/${code}/players/${uid}`));
-  } else {
-    await set(onlineRef, false);
-  }
+    const others = Object.values(current.players ?? {}).filter(
+      (player) => player?.uid !== uid && player?.online,
+    );
+    if (others.length === 0) return null; // Ostatni obecny — kasujemy węzeł.
+
+    if (current.phase === 'lobby') {
+      delete current.players[uid];
+    } else {
+      current.players[uid].online = false;
+    }
+    return current;
+  });
 }
 
 /**
