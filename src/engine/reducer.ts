@@ -957,6 +957,28 @@ function endMissionSummary(state: GameState): ReducerResult {
     return { ...player, hand: [...player.hand, ...result.drawn] };
   });
 
+  // Łabędź dobrany właśnie tutaj nie ma czego utrudnić — misja jest już
+  // zamknięta, a resolveDrawnBlackSwans celowo pomija stan poza fazą
+  // 'playing'. Karta i tak jest niegrywalna, więc zamiast zostawiać ją
+  // w ręce (aż do sprzątnięcia przy kolejnym START_MISSION — albo wcale,
+  // gdy to była ostatnia misja), wymieniamy ją od razu na zwykłą kartę.
+  const swanGuard =
+    players.reduce((sum, p) => sum + p.hand.length, 0) + pile.length + discard.length + 1;
+  for (let guard = 0; guard < swanGuard; guard += 1) {
+    const owner = players.find((p) => p.hand.some((c) => c.category === 'blackswan'));
+    if (!owner) break;
+    const card = owner.hand.find((c) => c.category === 'blackswan')!;
+    const replacement = draw(pile, discard, 1, seed);
+    pile = replacement.pile;
+    discard = [...replacement.discard, card];
+    seed = replacement.seed;
+    players = players.map((p) =>
+      p.id === owner.id
+        ? { ...p, hand: [...p.hand.filter((c) => c.id !== card.id), ...replacement.drawn] }
+        : p,
+    );
+  }
+
   const solvedProblems = won
     ? [...state.solvedProblems, ...mission.problems]
     : state.solvedProblems;
