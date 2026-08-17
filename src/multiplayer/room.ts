@@ -441,7 +441,7 @@ export async function commitSummaryMove(
     // wyznaczony gracz co przy odkrywaniu problemu (`commitReveal`): pierwszy
     // online w kolejności, żeby partia nie stanęła, gdy host padnie.
     // Pozostałe ruchy w tej fazie (zabranie własnej karty) zostają wolne.
-    if (action.type === 'END_MISSION_SUMMARY' && revealerUid(room) !== uid) {
+    if (action.type === 'END_MISSION_SUMMARY' && revealerUid(hydrateRoom(room)) !== uid) {
       rejection = 'Czekaj, aż podsumowanie zamknie wyznaczony gracz.';
       return room;
     }
@@ -501,7 +501,7 @@ export async function commitMoveAsHost(
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
   await runTransaction(roomRef, (room: Room | null) => {
     if (!room || room.phase !== 'playing' || !room.state) return room;
-    if (revealerUid(room) !== byUid) return room;
+    if (revealerUid(hydrateRoom(room)) !== byUid) return room;
 
     // Skip liczy się tylko, gdy w chwili zapisu wciąż czekamy właśnie na TEGO
     // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
@@ -545,6 +545,13 @@ export function playersInOrder(room: Room): RoomPlayer[] {
  * Rewelatorem jest więc PIERWSZY ONLINE gracz w kolejności: gdy host jest,
  * to on; gdy padł, przejmuje kolejny obecny. Wybór jest jednoznaczny (jeden
  * najstarszy online gracz), więc dwóch gości nie odkryje problemu naraz.
+ *
+ * WOŁAJ NA ODSIANYM `hydrateRoom(room)`, nigdy na surowym. Widmo (patrz
+ * `realPlayers` w hydrate.ts) zwykle ma `online: false`, ale `trackPresence`
+ * przy reconnect najpierw zbroi `onDisconnect(false)`, a POTEM zapisuje
+ * `online: true` — gdyby to trafiło tuż po `kickPlayer`, widmo na chwilę ma
+ * `online: true` i `.find` łapie właśnie je (jego `uid` to `undefined`,
+ * więc żaden prawdziwy gracz się już nie autoryzuje).
  */
 export function revealerUid(room: Room): string | undefined {
   return playersInOrder(room).find((p) => p.online)?.uid;
@@ -569,7 +576,7 @@ export async function commitReveal(code: string, uid: string): Promise<string | 
     if (!room.players?.[uid]) return room;
     // Odkryć może tylko wyznaczony rewelator — inaczej dwóch obecnych graczy
     // (gdy host padł) ścigałoby się o zapis.
-    if (revealerUid(room) !== uid) return room;
+    if (revealerUid(hydrateRoom(room)) !== uid) return room;
 
     const result = reduce(hydrateState(room.state), { type: 'START_MISSION' });
     if (result.rejected) {
