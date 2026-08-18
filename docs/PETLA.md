@@ -120,3 +120,15 @@ Nie zostawiaj commitów lokalnie.
   (`// MUTACJA TESTOWA` zamiast sprawdzenia) albo „naprawić" kod pod test —
   raz wyciął sortowanie przypiętych ogłoszeń, czyli funkcję zamówioną przez
   Alana. Zielony wynik u podagenta nie znaczy, że nie zepsuł produkcji.
+- `migrate()` (content.ts) domyka mapy typu `families`/`categories` PŁYTKIM
+  spreadem po kluczu kategorii — uzupełnia tylko kategorię, której W OGÓLE
+  brakuje. Wartość obecną, ale złego kształtu (obiekt/tekst zamiast tablicy —
+  dokładnie to, co zostawia ręczna edycja dokumentu w konsoli Firestore)
+  przepuszcza bez zmian, a `validateContent` mogła w ogóle nie sprawdzać
+  danej sekcji. Efekt: nie błąd panelu, tylko `TypeError` w prawdziwej
+  rozgrywce (funkcje jak `familyLabel` robią `.find`/`.map` bez `?.` na
+  wartości, o której typ obiecuje, że to tablica). Przy KAŻDYM nowym polu
+  `GameContent` sprawdzaj kształt osobno w `validate.ts` (tak jak już mają
+  `customIcons`/`cardImages` przez `Array.isArray`, `theme`/`themeLight`
+  przez `checkTheme`) — sam fakt, że pole nie jest `undefined`, niczego nie
+  gwarantuje.
