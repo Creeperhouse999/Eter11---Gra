@@ -343,6 +343,51 @@ describe('validateContent', () => {
     const result = validateContent(content);
     expect(result.errors.length).toBeGreaterThan(1);
   });
+
+  // `families[kategoria]` musi zostać tablicą Family[] — familyLabel()
+  // (categoryStyles.ts) robi na niej `.find(...)`, a FamilyEditor `.map(...)`.
+  // Ręczna edycja dokumentu w konsoli Firestore mogła zostawić tu obiekt albo
+  // tekst zamiast tablicy; taka wartość przechodziła bez zmian (migrate() robi
+  // tylko płytki spread po kluczu kategorii) i wywracała `.find`/`.map` na
+  // TypeError — czyli crash CAŁEJ gry przy każdej karcie, nie tylko panelu.
+  it('zgłasza rodziny kategorii w złym kształcie zamiast się wywrócić', () => {
+    const content = validContent();
+    (content.families as unknown as Record<string, unknown>).psychological = {};
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('rodzin');
+  });
+
+  it('zgłasza rodziny, które nie są obiektem, zamiast się wywrócić', () => {
+    const content = validContent();
+    (content as { families: unknown }).families = 'nie-obiekt';
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('rodzin');
+  });
+
+  // Ten sam rodzaj uszkodzenia co przy rodzinach: CategoryEditor.tsx czyta
+  // `current[key].label`/`.icon` bez `?.`, więc kategoria złego kształtu
+  // wywraca panel na TypeError zamiast pokazać komunikat walidacji.
+  it('zgłasza kategorię w złym kształcie zamiast się wywrócić', () => {
+    const content = validContent() as GameContent;
+    content.categories = {
+      ...(content.categories ?? {}),
+      psychological: 'nie-obiekt',
+    } as unknown as GameContent['categories'];
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ').toLowerCase()).toContain('kategori');
+  });
 });
 
 /**

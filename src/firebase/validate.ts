@@ -3,7 +3,7 @@ import {
   COMPETENCE_CATEGORIES,
   SLOT_ORDER,
 } from '../ui/components/categoryStyles';
-import type { FamilyMap } from '../data/families';
+import type { Family, FamilyMap } from '../data/families';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
@@ -450,6 +450,45 @@ export function validateContent(content: unknown): ValidationResult {
   const themed = data as Partial<GameContent>;
   checkTheme('Motyw', themed.theme);
   checkTheme('Motyw jasny', themed.themeLight);
+
+  // --- Rodziny i kategorie ---
+  // `migrate()` (content.ts) domyka mapę tylko po BRAKUJĄCYM kluczu kategorii
+  // (płytki spread) — wartość obecną, ale złego kształtu (obiekt/tekst
+  // zamiast tablicy, np. po ręcznej edycji dokumentu w konsoli Firestore)
+  // przepuszcza bez zmian. `familyLabel()` (categoryStyles.ts) robi wtedy
+  // `.find(...)` na nie-tablicy, a FamilyEditor/CategoryEditor `.map(...)`/
+  // `.label` bez `?.` — czyli TypeError w prawdziwej rozgrywce, nie tylko
+  // w panelu, bo `familyLabel` czytają CardZoom/ProblemCard/Coach.
+  const isFamily = (value: unknown): value is Family =>
+    isObject(value) && isText(value.id) && isText(value.name) && isText(value.icon);
+
+  if (data.families !== undefined) {
+    if (!isObject(data.families)) {
+      add('Rodziny: nie są obiektem.');
+    } else {
+      for (const category of KNOWN_CATEGORIES) {
+        const value = (data.families as Record<string, unknown>)[category];
+        if (value === undefined) continue;
+        if (!Array.isArray(value) || !value.every(isFamily)) {
+          add(`Rodziny (${category}): nie jest listą rodzin.`);
+        }
+      }
+    }
+  }
+
+  if (data.categories !== undefined) {
+    if (!isObject(data.categories)) {
+      add('Kategorie: nie są obiektem.');
+    } else {
+      for (const category of KNOWN_CATEGORIES) {
+        const value = (data.categories as Record<string, unknown>)[category];
+        if (value === undefined) continue;
+        if (!isObject(value) || !isText(value.label) || !isText(value.icon)) {
+          add(`Kategorie (${category}): brak nazwy/ikony albo złego typu.`);
+        }
+      }
+    }
+  }
 
   // --- Wstęp i samouczek ---
   // Opcjonalne (starsze zapisy ich nie mają — patrz komentarz przy
