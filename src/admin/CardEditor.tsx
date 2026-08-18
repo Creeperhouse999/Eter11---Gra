@@ -236,11 +236,17 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
     const card = cards.find((c) => c.id === id);
     // Ostrzegamy, gdy karta jest ostatnią, która potrafi zamknąć swoją
     // kombinację kategorii i rodziny — bez niej ścianka byłaby nie do domknięcia.
+    // Liczymy tylko karty NIEROBOCZE, tak jak validateContent (playableCards):
+    // szkic tej samej kombinacji nie trafia do gry, więc nie ratuje ścianki —
+    // liczenie go razem ze zwykłymi kartami gubiło ostrzeżenie właśnie tam,
+    // gdzie było potrzebne (usunięcie jedynej grywalnej karty obok szkicu).
     const lastOfKind =
       card !== undefined &&
       card.family !== undefined &&
-      cards.filter((c) => c.category === card.category && c.family === card.family)
-        .length === 1;
+      !card.draft &&
+      cards.filter(
+        (c) => !c.draft && c.category === card.category && c.family === card.family,
+      ).length === 1;
 
     const confirmed = await confirm({
       title: 'Usunąć kartę?',
