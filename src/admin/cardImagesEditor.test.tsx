@@ -43,9 +43,9 @@ const CARDS: Card[] = [
   },
 ];
 
-function Harness() {
+function Harness({ initialImages = [] }: { initialImages?: CardImage[] }) {
   const [state, setState] = useState<{ cardImages: CardImage[]; cards: Card[] }>({
-    cardImages: [],
+    cardImages: initialImages,
     cards: CARDS,
   });
   return (
@@ -56,6 +56,7 @@ function Harness() {
         onChange={setState}
       />
       <pre data-testid="cards-json">{JSON.stringify(state.cards)}</pre>
+      <pre data-testid="images-json">{JSON.stringify(state.cardImages)}</pre>
     </>
   );
 }
@@ -67,6 +68,9 @@ const uploadFiles = (files: File[]) => {
 
 const cardsState = (): Card[] =>
   JSON.parse(screen.getByTestId('cards-json').textContent ?? '[]');
+
+const imagesState = (): CardImage[] =>
+  JSON.parse(screen.getByTestId('images-json').textContent ?? '[]');
 
 beforeEach(() => {
   uploadImage.mockClear();
@@ -167,5 +171,37 @@ describe('CardImagesEditor', () => {
       </ToastProvider>,
     );
     expect(screen.getByText(/2 kart bez grafiki/)).toBeTruthy();
+  });
+
+  it('przypisanie karty do nowej grafiki zwalnia poprzednią, która ją trzymała', async () => {
+    // Regresja: `assign` zerował tylko `cardId` grafiki, którą edytujemy
+    // (jej WŁASNE poprzednie przypisanie), ale nie sprawdzał, czy jakaś INNA
+    // grafika w bibliotece już trzyma tę samą kartę. Dwie grafiki mogły więc
+    // wskazywać tę samą kartę naraz — biblioteka pokazywała starą grafikę
+    // jako wciąż „przypisaną”, choć karta realnie nosiła już nową.
+    const first: CardImage = {
+      id: 'img1',
+      url: 'https://s/first.png',
+      fileName: 'pierwsza',
+      cardId: 'psy-r-odpornosc',
+    };
+    const second: CardImage = { id: 'img2', url: 'https://s/second.png', fileName: 'druga' };
+
+    render(
+      <ToastProvider>
+        <Harness initialImages={[first, second]} />
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Karta dla grafiki druga' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Odporność psychiczna' }));
+
+    await waitFor(() =>
+      expect(imagesState().find((i) => i.id === 'img2')?.cardId).toBe('psy-r-odpornosc'),
+    );
+    expect(imagesState().find((i) => i.id === 'img1')?.cardId).toBeUndefined();
+    expect(
+      screen.getByRole('button', { name: 'Karta dla grafiki pierwsza' }).textContent,
+    ).toContain('nieprzypisana');
   });
 });

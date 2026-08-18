@@ -80,7 +80,14 @@ export function CardImagesEditor({ cardImages, cards, onChange }: CardImagesEdit
     if (!image) return;
     const previousCardId = image.cardId;
 
-    const nextImages = images.map((i) => (i.id === imageId ? { ...i, cardId: cardId || undefined } : i));
+    const nextImages = images.map((i) => {
+      if (i.id === imageId) return { ...i, cardId: cardId || undefined };
+      // Inna grafika mogła już trzymać tę samą kartę — bez tego dwie
+      // grafiki wskazywałyby ją naraz, a biblioteka pokazywałaby starą
+      // jako wciąż „przypisaną”, choć karta realnie nosi już nową.
+      if (cardId && i.cardId === cardId) return { ...i, cardId: undefined };
+      return i;
+    });
     const nextCards = cards.map((card) => {
       if (cardId && card.id === cardId) return { ...card, image: image.url };
       if (previousCardId && card.id === previousCardId && card.id !== cardId && card.image === image.url) {
