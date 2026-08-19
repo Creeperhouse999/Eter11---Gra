@@ -253,9 +253,17 @@ service cloud.firestore {
                       // z porównaniem `[0:0]` do pustej listy padał, więc do
                       // KAŻDEGO nowego wątku nie dało się nic dopisać — „można
                       // było założyć wątek, ale nie wysłać wiadomości".
+                      //
+                      // `authorUid` nowej wypowiedzi MUSI być piszącym — bez tego
+                      // warunku dowolny uczestnik dyskusji mógł dopisać wypowiedź
+                      // z cudzym `authorUid` i podszyć się pod kogoś innego, bo
+                      // treść i podpis (`author`) niczego tu nie chronią — jedyną
+                      // ochroną własności wypowiedzi jest właśnie `authorUid`
+                      // (patrz `canEditMessage` w discussions.ts).
                       || (
                         resource.data.messages.size() == 0
                         && request.resource.data.messages.size() == 1
+                        && request.resource.data.messages[0].authorUid == request.auth.uid
                       )
                       // Albo dokładnie jedna nowa wypowiedź na końcu, a cała
                       // wcześniejsza historia bez zmian.
@@ -264,6 +272,8 @@ service cloud.firestore {
                           == resource.data.messages.size() + 1
                         && request.resource.data.messages[0:resource.data.messages.size()]
                              == resource.data.messages
+                        && request.resource.data.messages[resource.data.messages.size()]
+                             .authorUid == request.auth.uid
                       )
                       // Poprawa WŁASNEJ wypowiedzi: lista tej samej długości,
                       // a wypowiedź pod wskazanym indeksem należy do piszącego
@@ -287,6 +297,13 @@ service cloud.firestore {
                              .author == resource.data.messages[request.resource.data.editIndex].author
                         && request.resource.data.messages[request.resource.data.editIndex]
                              .at == resource.data.messages[request.resource.data.editIndex].at
+                        // `authorUid` też zostaje: bez tego poprawa WŁASNEJ
+                        // wypowiedzi mogła przy okazji przepisać ją na cudze
+                        // konto (albo ją odautoryzować), bo nic poza `author`
+                        // i `at` nie było przypięte.
+                        && request.resource.data.messages[request.resource.data.editIndex]
+                             .get('authorUid', '')
+                             == resource.data.messages[request.resource.data.editIndex].get('authorUid', '')
                       )
                       // Usunięcie WŁASNEJ wypowiedzi: lista krótsza o jeden,
                       // a znikający wpis (spod `editIndex`) był Twój.
