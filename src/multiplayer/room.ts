@@ -446,6 +446,24 @@ export async function commitSummaryMove(
       return room;
     }
 
+    // SHARE_CARD idzie z klienta biorącego z ofertą przeczytaną WCZEŚNIEJ
+    // (patrz Multiplayer.acceptOffer) — transakcja musi ją zweryfikować na
+    // świeżo. `clearOffer` (Anuluj propozycję) to zwykłe `remove()`, nie
+    // transakcja: gdy dający anulował tuż przed kliknięciem „Przyjmij" przez
+    // biorącego, oferta w bazie już nie istniała, a reduktor i tak przepuszczał
+    // przekazanie — sprawdza tylko właściciela karty i fazę misji, nic nie wie
+    // o `room.offer`. Karta przechodziła mimo anulowania.
+    if (
+      action.type === 'SHARE_CARD' &&
+      (!room.offer ||
+        room.offer.fromUid !== action.fromPlayerId ||
+        room.offer.toUid !== action.toPlayerId ||
+        room.offer.cardId !== action.cardId)
+    ) {
+      rejection = 'Ta propozycja już nie obowiązuje.';
+      return room;
+    }
+
     // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
     // reduktorem, inaczej `.some`/`.filter` w silniku by się wysypały.
     const result = reduce(hydrateState(room.state), action);
