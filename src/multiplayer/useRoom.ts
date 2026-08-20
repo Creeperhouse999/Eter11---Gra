@@ -172,6 +172,14 @@ export function useRoom(code: string | null, uid: string | null) {
   const isSkipCoordinator = Boolean(uid && room && revealerUid(room) === uid);
   useEffect(() => {
     if (!isSkipCoordinator || !code || !room?.state || room.phase !== 'playing') return;
+    // `room.phase` to faza POKOJU (trwa 'playing' przez całą partię) — tura
+    // istnieje tylko w fazie STANU GRY 'mission'. W 'setup'/'missionSummary'
+    // `activePlayerIndex` to resztka z poprzedniej misji: bez tego warunku
+    // koordynator odpalał zbędną transakcję PASS za każdym razem, gdy ten
+    // przestarzały „aktywny" gracz był offline — reduktor i tak by ją
+    // odrzucił (poza fazą 'mission' nie ma czyjej kolei), ale to niepotrzebny
+    // zapis przy każdym wejściu na ekran poczekalni/podsumowania.
+    if (room.state.phase !== 'mission') return;
     if (!activeUid) return;
 
     const active = room.players[activeUid];
