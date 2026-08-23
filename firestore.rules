@@ -304,9 +304,31 @@ service cloud.firestore {
                         && request.resource.data.messages[request.resource.data.editIndex]
                              .get('authorUid', '')
                              == resource.data.messages[request.resource.data.editIndex].get('authorUid', '')
+                        // Reszta tablicy — wszystko poza `editIndex` — zostaje
+                        // BAJT W BAJT. Bez tego warunki wyżej sprawdzały tylko
+                        // wypowiedź pod `editIndex`, więc poprawa WŁASNEJ
+                        // wypowiedzi mogła w tym samym zapisie po cichu
+                        // podmienić treść, obrazek albo `authorUid` KAŻDEJ
+                        // innej wypowiedzi w tablicy — reguła nigdy tam nie
+                        // patrzyła. Warunek `? :` przed każdym wycinkiem
+                        // omija pusty zakres (Emulator rzuca „index out of
+                        // bound" przy wycięciu zaczynającym się dokładnie na
+                        // końcu tablicy, nawet gdy wynik miałby być pusty).
+                        && (request.resource.data.editIndex == 0
+                            || request.resource.data.messages[0:request.resource.data.editIndex]
+                                 == resource.data.messages[0:request.resource.data.editIndex])
+                        && (request.resource.data.editIndex + 1 >= request.resource.data.messages.size()
+                            || request.resource.data.messages[
+                                 request.resource.data.editIndex + 1:request.resource.data.messages.size()]
+                                 == resource.data.messages[
+                                 request.resource.data.editIndex + 1:resource.data.messages.size()])
                       )
                       // Usunięcie WŁASNEJ wypowiedzi: lista krótsza o jeden,
-                      // a znikający wpis (spod `editIndex`) był Twój.
+                      // znikający wpis (spod `editIndex`) był Twój, a reszta
+                      // tablicy — przed i po usuniętym miejscu — zostaje bez
+                      // zmian (przesunięta o jeden w dół po `editIndex`). Bez
+                      // tego drugiego warunku usunięcie własnej wypowiedzi
+                      // mogło w tym samym zapisie przepisać dowolną inną.
                       || (
                         request.resource.data.messages.size()
                           == resource.data.messages.size() - 1
@@ -315,6 +337,14 @@ service cloud.firestore {
                           || resource.data.messages[request.resource.data.editIndex]
                                .get('authorUid', '') == request.auth.uid
                         )
+                        && (request.resource.data.editIndex == 0
+                            || request.resource.data.messages[0:request.resource.data.editIndex]
+                                 == resource.data.messages[0:request.resource.data.editIndex])
+                        && (request.resource.data.editIndex >= request.resource.data.messages.size()
+                            || request.resource.data.messages[
+                                 request.resource.data.editIndex:request.resource.data.messages.size()]
+                                 == resource.data.messages[
+                                 request.resource.data.editIndex + 1:resource.data.messages.size()])
                       )
                     );
     }
