@@ -551,18 +551,26 @@ service cloud.firestore {
       // jednym zapisem. `finished` i tutorial rosną o 1; `won` o 0 lub 1;
       // `missionsSolved` najwyżej o kilkanaście (misji w partii jest ~7,
       // zapas na wypadek luźniejszych zasad).
+      //
+      // Pole, którego TA konkretna wysyłka w ogóle nie dotyka, przechodzi bez
+      // sprawdzenia — `recordFinishedGame`/`recordFinishedTutorial` (playStats.ts)
+      // scalają (`merge: true`) tylko część z czterech pól naraz, nigdy
+      // wszystkie cztery jednym zapisem. Gdy dokument JESZCZE NIE ISTNIEJE
+      // (`resource == null`), scalanie nie ma z czym się połączyć, więc
+      // `request.resource.data` zawiera WYŁĄCZNIE pola z tego jednego zapisu —
+      // reguła żądająca wszystkich czterech nigdy by więc nie wpuściła
+      // pierwszego zapisu w życiu dokumentu (świeży deploy, przywrócenie z
+      // kopii, ręczne skasowanie w konsoli). Cichy `catch` w playStats.ts
+      // ukrywał to jako pozorny sukces bez żadnego zapisu.
       function przyrost(pole, max) {
+        let obecne = pole in request.resource.data;
         let stare = resource == null ? 0 : resource.data.get(pole, 0);
-        let nowe = request.resource.data[pole];
-        return nowe >= stare && nowe <= stare + max;
+        let nowe = obecne ? request.resource.data[pole] : stare;
+        return !obecne || (nowe is int && nowe >= stare && nowe <= stare + max);
       }
 
       allow write: if request.resource.data.keys().hasOnly(
                         ['finished', 'won', 'missionsSolved', 'tutorialsFinished'])
-                   && request.resource.data.finished is int
-                   && request.resource.data.won is int
-                   && request.resource.data.missionsSolved is int
-                   && request.resource.data.tutorialsFinished is int
                    && przyrost('finished', 1)
                    && przyrost('won', 1)
                    && przyrost('missionsSolved', 20)
