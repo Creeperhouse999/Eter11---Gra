@@ -37,6 +37,25 @@ service firebase.storage {
     }
 
     /**
+     * Obrazek bitmapowy — bez SVG.
+     *
+     * SVG to XML, nie piksele: może nieść `<script>`/`onload`. `ImageLightbox`
+     * ma link „otwórz surowy plik", który otwiera Storage jako dokument
+     * najwyższego poziomu — tam taki skrypt wykonałby się w oczach zespołu.
+     * `upload.ts` (SVG_FOLDERS) ogranicza to już po stronie klienta do
+     * `icons`/`cards`, ale klient nie jest jedyną bramą do Storage — ktoś
+     * może wołać SDK/REST wprost, z pominięciem aplikacji. `reports/` w ogóle
+     * nie wymaga logowania (zgłoszenie z gry idzie bez konta), więc bez tej
+     * reguły dowolna osoba wgrywa złośliwy SVG jako „zrzut ekranu błędu".
+     * Regułą, nie tylko klientem, bo jedyną prawdziwą bramą do Storage są
+     * reguły.
+     */
+    function bitmapa() {
+      return request.resource.contentType in ['image/png', 'image/jpeg', 'image/webp']
+             && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    /**
      * Ikony gry.
      *
      * Odczyt publiczny: ikony rysują się dzieciom, które kont nie mają.
@@ -66,10 +85,11 @@ service firebase.storage {
       allow read: if czlonekZespolu();
       // Zgłoszenie z gry wysyła gracz zalogowany anonimowo (nie ma konta), więc
       // create musi puścić anonima — inaczej zrzut ekranu z błędem nie dołączy.
-      // Ochroną jest `obrazek()` (typ + twardy limit 5 MB): ktoś obcy wgra co
-      // najwyżej pliki-obrazki do 5 MB pod reports/, nie dowolną treść ani
-      // wielkie archiwa. To świadomy kompromis, żeby zgłaszanie z gry działało.
-      allow create: if obrazek();
+      // Ochroną jest `bitmapa()` (typ bez SVG + twardy limit 5 MB): ktoś obcy
+      // wgra co najwyżej rastrowy obrazek do 5 MB pod reports/, nie dowolną
+      // treść, wielkie archiwa ani SVG ze skryptem. To świadomy kompromis,
+      // żeby zgłaszanie z gry działało.
+      allow create: if bitmapa();
       // Skasować może tylko zespół — sprzątanie po testach, nie cudza ręka.
       allow delete: if czlonekZespolu();
     }
@@ -83,7 +103,10 @@ service firebase.storage {
       // Dyskusje są wewnętrzne — obrazek z wątku zespołu też. Odczyt tylko dla
       // zespołu (panel, gdzie i tak trzeba być zalogowanym). Było `if true`.
       allow read: if czlonekZespolu();
-      allow write: if czlonekZespolu() && obrazek();
+      // `bitmapa()`, nie `obrazek()` — SVG tu nie wolno, tak samo jak w
+      // `reports/` (patrz komentarz przy `bitmapa()`). `upload.ts` już tego
+      // pilnuje po stronie klienta, reguła pilnuje tego naprawdę.
+      allow write: if czlonekZespolu() && bitmapa();
     }
 
     /**

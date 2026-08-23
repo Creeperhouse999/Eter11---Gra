@@ -9,8 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rules": "firebase emulators:exec --only firestore,storage \"vitest run --config vitest.rules.config.ts\"",
     "deploy": "npm run build && firebase deploy --only hosting --project savetheworld-eter11",
-    "deploy:rules": "firebase deploy --only firestore:rules --project savetheworld-eter11"
+    "deploy:rules": "firebase deploy --only firestore:rules,storage --project savetheworld-eter11"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -21,6 +22,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.18",

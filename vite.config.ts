@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 /**
@@ -57,5 +58,10 @@ export default defineConfig({
     // powodu usterki, tylko wolnego renderu. 15 s daje margines; prawdziwy
     // zawis i tak trwałby dłużej i zostałby złapany.
     testTimeout: 15000,
+    // `*.rules.test.ts` sprawdza firestore.rules/storage.rules przez
+    // @firebase/rules-unit-testing — potrzebuje żywego Emulatora (patrz
+    // `npm run test:rules`). Pod zwykłe `vitest run` (CI, `npm test`) nie ma
+    // czego się łączyć, więc te pliki są tu wyłączone.
+    exclude: [...configDefaults.exclude, '**/*.rules.test.ts'],
   },
 });
