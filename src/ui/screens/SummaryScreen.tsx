@@ -261,13 +261,21 @@ export function SummaryScreen({
                           data-tour="take-card"
                           disabled={alreadyTook || shared || !keepable || !isOwn}
                           className="w-full"
-                          onClick={() =>
+                          onClick={() => {
+                            // Zabranie dowolnej karty wyczerpuje limit gracza na tę
+                            // misję — otwarta oferta przekazania innej jego karty
+                            // (albo tej samej) przestaje być aktualna. Bez tego
+                            // panel wisiał na nieaktualnej ofercie, a klik odbiorcy
+                            // kończył się cichą odmową reduktora.
+                            setSharing((current) =>
+                              current?.fromPlayerId === player.id ? null : current,
+                            );
                             dispatch({
                               type: 'TAKE_CARD_TO_MAT',
                               playerId: player.id,
                               cardId: play.card.id,
-                            })
-                          }
+                            });
+                          }}
                         >
                           Zabieram na postać
                         </Button>
