@@ -23,6 +23,41 @@ service firebase.storage {
     }
 
     /**
+     * ZNANA LUKA (nienaprawiona — patrz uzasadnienie poniżej), do rozważenia
+     * przez człowieka:
+     *
+     * `icons/`, `cards/`, `discussions/` wpuszczają do zapisu KAŻDE konto
+     * zespołu (`czlonekZespolu()`), bez względu na rolę. Rola `viewer`
+     * („tylko podgląd panelu: nic nie zmienia") ma w panelu schowane przyciski
+     * edycji, a `firestore.rules` (`mozeEdytowac`/`mozeDyskutowac`) blokuje
+     * odpowiadający zapis w Firestore — ale Storage to osobna usługa z
+     * własnymi regułami, więc viewer wołający Storage SDK/REST wprost (z
+     * pominięciem panelu) wciąż nadpisze widoczną graczom ikonę/grafikę karty
+     * albo wgra się do `discussions/`.
+     *
+     * Właściwa naprawa to sprawdzenie roli tu tak samo jak w firestore.rules —
+     * ALE reguły Storage czytają rolę z Firestore wyłącznie przez cross-service
+     * `firestore.get()`/`firestore.exists()`, a Firebase Local Emulator Suite
+     * (`npm run test:rules`) tego NIE obsługuje wiarygodnie: `firestore.exists()`
+     * wołany z reguł Storage konsekwentnie zwraca `false` nawet dla realnie
+     * zapisanego dokumentu (sprawdzone: zapis wprost przez REST Firestore
+     * Emulatora, dopasowanie projectId do `.firebaserc` — bez zmiany wyniku).
+     * Udokumentowany, wieloletni problem narzędzia, nie logiki reguł:
+     * https://github.com/firebase/firebase-tools/issues/5251
+     * https://github.com/firebase/firebase-js-sdk/issues/6803
+     *
+     * Naprawa bez działającego testu (który realnie odróżnia rolę viewer od
+     * edytującej) nie została tu wdrożona — ryzyko cichego zablokowania
+     * legalnych wgrań w produkcji przewyższa wagę luki (wymaga zalogowanego
+     * konta zespołu, nie obcego z ulicy). Dwie sensowne drogi naprawy:
+     * (a) wdrożyć cross-service regułę bez lokalnego testu, zweryfikować ręcznie
+     *     na prawdziwym projekcie przed/po `firebase deploy --only storage`;
+     * (b) trzymać rolę we custom claims tokena (Cloud Function na zapis
+     *     `roles/{uid}`) — Storage czytałby `request.auth.token.role` bez
+     *     cross-service wywołania, w pełni testowalne lokalnie.
+     */
+
+    /**
      * Obrazek, nie cokolwiek.
      *
      * Bez tego ktoś wgrałby pod adres z rozszerzeniem .jpg plik wykonywalny
