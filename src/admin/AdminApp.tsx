@@ -25,6 +25,7 @@ import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
+import { PrintCards } from './PrintCards';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
@@ -58,6 +59,7 @@ type Tab =
   | 'story'
   | 'theme'
   | 'test'
+  | 'print'
   | 'reports'
   | 'discussions'
   | 'memory'
@@ -90,6 +92,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
 
   // Narzędzie sprawdzające
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
+  { key: 'print', label: 'Drukuj karty', icon: 'printer' },
 
   // Komunikacja zespołu
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
@@ -443,7 +446,10 @@ export function AdminApp() {
   return (
     <div className="min-h-screen">
       <header
-        className="sticky top-0 border-b border-edge bg-bg/95 backdrop-blur"
+        // `print:hidden`: zakładka „Drukuj karty" ma dawać czystą stronę do
+        // wycięcia — bez tego pasek nawigacji, szukajka i przycisk „Zapisz"
+        // trafiały na wydruk razem z kartami.
+        className="sticky top-0 border-b border-edge bg-bg/95 backdrop-blur print:hidden"
         style={{ zIndex: 'var(--z-sticky)' }}
       >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -768,6 +774,7 @@ export function AdminApp() {
           />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
+        {tab === 'print' && <PrintCards content={content} />}
         {tab === 'reports' && (
           <ReportsPanel
             author={auth.displayName}
