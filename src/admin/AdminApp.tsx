@@ -26,6 +26,7 @@ import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
+import { BoredomPanel } from './BoredomPanel';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
@@ -60,6 +61,7 @@ type Tab =
   | 'theme'
   | 'test'
   | 'print'
+  | 'boredom'
   | 'reports'
   | 'discussions'
   | 'memory'
@@ -99,6 +101,7 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'memory', label: 'Pamięć', icon: 'bulb' },
   { key: 'announcements', label: 'Ogłoszenia', icon: 'flag' },
+  { key: 'boredom', label: 'Strefa Nudy', icon: 'hourglass' },
 
   // Dane i podgląd wstecz
   { key: 'stats', label: 'Statystyki', icon: 'pieChart' },
@@ -136,6 +139,9 @@ export function AdminApp() {
     if (item.key === 'memory') return canEdit(auth.role);
     // Ogłoszenia czyta zespół; wysyła je admin (formularz w środku panelu).
     if (item.key === 'announcements') return canEdit(auth.role);
+    // Strefa Nudy to sprawdzanie treści i zgłoszeń — podgląd nie ma tam czego
+    // rozstrzygać, a reguły bazy i tak odrzuciłyby jego odhaczenia.
+    if (item.key === 'boredom') return canEdit(auth.role);
     return true;
   });
 
@@ -154,6 +160,25 @@ export function AdminApp() {
   // odpalał się już na samym montażu panelu — ZANIM logowanie w ogóle się
   // rozstrzygnęło — i cofał każdy deep-link do tych zakładek na przegląd, nie
   // tylko dla kogoś bez uprawnień.
+  /**
+   * Skok do miejsca wskazanego linkiem (`/admin/reports/fixed?open=<id>`).
+   *
+   * Wspólne dla dzwonka powiadomień i Strefy Nudy — obie prowadzą do tych
+   * samych miejsc, a dwie kopie tej logiki rozjechałyby się przy pierwszej
+   * zmianie kształtu adresów.
+   */
+  const goToLink = (link: string) => {
+    const [path, params] = link.split('?');
+    const slug = path.replace(/^\/admin\/?/, '').split('/');
+    if (isTab(slug[0])) setTab(slug[0]);
+    const search = new URLSearchParams(params ?? '');
+    if (slug[1] && isReportStatus(slug[1])) route.setParam('status', slug[1]);
+    route.setParam('open', search.get('open'));
+    // Filtr niesie skok do karty po nazwie — bez niego link ze Strefy Nudy
+    // otwierał pełną listę bez wskazania, której karty szukać.
+    route.setParam('filter', search.get('filter'));
+  };
+
   const tabAllowed = visibleTabs.some((item) => item.key === tab);
   useEffect(() => {
     if (auth.roleReady && !tabAllowed) setTab('overview');
@@ -498,16 +523,7 @@ export function AdminApp() {
                 naprawione zgłoszenie, odpowiedź w jej wątku, ogłoszenie. */}
             <NotificationBell
               uid={auth.user?.uid ?? ''}
-              onOpen={(link) => {
-                const [path, params] = link.split('?');
-                const slug = path.replace(/^\/admin\/?/, '').split('/');
-                if (isTab(slug[0])) setTab(slug[0]);
-                // Reszta ścieżki i parametry (np. `?open=<id>`) prowadzą wprost
-                // do konkretnego zgłoszenia albo wątku.
-                const open = new URLSearchParams(params ?? '').get('open');
-                if (slug[1] && isReportStatus(slug[1])) route.setParam('status', slug[1]);
-                route.setParam('open', open);
-              }}
+              onOpen={goToLink}
             />
             {/* Przełącznik jasny/ciemny — jak w grze, ten sam wybór
                 (wspólny localStorage), tu w pasku, żeby nie nachodził. */}
@@ -775,6 +791,14 @@ export function AdminApp() {
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
         {tab === 'print' && <PrintCards content={content} />}
+        {tab === 'boredom' && (
+          <BoredomPanel
+            content={content}
+            role={auth.role}
+            author={auth.displayName}
+            onOpen={goToLink}
+          />
+        )}
         {tab === 'reports' && (
           <ReportsPanel
             author={auth.displayName}

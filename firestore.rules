@@ -389,6 +389,54 @@ service cloud.firestore {
      * i nie da się go podszyć. Ani `authorUid`, ani `author` nie mogą się
      * zmienić przy poprawce, inaczej dałoby się przypisać sobie cudzy wpis.
      */
+    /**
+     * Strefa Nudy — wspólna kolejka drobiazgów do sprawdzenia.
+     *
+     * `boredomDone` trzyma to, co zespół już przeklikał: rzecz odhaczona przez
+     * jedną osobę znika wszystkim, żeby dwie nie oceniały tej samej karty
+     * roboczej. Identyfikatorem dokumentu jest id fiszki, więc dwa równoczesne
+     * kliknięcia zapisują ten sam dokument zamiast dwóch.
+     *
+     * Kto: cały zespół poza podglądem (ten sam próg co edycja treści — rzeczy
+     * w kolejce to treść gry i zgłoszenia). Odhaczenie wolno cofnąć, bo
+     * pomyłka przy szybkim klikaniu jest normalna; kasuje admin.
+     */
+    match /boredomDone/{item} {
+      allow read: if mozeEdytowac();
+      allow create, update: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['verdict', 'author', 'at', 'serverAt'])
+                    && request.resource.data.verdict in ['ok', 'fix', 'skip']
+                    && request.resource.data.author is string
+                    && request.resource.data.author.size() <= 60;
+      allow delete: if jestAdmin();
+    }
+
+    /**
+     * Podsumowania sesji — ile kto przerobił i jak długo.
+     *
+     * Zapis historii, nie stan: raz zapisana sesja jest nietykalna, żeby nikt
+     * nie poprawiał sobie wyniku po fakcie. Czyta cały zespół, bo to jedyny
+     * ślad, że ktoś usiadł do porządków.
+     */
+    match /boredomSessions/{session} {
+      allow read: if mozeEdytowac();
+      allow create: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['author', 'startedAt', 'finishedAt',
+                                   'ok', 'fix', 'skip', 'seconds'])
+                    && request.resource.data.author is string
+                    && request.resource.data.author.size() > 0
+                    && request.resource.data.author.size() <= 60
+                    && request.resource.data.ok is int
+                    && request.resource.data.fix is int
+                    && request.resource.data.skip is int
+                    && request.resource.data.seconds is int
+                    && request.resource.data.seconds >= 0;
+      allow update: if false;
+      allow delete: if jestAdmin();
+    }
+
     match /memory/{note} {
       // Odczyt dla tych, którzy przy grze pracują — czyli tak jak zapis,
       // bez `viewer`. To notatki o nas i o pracy nad grą („kto za co

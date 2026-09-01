@@ -4,7 +4,8 @@ import type { Card } from '../engine/types';
  * Talia kart ETER11.
  *
  * Porządek: pięć kategorii, w każdej cztery rodziny, w każdej rodzinie trzy
- * karty — razem 60 kart. Rodzina ma swój kolor i symbol, a ścianka problemu
+ * karty — czyli 60 kart kompetencji, talentów i mentorów. Do tego karty
+ * specjalne: ETER11 i Czarne Łabędzie. Rodzina ma swój kolor i symbol, a ścianka problemu
  * wymaga konkretnej rodziny, więc dziecko dopasowuje kolor do koloru bez
  * czytania opisów.
  *

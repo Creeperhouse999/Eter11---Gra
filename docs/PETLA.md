@@ -18,6 +18,12 @@ w tamtym projekcie sześć takich „ulepszeń" wylądowało w koszu z komentarz
 
 ## Każda iteracja — sprawdź oba źródła
 
+**Najpierw `git pull --rebase origin master`** — zanim cokolwiek przeczytasz
+w kodzie. W tym repo pracuje też cloud routine: potrafi dodać całą zakładkę
+albo naprawić coś po Tobie, a bez pulla szukasz w drzewie, którego już nie ma
+(raz orzekłem, że funkcji nie ma — była, od kilkunastu commitów). Po pullu
+zerknij na `git log --oneline <stary-HEAD>..HEAD`, żeby wiedzieć, co doszło.
+
 1. **Zgłoszenia** — kolekcja `reports` (REST, patrz CLAUDE.md). Statusy inne niż
    `fixed`/`done`/`dismissed`/`closed`/`resolved` czekają na Ciebie.
 2. **Dyskusje** — `node scripts/discuss.mjs --list`. Alan i zespół piszą tam
