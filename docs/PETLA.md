@@ -117,6 +117,11 @@ Nie zostawiaj commitów lokalnie.
   wątku dyskusji nie zadziała — fragment tytułu nie pasuje do niczego i krok
   oznaczania kończy się błędem (od teraz tylko ostrzeżeniem). Odpowiedź
   w wątku pisz przez `scripts/discuss.mjs reply`.
+- Fragment w `Report-Fixed:` musi pasować do **jednego** zgłoszenia. Zdarza się,
+  że ten sam problem zgłoszono dwa razy (raz zamknięte, raz nowe) — wtedy krótki
+  fragment trafia w oba, skrypt odmawia i zgłoszenie zostaje otwarte mimo
+  „success" w Actions. Podawaj tyle tytułu, żeby był jednoznaczny, i po deployu
+  sprawdź, czy status faktycznie się zmienił.
 - **Zanim napiszesz nowy plik testowy — sprawdź, czy nie istnieje.** `Write`
   nadpisuje bez ostrzeżenia. Raz skasowałem tak cały test regresji do zgłoszenia
   Adama; wyszło dopiero z tego, że liczba plików w przebiegu się nie zmieniła.
