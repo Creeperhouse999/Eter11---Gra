@@ -44,10 +44,14 @@ beforeEach(() => {
 async function ostrzezenieNaKaflu(): Promise<boolean> {
   const etykieta = await screen.findByText('Wygrane drużyny');
   const kafel = etykieta.closest('div');
-  // Ostrzeżenie maluje kafel kolorem uwagi — sprawdzamy sam styl, nie klasę,
-  // żeby test nie pękał przy przemalowaniu panelu.
-  const style = kafel?.getAttribute('style') ?? '';
-  return style.includes('warn') || style.includes('--eter-danger') || style.includes('--eter-warn');
+  // Ostrzeżenie maluje kolorem uwagi samą LICZBĘ (pierwszy <p> w kaflu), nie
+  // etykietę pod nią — a to na etykiecie wołaliśmy `closest('div')`, więc
+  // sprawdzany węzeł nigdy nie niesie tego stylu (ma tylko className). Stąd
+  // musimy zejść do wartości. Sprawdzamy sam styl, nie klasę kafla, żeby test
+  // nie pękał przy przemalowaniu panelu.
+  const wartosc = kafel?.querySelector('p');
+  const style = wartosc?.getAttribute('style') ?? '';
+  return style.includes('--eter-accent-2');
 }
 
 describe('StatsPanel — odsetek wygranych', () => {
