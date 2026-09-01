@@ -27,6 +27,8 @@ import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
 import { BoredomPanel } from './BoredomPanel';
+import { PresetBar } from './PresetBar';
+import { PRESET_SECTIONS, type PresetSection } from '../firebase/presets';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
 import { DiscussionsPanel } from './DiscussionsPanel';
@@ -703,6 +705,19 @@ export function AdminApp() {
 
         <div key={tab} className="eter-fade-in">
         {tab === 'overview' && <DeckOverview content={content} onGoTo={setTab} />}
+        {/* Pasek presetów nad zakładką — jedno miejsce zamiast wpinania go
+            w każdy edytor osobno. Pokazuje się tylko tam, gdzie preset ma sens
+            (sekcje treści), i tylko komu wolno edytować. */}
+        {canEdit(auth.role) && PRESET_SECTIONS.includes(tab as PresetSection) && (
+          <PresetBar
+            section={tab as PresetSection}
+            content={content}
+            role={auth.role}
+            author={auth.displayName}
+            onApply={setContent}
+          />
+        )}
+
         {tab === 'problems' && (
           <ProblemEditor
             problems={content.problems}

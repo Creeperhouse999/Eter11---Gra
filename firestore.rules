@@ -390,6 +390,50 @@ service cloud.firestore {
      * zmienić przy poprawce, inaczej dałoby się przypisać sobie cudzy wpis.
      */
     /**
+     * Presety — zapisane warianty sekcji treści.
+     *
+     * Zapisuje każdy redaktor: własny wariant to jego praca, a preset niczego
+     * nie podmienia, dopóki ktoś go nie wczyta. Wczytanie dzieje się już
+     * w panelu (zwykły zapis treści), więc reguły pilnują tu tylko samej
+     * biblioteki presetów.
+     *
+     * Kasuje admin — cudzy preset bywa jedyną kopią czyjegoś pomysłu.
+     * `data` bez ograniczenia kształtu: to zrzut sekcji treści, a jej
+     * poprawność sprawdza walidacja przy zapisie zawartości gry.
+     */
+    match /presets/{preset} {
+      allow read: if mozeEdytowac();
+      allow create, update: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['section', 'name', 'author', 'createdAt', 'data'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.author is string
+                    && request.resource.data.author.size() <= 60
+                    && request.resource.data.section in
+                         ['cards', 'problems', 'characters', 'rules',
+                          'text', 'theme', 'families', 'categories'];
+      allow delete: if jestAdmin();
+    }
+
+    /** Zestawy: nazwa plus wskazania na presety sekcji. */
+    match /presetBundles/{bundle} {
+      allow read: if mozeEdytowac();
+      allow create, update: if mozeEdytowac()
+                    && request.resource.data.keys()
+                         .hasOnly(['name', 'author', 'createdAt', 'parts'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.author is string
+                    && request.resource.data.author.size() <= 60
+                    && request.resource.data.parts is map
+                    && request.resource.data.parts.size() <= 8;
+      allow delete: if jestAdmin();
+    }
+
+    /**
      * Strefa Nudy — wspólna kolejka drobiazgów do sprawdzenia.
      *
      * `boredomDone` trzyma to, co zespół już przeklikał: rzecz odhaczona przez
