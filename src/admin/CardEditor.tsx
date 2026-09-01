@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
 import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
 import { categoryColorVar, categoryLabel } from '../ui/components/categoryStyles';
@@ -72,6 +72,167 @@ function categoryPatch(card: Card, category: CardCategory): Partial<Card> {
       category === 'blackswan' ? (card.blackSwanKind ?? 'extraProblem') : undefined,
   };
 }
+
+/**
+ * Jeden wiersz listy kart.
+ *
+ * Osobny, zmemoizowany komponent, bo edytor pokazuje wszystkie karty naraz
+ * (65 wierszy, każdy z pickerem ikony i podglądem). Gdy wiersz był wpisany
+ * inline w `.map()`, zmiana JEDNEJ nazwy przerysowywała całą listę: zmierzone
+ * 40 ms na każdy wciśnięty klawisz, czyli około 160 ms na szkolnym telefonie.
+ * Alan zgłosił to jako „laguje pisanie w zakładkach".
+ *
+ * `memo` działa tylko wtedy, gdy WSZYSTKIE właściwości są stabilne — dlatego
+ * funkcje obsługi w `CardEditor` idą przez `useCallback` i czytają listę
+ * z referencji, zamiast domykać ją w sobie.
+ */
+const CardRow = memo(function CardRow({
+  card,
+  picked,
+  justAdded,
+  toggle,
+  update,
+  duplicate,
+  remove,
+}: {
+  card: Card;
+  picked: boolean;
+  justAdded: boolean;
+  toggle: (id: string) => void;
+  update: (id: string, patch: Partial<Card>) => void;
+  duplicate: (card: Card) => void;
+  remove: (id: string) => void;
+}) {
+  return (
+      <li
+        key={card.id}
+        className={[
+          'eter-rise rounded-lg border-l-4 border bg-surface p-3 transition',
+          justAdded ? 'border-accent' : 'border-edge',
+        ].join(' ')}
+        style={{ borderLeftColor: categoryColorVar(card.category) }}
+      >
+        <div className="grid gap-2 sm:grid-cols-[auto_9rem_1fr_10rem_auto]">
+          <label className="flex items-start pt-2">
+            <input
+              type="checkbox"
+              checked={picked}
+              onChange={() => toggle(card.id)}
+              aria-label={`Zaznacz kartę ${card.name}`}
+              className="h-4 w-4 accent-[var(--eter-accent)]"
+            />
+          </label>
+          <IconPicker
+            value={card.icon}
+            label=""
+            onChange={(icon) => update(card.id, { icon })}
+          />
+          <TextField
+            value={card.name}
+            onChange={(e) => update(card.id, { name: e.target.value })}
+            aria-label={`Nazwa karty ${card.name}`}
+          />
+          <Select
+            value={card.category}
+            ariaLabel={`Kategoria karty ${card.name}`}
+            options={CATEGORY_OPTIONS}
+            onChange={(category) => {
+              // Zmiana kategorii musi doprowadzić kartę do stanu, który
+              // przejdzie walidację — przez `categoryPatch`, tak samo jak
+              // zmiana hurtem.
+              update(card.id, categoryPatch(card, category));
+            }}
+          />
+          <div className="flex gap-1 self-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="plus"
+              aria-label={`Skopiuj kartę ${card.name}`}
+              onClick={() => duplicate(card)}
+            >
+              Kopiuj
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="trash"
+              onClick={() => remove(card.id)}
+              className="text-danger"
+            >
+              Usuń
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-start gap-3">
+          <TextField
+            value={card.description}
+            onChange={(e) => update(card.id, { description: e.target.value })}
+            placeholder="Opis karty"
+            aria-label={`Opis karty ${card.name}`}
+            className="min-w-0 flex-1"
+          />
+
+          {/* Podgląd tej samej karty, którą zobaczy dziecko.
+              Formularz nie mówi, czy nazwa się zmieści ani jak wygląda
+              opis na 112 px — redaktor pisał w ciemno i sprawdzał efekt
+              dopiero w grze, po zapisie. */}
+          <div className="hidden shrink-0 lg:block">
+            <CardView card={card} />
+          </div>
+        </div>
+
+        {/* Grafika karty: w grze pokazuje się jako awers, klik odwraca na
+            zwykły widok z nazwą i opisem. Jedna na kartę. */}
+        <div className="mt-2">
+          <ImageUpload
+            label="Grafika karty (opcjonalnie)"
+            folder="cards"
+            max={1}
+            namePrefix={`card-${card.id}`}
+            value={card.image ? [card.image] : []}
+            onChange={(urls) => update(card.id, { image: urls[0] })}
+          />
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-end gap-4">
+          {/* Rodzina zależy od kategorii, nie od tego, czy karta już ją
+              ma. Wcześniej pole pokazywało się tylko przy ustawionej
+              rodzinie — karta zmieniona z Czarnego Łabędzia na zwykłą
+              nie miała jak jej dostać, a walidacja blokowała zapis
+              całego panelu bez możliwości poprawy. */}
+          {card.category !== 'blackswan' && card.category !== 'eter11' && (
+            <Select
+              value={card.family ?? 'red'}
+              label="Rodzina"
+              className="w-full sm:w-44"
+              options={FAMILY_OPTIONS}
+              onChange={(family) => update(card.id, { family })}
+            />
+          )}
+
+          {card.category === 'blackswan' && (
+            <Select
+              value={card.blackSwanKind ?? 'extraProblem'}
+              label="Wariant"
+              className="w-full sm:w-56"
+              options={SWAN_KINDS.map(([kind, label]) => ({ value: kind, label }))}
+              onChange={(blackSwanKind) => update(card.id, { blackSwanKind })}
+            />
+          )}
+
+          <Checkbox
+            checked={Boolean(card.draft)}
+            onChange={(draft) => update(card.id, { draft })}
+          >
+            Wymaga weryfikacji merytorycznej
+          </Checkbox>
+
+        </div>
+      </li>
+  );
+});
 
 export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange }: CardEditorProps) {
   const [filter, setFilter] = useState<CardCategory | 'all'>('all');
@@ -151,14 +312,26 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
   const widoczneId = new Set(visible.map((card) => card.id));
   const pickedOffScreen = [...picked].filter((id) => !widoczneId.has(id)).length;
 
-  const toggle = (id: string) => {
+  /**
+   * Aktualna lista kart dla funkcji obsługujących zmiany.
+   *
+   * Bez tego każda z nich (`update`, `toggle`, `duplicate`…) domykała `cards`
+   * i powstawała na nowo przy każdym renderze — a że wiersz dostaje je jako
+   * właściwości, React przerysowywał WSZYSTKIE 65 wierszy przy każdym
+   * wciśniętym klawiszu. Zmierzone: 40 ms na znak na laptopie, czyli ~160 ms
+   * na szkolnym telefonie. Alan zgłosił to jako „laguje pisanie w zakładkach".
+   */
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
+
+  const toggle = useCallback((id: string) => {
     setPicked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   /**
    * Zmiana wspólnej cechy wielu kart naraz.
@@ -184,9 +357,14 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
     toast(`Zmieniono ${picked.size} ${picked.size === 1 ? 'kartę' : 'kart'}.`);
   };
 
-  const update = (id: string, patch: Partial<Card>) => {
-    onChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-  };
+  // `useCallback` + `cardsRef`: stabilna funkcja, więc wiersz karty (zmemoizowany
+  // niżej) nie przerysowuje się przy zmianie sąsiada.
+  const update = useCallback(
+    (id: string, patch: Partial<Card>) => {
+      onChange(cardsRef.current.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    },
+    [onChange],
+  );
 
   /**
    * Kopia karty tuż pod oryginałem.
@@ -195,7 +373,8 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
    * inna nazwa i opis. Bez tego redaktor zaczynał od pustej karty i ustawiał
    * te same cztery pola od nowa przy każdym wariancie.
    */
-  const duplicate = (card: Card) => {
+  const duplicate = useCallback((card: Card) => {
+    const cards = cardsRef.current;
     const copy: Card = { ...card, id: newId('card'), name: `${card.name} (kopia)` };
     const index = cards.findIndex((c) => c.id === card.id);
 
@@ -204,7 +383,7 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
     onChange([...cards.slice(0, index + 1), copy, ...cards.slice(index + 1)]);
     setJustAddedId(copy.id);
     toast('Skopiowano. Zmień nazwę i opis.');
-  };
+  }, [onChange, toast]);
 
   const add = () => {
     const category: CardCategory = filter === 'all' ? 'psychological' : filter;
@@ -232,7 +411,8 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
     toast('Dodano kartę na górze listy.');
   };
 
-  const remove = async (id: string) => {
+  const remove = useCallback(async (id: string) => {
+    const cards = cardsRef.current;
     const card = cards.find((c) => c.id === id);
     // Ostrzegamy, gdy karta jest ostatnią, która potrafi zamknąć swoją
     // kombinację kategorii i rodziny — bez niej ścianka byłaby nie do domknięcia.
@@ -260,7 +440,7 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
       onChange(cards.filter((c) => c.id !== id));
       toast(`Usunięto kartę „${card?.name}".`);
     }
-  };
+  }, [confirm, onChange, toast]);
 
   return (
     <section>
@@ -374,133 +554,16 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
 
       <ul className="mt-4 space-y-2">
         {visible.map((card) => (
-          <li
+          <CardRow
             key={card.id}
-            className={[
-              'eter-rise rounded-lg border-l-4 border bg-surface p-3 transition',
-              card.id === justAddedId ? 'border-accent' : 'border-edge',
-            ].join(' ')}
-            style={{ borderLeftColor: categoryColorVar(card.category) }}
-          >
-            <div className="grid gap-2 sm:grid-cols-[auto_9rem_1fr_10rem_auto]">
-              <label className="flex items-start pt-2">
-                <input
-                  type="checkbox"
-                  checked={picked.has(card.id)}
-                  onChange={() => toggle(card.id)}
-                  aria-label={`Zaznacz kartę ${card.name}`}
-                  className="h-4 w-4 accent-[var(--eter-accent)]"
-                />
-              </label>
-              <IconPicker
-                value={card.icon}
-                label=""
-                onChange={(icon) => update(card.id, { icon })}
-              />
-              <TextField
-                value={card.name}
-                onChange={(e) => update(card.id, { name: e.target.value })}
-                aria-label={`Nazwa karty ${card.name}`}
-              />
-              <Select
-                value={card.category}
-                ariaLabel={`Kategoria karty ${card.name}`}
-                options={CATEGORY_OPTIONS}
-                onChange={(category) => {
-                  // Zmiana kategorii musi doprowadzić kartę do stanu, który
-                  // przejdzie walidację — przez `categoryPatch`, tak samo jak
-                  // zmiana hurtem.
-                  update(card.id, categoryPatch(card, category));
-                }}
-              />
-              <div className="flex gap-1 self-start">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon="plus"
-                  aria-label={`Skopiuj kartę ${card.name}`}
-                  onClick={() => duplicate(card)}
-                >
-                  Kopiuj
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon="trash"
-                  onClick={() => remove(card.id)}
-                  className="text-danger"
-                >
-                  Usuń
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-2 flex items-start gap-3">
-              <TextField
-                value={card.description}
-                onChange={(e) => update(card.id, { description: e.target.value })}
-                placeholder="Opis karty"
-                aria-label={`Opis karty ${card.name}`}
-                className="min-w-0 flex-1"
-              />
-
-              {/* Podgląd tej samej karty, którą zobaczy dziecko.
-                  Formularz nie mówi, czy nazwa się zmieści ani jak wygląda
-                  opis na 112 px — redaktor pisał w ciemno i sprawdzał efekt
-                  dopiero w grze, po zapisie. */}
-              <div className="hidden shrink-0 lg:block">
-                <CardView card={card} />
-              </div>
-            </div>
-
-            {/* Grafika karty: w grze pokazuje się jako awers, klik odwraca na
-                zwykły widok z nazwą i opisem. Jedna na kartę. */}
-            <div className="mt-2">
-              <ImageUpload
-                label="Grafika karty (opcjonalnie)"
-                folder="cards"
-                max={1}
-                namePrefix={`card-${card.id}`}
-                value={card.image ? [card.image] : []}
-                onChange={(urls) => update(card.id, { image: urls[0] })}
-              />
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-end gap-4">
-              {/* Rodzina zależy od kategorii, nie od tego, czy karta już ją
-                  ma. Wcześniej pole pokazywało się tylko przy ustawionej
-                  rodzinie — karta zmieniona z Czarnego Łabędzia na zwykłą
-                  nie miała jak jej dostać, a walidacja blokowała zapis
-                  całego panelu bez możliwości poprawy. */}
-              {card.category !== 'blackswan' && card.category !== 'eter11' && (
-                <Select
-                  value={card.family ?? 'red'}
-                  label="Rodzina"
-                  className="w-full sm:w-44"
-                  options={FAMILY_OPTIONS}
-                  onChange={(family) => update(card.id, { family })}
-                />
-              )}
-
-              {card.category === 'blackswan' && (
-                <Select
-                  value={card.blackSwanKind ?? 'extraProblem'}
-                  label="Wariant"
-                  className="w-full sm:w-56"
-                  options={SWAN_KINDS.map(([kind, label]) => ({ value: kind, label }))}
-                  onChange={(blackSwanKind) => update(card.id, { blackSwanKind })}
-                />
-              )}
-
-              <Checkbox
-                checked={Boolean(card.draft)}
-                onChange={(draft) => update(card.id, { draft })}
-              >
-                Wymaga weryfikacji merytorycznej
-              </Checkbox>
-
-            </div>
-          </li>
+            card={card}
+            picked={picked.has(card.id)}
+            justAdded={card.id === justAddedId}
+            toggle={toggle}
+            update={update}
+            duplicate={duplicate}
+            remove={remove}
+          />
         ))}
       </ul>
     </section>
