@@ -523,11 +523,17 @@ export function AdminApp() {
               </Button>
             </Tooltip>
             {/* Dzwonek: co się wydarzyło w sprawach tej osoby — odrzucone albo
-                naprawione zgłoszenie, odpowiedź w jej wątku, ogłoszenie. */}
-            <NotificationBell
-              uid={auth.user?.uid ?? ''}
-              onOpen={goToLink}
-            />
+                naprawione zgłoszenie, odpowiedź w jej wątku, ogłoszenie.
+                Reguła `notifications` czyta/kasuje tylko przy mozeEdytowac()
+                (viewer wykluczony) — bez tego gate'u viewer z powiadomieniami
+                sprzed degradacji dostawał dzwonek, który zawsze cicho
+                pokazywał „Nic nowego", bo każdy odczyt kończył się odmową. */}
+            {canEdit(auth.role) && (
+              <NotificationBell
+                uid={auth.user?.uid ?? ''}
+                onOpen={goToLink}
+              />
+            )}
             {/* Przełącznik jasny/ciemny — jak w grze, ten sam wybór
                 (wspólny localStorage), tu w pasku, żeby nie nachodził. */}
             <ThemeToggle variant="inline" />
