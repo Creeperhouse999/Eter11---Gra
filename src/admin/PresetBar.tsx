@@ -8,7 +8,7 @@ import {
   type PresetSection,
   SECTION_LABELS,
 } from '../firebase/presets';
-import { canModerate, type Role } from '../firebase/roles';
+import { canDelete, canModerate, type Role } from '../firebase/roles';
 import type { GameContent } from '../firebase/validate';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
@@ -47,6 +47,12 @@ export function PresetBar({ section, content, role, author, onApply }: PresetBar
 
   const mine = presets.filter((p) => p.section === section);
   const mayApply = canModerate(role);
+  // Reguły w Firestore pozwalają skasować preset tylko `jestAdmin()` (admin,
+  // programmer) — bez co-admina, tak samo jak przy moderacji zgłoszeń.
+  // `canModerate` obejmuje szerzej, więc na przycisku usuwania trzeba
+  // węższego sprawdzenia, inaczej co-admin dostaje przycisk, który zawsze
+  // kończy się odmową z bazy.
+  const mayDelete = canDelete(role);
 
   const save = async () => {
     // Ta sama nazwa w tej samej sekcji = nadpisanie, nie druga kopia. Inaczej
@@ -174,14 +180,16 @@ export function PresetBar({ section, content, role, author, onApply }: PresetBar
             >
               <span className="font-mono">{preset.name}</span>
               <span className="text-ink-dim">· {preset.author}</span>
-              <button
-                type="button"
-                aria-label={`Usuń preset ${preset.name}`}
-                onClick={() => void remove(preset)}
-                className="rounded p-0.5 text-ink-dim transition hover:text-danger"
-              >
-                ×
-              </button>
+              {mayDelete && (
+                <button
+                  type="button"
+                  aria-label={`Usuń preset ${preset.name}`}
+                  onClick={() => void remove(preset)}
+                  className="rounded p-0.5 text-ink-dim transition hover:text-danger"
+                >
+                  ×
+                </button>
+              )}
             </li>
           ))}
         </ul>
