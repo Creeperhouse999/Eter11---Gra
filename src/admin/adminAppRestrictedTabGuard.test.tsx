@@ -79,6 +79,22 @@ vi.mock('../firebase/content', () => ({
   saveContent: vi.fn(),
 }));
 vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
+// Pasek presetów/zestawów na przeglądzie sięga do Firestore przez
+// watchPresets/watchBundles — bez atrapy uderzyłby w fikcyjne `db: {}` wyżej.
+vi.mock('../firebase/presets', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../firebase/presets')>();
+  return {
+    ...actual,
+    watchPresets: (cb: (p: unknown[]) => void) => {
+      cb([]);
+      return () => {};
+    },
+    watchBundles: (cb: (b: unknown[]) => void) => {
+      cb([]);
+      return () => {};
+    },
+  };
+});
 
 /**
  * RTL/React flushuje passive effecty SYNCHRONICZNIE wewnątrz `act()` w

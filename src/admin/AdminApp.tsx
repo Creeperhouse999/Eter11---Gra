@@ -28,6 +28,7 @@ import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
 import { BoredomPanel } from './BoredomPanel';
 import { PresetBar } from './PresetBar';
+import { PresetBundleBar } from './PresetBundleBar';
 import { PRESET_SECTIONS, type PresetSection } from '../firebase/presets';
 import { ProblemEditor } from './ProblemEditor';
 import { ReportsPanel, isReportStatus } from './ReportsPanel';
@@ -704,6 +705,14 @@ export function AdminApp() {
         )}
 
         <div key={tab} className="eter-fade-in">
+        {tab === 'overview' && canEdit(auth.role) && (
+          <PresetBundleBar
+            content={content}
+            role={auth.role}
+            author={auth.displayName}
+            onApply={setContent}
+          />
+        )}
         {tab === 'overview' && <DeckOverview content={content} onGoTo={setTab} />}
         {/* Pasek presetów nad zakładką — jedno miejsce zamiast wpinania go
             w każdy edytor osobno. Pokazuje się tylko tam, gdzie preset ma sens
