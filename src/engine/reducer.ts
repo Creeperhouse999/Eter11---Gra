@@ -552,6 +552,11 @@ export function resolveDrawnBlackSwans(
     // misji o kartę mniej niż reszta stołu — a wyciągnięcie jest losowe.
     const replacement = draw(next.drawPile, next.discardPile, 1, next.rng);
 
+    // Talia i odrzucone puste jednocześnie: draw() zwraca zero kart. Bez tej
+    // wymiany ręka i tak by się zmniejszyła — wracamy do tego samego Łabędzia
+    // przy kolejnym wywołaniu, gdy w obiegu znów pojawią się karty.
+    if (replacement.drawn.length === 0) break;
+
     const withoutCard: GameState = {
       ...next,
       players: next.players.map((p) =>
@@ -969,6 +974,11 @@ function endMissionSummary(state: GameState): ReducerResult {
     if (!owner) break;
     const card = owner.hand.find((c) => c.category === 'blackswan')!;
     const replacement = draw(pile, discard, 1, seed);
+
+    // Talia i odrzucone puste jednocześnie: nie ma czym wymienić Łabędzia
+    // bez trwałego zmniejszenia ręki. Zostaje w ręce zamiast znikać za darmo.
+    if (replacement.drawn.length === 0) break;
+
     pile = replacement.pile;
     discard = [...replacement.discard, card];
     seed = replacement.seed;
