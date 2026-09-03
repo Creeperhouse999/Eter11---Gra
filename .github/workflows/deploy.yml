@@ -9,10 +9,19 @@ on:
   # Pozwala odpalić ręcznie z zakładki Actions.
   workflow_dispatch:
 
-# Jeden deploy naraz — nowszy push anuluje starszy, żeby nie wdrażać wstecz.
+# Jeden deploy na raz, ale bez zabijania działającego runu: przy szybkich
+# push'ach pod rząd (np. jeden fix na zgłoszenie, kilka commitów w kilka
+# minut) `cancel-in-progress: true` potrafił ubić już DZIAŁAJĄCY run tuż przed
+# krokiem oznaczania zgłoszenia — kod i tak trafiał na produkcję kolejnym
+# runem, ale trailer `Report-Fixed` z ubitego commita ginął bez śladu (run
+# 33516899089, ed68818, ubity przez run 33517054135 zaczęty 1m35s później —
+# zgłoszenie "Presety w każdej zakładce" zostało otwarte mimo wdrożonej
+# funkcji). Kolejne runy nadal czekają w kolejce (jeden deploy na raz, nic
+# nie wdroży się wstecz) — różnica jest tylko taka, że każdy z nich dobiega
+# do końca i ma szansę odczytać własny trailer.
 concurrency:
   group: deploy-master
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
