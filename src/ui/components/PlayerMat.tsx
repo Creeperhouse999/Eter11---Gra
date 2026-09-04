@@ -59,7 +59,9 @@ export function PlayerMat({
     <section
       aria-label={`Karta postaci: ${player.name}`}
       className={[
-        'overflow-hidden rounded-xl border bg-surface p-3 transition',
+        // `eter-tile`: mata to duży element ekranu, więc w wyglądzie
+        // „Kolorowy" świeci jak reszta kafli.
+        'eter-tile overflow-hidden rounded-xl border bg-surface p-3 transition',
         active ? 'border-accent' : 'border-edge',
       ].join(' ')}
       style={active ? { boxShadow: '0 0 24px -10px var(--eter-accent)' } : undefined}

@@ -132,7 +132,9 @@ export function CardView({
       }}
       {...rest}
       className={[
-        'group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',
+        // `eter-tile`: zaczepienie dla wyglądu „Kolorowy", w którym karta
+        // świeci kolorem swojej rodziny jak kafel z grafik Adama.
+        'eter-tile group relative flex flex-col overflow-hidden rounded-lg border bg-raised text-left transition-transform',
         dealIndex === undefined ? '' : 'eter-deal',
         // Na telefonie karta jest węższa, żeby ręka nie zjadała pół ekranu
         // i cała plansza mieściła się bez przewijania.

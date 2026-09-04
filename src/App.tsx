@@ -10,6 +10,7 @@ import type { GameContent } from './firebase/validate';
 import { ToastProvider } from './ui/controls/Toast';
 import { GameApp } from './ui/GameApp';
 import { ThemeToggle } from './ui/ThemeToggle';
+import { SkinToggle } from './ui/SkinToggle';
 
 /**
  * Panel redakcyjny ładowany dopiero pod adresem /admin.
@@ -43,6 +44,8 @@ export default function App() {
         <>
           {/* Gra: przełącznik jako pływający przycisk w rogu. */}
           <ThemeToggle />
+          {/* Drugi wymiar wyglądu — Adam prosił o osobny przełącznik. */}
+          <SkinToggle />
           <Game />
         </>
       )}

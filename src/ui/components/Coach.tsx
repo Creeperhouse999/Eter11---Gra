@@ -154,7 +154,7 @@ export function Coach(props: CoachProps) {
       // Zmiana treści ma być zauważona, ale nie ma przerywać czytania.
       role="status"
       aria-live="polite"
-      className="flex items-center gap-2 rounded-lg border border-edge bg-surface px-2.5 py-1.5 sm:gap-2.5 sm:px-3 sm:py-2"
+      className="eter-tile flex items-center gap-2 rounded-lg border border-edge bg-surface px-2.5 py-1.5 sm:gap-2.5 sm:px-3 sm:py-2"
       style={{ borderLeftColor: color, borderLeftWidth: 3 }}
     >
       <span className="shrink-0" style={{ color }}>

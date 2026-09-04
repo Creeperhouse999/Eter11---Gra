@@ -96,7 +96,9 @@ export function ProblemCard({
           data-slot={dropId}
           {...(dropTargetProps?.(dropId) ?? {})}
           className={[
-            'flex w-full flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
+            // `eter-tile`: ścianka świeci swoim kolorem w wyglądzie
+            // „Kolorowy" — to ona niesie zasadę dopasowania karty.
+            'eter-tile flex w-full flex-col overflow-hidden rounded-lg border-2 p-2.5 text-left transition',
             // Pusta ścianka to sam nagłówek i podpowiedź — pełną wysokość
             // potrzebuje dopiero karta, która w niej wyląduje. Pięć ścianek po
             // 8.5rem nie mieściło się na telefonie i wymuszało przewijanie.

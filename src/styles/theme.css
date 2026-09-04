@@ -285,3 +285,77 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   Wygląd „Kolorowy" — mozaika świecących kafli.
+
+   Adam odesłał pierwszą wersję ze słowami: „nie chodzi o kolorki różnych
+   elementów, ale o to, abyś wykorzystał ideę kolorowych kwadracików
+   i stworzył z nich całkowicie inną wizualizację panelu gracza". Grafiki,
+   które przysłał, to siatka świecących, półprzezroczystych klocków na
+   ciemnym tle — więc tutaj każdy element gry dostaje ten charakter:
+   poświatę, kwadratowy kształt i nasycony kolor.
+
+   Wszystko wisi pod `[data-skin='colorful']`, więc klasyczny wygląd to po
+   prostu brak tych reguł — jedno miejsce prawdy zamiast dwóch zestawów.
+   Celujemy w klasy, których komponenty już używają (`bg-raised`, `bg-surface`,
+   `rounded-lg`), żeby nie utrzymywać drugiej wersji każdego ekranu.
+
+   Panel administracyjny zostaje nietknięty: Adam napisał wprost, że „panel
+   admina jest ok, jest czytelny" — dlatego reguły wykluczają `.eter-admin`.
+   ============================================================ */
+
+[data-skin='colorful'] body {
+  /* Tło jak z grafik: granatowa głębia z poświatą, nie płaska czerń. */
+  background:
+    radial-gradient(circle at 20% 20%, rgb(var(--eter-accent-rgb) / 0.08), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgb(255 95 210 / 0.07), transparent 45%),
+    var(--eter-bg);
+}
+
+/* Karty, ścianki i panele stają się świecącymi kaflami. */
+[data-skin='colorful'] :not(.eter-admin) > .bg-raised,
+[data-skin='colorful'] :not(.eter-admin) > * > .bg-raised,
+[data-skin='colorful'] .bg-surface:not(.eter-admin *) {
+  /* Kwadratowy kafel zamiast miękkiego panelu — jak klocki z grafik. */
+  border-radius: 0.35rem;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 0 14px -4px rgb(var(--eter-accent-rgb) / 0.35);
+}
+
+/*
+ * Karta gracza: mocna poświata w kolorze swojej rodziny.
+ *
+ * Kolor niesie zasadę gry (karta pasuje do ścianki tylko przy zgodnej
+ * rodzinie), więc w tym wyglądzie ma świecić, a nie tylko obrysowywać —
+ * dokładnie jak kafle na grafikach Adama.
+ */
+[data-skin='colorful'] .eter-tile {
+  border-radius: 0.35rem;
+  box-shadow:
+    inset 0 0 12px -6px currentColor,
+    0 0 16px -6px currentColor;
+  transition: box-shadow var(--eter-normal) var(--eter-ease);
+}
+
+[data-skin='colorful'] .eter-tile:hover {
+  box-shadow:
+    inset 0 0 14px -4px currentColor,
+    0 0 22px -4px currentColor;
+}
+
+/* Podpisy i etykiety: rozstrzelone wersaliki, jak na panelach z grafik. */
+[data-skin='colorful'] .eter-label {
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 10px rgb(var(--eter-accent-rgb) / 0.5);
+}
+
+/*
+ * Nagłówki świecą jak podpisy na ekranie z pierwszej grafiki.
+ * Tylko w grze — w panelu administracyjnym poświata utrudniałaby czytanie
+ * długich list, a Adam prosił, żeby panelu nie ruszać.
+ */
+[data-skin='colorful'] .font-display:not(.eter-admin *) {
+  text-shadow: 0 0 12px rgb(var(--eter-accent-rgb) / 0.35);
+}
