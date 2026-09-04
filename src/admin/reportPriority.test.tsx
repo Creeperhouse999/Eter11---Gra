@@ -102,11 +102,16 @@ describe('pilność zgłoszeń', () => {
     ];
     renderPanel();
 
-    const pilne = screen.getByText('Pilne').closest('span')!;
-    expect(within(pilne).getByText('Krytyczny')).toBeTruthy();
+    // Pilność stoi w szarej linii pod tytułem (patrz „bałagan" na liście —
+    // ramki przy tytule zniknęły), więc szukamy jej we wspólnym wierszu,
+    // a nie wewnątrz samego tytułu.
+    const wierszPilnego = screen.getByText('Pilne').closest('button')!;
+    expect(within(wierszPilnego).getByText('krytyczny')).toBeTruthy();
 
-    const zwykle = screen.getByText('Zwykłe').closest('span')!;
-    expect(within(zwykle).queryByText('Zwykły')).toBeNull();
+    // Przy zwykłym pilności nie pokazujemy wcale: to większość zgłoszeń,
+    // więc znacznik przy każdym byłby szumem, nie informacją.
+    const wierszZwyklego = screen.getByText('Zwykłe').closest('button')!;
+    expect(within(wierszZwyklego).queryByText(/zwykły/i)).toBeNull();
   });
 
   it('nowe zgłoszenie niesie wybraną pilność', async () => {

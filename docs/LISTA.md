@@ -14,7 +14,7 @@ w kolejce.
       poprzednie. „Sprawdzam" może być na wielu (to czeka na Adama, nie na mnie).
 - [x] **Postęp prac tylko dla mnie** — `canSetProgress` (rola `programmer`).
       Funkcja i test są, NIEPODPIĘTE do panelu.
-- [ ] **Wiersz zgłoszenia na liście — bałagan.** Trzy plakietki przy tytule
+- [x] **Wiersz zgłoszenia na liście — bałagan.** Trzy plakietki przy tytule
       naraz. Ustalone: sam tytuł, pod nim jedna szara linia
       (rodzaj · pilność · data · autor · wpisy), stan jako kolorowa kropka.
 - [ ] **Filtry w zgłoszeniach.**
