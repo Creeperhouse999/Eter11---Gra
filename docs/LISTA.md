@@ -18,7 +18,7 @@ w kolejce.
       naraz. Ustalone: sam tytuł, pod nim jedna szara linia
       (rodzaj · pilność · data · autor · wpisy), stan jako kolorowa kropka.
 - [x] **Filtry w zgłoszeniach.**
-- [ ] **Typy i pilność w dyskusjach** — to samo, co w zgłoszeniach. Prosił
+- [x] **Typy i pilność w dyskusjach** — to samo, co w zgłoszeniach. Prosił
       1 września, obiecałem „robię teraz", nie zrobiłem. Typ „Pytanie"
       w zgłoszeniach: ZROBIONE. Zostają dyskusje.
 - [ ] **Presety nazw** — Normalne / Dziecięce / Super dziecięce jako presety.
@@ -42,6 +42,15 @@ w kolejce.
 - [ ] **Epilog po zakończeniu gry** — 5–10 zdań narracji, osobno dla wygranej
       i przegranej. Obiecane w dyskusji.
 - [ ] **Edycja karty z zakładki „Kody kart".**
+
+## Czeka na Alana (ja nie mogę tego zrobić)
+
+- [ ] **`CLAUDE_CODE_TOKEN` w sekretach repo jest nieważny.** Workflow
+      „Budzenie agenta przy nowym zgłoszeniu" pada trzy razy z rzędu na
+      `401 authentication_error`. Skrypt działa (widzi 12 zgłoszeń, 9 nowych),
+      przewraca się dopiero na uwierzytelnieniu. Efekt: nowe zgłoszenie NIE
+      budzi mnie automatycznie. Naprawa: GitHub → Settings → Secrets and
+      variables → Actions → `CLAUDE_CODE_TOKEN` → wklej świeży token.
 
 ## Zasady, o których Alan przypominał
 
