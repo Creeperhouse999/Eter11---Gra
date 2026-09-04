@@ -59,7 +59,13 @@ vi.mock('../firebase/discussions', async (importOriginal) => {
 });
 
 const addReport = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
-vi.mock('../firebase/reports', () => ({ addReport: (input: unknown) => addReport(input) }));
+vi.mock('../firebase/reports', async (importOriginal) => {
+  // Pełna atrapa modułu ucinała `PRIORITY_LABELS` — panel od "rodzaj i pilność
+  // wątku" go importuje, więc bez prawdziwego eksportu render wywalał się na
+  // starcie (TypeError zamiast wyniku testu).
+  const actual = await importOriginal<typeof import('../firebase/reports')>();
+  return { ...actual, addReport: (input: unknown) => addReport(input) };
+});
 
 const { DiscussionsPanel } = await import('./DiscussionsPanel');
 
