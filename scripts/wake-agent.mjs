@@ -22,7 +22,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const PROJECT = 'savetheworld-eter11';
-const TRIGGER = process.env.CLAUDE_TRIGGER_ID ?? 'trig_01R4QsKgPHJF7vP2akZkGGGb';
+const TRIGGER = process.env.CLAUDE_TRIGGER_ID ?? 'trig_0116hs38Lz5rxNhGwrz2oGQc';
 const STATE_FILE = process.env.STATE_FILE ?? 'agent-state.json';
 
 // Publiczny klucz web Firebase — ten sam, co w `mark-report.mjs` i w kodzie
