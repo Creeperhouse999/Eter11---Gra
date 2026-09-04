@@ -19,7 +19,7 @@ const psychological: Card[] = [
   // Czerwona — Siła wewnętrzna
   { id: 'psy-r-odpornosc', name: 'Odporność psychiczna', category: 'psychological', family: 'red', icon: 'shield', description: 'Pozwala nie poddać się, gdy coś idzie źle.' },
   { id: 'psy-r-asertywnosc', name: 'Asertywność', category: 'psychological', family: 'red', icon: 'hand', description: 'Umie powiedzieć „nie" i obronić swoje zdanie bez krzywdzenia innych.' },
-  { id: 'psy-r-wytrwalosc', name: 'Upór', category: 'psychological', family: 'red', icon: 'mountain', description: 'Wraca do sprawy, choć raz już się nie udało.', draft: true },
+  { id: 'psy-r-wytrwalosc', name: 'Konsekwencja', category: 'psychological', family: 'red', icon: 'mountain', description: 'Wraca do sprawy, choć raz już się nie udało.' },
 
   // Niebieska — Spokój i uważność
   { id: 'psy-b-emocje', name: 'Regulacja emocji', category: 'psychological', family: 'blue', icon: 'balance', description: 'Pomaga zapanować nad złością i strachem, zanim zrobią szkodę.' },
