@@ -82,13 +82,36 @@ async function otwarteZgloszenia() {
     });
 }
 
-// Czy to pierwszy przebieg, sprawdzamy PRZED zapisem stanu — po zapisie plik
-// już istnieje i pytanie o niego zawsze odpowiadałoby „nie pierwszy".
-const pierwszyPrzebieg = !existsSync(STATE_FILE);
+/**
+ * Poprzedni stan, o ile jest się czego uchwycić.
+ *
+ * Plik bywa PUSTY, nie tylko nieobecny: workflow tworzy go przekierowaniem
+ * (`git show … > agent-state.json`), a gdy gałęzi stanu jeszcze nie ma,
+ * zostaje zerobajtowy plik. Samo `existsSync` uznawało to za „mam stan",
+ * po czym `JSON.parse('')` wywracało cały przebieg. Uszkodzoną treść
+ * traktujemy tak samo — lepiej zacząć od zera niż paść.
+ */
+function wczytajStan() {
+  if (!existsSync(STATE_FILE)) return null;
+  const tresc = readFileSync(STATE_FILE, 'utf8').trim();
+  if (!tresc) return null;
+  try {
+    const dane = JSON.parse(tresc);
+    return {
+      reports: Array.isArray(dane.reports) ? dane.reports : [],
+      discussions: Array.isArray(dane.discussions) ? dane.discussions : [],
+    };
+  } catch {
+    console.warn('Zapisany stan jest uszkodzony — zaczynam od nowa.');
+    return null;
+  }
+}
 
-const poprzedni = pierwszyPrzebieg
-  ? { reports: [], discussions: [] }
-  : JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+const zapisany = wczytajStan();
+// Brak stanu = pierwszy przebieg. Sprawdzamy PRZED zapisem: po nim plik już
+// istnieje i pytanie o niego zawsze odpowiadałoby „nie pierwszy".
+const pierwszyPrzebieg = zapisany === null;
+const poprzedni = zapisany ?? { reports: [], discussions: [] };
 
 const teraz = {
   reports: await otwarteZgloszenia(),
