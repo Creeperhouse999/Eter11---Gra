@@ -855,7 +855,14 @@ export function AdminApp() {
           />
         )}
         {tab === 'cardCodes' && (
-          <CardCodes cards={content.cards} onChange={(cards) => update({ cards })} />
+          <CardCodes
+            cards={content.cards}
+            onChange={(cards) => update({ cards })}
+            problems={content.problems}
+            onProblemsChange={(problems) => update({ problems })}
+            characters={content.characters}
+            onCharactersChange={(characters) => update({ characters })}
+          />
         )}
         {tab === 'manual' && <PrintManual content={content} />}
         {tab === 'boredom' && (

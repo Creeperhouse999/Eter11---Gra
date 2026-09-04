@@ -31,15 +31,34 @@ const renderTabeli = (onChange = vi.fn()) =>
     </ToastProvider>,
   );
 
+/** Tabela ze wszystkim: karty, problemy i postacie. */
+const renderPelnej = (props: {
+  onChange?: (cards: typeof BUILTIN_CONTENT.cards) => void;
+  onProblemsChange?: (problems: typeof BUILTIN_CONTENT.problems) => void;
+  onCharactersChange?: (characters: typeof BUILTIN_CONTENT.characters) => void;
+} = {}) =>
+  render(
+    <ToastProvider>
+      <CardCodes
+        cards={BUILTIN_CONTENT.cards}
+        onChange={props.onChange ?? vi.fn()}
+        problems={BUILTIN_CONTENT.problems}
+        onProblemsChange={props.onProblemsChange ?? vi.fn()}
+        characters={BUILTIN_CONTENT.characters}
+        onCharactersChange={props.onCharactersChange ?? vi.fn()}
+      />
+    </ToastProvider>,
+  );
+
 describe('tabela kodów kart', () => {
   it('pokazuje wszystkie karty, także robocze', () => {
     // Karty robocze nie trafiają do gry, ale grafik i tak musi znać ich kod —
     // pracuje nad nimi, zanim zostaną zatwierdzone.
     renderTabeli();
 
-    const wiersze = screen.getAllByRole('row');
-    // Wiersze danych plus nagłówek.
-    expect(wiersze.length).toBe(BUILTIN_CONTENT.cards.length + 1);
+    // Każda karta ma swój wiersz; doszły do tego nagłówek tabeli i nagłówki
+    // grup (kompetencje, specjalne), więc liczymy same pola nazw.
+    expect(screen.getAllByLabelText(/^Nazwa:/)).toHaveLength(BUILTIN_CONTENT.cards.length);
   });
 
   it('każdy wiersz pokazuje kod karty — po to jest ta tabela', () => {
@@ -173,5 +192,75 @@ describe('edycja w tabeli kodów', () => {
     // Podpis kolumny mówi, której karty dotyczy — przy stu wierszach bez tego
     // nie wiadomo, do czego wgrywa się plik.
     expect(within(wiersz).getByText(new RegExp(karta.name))).toBeTruthy();
+  });
+});
+
+describe('tabela obejmuje wszystko, z czego składa się gra', () => {
+  it('pokazuje problemy z ich kodami', () => {
+    // Adam: „dodaj do kody kart również karty problemów (rodzina »Problemy
+    // świata«)". Grafik potrzebuje ich kodów tak samo jak kodów kart.
+    renderPelnej();
+
+    const problem = BUILTIN_CONTENT.problems[0];
+    expect(screen.getByText(problem.id)).toBeTruthy();
+  });
+
+  it('pokazuje postacie z ich kodami', () => {
+    renderPelnej();
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    expect(screen.getByText(postac.id)).toBeTruthy();
+  });
+
+  it('grupuje wpisy, żeby dało się je odróżnić', () => {
+    // Bez podziału problem, postać i karta wyglądają w tabeli tak samo.
+    renderPelnej();
+
+    // Nazwa grupy pojawia się też w kolumnach wierszy, więc sprawdzamy
+    // konkretnie nagłówki grup (komórki nagłówkowe z licznikiem).
+    const naglowki = screen
+      .getAllByRole('columnheader')
+      .map((el) => el.textContent ?? '');
+    for (const grupa of ['Problemy świata', 'Karty postaci', 'Karty specjalne']) {
+      expect(naglowki.some((t) => t.includes(grupa)), `brak grupy ${grupa}`).toBe(true);
+    }
+  });
+
+  it('ETER11 i Czarny Łabędź stoją w grupie kart specjalnych', () => {
+    // Adam: „karty eter11 oraz cz. łabędź — dodaj do rodziny »karty
+    // specjalne«". Nie mają rodziny-koloru, więc bez tego wisiały z kreską.
+    renderPelnej();
+
+    const eter = BUILTIN_CONTENT.cards.find((c) => c.category === 'eter11')!;
+    const wiersz = screen.getByText(eter.id).closest('tr')!;
+    expect(within(wiersz).getByText(/specjaln/i)).toBeTruthy();
+  });
+
+  it('zmiana nazwy problemu wraca do panelu', () => {
+    const onProblems = vi.fn();
+    renderPelnej({ onProblemsChange: onProblems });
+
+    const problem = BUILTIN_CONTENT.problems[0];
+    const wiersz = screen.getByText(problem.id).closest('tr')!;
+    fireEvent.change(within(wiersz).getByDisplayValue(problem.name), {
+      target: { value: 'Nowy problem' },
+    });
+
+    expect(onProblems).toHaveBeenCalled();
+  });
+});
+
+describe('licznik pozycji', () => {
+  it('liczy wszystkie wpisy, nie same karty', () => {
+    // Bez tego licznik porównywał z długością listy kart i przy problemach
+    // i postaciach w tabeli pokazywał bzdurę w rodzaju „9 z 5 kart".
+    renderPelnej();
+
+    const razem =
+      BUILTIN_CONTENT.cards.length +
+      BUILTIN_CONTENT.problems.length +
+      BUILTIN_CONTENT.characters.length;
+
+    expect(screen.getByText(new RegExp(`${razem} pozycji`))).toBeTruthy();
   });
 });
