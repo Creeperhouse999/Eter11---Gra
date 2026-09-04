@@ -629,7 +629,7 @@ export function AdminApp() {
         </div>
 
         <nav
-          className="mx-auto hidden max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:flex"
+          className="mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-2 sm:flex"
           aria-label="Sekcje panelu"
         >
           {visibleTabs.map((item) => (
@@ -639,7 +639,7 @@ export function AdminApp() {
               onClick={() => setTab(item.key)}
               aria-current={tab === item.key ? 'page' : undefined}
               className={[
-                'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition',
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition',
                 tab === item.key
                   ? 'bg-accent font-bold text-bg'
                   : 'border border-edge hover:border-ink-dim',
