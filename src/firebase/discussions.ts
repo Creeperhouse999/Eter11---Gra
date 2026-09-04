@@ -79,10 +79,19 @@ export async function addDiscussion(input: {
   const author = input.author.trim();
   if (!author) return { ok: false, error: 'Podaj swoje imię — inaczej nikt nie wie, kto pisze.' };
 
+  const description = input.description.trim();
+  // Wątek bez treści jest gorszy niż brak wątku: na liście widać temat, ktoś
+  // go otwiera i nie zastaje nic — nie wie, o co chodziło ani czy to pomyłka.
+  // Wyjątek to wątek z odrzuconego zgłoszenia: opisu nie ma, ale treść niosą
+  // przeniesione wypowiedzi, więc pusty nie jest.
+  if (!description && !input.messages?.length) {
+    return { ok: false, error: 'Napisz, o czym ma być rozmowa — sam temat nikomu nic nie mówi.' };
+  }
+
   try {
     const entry = await addDoc(collection(db, COLLECTION), {
       title,
-      description: input.description.trim(),
+      description,
       author,
       createdAt: new Date().toISOString(),
       messages: input.messages ?? [],
