@@ -45,6 +45,7 @@ import { CategoryEditor } from './CategoryEditor';
 import { IconEditor } from './IconEditor';
 import { useContentStyleSync } from '../ui/components/categoryStyles';
 import { useTabRoute } from './useTabRoute';
+import { parseAdminLink } from './parseAdminLink';
 import { ThemeEditor } from './ThemeEditor';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAdminAuth } from './useAdminAuth';
@@ -187,15 +188,16 @@ export function AdminApp() {
    * zmianie kształtu adresów.
    */
   const goToLink = (link: string) => {
-    const [path, params] = link.split('?');
-    const slug = path.replace(/^\/admin\/?/, '').split('/');
-    if (isTab(slug[0])) setTab(slug[0]);
-    const search = new URLSearchParams(params ?? '');
-    if (slug[1] && isReportStatus(slug[1])) route.setParam('status', slug[1]);
-    route.setParam('open', search.get('open'));
-    // Filtr niesie skok do karty po nazwie — bez niego link ze Strefy Nudy
-    // otwierał pełną listę bez wskazania, której karty szukać.
-    route.setParam('filter', search.get('filter'));
+    const cel = parseAdminLink(link);
+    if (!isTab(cel.tab)) return;
+
+    // JEDNO przejście, nie `setTab` plus `setParam` osobno. Zmiana zakładki
+    // czyści parametry adresu, więc `open` ustawiany zaraz po niej ginął —
+    // powiadomienie o odpowiedzi w dyskusji otwierało samą listę wątków
+    // zamiast tego, o którym mówiło. `navigate` odkłada parametry i stosuje
+    // je PO przełączeniu, właśnie na taki wypadek.
+    const pod = cel.sub && isReportStatus(cel.sub) ? cel.sub : null;
+    route.navigate(cel.tab, pod, cel.params);
   };
 
   const tabAllowed = visibleTabs.some((item) => item.key === tab);
