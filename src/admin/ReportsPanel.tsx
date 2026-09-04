@@ -14,7 +14,6 @@ import {
   type ReportProgress,
   setReportProgress,
   PRIORITY_LABELS,
-  PRIORITY_ORDER,
   PROGRESS_LABELS,
   PROGRESS_ORDER,
   pokazacPostep,
@@ -33,6 +32,12 @@ import {
 } from '../firebase/roles';
 import { podpisNotatki } from '../firebase/noteAuthor';
 import { pozycjaWKolejce, doZdjeciaZRoboty } from '../firebase/queuePosition';
+import {
+  przesiej,
+  filtrAktywny,
+  PUSTY_FILTR,
+  type ReportFilter,
+} from '../firebase/reportFilter';
 import { notify, uidsForAuthor } from '../firebase/notifications';
 import { addDiscussion } from '../firebase/discussions';
 import { Alert } from '../ui/controls/Alert';
@@ -389,6 +394,9 @@ export function ReportsPanel({
   // przez arrayUnion z innym `at` — bez dedupu powstawały near-duplikaty.
   const statusInFlight = useRef(false);
 
+  /** Sito listy — rodzaj, pilność, szukanie. Alan poprosił o filtry. */
+  const [filtr, setFiltr] = useState<ReportFilter>(PUSTY_FILTR);
+
   /**
    * Ustawia postęp prac — bez ruszania statusu i bez powiadomień.
    *
@@ -594,12 +602,9 @@ export function ReportsPanel({
    * pilności (sprzed jej wprowadzenia) czytamy jako „zwykłe", żeby nie wypadły
    * ani na samą górę, ani na sam dół.
    */
-  const visible = reports
-    .filter((r) => r.status === tab)
-    .sort((a, b) => {
-      const roznica = PRIORITY_ORDER[a.priority ?? 'medium'] - PRIORITY_ORDER[b.priority ?? 'medium'];
-      return roznica !== 0 ? roznica : b.createdAt.localeCompare(a.createdAt);
-    });
+  const visible = przesiej(reports, tab, filtr);
+  /** Ile pozycji w tej zakładce ukryły filtry — inaczej pusta lista myli. */
+  const ukryte = reports.filter((r) => r.status === tab).length - visible.length;
   // Otwarte zgłoszenie bierzemy z listy po id, nie z kopii — status
   // i komentarze zmieniają się w tym samym oknie, więc muszą się w nim
   // odświeżać na miejscu.
@@ -1198,6 +1203,63 @@ export function ReportsPanel({
 
       <p className="mt-2 text-xs text-ink-dim">{STATUS_TABS.find((s) => s.id === tab)?.hint}</p>
 
+      {/* Filtry. Alan poprosił o nie, gdy zgłoszeń zrobiło się ponad
+          osiemdziesiąt — sama zakładka statusu nie wystarcza, gdy w jednej
+          leży siedemdziesiąt pozycji, a szuka się jednej sprawy. Trzy sita,
+          bo o zgłoszeniu myśli się na trzy sposoby: co to było, jak pilne,
+          jakie słowo w nim padło. */}
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <Select
+          label="Pokaż rodzaj"
+          value={filtr.kind ?? 'wszystko'}
+          options={[
+            { value: 'wszystko', label: 'Każdy rodzaj' },
+            ...KIND_OPTIONS.map((o) => ({ ...o, value: o.value as string })),
+          ]}
+          onChange={(value) =>
+            setFiltr((prev) => ({
+              ...prev,
+              kind: value === 'wszystko' ? null : (value as ReportKind),
+            }))
+          }
+        />
+        <Select
+          label="Pokaż pilność"
+          value={filtr.priority ?? 'wszystko'}
+          options={[
+            { value: 'wszystko', label: 'Każda pilność' },
+            ...PRIORITY_OPTIONS.map((o) => ({ ...o, value: o.value as string })),
+          ]}
+          onChange={(value) =>
+            setFiltr((prev) => ({
+              ...prev,
+              priority: value === 'wszystko' ? null : (value as ReportPriority),
+            }))
+          }
+        />
+        <div className="min-w-[12rem] flex-1">
+          <TextField
+            label="Szukaj"
+            value={filtr.szukaj}
+            onChange={(e) => setFiltr((prev) => ({ ...prev, szukaj: e.target.value }))}
+            placeholder="Słowo z tytułu albo opisu"
+          />
+        </div>
+        {filtrAktywny(filtr) && (
+          <Button size="sm" variant="ghost" icon="close" onClick={() => setFiltr(PUSTY_FILTR)}>
+            Wyczyść
+          </Button>
+        )}
+      </div>
+
+      {/* Bez tego zdania odsiana lista wygląda jak pusta zakładka — a to dwie
+          różne rzeczy: „nic tu nie ma" i „schowałeś to filtrem". */}
+      {ukryte > 0 && (
+        <p className="mt-2 font-mono text-[10px] text-ink-dim">
+          Filtry ukrywają {counted(ukryte, 'zgłoszenie', 'zgłoszenia', 'zgłoszeń')}.
+        </p>
+      )}
+
       {error && (
         <div className="mt-3">
           <Alert tone="danger">{error}</Alert>
@@ -1209,7 +1271,11 @@ export function ReportsPanel({
       ) : /* Przy błędzie nie mówimy „brak zgłoszeń" — to sugerowałoby pustą
              bazę, a lista po prostu się nie wczytała. */
       error ? null : visible.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-dim">{EMPTY_MESSAGE[tab]}</p>
+        <p className="mt-3 text-sm text-ink-dim">
+          {filtrAktywny(filtr)
+            ? 'Nic nie pasuje do filtrów. Wyczyść je, żeby zobaczyć całą zakładkę.'
+            : EMPTY_MESSAGE[tab]}
+        </p>
       ) : (
         <ul className="eter-stagger mt-3 space-y-2">
           {visible.map((report) => (
