@@ -13,6 +13,7 @@ import { signInAnonymously } from 'firebase/auth';
 import { auth, rtdb } from '../firebase/client';
 import type { Action, GameState } from '../engine/types';
 import type { CardOffer, Reaction, Room, RoomPlayer } from './types';
+import { makeCode, normalizeCode } from './roomCode';
 import { hydrateRoom, hydrateState } from './hydrate';
 import { reduce } from '../engine/reducer';
 
@@ -31,17 +32,6 @@ const ROOMS = 'rooms';
  *
  * Bez 0/O/1/I/L — mylą się dziecku przy przepisywaniu z ekranu na ekran.
  */
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 4;
-
-/** Losowy kod pokoju. Krótki, bo wpisuje go dziecko. */
-function makeCode(random: () => number): string {
-  let code = '';
-  for (let i = 0; i < CODE_LENGTH; i += 1) {
-    code += CODE_CHARS[Math.floor(random() * CODE_CHARS.length)];
-  }
-  return code;
-}
 
 /** Anonimowe logowanie — gracz dostaje ukryty uid, bez konta. */
 export async function ensureSession(): Promise<string> {
@@ -114,7 +104,9 @@ export async function joinRoom(input: {
   characterId: string;
 }): Promise<{ ok: boolean; uid?: string; error?: string }> {
   const uid = await ensureSession();
-  const code = input.code.trim().toUpperCase();
+  // Kod przepisywany z drugiego ekranu bywa z pomyłką (6 zamiast G) —
+  // `normalizeCode` sprowadza go do postaci, jaka mogła trafić do bazy.
+  const code = normalizeCode(input.code);
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
 
   // Odczyt PRZED transakcją — dołączanie jest pierwszym dotykiem tej ścieżki
