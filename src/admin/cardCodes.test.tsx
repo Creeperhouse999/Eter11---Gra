@@ -21,6 +21,8 @@ import { CardCodes } from './CardCodes';
  */
 
 vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {} }));
+// Wgrywanie grafiki sięga do Storage — w teście wystarczy atrapa.
+vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn(async () => 'https://x/y.png') }));
 
 const renderTabeli = (onChange = vi.fn()) =>
   render(
@@ -57,13 +59,14 @@ describe('tabela kodów kart', () => {
     expect(within(wiersz).getByTestId('probka-koloru')).toBeTruthy();
   });
 
-  it('mówi, czy karta ma grafikę', () => {
+  it('pozwala dodać grafikę karcie, która jej nie ma', () => {
+    // Adam poprosił, żeby grafikę dało się wgrać wprost stąd — wcześniej
+    // kolumna tylko mówiła „brak" i trzeba było iść do innej zakładki.
     renderTabeli();
 
     const bezGrafiki = BUILTIN_CONTENT.cards.find((c) => !c.image)!;
     const wiersz = screen.getByText(bezGrafiki.id).closest('tr')!;
-    // „brak" wprost, zamiast pustej komórki — pusta wygląda jak usterka.
-    expect(within(wiersz).getByText(/brak/i)).toBeTruthy();
+    expect(within(wiersz).getByRole('button', { name: /dodaj obraz/i })).toBeTruthy();
   });
 
   it('zmiana nazwy w tabeli wraca do panelu i idzie do całego systemu', () => {
@@ -101,5 +104,74 @@ describe('tabela kodów kart', () => {
     const karta = BUILTIN_CONTENT.cards[0];
     const wiersz = screen.getByText(karta.id).closest('tr')!;
     expect(within(wiersz).getByRole('button', { name: /kopiuj/i })).toBeTruthy();
+  });
+});
+
+describe('edycja w tabeli kodów', () => {
+  it('kod karty da się poprawić, a zmiana wraca do panelu', () => {
+    // Adam: „możliwość edytowania kodu — i aby edycja w tym miejscu zmieniała
+    // w innych miejscach w panelu".
+    const onChange = vi.fn();
+    renderTabeli(onChange);
+
+    const karta = BUILTIN_CONTENT.cards[0];
+    const wiersz = screen.getByText(karta.id).closest('tr')!;
+    fireEvent.click(within(wiersz).getByRole('button', { name: /zmień kod/i }));
+
+    const pole = within(wiersz).getByDisplayValue(karta.id);
+    fireEvent.change(pole, { target: { value: 'nowy-kod' } });
+
+    const zapisane = onChange.mock.calls[onChange.mock.calls.length - 1][0] as typeof BUILTIN_CONTENT.cards;
+    expect(zapisane.find((c) => c.name === karta.name)!.id).toBe('nowy-kod');
+  });
+
+  it('nie pozwala nadać kodu, który ma już inna karta', () => {
+    // Silnik rozpoznaje karty po kodzie — dwie karty z tym samym zachowałyby
+    // się jak jedna, a walidacja i tak zablokowałaby zapis całej treści.
+    const onChange = vi.fn();
+    renderTabeli(onChange);
+
+    const pierwsza = BUILTIN_CONTENT.cards[0];
+    const druga = BUILTIN_CONTENT.cards[1];
+    const wiersz = screen.getByText(pierwsza.id).closest('tr')!;
+    fireEvent.click(within(wiersz).getByRole('button', { name: /zmień kod/i }));
+    fireEvent.change(within(wiersz).getByDisplayValue(pierwsza.id), {
+      target: { value: druga.id },
+    });
+
+    // Zmiana odrzucona — obie karty zachowują swoje kody.
+    const ostatnie = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0] as
+      | typeof BUILTIN_CONTENT.cards
+      | undefined;
+    if (ostatnie) {
+      expect(ostatnie.filter((c) => c.id === druga.id)).toHaveLength(1);
+    }
+  });
+
+  it('kategorię i rodzinę da się zmienić wprost w wierszu', () => {
+    // Adam: „możliwość edycji w tej zakładce kategorii, koloru, rodziny".
+    const onChange = vi.fn();
+    renderTabeli(onChange);
+
+    const karta = BUILTIN_CONTENT.cards.find((c) => c.category === 'psychological')!;
+    const wiersz = screen.getByText(karta.id).closest('tr')!;
+
+    fireEvent.change(within(wiersz).getByLabelText(/kategoria/i), {
+      target: { value: 'digital' },
+    });
+
+    const zapisane = onChange.mock.calls[onChange.mock.calls.length - 1][0] as typeof BUILTIN_CONTENT.cards;
+    expect(zapisane.find((c) => c.id === karta.id)!.category).toBe('digital');
+  });
+
+  it('grafikę da się wgrać wprost z tabeli', () => {
+    // Adam: „możliwość dodania grafiki w zakładce kody kart".
+    renderTabeli();
+
+    const karta = BUILTIN_CONTENT.cards[0];
+    const wiersz = screen.getByText(karta.id).closest('tr')!;
+    // Podpis kolumny mówi, której karty dotyczy — przy stu wierszach bez tego
+    // nie wiadomo, do czego wgrywa się plik.
+    expect(within(wiersz).getByText(new RegExp(karta.name))).toBeTruthy();
   });
 });

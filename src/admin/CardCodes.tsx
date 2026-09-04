@@ -4,12 +4,26 @@ import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
 import { useToast } from '../ui/controls/Toast';
-import { Icon, type IconName } from '../ui/icons/Icon';
+import { ImageUpload } from './ImageUpload';
+import { CATEGORY_ORDER } from '../data/categories';
+import type { CardCategory, FamilyId } from '../engine/types';
 
 interface CardCodesProps {
   cards: Card[];
   onChange: (cards: Card[]) => void;
 }
+
+/**
+ * Kategorie do wyboru w tabeli.
+ *
+ * `CATEGORY_ORDER` to ścianki problemu; karty mają jeszcze dwie kategorie
+ * specjalne (ETER11, Czarny Łabędź), które też trzeba dać się ustawić —
+ * Adam prosił, żeby dało się je przypisać właśnie stąd.
+ */
+const KATEGORIE: CardCategory[] = [...CATEGORY_ORDER, 'eter11', 'blackswan'];
+
+/** Rodziny (kolory). Pusty wybór znaczy „karta specjalna, bez rodziny". */
+const RODZINY: FamilyId[] = ['red', 'blue', 'yellow', 'green'];
 
 /**
  * Tabela kodów kart — przegląd całej talii w jednym miejscu.
@@ -29,6 +43,10 @@ interface CardCodesProps {
 export function CardCodes({ cards, onChange }: CardCodesProps) {
   const toast = useToast();
   const [szukaj, setSzukaj] = useState('');
+  // Kod zmienia się rzadko, a pomyłka boli (grafiki są przypięte właśnie po
+  // nim), więc pole odsłaniamy dopiero po kliknięciu — zamiast wystawiać je
+  // obok nazwy, gdzie łatwo wpisać coś przez przypadek.
+  const [edytowanyKod, setEdytowanyKod] = useState<string | null>(null);
 
   const widoczne = useMemo(() => {
     const fraza = szukaj.trim().toLowerCase();
@@ -43,6 +61,26 @@ export function CardCodes({ cards, onChange }: CardCodesProps) {
 
   const zmien = (id: string, patch: Partial<Card>) => {
     onChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  };
+
+  /**
+   * Zmiana kodu karty.
+   *
+   * Kod to identyfikator, po którym silnik rozpoznaje kartę, a biblioteka
+   * grafik dopasowuje plik. Dwie karty z tym samym kodem zachowałyby się
+   * w grze jak jedna, a walidacja treści i tak zablokowałaby zapis całej gry —
+   * więc duplikat odrzucamy od razu, z wyjaśnieniem, zamiast wpuszczać go
+   * i wywalać zapis kilka kliknięć później.
+   */
+  const zmienKod = (stary: string, nowy: string) => {
+    const kod = nowy.trim();
+    if (!kod) return;
+    if (kod !== stary && cards.some((c) => c.id === kod)) {
+      toast(`Kod „${kod}" ma już inna karta — kody muszą być różne.`, 'danger');
+      return;
+    }
+    setEdytowanyKod(kod);
+    zmien(stary, { id: kod });
   };
 
   const kopiuj = async (kod: string) => {
@@ -114,22 +152,77 @@ export function CardCodes({ cards, onChange }: CardCodesProps) {
                 </td>
 
                 <td className="p-1.5">
-                  <span className="flex items-center gap-1">
-                    <code className="font-mono text-xs">{card.id}</code>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon="clipboard"
-                      aria-label={`Kopiuj kod ${card.id}`}
-                      onClick={() => void kopiuj(card.id)}
+                  {edytowanyKod === card.id ? (
+                    <input
+                      className="w-40 rounded border border-accent bg-surface px-2 py-1 font-mono text-xs"
+                      value={card.id}
+                      autoFocus
+                      aria-label={`Kod karty ${card.name}`}
+                      onChange={(e) => zmienKod(card.id, e.target.value)}
+                      onBlur={() => setEdytowanyKod(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur();
+                      }}
                     />
-                  </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <code className="font-mono text-xs">{card.id}</code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon="clipboard"
+                        aria-label={`Kopiuj kod ${card.id}`}
+                        onClick={() => void kopiuj(card.id)}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon="pencil"
+                        aria-label={`Zmień kod ${card.id}`}
+                        onClick={() => setEdytowanyKod(card.id)}
+                      />
+                    </span>
+                  )}
                 </td>
 
-                <td className="p-1.5 text-xs">{categoryLabel(card.category)}</td>
+                <td className="p-1.5">
+                  <select
+                    className="rounded border border-edge bg-surface px-1.5 py-1 text-xs"
+                    value={card.category}
+                    aria-label={`Kategoria karty ${card.name}`}
+                    onChange={(e) =>
+                      zmien(card.id, { category: e.target.value as CardCategory })
+                    }
+                  >
+                    {KATEGORIE.map((k) => (
+                      <option key={k} value={k}>
+                        {categoryLabel(k)}
+                      </option>
+                    ))}
+                  </select>
+                </td>
 
-                <td className="p-1.5 text-xs">
-                  {card.family ? familyLabel(card.family, card.category) : '—'}
+                <td className="p-1.5">
+                  <select
+                    className="rounded border border-edge bg-surface px-1.5 py-1 text-xs"
+                    value={card.family ?? ''}
+                    aria-label={`Rodzina karty ${card.name}`}
+                    onChange={(e) =>
+                      zmien(card.id, {
+                        // Pusty wybór = karta bez rodziny (specjalna): pole
+                        // musi zniknąć, a nie zostać pustym napisem, bo silnik
+                        // sprawdza jego OBECNOŚĆ przy dopasowaniu do ścianki.
+                        family: (e.target.value || undefined) as FamilyId | undefined,
+                      })
+                    }
+                  >
+                    <option value="">— (specjalna)</option>
+                    {RODZINY.map((r) => (
+                      <option key={r} value={r}>
+                        {familyLabel(r, card.category)}
+                      </option>
+                    ))}
+                  </select>
                 </td>
 
                 <td className="p-1.5">
@@ -146,14 +239,14 @@ export function CardCodes({ cards, onChange }: CardCodesProps) {
                 </td>
 
                 <td className="p-1.5 text-xs">
-                  {card.image ? (
-                    <span className="flex items-center gap-1 text-success">
-                      <Icon name={'tick' as IconName} size={12} />
-                      jest
-                    </span>
-                  ) : (
-                    <span className="text-ink-dim">brak</span>
-                  )}
+                  <ImageUpload
+                    value={card.image ? [card.image] : []}
+                    onChange={(urls) => zmien(card.id, { image: urls[0] })}
+                    folder="cards"
+                    max={1}
+                    namePrefix={card.id}
+                    label={`Grafika karty ${card.name}`}
+                  />
                 </td>
               </tr>
             ))}
