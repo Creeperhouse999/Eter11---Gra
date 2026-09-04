@@ -102,11 +102,29 @@ export async function joinRoom(input: {
   code: string;
   name: string;
   characterId: string;
-}): Promise<{ ok: boolean; uid?: string; error?: string }> {
+}): Promise<{ ok: boolean; uid?: string; code?: string; error?: string }> {
   const uid = await ensureSession();
-  // Kod przepisywany z drugiego ekranu bywa z pomyłką (6 zamiast G) —
-  // `normalizeCode` sprowadza go do postaci, jaka mogła trafić do bazy.
-  const code = normalizeCode(input.code);
+
+  // Najpierw szukamy DOKŁADNIE tego, co gracz wpisał, a dopiero potem wersji
+  // po poprawieniu literówek. Kolejność ma znaczenie: w bazie leżą pokoje
+  // założone starszym zestawem znaków (`UA6E` z szóstką), a sama normalizacja
+  // zamieniłaby je na kod, którego nie ma — i dołączenie do istniejącego
+  // pokoju padałoby z „nie ma pokoju o takim kodzie".
+  const wpisany = input.code.trim().toUpperCase().replace(/\s+/g, '');
+  const poprawiony = normalizeCode(input.code);
+
+  let code = wpisany;
+  let existing = await get(ref(rtdb, `${ROOMS}/${wpisany}`));
+  if (!existing.exists() && poprawiony !== wpisany) {
+    // Wpisany kod nie istnieje — może to literówka przy przepisywaniu
+    // z drugiego ekranu (6 zamiast G, 5 zamiast S).
+    const drugaSzansa = await get(ref(rtdb, `${ROOMS}/${poprawiony}`));
+    if (drugaSzansa.exists()) {
+      code = poprawiony;
+      existing = drugaSzansa;
+    }
+  }
+
   const roomRef = ref(rtdb, `${ROOMS}/${code}`);
 
   // Odczyt PRZED transakcją — dołączanie jest pierwszym dotykiem tej ścieżki
@@ -120,7 +138,7 @@ export async function joinRoom(input: {
   // transakcja w ogóle zobaczyła prawdziwy stan (dokładnie zgłoszony bug:
   // kod poprawny, drugi gracz dostawał "Nie udało się dołączyć"). `get()`
   // ogrzewa cache, więc poniższa transakcja startuje już z realnymi danymi.
-  const existing = await get(roomRef);
+  // (Odczyt zrobiliśmy wyżej, przy wybieraniu kodu — cache jest już ciepły.)
   if (!existing.exists()) {
     return { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
   }
@@ -178,7 +196,12 @@ export async function joinRoom(input: {
 
   if (!result.ok) return result;
   // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
-  return { ok: true, uid };
+  //
+  // Zwracamy KOD, którego naprawdę użyliśmy. Ekran lobby odtwarzał go
+  // wcześniej sam (`code.trim().toUpperCase()`), więc po poprawieniu
+  // literówki wchodził do pokoju o nazwie sprzed poprawki — dołączenie
+  // się udawało, a zaraz potem gra mówiła „nie ma pokoju o takim kodzie".
+  return { ok: true, uid, code };
 }
 
 /**

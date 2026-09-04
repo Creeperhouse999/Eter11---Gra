@@ -61,7 +61,12 @@ export function LobbyScreen({ onEnter, onBack }: LobbyScreenProps) {
     try {
       const result = await joinRoom({ code, name, characterId: ALL_CHARACTERS[0].id });
       if (result.ok && result.uid) {
-        onEnter(code.trim().toUpperCase(), result.uid);
+        // Kod bierzemy z `joinRoom`, nie odtwarzamy go tutaj. Wpisany tekst
+        // przechodzi po drodze normalizację (poprawki literówek), więc własne
+        // `toUpperCase()` wchodziło do pokoju o innej nazwie niż ten, do
+        // którego dołączenie właśnie się udało — i gra natychmiast mówiła
+        // „nie ma pokoju o takim kodzie", choć gracz był już w środku.
+        onEnter(result.code ?? code.trim().toUpperCase(), result.uid);
       } else {
         toast(result.error ?? 'Nie udało się dołączyć.', 'danger');
         setBusy(false);
