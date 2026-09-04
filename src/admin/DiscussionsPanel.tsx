@@ -8,6 +8,8 @@ import {
   deleteDiscussion,
   setDiscussionClosed,
   watchDiscussions,
+  stanWatku,
+  STAN_WATKU_LABELS,
   type Discussion,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
@@ -734,7 +736,30 @@ export function DiscussionsPanel({
               <Icon name={discussion.closed ? 'tick' : 'message'} size={18} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-display font-bold">{discussion.title}</span>
+              <span className="block font-display font-bold">
+                {discussion.title}
+                {/* Stan wątku — Adam poprosił o te napisy wprost: po samej
+                    liście nie dało się poznać, gdzie ktoś czeka na odpowiedź,
+                    a gdzie jest coś nowego do przeczytania. */}
+                {(() => {
+                  const stan = stanWatku(discussion);
+                  if (!stan) return null;
+                  const czeka = stan === 'czeka-na-ai';
+                  return (
+                    <span
+                      className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
+                      style={{
+                        color: czeka ? 'var(--eter-accent-2)' : 'var(--eter-success)',
+                        border: `1px solid ${
+                          czeka ? 'var(--eter-accent-2)' : 'var(--eter-success)'
+                        }`,
+                      }}
+                    >
+                      {STAN_WATKU_LABELS[stan]}
+                    </span>
+                  );
+                })()}
+              </span>
               <span className="mt-0.5 block text-xs text-ink-dim">
                 {discussion.author} · {shortDate(discussion.createdAt)}
                 {discussion.messages.length > 0 &&

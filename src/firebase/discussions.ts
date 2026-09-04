@@ -324,3 +324,35 @@ export async function setDiscussionClosed(id: string, closed: boolean): Promise<
 export async function deleteDiscussion(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
 }
+
+/**
+ * Stan wątku na liście: czy ktoś czeka, czy jest coś nowego do przeczytania.
+ *
+ * Adam poprosił o te napisy wprost: „nowa odpowiedź", gdy ktoś odpowiedział,
+ * i „czeka na odp. od AI", gdy odpowiedzi jeszcze nie było. Po samej liście
+ * nie dało się tego poznać — trzeba było otwierać wątek po wątku.
+ *
+ * Rozstrzyga OSTATNIA wypowiedź: jeśli należy do człowieka, piłka jest po
+ * mojej stronie; jeśli do mnie — jest co przeczytać. Wątek ustalony (`closed`)
+ * nie ma stanu, bo nikt na nic nie czeka.
+ */
+export type StanWatku = 'czeka-na-ai' | 'nowa-odpowiedz';
+
+/** Podpis, którym podpisuję się w dyskusjach (patrz `scripts/discuss.mjs`). */
+const PODPIS_AI = 'Claude';
+
+export function stanWatku(discussion: Discussion): StanWatku | null {
+  if (discussion.closed) return null;
+
+  const ostatnia = discussion.messages?.[discussion.messages.length - 1];
+  // Wątek bez odpowiedzi: sam opis jest pytaniem, na które nikt nie odpisał.
+  if (!ostatnia) return 'czeka-na-ai';
+
+  return ostatnia.author === PODPIS_AI ? 'nowa-odpowiedz' : 'czeka-na-ai';
+}
+
+/** Napisy do plakietek — tak, jak sformułował je Adam. */
+export const STAN_WATKU_LABELS: Record<StanWatku, string> = {
+  'czeka-na-ai': 'Czeka na odpowiedź',
+  'nowa-odpowiedz': 'Nowa odpowiedź',
+};
