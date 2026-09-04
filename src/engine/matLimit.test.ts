@@ -45,7 +45,7 @@ function playedMission(): GameState {
 }
 
 describe('limit kart na macie w jednej misji', () => {
-  it('gracz nie rośnie o więcej niż jedną kartę na misję', () => {
+  it('własna zdobycz i prezent liczą się osobno — po jednej z każdego', () => {
     let state = playedMission();
     if (state.phase !== 'missionSummary') {
       // Misja mogła się nie zamknąć — wymuszamy podsumowanie.
@@ -72,7 +72,11 @@ describe('limit kart na macie w jednej misji', () => {
     });
 
     const after = result.state.players.find((p) => p.id === 'p2')!.mat.length;
-    expect(after - before, 'mata rośnie najwyżej o jedną kartę na misję').toBe(1);
+    // Adam zgłosił, że wspólny licznik karał za dzielenie się: gracz po
+    // zabraniu własnej zdobyczy nie mógł już nic dostać w prezencie. Limity
+    // są teraz osobne, więc w jednej misji mata rośnie najwyżej o dwie karty
+    // — jedną własną i jedną od kolegi.
+    expect(after - before, 'jedna własna plus jeden prezent').toBe(2);
   });
 });
 

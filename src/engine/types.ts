@@ -187,8 +187,19 @@ export interface MissionState {
   activeBlackSwans: BlackSwanKind[];
   /** Sloty zapełnione zanim zadziałało podwojenie — nie wymagają 2. kart. */
   slotsFilledBeforeDoubling: string[];
-  /** Id graczy, którzy zabrali już kartę na matę w tej misji. */
+  /** Id graczy, którzy zabrali już WŁASNĄ kartę na matę w tej misji. */
   takenToMat: string[];
+  /**
+   * Id graczy, którzy DOSTALI w tej misji kartę od kogoś innego.
+   *
+   * Osobno od `takenToMat`, bo to dwie różne rzeczy. Adam zgłosił, że gracz
+   * po zabraniu własnej zdobyczy nie mógł już nic dostać w prezencie — a to
+   * karało za dzielenie się, które jest tu sednem: przekazujący dostaje za
+   * nie kartę doświadczenia, bez której nie spełni swojej postaci.
+   *
+   * Brak pola (partia zapisana przed tą zmianą) czyta się jak pustą listę.
+   */
+  receivedCards?: string[];
   /** Id kart przekazanych innym graczom w tej misji. */
   sharedCardIds: string[];
   /**

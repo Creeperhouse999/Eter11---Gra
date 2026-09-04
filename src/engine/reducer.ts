@@ -852,10 +852,15 @@ function shareCard(
   // Limit „jedna karta na misję" dotyczy też kart otrzymanych. Bez tego
   // gracz brał własną kartę i dostawał jeszcze kilka od innych, a mata
   // rosła w jednej misji o tyle kart, ilu było chętnych.
-  if (mission.takenToMat.includes(action.toPlayerId)) {
+  // Limit prezentów liczymy OSOBNO od kart zabranych samemu: gracz może
+  // w jednej misji wziąć swoją zdobycz I dostać jedną od kolegi. Wspólny
+  // licznik karał za dzielenie się, o co słusznie upomniał się Adam —
+  // a dzielenie jest tu sednem, bo przekazujący dostaje za nie kartę
+  // doświadczenia, bez której nie spełni swojej postaci.
+  if ((mission.receivedCards ?? []).includes(action.toPlayerId)) {
     return reject(
       state,
-      `${receiver.name} zabrał już kartę w tej misji — może dostać kolejną dopiero w następnej.`,
+      `${receiver.name} dostał już kartę od kogoś w tej misji — kolejną może dostać w następnej.`,
     );
   }
 
@@ -898,9 +903,11 @@ function shareCard(
         // a spis kart w grze widział o jedną kartę za dużo.
         played: mission.played.filter((p) => p.card.id !== action.cardId),
         sharedCardIds: [...mission.sharedCardIds, action.cardId],
-        // Otrzymana karta wyczerpuje limit odbiorcy na tę misję — inaczej
-        // dostałby po karcie od każdego chętnego gracza przy stole.
-        takenToMat: [...mission.takenToMat, action.toPlayerId],
+        // Otrzymana karta wyczerpuje limit PREZENTÓW odbiorcy na tę misję —
+        // inaczej dostałby po karcie od każdego chętnego przy stole. Limit
+        // własnych zdobyczy (`takenToMat`) zostaje nietknięty: to dwie różne
+        // rzeczy i wspólny licznik karał za dzielenie się.
+        receivedCards: [...(mission.receivedCards ?? []), action.toPlayerId],
       },
       log: [...state.log, `${giver.name} uczy gracza ${receiver.name}: ${play.card.name}`],
     },
