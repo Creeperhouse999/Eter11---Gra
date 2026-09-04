@@ -6,6 +6,14 @@ import { Icon, type IconName } from '../ui/icons/Icon';
 
 interface PrintCardsProps {
   content: GameContent;
+  /**
+   * Skok do edycji karty (zakładka „Karty”, przefiltrowana po nazwie).
+   *
+   * Bez tego lista w „Drukuj karty” była czysto do oglądania — literówkę czy
+   * złą grafikę widać tu od razu, ale poprawić dało się tylko po ręcznym
+   * odszukaniu tej samej karty w zakładce „Karty”.
+   */
+  onEdit?: (cardName: string) => void;
 }
 
 /**
@@ -17,7 +25,7 @@ interface PrintCardsProps {
  * gry (`buildDeck`). Inaczej fizyczna talia różniłaby się liczbą kart od
  * cyfrowej i test przy stole nie odzwierciedlałby prawdziwego balansu.
  */
-export function PrintCards({ content }: PrintCardsProps) {
+export function PrintCards({ content, onEdit }: PrintCardsProps) {
   const deck = buildDeck(playableCards(content.cards));
 
   return (
@@ -47,7 +55,23 @@ export function PrintCards({ content }: PrintCardsProps) {
           return (
             <article
               key={card.id}
-              className="break-inside-avoid-page rounded-lg border-2 border-black bg-white p-3 text-black print:rounded-none"
+              role={onEdit ? 'button' : undefined}
+              tabIndex={onEdit ? 0 : undefined}
+              onClick={onEdit ? () => onEdit(card.name) : undefined}
+              onKeyDown={
+                onEdit
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onEdit(card.name);
+                      }
+                    }
+                  : undefined
+              }
+              className={[
+                'break-inside-avoid-page rounded-lg border-2 border-black bg-white p-3 text-black print:rounded-none',
+                onEdit ? 'cursor-pointer transition hover:border-accent print:cursor-auto' : '',
+              ].join(' ')}
             >
               <p className="text-[10px] font-bold uppercase tracking-wide text-black/60">
                 {categoryLabel(card.category)}

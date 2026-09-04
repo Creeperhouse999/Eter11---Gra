@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ALL_CARDS, buildDeck, playableCards } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
@@ -90,5 +90,24 @@ describe('PrintCards', () => {
     expect(oczekiwana).toBe(bazowa + 2);
     expect(opisMowiO(oczekiwana)).toBe(true);
     expect(screen.getByRole("button", { name: `Drukuj (${oczekiwana} kart)` })).toBeTruthy();
+  });
+
+  /**
+   * Kliknięcie karty w liście wydruku przenosi do jej edycji.
+   *
+   * Regresja: lista w „Drukuj karty” była czysto do oglądania — kliknięcie
+   * karty nie robiło nic, więc poprawienie literówki czy złej grafiki
+   * wymagało ręcznego odszukania tej samej karty w zakładce „Karty".
+   */
+  it('kliknięcie karty woła onEdit z jej nazwą', () => {
+    const c = content();
+    const onEdit = vi.fn();
+    render(<PrintCards content={c} onEdit={onEdit} />);
+
+    const jakasKarta = c.cards.find((card) => !card.draft)!;
+    const article = screen.getAllByText(jakasKarta.name)[0].closest('article')!;
+    fireEvent.click(article);
+
+    expect(onEdit).toHaveBeenCalledWith(jakasKarta.name);
   });
 });

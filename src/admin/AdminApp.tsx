@@ -829,7 +829,12 @@ export function AdminApp() {
           />
         )}
         {tab === 'test' && <TestMode key={JSON.stringify(content.rules)} content={content} />}
-        {tab === 'print' && <PrintCards content={content} />}
+        {tab === 'print' && (
+          <PrintCards
+            content={content}
+            onEdit={(cardName) => route.navigate('cards', null, { filter: cardName })}
+          />
+        )}
         {tab === 'boredom' && (
           <BoredomPanel
             content={content}
