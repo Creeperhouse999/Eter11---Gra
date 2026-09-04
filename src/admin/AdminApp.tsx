@@ -26,6 +26,7 @@ import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
+import { PrintManual } from './PrintManual';
 import { BoredomPanel } from './BoredomPanel';
 import { PresetBar } from './PresetBar';
 import { PresetBundleBar } from './PresetBundleBar';
@@ -65,6 +66,7 @@ type Tab =
   | 'theme'
   | 'test'
   | 'print'
+  | 'manual'
   | 'presets'
   | 'boredom'
   | 'reports'
@@ -100,6 +102,8 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   // Narzędzie sprawdzające
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
   { key: 'print', label: 'Drukuj karty', icon: 'printer' },
+  // Instrukcja na papier — Adam drukuje karty i potrzebuje do nich zasad.
+  { key: 'manual', label: 'Drukuj instrukcję', icon: 'book' },
   // Zestawy stały wcześniej doklejone na Przeglądzie, gdzie nikt ich nie
   // szukał — Alan poprosił o własną zakładkę.
   { key: 'presets', label: 'Presety', icon: 'bookmark' },
@@ -846,6 +850,7 @@ export function AdminApp() {
             onEdit={(cardName) => route.navigate('cards', null, { filter: cardName })}
           />
         )}
+        {tab === 'manual' && <PrintManual content={content} />}
         {tab === 'boredom' && (
           <BoredomPanel
             content={content}
