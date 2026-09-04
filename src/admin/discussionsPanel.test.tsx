@@ -233,3 +233,58 @@ describe('DiscussionsPanel — zamiana wątku w zgłoszenie', () => {
     expect(screen.queryByText(/dołącz zrzut/i)).toBeNull();
   });
 });
+
+/**
+ * Szkic nowego wątku (temat/pierwsza wypowiedź) po odmontowaniu panelu.
+ *
+ * Regresja: `AdminApp` montuje panele warunkowo (`tab === 'x' && <Panel/>`),
+ * więc przełączenie zakładki i powrót odmontowuje i montuje `DiscussionsPanel`
+ * od nowa — temat/opis żyły tylko we własnym `useState` panelu i znikały bez
+ * śladu. Fix podnosi szkic do rodzica przez `draft`/`onDraftChange`.
+ */
+describe('DiscussionsPanel — szkic nowego wątku przetrwa odmontowanie', () => {
+  it('wpisany temat trafia do rodzica i wraca po ponownym montażu', async () => {
+    let draft = { title: '', description: '' };
+    const onDraftChange = vi.fn((next: typeof draft) => {
+      draft = next;
+    });
+
+    const { unmount } = render(
+      <ToastProvider>
+        <DiscussionsPanel
+          author="Tester"
+          role="admin"
+          currentUid="u-tester"
+          draft={draft}
+          onDraftChange={onDraftChange}
+        />
+      </ToastProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Temat'), {
+      target: { value: 'Szkic w trakcie pisania' },
+    });
+    expect(onDraftChange).toHaveBeenCalledWith({
+      title: 'Szkic w trakcie pisania',
+      description: '',
+    });
+
+    // To, co robi przełączenie zakładki w AdminApp: panel znika i wraca.
+    unmount();
+    render(
+      <ToastProvider>
+        <DiscussionsPanel
+          author="Tester"
+          role="admin"
+          currentUid="u-tester"
+          draft={draft}
+          onDraftChange={onDraftChange}
+        />
+      </ToastProvider>,
+    );
+
+    const temat = screen.getByLabelText('Temat') as HTMLInputElement;
+    // Bez fixu: pole znowu puste — szkic zginął razem z odmontowanym panelem.
+    expect(temat.value).toBe('Szkic w trakcie pisania');
+  });
+});

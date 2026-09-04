@@ -182,3 +182,53 @@ describe('ReportsPanel — podpowiedzi formularza zależne od rodzaju', () => {
     expect(description.getAttribute('placeholder')).toMatch(/proponujesz/i);
   });
 });
+
+/**
+ * Szkic nowego zgłoszenia (tytuł/opis) po odmontowaniu panelu.
+ *
+ * Regresja: `AdminApp` montuje panele warunkowo (`tab === 'x' && <Panel/>`),
+ * więc przełączenie zakładki i powrót odmontowuje i montuje `ReportsPanel`
+ * od nowa. Tytuł/opis żyły tylko w jego własnym `useState` — po powrocie
+ * pole było znowu puste, mimo że ktoś właśnie coś pisał. Fix podnosi szkic
+ * do rodzica przez `draft`/`onDraftChange`; ten test symuluje odmontowanie
+ * i sprawdza, że wpisany tekst wraca.
+ */
+describe('ReportsPanel — szkic nowego zgłoszenia przetrwa odmontowanie', () => {
+  it('wpisany tytuł trafia do rodzica i wraca po ponownym montażu', async () => {
+    vi.mocked(watchReports).mockImplementation((onChange) => {
+      onChange([]);
+      return () => {};
+    });
+
+    let draft = { title: '', description: '' };
+    const onDraftChange = vi.fn((next: typeof draft) => {
+      draft = next;
+    });
+
+    const { unmount } = render(
+      <ToastProvider>
+        <ReportsPanel author="Tester" role="admin" draft={draft} onDraftChange={onDraftChange} />
+      </ToastProvider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText('Tytuł'), {
+      target: { value: 'Szkic w trakcie pisania' },
+    });
+    expect(onDraftChange).toHaveBeenCalledWith({
+      title: 'Szkic w trakcie pisania',
+      description: '',
+    });
+
+    // To, co robi przełączenie zakładki w AdminApp: panel znika i wraca.
+    unmount();
+    render(
+      <ToastProvider>
+        <ReportsPanel author="Tester" role="admin" draft={draft} onDraftChange={onDraftChange} />
+      </ToastProvider>,
+    );
+
+    const title = (await screen.findByLabelText('Tytuł')) as HTMLInputElement;
+    // Bez fixu: pole znowu puste — szkic zginął razem z odmontowanym panelem.
+    expect(title.value).toBe('Szkic w trakcie pisania');
+  });
+});

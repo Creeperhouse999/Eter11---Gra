@@ -51,6 +51,14 @@ interface DiscussionsPanelProps {
   showClosed?: boolean;
   /** Zgłasza zmianę przełącznika w górę, żeby trafiła do adresu. */
   onShowClosedChange?: (value: boolean) => void;
+  /**
+   * Szkic nowego wątku (tytuł/opis) — trzymany przez rodzica, żeby
+   * przełączenie zakładki w panelu (odmontowuje ten komponent) nie kasowało
+   * tego, co ktoś właśnie pisze.
+   */
+  draft?: { title: string; description: string };
+  /** Zgłasza zmianę szkicu w górę, żeby przetrwała odmontowanie panelu. */
+  onDraftChange?: (next: { title: string; description: string }) => void;
 }
 
 /** Data w formie czytelnej dla człowieka: „21 lip, 14:32". */
@@ -84,6 +92,8 @@ export function DiscussionsPanel({
   onOpenChange,
   showClosed: showClosedProp,
   onShowClosedChange,
+  draft: draftProp,
+  onDraftChange,
 }: DiscussionsPanelProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   // Most między podpisem a kontem — powiadomienie trafia do uid, nie do imienia.
@@ -101,8 +111,25 @@ export function DiscussionsPanel({
     onShowClosedChange?.(next);
   };
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [localDraft, setLocalDraft] = useState({ title: '', description: '' });
+  const draft = draftProp !== undefined ? draftProp : localDraft;
+  const title = draft.title;
+  const description = draft.description;
+  const setTitle = (next: string) => {
+    const updated = { title: next, description };
+    setLocalDraft(updated);
+    onDraftChange?.(updated);
+  };
+  const setDescription = (next: string) => {
+    const updated = { title, description: next };
+    setLocalDraft(updated);
+    onDraftChange?.(updated);
+  };
+  const clearDraft = () => {
+    const cleared = { title: '', description: '' };
+    setLocalDraft(cleared);
+    onDraftChange?.(cleared);
+  };
   const [sending, setSending] = useState(false);
 
   /**
@@ -162,8 +189,7 @@ export function DiscussionsPanel({
       toast(result.error ?? 'Nie udało się założyć wątku.', 'danger');
       return;
     }
-    setTitle('');
-    setDescription('');
+    clearDraft();
     toast('Wątek założony.', 'success');
   };
 

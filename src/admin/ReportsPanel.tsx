@@ -198,6 +198,14 @@ interface ReportsPanelProps {
   openId?: string | null;
   /** Zgłasza otwarcie/zamknięcie zgłoszenia w górę, żeby trafiło do adresu. */
   onOpenChange?: (id: string | null) => void;
+  /**
+   * Szkic nowego zgłoszenia (tytuł/opis) — trzymany przez rodzica, żeby
+   * przełączenie zakładki w panelu (odmontowuje ten komponent) nie kasowało
+   * tego, co ktoś właśnie pisze.
+   */
+  draft?: { title: string; description: string };
+  /** Zgłasza zmianę szkicu w górę, żeby przetrwała odmontowanie panelu. */
+  onDraftChange?: (next: { title: string; description: string }) => void;
 }
 
 export function ReportsPanel({
@@ -208,6 +216,8 @@ export function ReportsPanel({
   onStatusTabChange,
   openId: openIdProp,
   onOpenChange,
+  draft: draftProp,
+  onDraftChange,
 }: ReportsPanelProps) {
   const toast = useToast();
   /**
@@ -230,8 +240,25 @@ export function ReportsPanel({
   // „Zwykły" na start: większość zgłoszeń nim jest, a wymuszanie wyboru przy
   // każdym wpisie tylko spowalnia zgłaszanie.
   const [priority, setPriority] = useState<ReportPriority>('medium');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [localDraft, setLocalDraft] = useState({ title: '', description: '' });
+  const draft = draftProp !== undefined ? draftProp : localDraft;
+  const title = draft.title;
+  const description = draft.description;
+  const setTitle = (next: string) => {
+    const updated = { title: next, description };
+    setLocalDraft(updated);
+    onDraftChange?.(updated);
+  };
+  const setDescription = (next: string) => {
+    const updated = { title, description: next };
+    setLocalDraft(updated);
+    onDraftChange?.(updated);
+  };
+  const clearDraft = () => {
+    const cleared = { title: '', description: '' };
+    setLocalDraft(cleared);
+    onDraftChange?.(cleared);
+  };
   const [sending, setSending] = useState(false);
   /**
    * Zgłoszenie przechodzi przez cztery stany, nie dwa. Wcześniej panel
@@ -311,8 +338,7 @@ export function ReportsPanel({
       return;
     }
 
-    setTitle('');
-    setDescription('');
+    clearDraft();
     setImages([]);
     toast('Zgłoszenie zapisane.', 'success');
     // Bez ręcznego odświeżania — nasłuch (`watchReports`) dokłada nowe

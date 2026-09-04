@@ -127,6 +127,15 @@ export function AdminApp() {
   };
   const [tab, setTab] = useState<Tab>(initialTab);
 
+  /**
+   * Szkice nowego zgłoszenia i nowego wątku dyskusji (tytuł/opis) — trzymane
+   * tutaj, nie w panelach. Panele montują się warunkowo pod `tab === 'x' &&`,
+   * więc przejście na inną zakładkę i powrót je odmontowuje i montuje od
+   * nowa; szkic żyjący tylko w ich lokalnym stanie znikał bez śladu.
+   */
+  const [reportDraft, setReportDraft] = useState({ title: '', description: '' });
+  const [discussionDraft, setDiscussionDraft] = useState({ title: '', description: '' });
+
   // Zakładki widoczne dla tej roli.
   //
   // Zespół (nadawanie ról) tylko dla admina. Dyskusja znika dla edytora
@@ -841,6 +850,8 @@ export function AdminApp() {
             onStatusTabChange={(s) => route.setSub(s)}
             openId={route.params.open ?? null}
             onOpenChange={(id) => route.setParam('open', id)}
+            draft={reportDraft}
+            onDraftChange={setReportDraft}
           />
         )}
         {/* Imię z konta, nie z pola tekstowego: pod wypowiedzią w dyskusji
@@ -866,6 +877,8 @@ export function AdminApp() {
             // link wprost do listy ustalonych da się wysłać dalej.
             showClosed={route.params.closed === '1'}
             onShowClosedChange={(v) => route.setParam('closed', v ? '1' : null)}
+            draft={discussionDraft}
+            onDraftChange={setDiscussionDraft}
           />
         )}
         {tab === 'memory' && (
