@@ -132,8 +132,15 @@ async function signIn() {
   );
   const data = await res.json();
   if (data.error) throw new Error(`Logowanie nieudane: ${data.error.message}`);
+  // Reguły wymagają, by nowa wypowiedź miała `authorUid` równy piszącemu
+  // (inaczej dałoby się podszyć pod kogoś innego), więc uid jest tu
+  // potrzebny tak samo jak token.
+  MOJE_UID = data.localId;
   return data.idToken;
 }
+
+/** Uid zalogowanego konta — wypełnia `signIn`. */
+let MOJE_UID = '';
 
 const field = (doc, name) =>
   doc.fields?.[name]?.stringValue ?? doc.fields?.[name]?.timestampValue ?? '';
@@ -147,6 +154,11 @@ function readMessages(doc) {
       author: f.author?.stringValue ?? '',
       text: f.text?.stringValue ?? '',
       at: f.at?.stringValue ?? '',
+      // `authorUid` MUSI przetrwać odczyt i ponowny zapis. Reguły wymagają,
+      // by wcześniejsze wypowiedzi wróciły identyczne — zgubienie tego pola
+      // po drodze zmienia historię i cały zapis leci z „Missing or
+      // insufficient permissions", nawet gdy dopisujemy tylko na końcu.
+      ...(f.authorUid?.stringValue ? { authorUid: f.authorUid.stringValue } : {}),
       ...(f.image?.stringValue ? { image: f.image.stringValue } : {}),
     };
   });
@@ -162,6 +174,10 @@ function writeMessages(messages) {
             author: { stringValue: m.author },
             text: { stringValue: m.text },
             at: { stringValue: m.at },
+            // Bez tego pola reguły odrzucają zapis („Missing or insufficient
+            // permissions") — to ono, a nie podpis `author`, decyduje o tym,
+            // czyja jest wypowiedź i kto może ją później poprawić.
+            ...(m.authorUid ? { authorUid: { stringValue: m.authorUid } } : {}),
             ...(m.image ? { image: { stringValue: m.image } } : {}),
           },
         },
@@ -258,7 +274,7 @@ if (command === 'reply') {
   // Dopisujemy JEDNĄ wypowiedź na końcu — reguły odrzucą każdą inną zmianę
   // historii wątku (stare wypowiedzi muszą zostać nietknięte).
   const messages = readMessages(doc);
-  messages.push({ author: AUTHOR, text, at: now });
+  messages.push({ author: AUTHOR, text, at: now, authorUid: MOJE_UID });
 
   const res = await fetch(
     `${BASE}/discussions/${encodeURIComponent(id)}?key=${API_KEY}&updateMask.fieldPaths=messages`,
