@@ -14,6 +14,8 @@ import { auth, rtdb } from '../firebase/client';
 import type { Action, GameState } from '../engine/types';
 import type { CardOffer, Reaction, Room, RoomPlayer } from './types';
 import { makeCode, normalizeCode } from './roomCode';
+import { pierwszaWolnaPostac } from './freeCharacter';
+import { ALL_CHARACTERS } from '../data/characters';
 import { hydrateRoom, hydrateState } from './hydrate';
 import { reduce } from '../engine/reducer';
 
@@ -166,7 +168,12 @@ export async function joinRoom(input: {
   const player: RoomPlayer = {
     uid,
     name: input.name.trim() || 'Gracz',
-    characterId: input.characterId,
+    // Postać wybieramy TUTAJ, a nie na ekranie dołączania: dopiero tu widać,
+    // kto już siedzi w pokoju. Adam zgłosił, że obaj gracze dostawali tę samą
+    // postać i partia stała, zanim się zaczęła — start słusznie nie
+    // przepuszcza duplikatu, a zmiana w poczekalni wymagała wiedzy, że w ogóle
+    // trzeba ją zrobić.
+    characterId: pierwszaWolnaPostac(gracze, ALL_CHARACTERS, uid),
     online: true,
     ready: gracze[uid]?.ready ?? false,
     joinedAt: gracze[uid]?.joinedAt ?? Date.now(),
