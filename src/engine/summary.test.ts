@@ -125,15 +125,23 @@ describe('SHARE_CARD', () => {
     expect(giver.experience.some((e) => e.kind === 'share')).toBe(true);
   });
 
-  it('odrzuca przekazanie mentora — dzielić można się tylko kompetencjami', () => {
+  it('przyjmuje przekazanie mentora — tak ustalił Adam', () => {
+    // Wcześniej mentor był zablokowany razem z talentem. Adam rozstrzygnął:
+    // „mentora można przekazywać, talentu nie" — mentor to ktoś, kogo da się
+    // komuś polecić, a talent jest własny i nie da się go oddać.
     const state = solvedMission();
-    const play = state.mission!.played.find((p) => p.card.category === 'mentor')!;
+    const play = state.mission!.played.find((p) => p.card.category === 'mentor');
+    if (!play) return; // Ta misja nie miała zagranego mentora.
+
     const receiverId = state.players.find((p) => p.id !== play.playerId)!.id;
     const result = reduce(state, {
-      type: 'SHARE_CARD', fromPlayerId: play.playerId,
-      toPlayerId: receiverId, cardId: play.card.id,
+      type: 'SHARE_CARD',
+      fromPlayerId: play.playerId,
+      toPlayerId: receiverId,
+      cardId: play.card.id,
     });
-    expect(result.rejected).toContain('kompetencji');
+
+    expect(result.rejected).toBeFalsy();
   });
 
   it('odrzuca przekazanie samemu sobie', () => {

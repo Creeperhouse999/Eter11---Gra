@@ -149,9 +149,33 @@ export const SLOT_ORDER: SlotKey[] = [
  */
 export const COMPETENCE_CATEGORIES = ['psychological', 'digital', 'social'] as const;
 
-/** Czy kartą tej kategorii wolno się podzielić z innym graczem. */
+/** Czy karta tej kategorii jest kompetencją (do zliczeń i walidacji treści). */
 export function isCompetence(category: string): boolean {
   return (COMPETENCE_CATEGORIES as readonly string[]).includes(category);
+}
+
+/**
+ * Kategorie, którymi wolno się podzielić z innym graczem.
+ *
+ * Osobna lista od `COMPETENCE_CATEGORIES`, bo to inne pytanie: tamta mówi,
+ * co jest kompetencją (używają jej walidacja treści i pokrycie ścianek),
+ * a ta — co można komuś oddać.
+ *
+ * Adam ustalił: „mentora można przekazywać, talentu nie". Mentor to ktoś,
+ * kogo da się komuś polecić; talent jest własny i nie da się go oddać.
+ * ETER11 i Czarny Łabędź zostają u tego, kto je zagrał — joker i utrudnienie
+ * nie są niczym, czego można kogoś nauczyć.
+ */
+export const SHAREABLE_CATEGORIES = [
+  'psychological',
+  'digital',
+  'social',
+  'mentor',
+] as const;
+
+/** Czy kartą tej kategorii wolno się podzielić z innym graczem. */
+export function isShareable(category: string): boolean {
+  return (SHAREABLE_CATEGORIES as readonly string[]).includes(category);
 }
 
 export function slotIcon(slot: SlotKey): string {

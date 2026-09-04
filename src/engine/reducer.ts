@@ -9,7 +9,7 @@ import {
 } from './rules';
 // Jedno źródło reguły dzielenia się. Silnik miał własną kopię listy —
 // dokładnie ten rozjazd, przed którym ostrzega komentarz przy oryginale.
-import { isCompetence } from '../ui/components/categoryStyles';
+import { isShareable } from '../ui/components/categoryStyles';
 import type {
   Action,
   BlackSwanEvent,
@@ -840,10 +840,17 @@ function shareCard(
     );
   }
 
-  // Karty specjalne zostają u tego, kto je zagrał: ETER11 jest jokerem,
-  // a Czarny Łabędź utrudnieniem — żadna nie jest kompetencją do nauczenia.
-  if (!isCompetence(play.card.category)) {
-    return reject(state, 'Przekazywać można tylko karty kompetencji.');
+  // Co wolno oddać, ustalił Adam: umiejętności i mentora tak, talentu nie.
+  // Mentor to ktoś, kogo da się komuś polecić; talent jest własny. Karty
+  // specjalne zostają u zagrywającego — ETER11 to joker, a Czarny Łabędź
+  // utrudnienie, żadne nie jest czymś, czego można kogoś nauczyć.
+  if (!isShareable(play.card.category)) {
+    return reject(
+      state,
+      play.card.category === 'talent'
+        ? 'Talent zostaje przy Tobie — talentu nie da się oddać, w przeciwieństwie do mentora czy umiejętności.'
+        : 'Tej karty nie da się przekazać — zostaje u tego, kto ją zagrał.',
+    );
   }
 
   const receiver = state.players.find((p) => p.id === action.toPlayerId);
