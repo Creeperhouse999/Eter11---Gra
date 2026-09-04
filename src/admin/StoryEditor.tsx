@@ -6,7 +6,7 @@ import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
 
-export type StoryPart = 'story' | 'rules' | 'adults' | 'tutorial';
+export type StoryPart = 'story' | 'box' | 'rules' | 'adults' | 'faq' | 'tutorial';
 
 interface StoryEditorProps {
   intro?: IntroContent;
@@ -23,7 +23,10 @@ interface StoryEditorProps {
 
 type Part = StoryPart;
 
-const PART_IDS: Part[] = ['story', 'rules', 'adults', 'tutorial'];
+/** Części zbudowane ze scen — wszystkie poza samouczkiem, który ma inny kształt. */
+type CzescScen = Exclude<StoryPart, 'tutorial'>;
+
+const PART_IDS: Part[] = ['story', 'box', 'adults', 'rules', 'faq', 'tutorial'];
 
 /** Czy dany slug z adresu to znana pod-zakładka wstępu. */
 export function isStoryPart(value: string): value is StoryPart {
@@ -42,9 +45,19 @@ const PARTS: Array<{ id: Part; label: string; hint: string }> = [
     hint: 'Wstęp techniczny — tłumaczy, jak się gra.',
   },
   {
+    id: 'box',
+    label: 'Opis na pudełko',
+    hint: 'Krótko dla dziecka — to, co zachęca do sięgnięcia po grę. Idzie na drugą stronę wydruku instrukcji.',
+  },
+  {
     id: 'adults',
     label: 'Dla dorosłych',
     hint: 'Dla rodziców i nauczycieli: po co ta gra powstała.',
+  },
+  {
+    id: 'faq',
+    label: 'Pytania graczy',
+    hint: 'Nagłówek to pytanie, treść to odpowiedź. Ostatnia strona wydruku instrukcji.',
   },
   {
     id: 'tutorial',
@@ -81,20 +94,22 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
   // wywracał cały edytor pustym ekranem. Każdą część bierzemy z zapisu, gdy
   // jest tablicą; inaczej z wersji wbudowanej (spójnie z migracją w content.ts).
   const scenesOf = (key: keyof IntroContent): IntroScene[] =>
-    Array.isArray(intro?.[key]) ? intro![key] : DEFAULT_INTRO[key];
-  const current: IntroContent = {
+    Array.isArray(intro?.[key]) ? intro![key]! : DEFAULT_INTRO[key] ?? [];
+  const current: Required<IntroContent> = {
     story: scenesOf('story'),
     rules: scenesOf('rules'),
     adults: scenesOf('adults'),
+    box: scenesOf('box'),
+    faq: scenesOf('faq'),
   };
   const steps = tutorial?.length ? tutorial : TUTORIAL_STEPS;
 
-  const setScenes = (key: 'story' | 'rules' | 'adults', scenes: IntroScene[]) => {
+  const setScenes = (key: CzescScen, scenes: IntroScene[]) => {
     onChange({ intro: { ...current, [key]: scenes } });
   };
 
   const updateScene = (
-    key: 'story' | 'rules' | 'adults',
+    key: CzescScen,
     index: number,
     patch: Partial<IntroScene>,
   ) => {
@@ -117,7 +132,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
    * narracyjnego kolejność JEST treścią. Bez tego jedyną drogą do zmiany
    * układu byłoby przepisanie wszystkich scen od nowa.
    */
-  const moveScene = (key: 'story' | 'rules' | 'adults', from: number, to: number) => {
+  const moveScene = (key: CzescScen, from: number, to: number) => {
     if (to < 0 || to >= current[key].length) return;
     const next = [...current[key]];
     const [moved] = next.splice(from, 1);
@@ -206,7 +221,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
                 <div className="w-32 shrink-0">
                   <IconPicker
                     value={scene.icon}
-                    onChange={(icon) => updateScene(part, index, { icon })}
+                    onChange={(icon) => updateScene(part as CzescScen, index, { icon })}
                   />
                 </div>
 
@@ -214,12 +229,12 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
                   <TextField
                     label={`Scena ${index + 1} — nagłówek`}
                     value={scene.heading}
-                    onChange={(e) => updateScene(part, index, { heading: e.target.value })}
+                    onChange={(e) => updateScene(part as CzescScen, index, { heading: e.target.value })}
                   />
                   <TextArea
                     label="Treść"
                     value={scene.body}
-                    onChange={(e) => updateScene(part, index, { body: e.target.value })}
+                    onChange={(e) => updateScene(part as CzescScen, index, { body: e.target.value })}
                     rows={4}
                     hint="Pusta linia rozdziela akapity."
                   />
@@ -233,7 +248,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
                     aria-label={`Przesuń scenę ${index + 1} w górę`}
                     className="rotate-180"
                     disabled={index === 0}
-                    onClick={() => moveScene(part, index, index - 1)}
+                    onClick={() => moveScene(part as CzescScen, index, index - 1)}
                   />
                   <Button
                     size="sm"
@@ -241,7 +256,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
                     icon="chevronDown"
                     aria-label={`Przesuń scenę ${index + 1} w dół`}
                     disabled={index === current[part].length - 1}
-                    onClick={() => moveScene(part, index, index + 1)}
+                    onClick={() => moveScene(part as CzescScen, index, index + 1)}
                   />
                   <Button
                     size="sm"
@@ -265,7 +280,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
             icon="plus"
             className="w-full"
             onClick={() =>
-              setScenes(part, [
+              setScenes(part as CzescScen, [
                 ...current[part],
                 { heading: '', body: '', icon: 'spark' },
               ])

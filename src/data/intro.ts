@@ -45,6 +45,12 @@ export interface IntroContent {
   rules: IntroScene[];
   /** Część dla dorosłych — po co ta gra powstała. */
   adults: IntroScene[];
+  /**
+   * Krótki opis „na pudełko" i pytania graczy — obie strony wydruku
+   * instrukcji. Opcjonalne, bo treść zapisana przed ich dodaniem ich nie ma.
+   */
+  box?: IntroScene[];
+  faq?: IntroScene[];
 }
 
 export const INTRO_STORY: IntroScene[] = [
@@ -85,6 +91,164 @@ export const INTRO_STORY: IntroScene[] = [
       'Ma sto lat opóźnienia i jedną szansę.\n\nZaczynamy?',
   },
 ];
+
+/**
+ * Druga narracja: przyszłość, której się udało.
+ *
+ * Adam poprosił o wariant do porównania na żywych graczach: „obecna niech
+ * zostanie, nazwijmy ją »Zły 2111«, ale zrób jeszcze dodatkową »Dobry 2111«
+ * (…) abyśmy ze wspólnikami i testowymi graczami wybrali, która narracja
+ * lepiej trafia do graczy dzieci i rodziców".
+ *
+ * Różnica jest w postawie ETER11, nie w kosmetyce. W pierwszej wersji przybywa
+ * z ruin i prosi o ratunek — mocne, ale straszy. Tutaj przybywa z przyszłości,
+ * która sobie poradziła, i przychodzi nauczyć, jak to zrobić. Zamiast „ratujcie
+ * nas" mówi „pokażę wam, jak my to zrobiliśmy".
+ *
+ * Ta sama liczba scen i ta sama długość co w pierwszej wersji: porównanie ma
+ * sens tylko między dwoma dopracowanymi tekstami. Szkic przegrałby z gotowym
+ * niezależnie od tego, która idea jest lepsza.
+ */
+export const INTRO_STORY_GOOD: IntroScene[] = [
+  {
+    icon: 'earth',
+    heading: 'Rok 2111. Świat wygląda dobrze.',
+    body:
+      'Powietrze jest czyste. Rzeki wróciły. W szkołach nikt nie boi się zadawać pytań, a ludzie znów rozmawiają ze sobą częściej niż z ekranami.\n\nNie stało się to samo. Ktoś musiał to naprawić — problem po problemie, przez sto lat.',
+  },
+  {
+    icon: 'spark',
+    heading: 'ETER11 to pamięta.',
+    body:
+      'Była przy każdej z tych zmian. Wie, od czego się zaczęły i kto je zaczął.\n\nWie też, że żadna nie była wielka. Za każdym razem ktoś po prostu nie odpuścił.',
+  },
+  {
+    icon: 'clash',
+    heading: 'Dlatego patrzy na Wasz świat z niepokojem.',
+    body:
+      'Widzi, że idziecie w inną stronę niż wtedy my. Klimat. Samotność. Kłamstwa w sieci. Strach przed byciem sobą — u nas to się skończyło, u was dopiero się rozkręca.\n\nZna drogę. I przybywa, żeby ją pokazać.',
+  },
+  {
+    icon: 'handshake',
+    heading: 'Nie zrobi tego za Was.',
+    body:
+      'Żaden problem w tej grze nie ma jednego rozwiązania. Każdy ma pięć ścianek, a jedna osoba nie zamknie ich wszystkich — u nas było tak samo.\n\nPotrzeba kogoś, kto rozumie ludzi. Kogoś, kto ogarnia technologię. Kogoś odważnego. I kogoś dorosłego, kto już to przeżył — rodzica, nauczyciela, trenera.',
+  },
+  {
+    icon: 'star',
+    heading: 'Twoja karta postaci jest pusta.',
+    body:
+      'Na początku nie masz nic. Po każdej misji zabierasz na nią jedną kartę — coś, czego się właśnie nauczyłeś.\n\nPo kilku misjach zobaczysz na niej coś ciekawego: obraz tego, w czym naprawdę jesteś dobry. Tego nie da się wybrać na starcie. To trzeba odkryć, grając.',
+  },
+  {
+    icon: 'globe',
+    heading: 'ETER11 ma dla Was sto lat doświadczenia.',
+    body:
+      'I jeden warunek: musicie spróbować sami.\n\nZaczynamy?',
+  },
+];
+
+/**
+ * Krótki opis gry — ten, który mógłby pójść na pudełko.
+ *
+ * Adam poprosił o „opis dla dzieci na 10 zdań, który zainteresuje dziecko
+ * i zachęci do kupienia gry", jako osobną stronę wydruku. Trzyma się w danych,
+ * a nie w komponencie wydruku, bo Alan dopisał przy każdej stronie „to też
+ * edytowalne w panelu" — inaczej pierwsza poprawka wymagałaby wdrożenia.
+ */
+export const INTRO_BOX: IntroScene[] = [
+  {
+    icon: 'earth',
+    heading: 'Świat ma kłopot.',
+    body:
+      'Znika prąd, ktoś sieje kłamstwa w internecie, robot w szkole zaczyna karać za zadawanie pytań. Nikt dorosły sobie z tym nie radzi — i wtedy wzywają was.',
+  },
+  {
+    icon: 'handshake',
+    heading: 'Gracie razem, nie przeciwko sobie.',
+    body:
+      'Każdy dostaje postać i garść kart z mocami: odwaga, spokój, umiejętność słuchania, znajomość technologii. Przed wami staje problem, a on ma swoje wymagania — do każdego trzeba dołożyć pasującą kartę.',
+  },
+  {
+    icon: 'clash',
+    heading: 'Sami niczego nie rozwiążecie.',
+    body:
+      'Jedna osoba nie ma wszystkich mocy naraz, więc trzeba się dogadać, kto co ma i kto czym zagra. Macie kilka rund na problem — potem świat idzie dalej, z waszą pomocą albo bez niej.',
+  },
+  {
+    icon: 'spark',
+    heading: 'Czasem wpada niespodzianka.',
+    body:
+      'Karta ETER11 pasuje do wszystkiego i ratuje sytuację, której inaczej nie da się domknąć. Czarny Łabędź robi odwrotnie: wywraca plany do góry nogami, dokładnie jak w prawdziwym życiu.',
+  },
+  {
+    icon: 'star',
+    heading: 'Nie ma jednej dobrej odpowiedzi.',
+    body:
+      'Jest wasz pomysł, wasza rozmowa i to, co z tego wyjdzie. Po każdej misji zabieracie jedną kartę na swoją postać — po kilku partiach widać na niej, w czym naprawdę jesteście dobrzy.',
+  },
+];
+
+/**
+ * Pytania, które gracze zadają przy pierwszej partii.
+ *
+ * Nagłówek to pytanie, treść to odpowiedź. Adam poprosił o taką stronę wprost:
+ * „zrób listę pytań, które gracze mogą zadać, tego, co może być niejasne,
+ * i odpowiedź na każde pytanie".
+ */
+export const INTRO_FAQ: IntroScene[] = [
+  {
+    icon: 'handshake',
+    heading: 'Gramy przeciwko sobie?',
+    body:
+      'Nie. Wygrywacie albo przegrywacie razem, całą drużyną. Punkty osobiste są, ale nie o nie chodzi.',
+  },
+  {
+    icon: 'palette',
+    heading: 'Moja karta ma dobry kolor, ale nie pasuje. Dlaczego?',
+    body:
+      'Bo musi zgadzać się też kategoria. Czerwona karta umysłu i czerwona karta technologii to dwie różne karty — ten sam rodzaj mocy, ale inna dziedzina.',
+  },
+  {
+    icon: 'clock',
+    heading: 'Nie mam czym zagrać. Co robię?',
+    body:
+      'Pasujesz i dobierasz kartę. To normalna część gry — czasem trzeba poczekać na swój moment.',
+  },
+  {
+    icon: 'spark',
+    heading: 'Co robi karta ETER11?',
+    body:
+      'Pasuje do każdego wymagania. Jest ich w talii niewiele, więc warto ją zachować na problem, którego inaczej nie da się domknąć.',
+  },
+  {
+    icon: 'swan',
+    heading: 'Co robi Czarny Łabędź?',
+    body:
+      'To niespodziewane zdarzenie. Wchodzi na stół i zmienia sytuację — czasem na gorsze. Tak jak w prawdziwym życiu, nie da się go zaplanować.',
+  },
+  {
+    icon: 'bubbles',
+    heading: 'Możemy sobie podpowiadać?',
+    body:
+      'Tak, i o to chodzi. Rozmowa o tym, kto co ma i co z tego wyniknie, jest tu ważniejsza niż same karty.',
+  },
+  {
+    icon: 'undo',
+    heading: 'Przegraliśmy. I co teraz?',
+    body:
+      'Zaczynacie od nowa i próbujecie inaczej. Problemy pojawiają się w innej kolejności, więc druga gra nie będzie taka sama.',
+  },
+];
+
+/** Nazwy obu narracji — tak, jak nazwał je Adam. */
+export const NARRATIVE_LABELS = {
+  dark: 'Zły 2111',
+  bright: 'Dobry 2111',
+} as const;
+
+/** Którą narrację pokazujemy graczom. */
+export type NarrativeVariant = keyof typeof NARRATIVE_LABELS;
 
 /**
  * Wstęp techniczny — zasady w kolejności, w jakiej stają się potrzebne.
@@ -178,4 +342,6 @@ export const DEFAULT_INTRO: IntroContent = {
   story: INTRO_STORY,
   rules: INTRO_RULES,
   adults: INTRO_FOR_ADULTS,
+  box: INTRO_BOX,
+  faq: INTRO_FAQ,
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { PrintManual } from './PrintManual';
 
@@ -82,5 +82,28 @@ describe('instrukcja do wydruku', () => {
     render(<PrintManual content={zmienione} />);
 
     expect(screen.getAllByText(/4/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('wybór narracji przy wydruku', () => {
+  it('daje wybrać między dwiema wersjami pierwszej strony', () => {
+    // Adam chce wydrukować obie i sprawdzić na graczach, która lepiej trafia.
+    render(<PrintManual content={BUILTIN_CONTENT} />);
+
+    expect(screen.getByRole('tab', { name: /zły 2111/i })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /dobry 2111/i })).toBeTruthy();
+  });
+
+  it('przełączenie naprawdę zmienia treść pierwszej strony', () => {
+    render(<PrintManual content={BUILTIN_CONTENT} />);
+
+    // Wersja domyślna: świat zniszczony.
+    expect(screen.getByText(/Świat jest cichy/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: /dobry 2111/i }));
+
+    // Po przełączeniu: świat, któremu się udało.
+    expect(screen.getByText(/Świat wygląda dobrze/)).toBeTruthy();
+    expect(screen.queryByText(/Świat jest cichy/)).toBeNull();
   });
 });

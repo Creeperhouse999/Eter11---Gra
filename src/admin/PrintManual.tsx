@@ -1,5 +1,15 @@
+import { useState } from 'react';
 import { playableCards } from '../data/cards';
-import { INTRO_STORY, INTRO_RULES, INTRO_FOR_ADULTS } from '../data/intro';
+import {
+  INTRO_STORY,
+  INTRO_STORY_GOOD,
+  INTRO_RULES,
+  INTRO_FOR_ADULTS,
+  INTRO_BOX,
+  INTRO_FAQ,
+  NARRATIVE_LABELS,
+  type NarrativeVariant,
+} from '../data/intro';
 import type { GameContent } from '../firebase/validate';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
@@ -85,9 +95,25 @@ function Miniatura({
  * ustawień w panelu.
  */
 export function PrintManual({ content }: PrintManualProps) {
-  const story = content.intro?.story?.length ? content.intro.story : INTRO_STORY;
+  // Którą narrację drukujemy. Adam chce porównać obie na żywych graczach,
+  // więc wybór jest przy wydruku, a nie zaszyty w treści gry.
+  const [narracja, setNarracja] = useState<NarrativeVariant>('dark');
+
+  // Wersja z panelu ma pierwszeństwo tylko dla narracji „Zły 2111" —
+  // redaktor edytuje właśnie ją w zakładce „Wstęp i ETER11". Druga wersja
+  // istnieje na razie po to, żeby ją z pierwszą porównać.
+  const story =
+    narracja === 'bright'
+      ? INTRO_STORY_GOOD
+      : content.intro?.story?.length
+        ? content.intro.story
+        : INTRO_STORY;
   const rules = content.intro?.rules?.length ? content.intro.rules : INTRO_RULES;
   const adults = content.intro?.adults?.length ? content.intro.adults : INTRO_FOR_ADULTS;
+  // Strony 2 i 5 miałem wpisane wprost w tym komponencie — Adam poprosił
+  // o „możliwość edycji każdej strony", więc idą z treści jak reszta.
+  const box = content.intro?.box?.length ? content.intro.box : INTRO_BOX;
+  const faq = content.intro?.faq?.length ? content.intro.faq : INTRO_FAQ;
 
   const grywalne = playableCards(content.cards);
   const przyklad = grywalne.find((c) => c.family) ?? grywalne[0];
@@ -111,6 +137,37 @@ export function PrintManual({ content }: PrintManualProps) {
           W oknie drukowania włącz „Grafika tła", inaczej kolory rodzin nie
           wyjdą na papier.
         </p>
+        {/* Wybór narracji. Adam poprosił o dwie wersje pierwszej strony, żeby
+            sprawdzić na żywych graczach, która lepiej trafia — więc obie
+            trzeba móc wydrukować i porównać na papierze. */}
+        <div className="mt-3">
+          <span className="eter-label">Narracja na pierwszej stronie</span>
+          <div className="mt-1 inline-flex rounded-lg border border-edge p-0.5" role="tablist">
+            {(['dark', 'bright'] as NarrativeVariant[]).map((wariant) => (
+              <button
+                key={wariant}
+                type="button"
+                role="tab"
+                aria-selected={narracja === wariant}
+                onClick={() => setNarracja(wariant)}
+                className={[
+                  'rounded-md px-3 py-1.5 text-sm transition',
+                  narracja === wariant
+                    ? 'bg-accent font-semibold text-bg'
+                    : 'text-ink-dim hover:text-ink',
+                ].join(' ')}
+              >
+                {NARRATIVE_LABELS[wariant]}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 max-w-prose text-xs text-ink-dim">
+            {narracja === 'dark'
+              ? 'ETER11 przybywa ze zniszczonej przyszłości i prosi o pomoc.'
+              : 'ETER11 przybywa z przyszłości, której się udało, i przychodzi nauczyć, jak to zrobić.'}
+          </p>
+        </div>
+
         <Button
           variant="primary"
           icon="printer"
@@ -123,7 +180,16 @@ export function PrintManual({ content }: PrintManualProps) {
 
       <div className="mt-4 print:mt-0">
         {/* 1 — narracja. Adam prosił, żeby czytało się jak prolog książki. */}
-        <Strona numer={1} tytul="Świat, w którym potrzebują właśnie was">
+        <Strona
+          numer={1}
+          tytul={
+            // Tytuł idzie za wybraną narracją: „potrzebują was" pasuje do
+            // świata w ruinie, nie do takiego, któremu się udało.
+            narracja === 'bright'
+              ? 'Świat, który pokazuje wam drogę'
+              : 'Świat, w którym potrzebują właśnie was'
+          }
+        >
           {story.map((scena, i) => (
             <div key={i} className="mb-3">
               <h3 className="font-display text-base font-bold">{scena.heading}</h3>
@@ -138,33 +204,16 @@ export function PrintManual({ content }: PrintManualProps) {
 
         {/* 2 — krótko dla dziecka, w sam raz na tył pudełka. */}
         <Strona numer={2} tytul="Co to za gra?">
-          <p className="text-sm leading-relaxed">
-            Świat ma kłopot. Znika prąd, ktoś sieje kłamstwa w internecie,
-            robot w szkole zaczyna karać za zadawanie pytań. Nikt dorosły
-            sobie z tym nie radzi — i wtedy wzywają was.
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">
-            Gracie razem, nie przeciwko sobie. Każdy dostaje postać i garść
-            kart z mocami: odwaga, spokój, umiejętność słuchania, znajomość
-            technologii. Przed wami staje problem, a on ma swoje wymagania —
-            do każdego trzeba dołożyć pasującą kartę.
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">
-            Sami niczego nie rozwiążecie. Jedna osoba nie ma wszystkich mocy
-            naraz, więc trzeba się dogadać, kto co ma i kto czym zagra.
-            Macie {zasady.roundsPerMission} rund na problem — potem świat idzie
-            dalej, z waszą pomocą albo bez niej.
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">
-            Problemów jest {content.problems.length}. Żeby wygrać razem,
-            trzeba rozwiązać co najmniej {zasady.teamWinThreshold}. Czasem
-            wpadnie karta ETER11, która pasuje do wszystkiego. Czasem Czarny
-            Łabędź, który wywróci plany do góry nogami.
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">
-            Nie ma jednej dobrej odpowiedzi. Jest wasz pomysł, wasza rozmowa
-            i to, co z tego wyjdzie.
-          </p>
+          {box.map((scena, i) => (
+            <div key={i} className="mb-3">
+              <h3 className="font-display text-base font-bold">{scena.heading}</h3>
+              {scena.body.split('\n\n').map((akapit, j) => (
+                <p key={j} className="mt-1 text-sm leading-relaxed">
+                  {akapit}
+                </p>
+              ))}
+            </div>
+          ))}
         </Strona>
 
         {/* 3 — dla rodzica: co gra ćwiczy. Bierze z części „Dla dorosłych". */}
@@ -297,43 +346,12 @@ export function PrintManual({ content }: PrintManualProps) {
 
         {/* 5 — FAQ. */}
         <Strona numer={5} tytul="Pytania, które pewnie zadacie">
-          {[
-            {
-              q: 'Gramy przeciwko sobie?',
-              a: 'Nie. Wygrywacie albo przegrywacie razem, całą drużyną. Punkty osobiste są, ale nie o nie chodzi.',
-            },
-            {
-              q: 'Moja karta ma dobry kolor, ale nie pasuje. Dlaczego?',
-              a: `Bo musi zgadzać się też kategoria. Czerwona ${categoryLabel('psychological')} i czerwona ${categoryLabel('digital')} to dwie różne karty — ten sam rodzaj mocy, ale inna dziedzina.`,
-            },
-            {
-              q: 'Nie mam czym zagrać. Co robię?',
-              a: 'Pasujesz i dobierasz kartę. To normalna część gry — czasem trzeba poczekać na swój moment.',
-            },
-            {
-              q: 'Ile problemów trzeba rozwiązać, żeby wygrać?',
-              a: `Co najmniej ${zasady.teamWinThreshold} z ${content.problems.length}. Przy mniejszej liczbie kończycie grę, ale bez wspólnej wygranej.`,
-            },
-            {
-              q: 'Co robi karta ETER11?',
-              a: 'Pasuje do każdego wymagania. Jest ich niewiele, więc warto ją zachować na problem, którego inaczej nie da się domknąć.',
-            },
-            {
-              q: 'Co robi Czarny Łabędź?',
-              a: 'To niespodziewane zdarzenie. Wchodzi na stół i zmienia sytuację — czasem na gorsze. Tak jak w prawdziwym życiu, nie da się go zaplanować.',
-            },
-            {
-              q: 'Możemy sobie podpowiadać?',
-              a: 'Tak, i o to chodzi. Rozmowa o tym, kto co ma i co z tego wyniknie, jest tu ważniejsza niż same karty.',
-            },
-            {
-              q: 'Przegraliśmy. I co teraz?',
-              a: 'Zaczynacie od nowa i próbujecie inaczej. Problemy pojawiają się w innej kolejności, więc druga gra nie będzie taka sama.',
-            },
-          ].map((wpis) => (
-            <div key={wpis.q} className="mb-2">
-              <h3 className="font-display text-sm font-bold">{wpis.q}</h3>
-              <p className="mt-0.5 text-sm leading-snug">{wpis.a}</p>
+          {faq.map((wpis, i) => (
+            <div key={i} className="mb-2">
+              {/* Nagłówek to pytanie, treść to odpowiedź — tak redaguje się je
+                  w panelu, w zakładce „Wstęp i ETER11". */}
+              <h3 className="font-display text-sm font-bold">{wpis.heading}</h3>
+              <p className="mt-0.5 text-sm leading-snug">{wpis.body}</p>
             </div>
           ))}
         </Strona>
