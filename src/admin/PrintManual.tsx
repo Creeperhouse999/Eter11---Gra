@@ -18,6 +18,17 @@ import { Icon, type IconName } from '../ui/icons/Icon';
 
 interface PrintManualProps {
   content: GameContent;
+  /**
+   * Skok do edycji treści danej strony.
+   *
+   * Adam: „zrób jeszcze dostęp do edycji poprzez kliknięcie na daną stronę
+   * w zakładce »Drukuj instrukcję«". Wcześniej trzeba było wiedzieć, że
+   * strona 5 bierze się z pod-zakładki „Pytania graczy" — a to wiedza,
+   * której nikt poza autorem panelu nie miał.
+   *
+   * Argument to slug pod-zakładki wstępu (`story`, `faq`, `rules`…).
+   */
+  onEdit?: (part: string) => void;
 }
 
 /** Kolory rodzin — te same, co na wydruku kart (zmienne CSS nie idą na papier). */
@@ -33,16 +44,32 @@ function Strona({
   numer,
   tytul,
   children,
+  onEdit,
 }: {
   numer: number;
   tytul: string;
   children: React.ReactNode;
+  /** Klik w stronę prowadzi do edycji jej treści; brak = strona liczona sama. */
+  onEdit?: () => void;
 }) {
   return (
     <article className="mb-6 break-after-page rounded-lg border-2 border-black bg-white p-6 text-black print:mb-0 print:rounded-none print:border-0 print:p-0">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-black/50">
-        Strona {numer}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-black/50">
+          Strona {numer}
+        </p>
+        {/* Przycisk edycji nie idzie na papier (`print:hidden`) — na wydruku
+            byłby napisem znikąd. */}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded border border-black/30 px-2 py-0.5 text-[10px] font-bold uppercase text-black/60 transition hover:border-black hover:text-black print:hidden"
+          >
+            Edytuj treść
+          </button>
+        )}
+      </div>
       <h2 className="mt-1 font-display text-2xl font-bold leading-tight">{tytul}</h2>
       <div className="mt-3">{children}</div>
     </article>
@@ -110,7 +137,7 @@ function Miniatura({
  * idą z zasad, więc wydrukowana kartka nie zacznie kłamać po zmianie
  * ustawień w panelu.
  */
-export function PrintManual({ content }: PrintManualProps) {
+export function PrintManual({ content, onEdit }: PrintManualProps) {
   // Którą narrację drukujemy. Adam chce porównać obie na żywych graczach,
   // więc wybór jest przy wydruku, a nie zaszyty w treści gry.
   const [narracja, setNarracja] = useState<NarrativeVariant>('dark');
@@ -202,6 +229,7 @@ export function PrintManual({ content }: PrintManualProps) {
       <div className="mt-4 print:mt-0">
         {/* 1 — narracja. Adam prosił, żeby czytało się jak prolog książki. */}
         <Strona
+          onEdit={onEdit && (() => onEdit(narracja === 'bright' ? 'storyGood' : 'story'))}
           numer={1}
           tytul={
             // Tytuł idzie za wybraną narracją: „potrzebują was" pasuje do
@@ -224,7 +252,7 @@ export function PrintManual({ content }: PrintManualProps) {
         </Strona>
 
         {/* 2 — krótko dla dziecka, w sam raz na tył pudełka. */}
-        <Strona numer={2} tytul="Co to za gra?">
+        <Strona numer={2} tytul="Co to za gra?" onEdit={onEdit && (() => onEdit('box'))}>
           {box.map((scena, i) => (
             <div key={i} className="mb-3">
               <h3 className="font-display text-base font-bold">{scena.heading}</h3>
@@ -238,7 +266,11 @@ export function PrintManual({ content }: PrintManualProps) {
         </Strona>
 
         {/* 3 — dla rodzica: co gra ćwiczy. Bierze z części „Dla dorosłych". */}
-        <Strona numer={3} tytul="Dla rodziców i nauczycieli">
+        <Strona
+          numer={3}
+          tytul="Dla rodziców i nauczycieli"
+          onEdit={onEdit && (() => onEdit('adults'))}
+        >
           {adults.map((scena, i) => (
             <div key={i} className="mb-3">
               <h3 className="font-display text-base font-bold">{scena.heading}</h3>
@@ -252,7 +284,11 @@ export function PrintManual({ content }: PrintManualProps) {
         </Strona>
 
         {/* 4 — instrukcja krok po kroku, z pokazanymi kartami. */}
-        <Strona numer={4} tytul="Jak grać — krok po kroku">
+        <Strona
+          numer={4}
+          tytul="Jak grać — krok po kroku"
+          onEdit={onEdit && (() => onEdit('rules'))}
+        >
           {rules.map((scena, i) => (
             <div key={i} className="mb-2">
               <h3 className="font-display text-sm font-bold">{scena.heading}</h3>
@@ -369,7 +405,11 @@ export function PrintManual({ content }: PrintManualProps) {
         </Strona>
 
         {/* 5 — FAQ. */}
-        <Strona numer={5} tytul="Pytania, które pewnie zadacie">
+        <Strona
+          numer={5}
+          tytul="Pytania, które pewnie zadacie"
+          onEdit={onEdit && (() => onEdit('faq'))}
+        >
           {faq.map((wpis, i) => (
             <div key={i} className="mb-2">
               {/* Nagłówek to pytanie, treść to odpowiedź — tak redaguje się je

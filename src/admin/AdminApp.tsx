@@ -878,7 +878,15 @@ export function AdminApp() {
           />
         )}
         {tab === 'activity' && <ActivityPanel onOpen={goToLink} />}
-        {tab === 'manual' && <PrintManual content={content} />}
+        {tab === 'manual' && (
+          <PrintManual
+            content={content}
+            // Klik w stronę prowadzi wprost do pod-zakładki, z której bierze
+            // się jej treść — Adam prosił o edycję „poprzez kliknięcie na daną
+            // stronę", bez wiedzy, co skąd pochodzi.
+            onEdit={(part) => route.navigate('story', part)}
+          />
+        )}
         {tab === 'boredom' && (
           <BoredomPanel
             content={content}
