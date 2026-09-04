@@ -17,7 +17,7 @@ w kolejce.
 - [x] **Wiersz zgłoszenia na liście — bałagan.** Trzy plakietki przy tytule
       naraz. Ustalone: sam tytuł, pod nim jedna szara linia
       (rodzaj · pilność · data · autor · wpisy), stan jako kolorowa kropka.
-- [ ] **Filtry w zgłoszeniach.**
+- [x] **Filtry w zgłoszeniach.**
 - [ ] **Typy i pilność w dyskusjach** — to samo, co w zgłoszeniach. Prosił
       1 września, obiecałem „robię teraz", nie zrobiłem. Typ „Pytanie"
       w zgłoszeniach: ZROBIONE. Zostają dyskusje.

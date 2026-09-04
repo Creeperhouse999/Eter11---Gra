@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
-import { watchReports, type Report, type ReportProgress } from '../firebase/reports';
+import {
+  watchReports,
+  setQueueOrder,
+  type Report,
+  type ReportProgress,
+} from '../firebase/reports';
 import { buildActivity } from './activityFeed';
+import { wgRecznejKolejnosci, poPrzesunieciu } from './reorderQueue';
 import { Icon } from '../ui/icons/Icon';
 
 interface ActivityPanelProps {
@@ -35,10 +41,60 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
 
   const lista = buildActivity(reports);
   const teraz = lista.filter((w) => w.progress === 'working' || w.progress === 'testing');
-  const kolejka = lista.filter((w) => w.progress !== 'working' && w.progress !== 'testing');
 
-  const wiersz = (w: (typeof lista)[number]) => (
-    <li key={w.id}>
+  // Adam poprosił o rozdzielenie kolejki na dwie: to, co wprost oznaczyłem
+  // jako „W kolejce" (bo już wiem, że to biorę), i resztę — zgłoszenia,
+  // których jeszcze nie tknąłem. Wcześniej leżały razem i nie dało się
+  // odróżnić „zaplanowane" od „nieprzejrzane".
+  const wKolejce = wgRecznejKolejnosci(
+    lista.filter((w) => w.progress === 'queued'),
+  );
+  const kolejne = wgRecznejKolejnosci(lista.filter((w) => !w.progress));
+
+  /** Przesunięcie pozycji o jedno miejsce w obrębie swojej listy. */
+  const przesun = async (
+    grupa: typeof lista,
+    id: string,
+    kierunek: 'gora' | 'dol',
+  ) => {
+    const rangi = poPrzesunieciu(grupa, id, kierunek);
+    if (!rangi) return;
+    try {
+      await setQueueOrder(rangi);
+    } catch {
+      setBlad('Nie udało się zapisać kolejności.');
+    }
+  };
+
+  /**
+   * Wiersz listy. `grupa` podana = pozycję da się przestawiać w jej obrębie
+   * (Adam: „przesuwając dane ramki w górę i w dół"); brak = wiersz stały,
+   * jak w sekcji „W robocie", gdzie kolejność wynika z tego, co robię.
+   */
+  const wiersz = (w: (typeof lista)[number], grupa?: typeof lista) => (
+    <li key={w.id} className="flex items-stretch gap-1">
+      {grupa && grupa.length > 1 && (
+        <span className="flex shrink-0 flex-col justify-center gap-0.5">
+          <button
+            type="button"
+            aria-label={`Przesuń „${w.title}" w górę`}
+            disabled={grupa[0]?.id === w.id}
+            onClick={() => void przesun(grupa, w.id, 'gora')}
+            className="rounded border border-edge px-1 text-ink-dim transition hover:border-accent hover:text-ink disabled:opacity-30"
+          >
+            <Icon name="chevronDown" size={12} className="rotate-180" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Przesuń „${w.title}" w dół`}
+            disabled={grupa[grupa.length - 1]?.id === w.id}
+            onClick={() => void przesun(grupa, w.id, 'dol')}
+            className="rounded border border-edge px-1 text-ink-dim transition hover:border-accent hover:text-ink disabled:opacity-30"
+          >
+            <Icon name="chevronDown" size={12} />
+          </button>
+        </span>
+      )}
       <button
         type="button"
         onClick={() => onOpen(w.link)}
@@ -90,16 +146,30 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
           Nic nie jest w tej chwili w robocie.
         </p>
       ) : (
-        <ul className="mt-2 space-y-1.5">{teraz.map(wiersz)}</ul>
+        <ul className="mt-2 space-y-1.5">{teraz.map((w) => wiersz(w))}</ul>
       )}
 
       <h3 className="mt-5 font-display text-sm font-bold">
-        W kolejce {kolejka.length > 0 && <span className="text-ink-dim">({kolejka.length})</span>}
+        W kolejce {wKolejce.length > 0 && <span className="text-ink-dim">({wKolejce.length})</span>}
       </h3>
-      {kolejka.length === 0 ? (
-        <p className="mt-1 text-sm text-ink-dim">Kolejka pusta.</p>
+      {wKolejce.length === 0 ? (
+        <p className="mt-1 text-sm text-ink-dim">Nic nie stoi w kolejce.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">{kolejka.map(wiersz)}</ul>
+        <ul className="mt-2 space-y-1.5">{wKolejce.map((w) => wiersz(w, wKolejce))}</ul>
+      )}
+
+      <h3 className="mt-5 font-display text-sm font-bold">
+        Lista kolejnych zadań{' '}
+        {kolejne.length > 0 && <span className="text-ink-dim">({kolejne.length})</span>}
+      </h3>
+      <p className="mt-1 text-xs text-ink-dim">
+        Zgłoszenia, których jeszcze nie zacząłem. Strzałkami ustawisz, co ma iść
+        pierwsze.
+      </p>
+      {kolejne.length === 0 ? (
+        <p className="mt-1 text-sm text-ink-dim">Nic nie czeka.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">{kolejne.map((w) => wiersz(w, kolejne))}</ul>
       )}
     </section>
   );

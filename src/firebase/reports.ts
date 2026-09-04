@@ -1,4 +1,5 @@
 import {
+  writeBatch,
   addDoc,
   arrayUnion,
   collection,
@@ -224,6 +225,15 @@ export interface Report {
    */
   priority?: ReportPriority;
   /**
+   * Miejsce w ręcznie ustawionej kolejce.
+   *
+   * Adam poprosił o przesuwanie zgłoszeń w górę i w dół: kolejność liczona
+   * z pilności i wieku to domysł, a zespół czasem po prostu wie, co ma iść
+   * pierwsze. Brak pola = zgłoszenie nie było przestawiane i idzie w zwykłej
+   * kolejności, za tymi, które ustawiono ręcznie.
+   */
+  queueRank?: number;
+  /**
    * Na czym stoi robota. Brak pola znaczy „nikt jeszcze nie tknął" — tak
    * wyglądają wszystkie zgłoszenia sprzed tej zmiany.
    */
@@ -345,6 +355,25 @@ export function watchReports(
  * `null` cofa do „nikt nie tknął": czyścimy pole zamiast zapisywać pustą
  * wartość, żeby lista nie pokazywała pustej plakietki przy każdym zgłoszeniu.
  */
+/**
+ * Zapisuje ręczną kolejność kilku zgłoszeń naraz.
+ *
+ * Rangi idą komplet dla całej listy (patrz `poPrzesunieciu`), więc zapis
+ * dotyczy wielu dokumentów — `writeBatch` załatwia to jednym zatwierdzeniem.
+ * Bez tego przy przerwanym połączeniu część zgłoszeń miałaby nową rangę,
+ * a część starą, i kolejność na ekranie przestałaby się zgadzać z bazą.
+ */
+export async function setQueueOrder(
+  pozycje: Array<{ id: string; queueRank: number }>,
+): Promise<void> {
+  if (pozycje.length === 0) return;
+  const batch = writeBatch(db);
+  for (const { id, queueRank } of pozycje) {
+    batch.update(doc(db, COLLECTION, id), { queueRank });
+  }
+  await batch.commit();
+}
+
 export async function setReportProgress(
   id: string,
   progress: ReportProgress | null,
