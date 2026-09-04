@@ -64,6 +64,7 @@ type Tab =
   | 'theme'
   | 'test'
   | 'print'
+  | 'presets'
   | 'boredom'
   | 'reports'
   | 'discussions'
@@ -98,6 +99,9 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   // Narzędzie sprawdzające
   { key: 'test', label: 'Tryb testowy', icon: 'flask' },
   { key: 'print', label: 'Drukuj karty', icon: 'printer' },
+  // Zestawy stały wcześniej doklejone na Przeglądzie, gdzie nikt ich nie
+  // szukał — Alan poprosił o własną zakładkę.
+  { key: 'presets', label: 'Presety', icon: 'bookmark' },
 
   // Komunikacja zespołu
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
@@ -154,6 +158,9 @@ export function AdminApp() {
     // Strefa Nudy to sprawdzanie treści i zgłoszeń — podgląd nie ma tam czego
     // rozstrzygać, a reguły bazy i tak odrzuciłyby jego odhaczenia.
     if (item.key === 'boredom') return canEdit(auth.role);
+    // Presety podmieniają treść całemu zespołowi naraz — konto podglądowe nie
+    // ma tam czego robić, a reguły bazy i tak odrzuciłyby zapis.
+    if (item.key === 'presets') return canEdit(auth.role);
     return true;
   });
 
@@ -720,7 +727,9 @@ export function AdminApp() {
         )}
 
         <div key={tab} className="eter-fade-in">
-        {tab === 'overview' && canEdit(auth.role) && (
+        {/* Zestawy stały wcześniej doklejone na dole Przeglądu, gdzie nikt ich
+            nie szukał — Alan poprosił o własną zakładkę. */}
+        {tab === 'presets' && canEdit(auth.role) && (
           <PresetBundleBar
             content={content}
             role={auth.role}

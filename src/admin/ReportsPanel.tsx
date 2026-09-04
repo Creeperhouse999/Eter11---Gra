@@ -9,8 +9,12 @@ import {
   type ReportKind,
   type ReportStatus,
   type ReportPriority,
+  type ReportProgress,
+  setReportProgress,
   PRIORITY_LABELS,
   PRIORITY_ORDER,
+  PROGRESS_LABELS,
+  PROGRESS_ORDER,
 } from '../firebase/reports';
 import {
   canDelete,
@@ -61,6 +65,17 @@ const PRIORITY_COLOR: Record<ReportPriority, string> = {
   medium: 'var(--eter-accent)',
   high: 'var(--eter-accent-2)',
   ultra: 'var(--eter-danger)',
+};
+
+/**
+ * Kolor plakietki postępu. Rośnie od bladego („leży w kolejce") do zielonego
+ * („zrobione"), żeby jednym rzutem oka było widać, czy coś ruszyło.
+ */
+const PROGRESS_COLOR: Record<ReportProgress, string> = {
+  queued: 'var(--eter-ink-dim)',
+  working: 'var(--eter-accent)',
+  testing: 'var(--eter-accent-2)',
+  finished: 'var(--eter-success)',
 };
 
 /**
@@ -357,6 +372,27 @@ export function ReportsPanel({
   // Przy odesłaniu/odrzuceniu z komentarzem każde wywołanie dokłada notatkę
   // przez arrayUnion z innym `at` — bez dedupu powstawały near-duplikaty.
   const statusInFlight = useRef(false);
+
+  /**
+   * Ustawia postęp prac — bez ruszania statusu i bez powiadomień.
+   *
+   * Powiadomienia świadomie pomijamy: postęp zmienia się po kilka razy przy
+   * jednym zgłoszeniu („w kolejce" → „robi się" → „sprawdzam"), a dzwonek od
+   * każdego kroku byłby hałasem. Zgłaszający widzi plakietkę na liście.
+   */
+  const changeProgress = async (report: Report, next: ReportProgress | null) => {
+    try {
+      await setReportProgress(report.id, next);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast(
+        message.includes('permission')
+          ? 'Nie masz uprawnień, żeby zmieniać postęp prac.'
+          : 'Nie udało się zapisać postępu.',
+        'danger',
+      );
+    }
+  };
 
   const changeStatus = async (
     report: Report,
@@ -812,6 +848,31 @@ export function ReportsPanel({
                 </Button>
               )}
 
+              {/* Postęp prac — osobno od statusu. Status mówi, gdzie jest
+                  zgłoszenie w obiegu (i „działa" stawia zgłaszający); postęp
+                  mówi tylko, czy ktoś już przy tym siedzi. Adam prosił, żeby
+                  to było widać, zanim jeszcze cokolwiek jest naprawione. */}
+              {canModerate(role) && report.status !== 'done' && (
+                <span className="flex items-center gap-1">
+                  {PROGRESS_ORDER.map((krok) => {
+                    const wybrany = report.progress === krok;
+                    return (
+                      <Button
+                        key={krok}
+                        size="sm"
+                        variant={wybrany ? 'secondary' : 'ghost'}
+                        aria-pressed={wybrany}
+                        // Ponowne kliknięcie wybranego cofa do „nikt nie tknął",
+                        // żeby dało się odkręcić pomyłkę bez czyszczenia bazy.
+                        onClick={() => void changeProgress(report, wybrany ? null : krok)}
+                      >
+                        {PROGRESS_LABELS[krok]}
+                      </Button>
+                    );
+                  })}
+                </span>
+              )}
+
               {report.status === 'fixed' && (
                 <>
                   <Button
@@ -1084,6 +1145,21 @@ export function ReportsPanel({
                         }}
                       >
                         {PRIORITY_LABELS[report.priority]}
+                      </span>
+                    )}
+                    {/* Postęp prac. Alan poprosił, żeby zgłaszający widział, że
+                        ktoś zgłoszenie zauważył, jeszcze zanim cokolwiek jest
+                        naprawione — inaczej „nikt tego nie tknął" i „siedzę
+                        przy tym od godziny" wyglądają identycznie. */}
+                    {report.progress && (
+                      <span
+                        className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
+                        style={{
+                          color: PROGRESS_COLOR[report.progress],
+                          border: `1px solid ${PROGRESS_COLOR[report.progress]}`,
+                        }}
+                      >
+                        {PROGRESS_LABELS[report.progress]}
                       </span>
                     )}
                   </span>

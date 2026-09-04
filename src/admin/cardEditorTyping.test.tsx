@@ -25,36 +25,43 @@ import type { Card } from '../engine/types';
  * nie o mikrooptymalizację.
  */
 
-function Harness() {
-  const [cards, setCards] = useState<Card[]>(structuredClone(ALL_CARDS));
-  return (
-    <ToastProvider>
-      <CardEditor cards={cards} onChange={setCards} />
-    </ToastProvider>
-  );
-}
-
 describe('szybkość pisania w edytorze kart', { timeout: 30_000 }, () => {
-  it('zmiana nazwy nie przerysowuje całej listy', () => {
-    render(<Harness />);
-    const pola = screen.getAllByLabelText(/^Nazwa/);
-    // Pełna talia na ekranie — inaczej test nie mierzyłby tego, co boli.
-    expect(pola.length).toBeGreaterThan(50);
+  it("zmiana nazwy kosztuje tyle, co pojedynczy wiersz, a nie cała lista", () => {
+    // Miara WZGLĘDNA, nie w milisekundach: pełny przebieg (170+ plików naraz)
+    // spowalnia maszynę kilkukrotnie, więc próg w ms padał losowo mimo
+    // poprawnego kodu — mierzone 5 ms w izolacji i 86 ms pod obciążeniem.
+    // Porównujemy więc pisanie w PEŁNEJ talii z pisaniem w krótkiej: bez
+    // memoizacji koszt rośnie proporcjonalnie do liczby wierszy, z nią zostaje
+    // mniej więcej stały.
+    const zmierz = (cards: Card[]) => {
+      function H() {
+        const [lista, setLista] = useState<Card[]>(cards);
+        return (
+          <ToastProvider>
+            <CardEditor cards={lista} onChange={setLista} />
+          </ToastProvider>
+        );
+      }
+      const widok = render(<H />);
+      const pole = screen.getAllByLabelText(/^Nazwa/)[0];
+      const czasy: number[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        const start = performance.now();
+        fireEvent.change(pole, { target: { value: `Nazwa${"x".repeat(i)}` } });
+        czasy.push(performance.now() - start);
+      }
+      widok.unmount();
+      const posortowane = [...czasy].sort((a, b) => a - b);
+      return posortowane[Math.floor(posortowane.length / 2)];
+    };
 
-    const czasy: number[] = [];
-    for (let i = 0; i < 8; i += 1) {
-      const start = performance.now();
-      fireEvent.change(pola[0], { target: { value: `Nazwa${'x'.repeat(i)}` } });
-      czasy.push(performance.now() - start);
-    }
+    const krotka = zmierz(structuredClone(ALL_CARDS.slice(0, 5)));
+    const pelna = zmierz(structuredClone(ALL_CARDS));
 
-    // Pierwsza zmiana bywa droższa (rozgrzewka), więc liczymy medianę.
-    const posortowane = [...czasy].sort((a, b) => a - b);
-    const mediana = posortowane[Math.floor(posortowane.length / 2)];
-
-    // Przed poprawką: ~40 ms. Po: ~5 ms. Próg 25 ms łapie powrót do inline,
-    // a zostawia zapas na wolniejszą maszynę.
-    expect(mediana).toBeLessThan(25);
+    // Bez memoizacji pełna talia (65 kart) jest wielokrotnie droższa od pięciu.
+    // Z nią różnica jest niewielka — zapas na szum pomiaru zostawiam duży,
+    // bo chodzi o złapanie regresji rzędu wielkości, nie o mikrooptymalizację.
+    expect(pelna).toBeLessThan(Math.max(krotka * 4, 15));
   });
 
   it('funkcje obsługi są stabilne między renderami', () => {

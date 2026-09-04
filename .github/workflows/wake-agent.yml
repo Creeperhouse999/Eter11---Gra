@@ -1,0 +1,70 @@
+name: Budzenie agenta przy nowym zgłoszeniu
+
+# Agent w chmurze chodził z zegara raz na dobę (o 2:00 w nocy), więc
+# zgłoszenie wysłane rano czekało kilkanaście godzin. Ten workflow pilnuje
+# bazy i budzi go, gdy faktycznie jest co robić.
+#
+# Czemu tędy: Firestore sam nikogo nie zawoła (zrobiłyby to Cloud Functions,
+# których w tym projekcie nie używamy), a panel w przeglądarce nie może nosić
+# tokena do konta Claude. Actions ma sekrety bezpiecznie.
+on:
+  schedule:
+    # Co 5 minut — najkrótszy sensowny odstęp w Actions. GitHub bywa
+    # niepunktualny przy obciążeniu, więc realnie bywa 5–15 min.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Jedno wykonanie naraz: dwa równoległe przeczytałyby ten sam stan i obudziły
+# agenta dwa razy na to samo zgłoszenie.
+concurrency:
+  group: wake-agent
+  cancel-in-progress: false
+
+jobs:
+  sprawdz:
+    runs-on: ubuntu-latest
+    permissions:
+      # Zapis stanu do gałęzi `agent-state` — bez tego każdy przebieg
+      # zaczynałby od zera i budził agenta w kółko.
+      contents: write
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Stan (widziane identyfikatory) trzymamy w osobnej gałęzi, nie na
+      # masterze — inaczej co 5 minut leciałby commit do historii projektu
+      # i zaśmiecał listę zmian.
+      - name: Wczytaj poprzedni stan
+        run: |
+          git fetch origin agent-state --depth=1 || echo "Gałęzi jeszcze nie ma — pierwszy przebieg."
+          git show origin/agent-state:agent-state.json > agent-state.json 2>/dev/null \
+            || echo "Brak zapisanego stanu."
+
+      - name: Sprawdź zgłoszenia i dyskusje
+        id: sprawdz
+        env:
+          CLAUDE_CODE_TOKEN: ${{ secrets.CLAUDE_CODE_TOKEN }}
+        run: node scripts/wake-agent.mjs
+
+      # Zapisujemy stan także wtedy, gdy budzenie się nie powiodło: przy
+      # następnym przebiegu zgłoszenie i tak jest już „widziane", a bez tego
+      # workflow dobijałby się do agenta co 5 minut w nieskończoność.
+      - name: Zapisz stan
+        if: always()
+        run: |
+          if [ ! -f agent-state.json ]; then
+            echo "Nie ma czego zapisać."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan zapis
+          git rm -rf --cached . > /dev/null
+          git add -f agent-state.json
+          git commit -m "stan: widziane zgłoszenia i wątki" --quiet || exit 0
+          git push --force origin zapis:agent-state

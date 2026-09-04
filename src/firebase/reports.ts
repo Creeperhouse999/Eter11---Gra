@@ -66,6 +66,35 @@ export interface ReportNote {
  */
 export type ReportPriority = 'low' | 'medium' | 'high' | 'ultra';
 
+/**
+ * Na czym stoi robota nad zgłoszeniem.
+ *
+ * To OSOBNE pole od `status`, i to jest tu sedno. Status opisuje obieg
+ * zgłoszenia i należy do zgłaszającego — `done` stawia tylko on. Postęp
+ * należy do wykonawcy i mówi jedno: „widzę to zgłoszenie, siedzę przy nim".
+ * Gdyby dzielić jedno pole, ustawienie „pracuję" kasowałoby informację, że
+ * zgłoszenie zostało wcześniej zaakceptowane.
+ *
+ * Alan poprosił o to wprost: Adam siada do pracy i chce widzieć, czy jego
+ * zgłoszenie leży nietknięte, czy ktoś już przy nim jest.
+ */
+export type ReportProgress = 'queued' | 'working' | 'testing' | 'finished';
+
+export const PROGRESS_LABELS: Record<ReportProgress, string> = {
+  queued: 'W kolejce',
+  working: 'Robi się',
+  testing: 'Sprawdzam',
+  finished: 'Zrobione',
+};
+
+/** Kolejność do wyświetlania — od „jeszcze nie zacząłem" do „skończone". */
+export const PROGRESS_ORDER: ReportProgress[] = [
+  'queued',
+  'working',
+  'testing',
+  'finished',
+];
+
 /** Kolejność do sortowania — najpilniejsze na górze listy. */
 export const PRIORITY_ORDER: Record<ReportPriority, number> = {
   ultra: 0,
@@ -93,6 +122,13 @@ export interface Report {
    * „zwykły", żeby nie wypychały nowych ani nie spadały na sam dół.
    */
   priority?: ReportPriority;
+  /**
+   * Na czym stoi robota. Brak pola znaczy „nikt jeszcze nie tknął" — tak
+   * wyglądają wszystkie zgłoszenia sprzed tej zmiany.
+   */
+  progress?: ReportProgress;
+  /** Kiedy postęp ostatnio ruszył — bez tego „robi się" sprzed tygodnia wygląda jak świeże. */
+  progressAt?: string;
   createdAt: string;
   /** Adresy zrzutów ekranu wgranych do Storage. Najwyżej pięć. */
   images?: string[];
@@ -148,7 +184,12 @@ export async function addReport(input: {
 }
 
 /** Wspólne mapowanie dokumentu na `Report` — dla odczytu i nasłuchu. */
-function toReport(id: string, data: Record<string, unknown>): Report {
+export function toReport(id: string, data: Record<string, unknown>): Report {
+  // Postęp wpuszczamy tylko ze znanej listy. Do bazy da się wpisać cokolwiek
+  // przez REST, a plakietka z przypadkowym tekstem myliłaby bardziej, niż
+  // pomagała — nieznana wartość czyta się więc jako „nikt nie tknął".
+  const progress = data.progress as ReportProgress | undefined;
+
   return {
     id,
     kind: (data.kind as ReportKind) ?? 'bug',
@@ -157,6 +198,8 @@ function toReport(id: string, data: Record<string, unknown>): Report {
     status: (data.status as ReportStatus) ?? 'new',
     author: (data.author as string) ?? undefined,
     priority: (data.priority as ReportPriority) ?? undefined,
+    progress: progress && PROGRESS_ORDER.includes(progress) ? progress : undefined,
+    progressAt: (data.progressAt as string) ?? undefined,
     createdAt: (data.createdAt as string) ?? '',
     images: (data.images as string[]) ?? [],
     notes: (data.notes as ReportNote[]) ?? [],
@@ -193,6 +236,22 @@ export function watchReports(
     },
     (error) => onError?.(error.message),
   );
+}
+
+/**
+ * Ustawia, na czym stoi robota — bez ruszania statusu.
+ *
+ * `null` cofa do „nikt nie tknął": czyścimy pole zamiast zapisywać pustą
+ * wartość, żeby lista nie pokazywała pustej plakietki przy każdym zgłoszeniu.
+ */
+export async function setReportProgress(
+  id: string,
+  progress: ReportProgress | null,
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), {
+    progress,
+    progressAt: progress ? new Date().toISOString() : null,
+  });
 }
 
 /**
