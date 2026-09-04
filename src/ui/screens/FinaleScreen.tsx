@@ -79,7 +79,16 @@ export function FinaleScreen({
           <h2 className="font-display text-2xl font-bold">
             {team.won ? text.finaleTeamWon : text.finaleTeamLost}
           </h2>
-          <p className="mt-2 text-sm">
+          {/* Epilog — kilka zdań, jak zakończenie książki czy filmu, zamiast
+              jednego komunikatu. Adam poprosił o to wprost: „nie może być
+              1 zdanie". Puste pole (redaktor wyczyścił) nie zostawia śmieci —
+              tak samo jak przykłady zawodów niżej. */}
+          {(team.won ? text.finaleEpilogueWon : text.finaleEpilogueLost).trim() && (
+            <p className="mt-2 max-w-prose text-sm leading-relaxed">
+              {team.won ? text.finaleEpilogueWon : text.finaleEpilogueLost}
+            </p>
+          )}
+          <p className="mt-3 text-sm">
             {/* Mianownik to problemy NAPOTKANE (rozwiązane + nierozwiązane), nie
                 liczba misji: Czarny Łabędź „dodatkowy problem" dokłada drugi
                 problem do misji, więc wygrana misja wnosi do `solvedProblems`
@@ -88,7 +97,6 @@ export function FinaleScreen({
                 „Nierozwiązane" niżej. */}
             Rozwiązane problemy: <strong className="font-mono">{team.solved}</strong> z{' '}
             {team.solved + state.unsolvedProblems.length}.
-            {!team.won && ' Możecie przegrać bitwę, ale nie wojnę.'}
           </p>
           {/* Marcin pytał wprost, jak rozumieć wynik: ekran pokazywał liczby,
               ale nie mówił, ile trzeba, żeby wygrać. Próg bierzemy z zasad,

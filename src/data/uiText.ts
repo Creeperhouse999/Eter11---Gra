@@ -27,6 +27,16 @@ export interface UiText {
   finaleHeading: string;
   finaleTeamWon: string;
   finaleTeamLost: string;
+  /**
+   * Epilog — kilka zdań podsumowujących całą rozgrywkę jak zakończenie
+   * książki albo filmu, osobno dla wygranej i przegranej. Adam poprosił
+   * wprost o coś dłuższego niż jedno zdanie: „aby pełnymi zdaniami opisywało
+   * co się wydarzyło podczas tych rund, czego się nauczyliśmy, czego
+   * zabrakło". Statyczny tekst, nie szablon — konkretne liczby (rozwiązane
+   * problemy, próg wygranej) już pokazuje osobny wiersz obok.
+   */
+  finaleEpilogueWon: string;
+  finaleEpilogueLost: string;
   finaleFulfillment: string;
   finaleJobPrompt: string;
   /** Przykłady zawodów przyszłości — rozdzielone przecinkami. */
@@ -58,6 +68,10 @@ export const DEFAULT_UI_TEXT: UiText = {
   finaleHeading: 'Podsumowanie misji',
   finaleTeamWon: 'Wygraliście wspólnie',
   finaleTeamLost: 'Świat wciąż czeka na Wasz powrót',
+  finaleEpilogueWon:
+    'Wieści dotarły do roku 2111 tej samej nocy. ETER11 patrzy na to, co zrobiliście, i pierwszy raz od bardzo dawna coś w nim się rozjaśnia. Nie wygraliście w pojedynkę: ktoś słuchał, ktoś sprawdzał fakty, ktoś nie dawał się zniechęcić, gdy szło źle — a wszystkie te kawałki złożyły się w rozwiązanie, którego żadne z Was nie znalazłoby samo. Miasto znów ma prąd, plotka, która krążyła po sieci, w końcu ucichła, a ludzie zaczynają sobie znowu ufać. To, czego się dziś nauczyliście — cierpliwości, sprawdzania źródeł, pytania „a co, jeśli się mylę?" — zostaje z Wami długo po tym, jak odłożycie karty. ETER11 nie znika: wraca, gdy będziecie gotowi na kolejny problem, bo w 2111 roku wciąż jest ich sporo do rozwiązania. Na razie jednak zasłużyliście na chwilę, żeby się cieszyć z tego, co się właśnie udało.',
+  finaleEpilogueLost:
+    'ETER11 nie znika, kiedy coś się nie uda — zostaje, bo wie, że najwięcej uczą właśnie porażki, którym się dobrze przyjrzy. Problem, którego nie rozwiązaliście, nie zniknął ze świata roku 2111 — czeka dalej, tak jak czekał, zanim się o nim dowiedzieliście. Ale coś się zmieniło: teraz wiecie więcej o tym, czego mu trzeba, i o tym, gdzie Waszej drużynie zabrakło jednego, konkretnego kawałka układanki. Może to była kompetencja, której nikt nie miał akurat pod ręką. Może zabrakło chwili, żeby się zatrzymać i zapytać kogoś o zdanie, zanim czas rundy się skończył. Dobra wiadomość jest taka, że w tej grze porażka nigdy nie jest ostateczna — każdy, kto dziś grał, i tak wraca z czymś nowym na swojej karcie postaci. ETER11 wróci z tym samym problemem później, w kolejnej misji, a Wy będziecie mądrzejsi o dzisiejszą rundę. Możecie przegrać bitwę, ale nie wojnę — najlepsze drużyny to te, które próbują drugi raz.',
   finaleFulfillment: 'Spełnienie osiągnięte — Twoja postać rozwinęła się w pełni.',
   finaleJobPrompt:
     'Twój zawód przyszłości — połącz talent, kompetencję i problem, który Cię zaciekawił',
@@ -93,6 +107,8 @@ export const UI_TEXT_FIELDS: Array<{
   { key: 'finaleHeading', label: 'Nagłówek finału', where: 'Ekran końcowy' },
   { key: 'finaleTeamWon', label: 'Wynik drużyny — wygrana', where: 'Ekran końcowy' },
   { key: 'finaleTeamLost', label: 'Wynik drużyny — przegrana', where: 'Ekran końcowy' },
+  { key: 'finaleEpilogueWon', label: 'Epilog — wygrana', where: 'Ekran końcowy, pod wynikiem', multiline: true },
+  { key: 'finaleEpilogueLost', label: 'Epilog — przegrana', where: 'Ekran końcowy, pod wynikiem', multiline: true },
   { key: 'finaleFulfillment', label: 'Komunikat o spełnieniu', where: 'Ekran końcowy, przy graczu' },
   { key: 'finaleJobPrompt', label: 'Pytanie o zawód przyszłości', where: 'Ekran końcowy', multiline: true },
   { key: 'finaleJobExamples', label: 'Przykłady zawodów', where: 'Ekran końcowy (po przecinku)', multiline: true },
