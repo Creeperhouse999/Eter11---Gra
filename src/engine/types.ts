@@ -143,6 +143,14 @@ export interface RulesConfig {
   teamWinThreshold: number;      // 5
   maxMatCardsPerMission: number; // 1
   /**
+   * Ile kart ETER11 i ile Czarnych Łabędzi jest w całej talii.
+   *
+   * Marcin zgłosił, że jeden gracz dostawał ETER11 cztery razy w partii,
+   * a drugi ani razu — karty specjalne były pojedyncze, gdy zwykłe szły
+   * w dwóch egzemplarzach. Adam ustalił po cztery, jak w fizycznym pudełku.
+   */
+  specialCardCopies: number; // 4
+  /**
    * Górna granica kart w ręce.
    *
    * Co rundę każdy dobiera kartę, ale kto pasuje zamiast grać, nie oddaje

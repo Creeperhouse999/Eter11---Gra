@@ -194,7 +194,25 @@ export const ALL_CARDS: Card[] = [
  * dawałaby zbyt małą szansę na trafienie właściwego koloru. Karty specjalne
  * pozostają pojedyncze, żeby zachować efekt rzadkości.
  */
-export function buildDeck(cards: Card[] = ALL_CARDS): Card[] {
+export function buildDeck(
+  cards: Card[] = ALL_CARDS,
+  options?: {
+    /**
+     * Ile kopii każdej karty specjalnej (ETER11, Czarny Łabędź) trafia do
+     * talii.
+     *
+     * Marcin zgłosił, że przy siedmiu problemach jeden gracz dostał ETER11
+     * cztery razy, a drugi ani razu — przy pojedynczych kartach specjalnych
+     * i podwojonych zwykłych trafienie zależało wyłącznie od tasowania.
+     * Adam ustalił: „na całą talię ustalmy, że są 4 karty eter i 4 karty
+     * Czarny Łabędź", tak jak w fizycznym pudełku.
+     *
+     * Brak wartości zostawia talię taką, jaka była — po jednej sztuce
+     * z każdej karty specjalnej.
+     */
+    specialCopies?: number;
+  },
+): Card[] {
   const isSpecial = (card: Card) =>
     card.category === 'eter11' || card.category === 'blackswan';
 
@@ -202,7 +220,35 @@ export function buildDeck(cards: Card[] = ALL_CARDS): Card[] {
   const regular = cards.filter((card) => !isSpecial(card));
   const copies = regular.flatMap((card) => [card, { ...card, id: `${card.id}-b` }]);
 
-  return [...copies, ...specialCards];
+  const ileSpecjalnych = options?.specialCopies;
+  if (ileSpecjalnych === undefined) {
+    return [...copies, ...specialCards];
+  }
+
+  // Liczba dotyczy KATEGORII, nie pojedynczej karty: Adam ustalił „4 karty
+  // eter i 4 karty Czarny Łabędź" na całą talię. Wariantów Łabędzia jest
+  // kilka (różne zdarzenia), więc rozkładamy limit po równo między nie —
+  // mnożenie każdego wariantu przez cztery dałoby dwanaście Łabędzi zamiast
+  // czterech.
+  const ile = Math.max(0, ileSpecjalnych);
+  const specjalne: Card[] = [];
+
+  for (const kategoria of ['eter11', 'blackswan'] as const) {
+    const warianty = specialCards.filter((c) => c.category === kategoria);
+    if (warianty.length === 0) continue;
+
+    for (let i = 0; i < ile; i += 1) {
+      // Po kolei w kółko: przy trzech wariantach i czterech kartach wychodzi
+      // 2+1+1, a nie cztery kopie tego samego zdarzenia.
+      const wzor = warianty[i % warianty.length];
+      // Każda kopia z własnym identyfikatorem — silnik rozpoznaje karty po
+      // `id`, więc kopie z tym samym id zachowywałyby się jak jedna karta:
+      // zagranie jednej „zużyłoby" pozostałe.
+      specjalne.push(i < warianty.length ? wzor : { ...wzor, id: `${wzor.id}-${i + 1}` });
+    }
+  }
+
+  return [...copies, ...specjalne];
 }
 
 /**

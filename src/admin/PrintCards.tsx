@@ -117,7 +117,9 @@ function KartaProblemu({ problem }: { problem: Problem }) {
  * odzwierciedlałby prawdziwego balansu.
  */
 export function PrintCards({ content, onEdit }: PrintCardsProps) {
-  const deck = buildDeck(playableCards(content.cards));
+  const deck = buildDeck(playableCards(content.cards), {
+    specialCopies: content.rules?.specialCardCopies,
+  });
   const razem = deck.length + content.problems.length + content.characters.length;
 
   return (

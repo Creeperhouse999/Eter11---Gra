@@ -36,7 +36,7 @@ describe('PrintCards', () => {
   it('drukuje dokładnie tyle kart, ile buduje silnik gry (draft pominięte, kompetencje x2)', () => {
     const c = content();
     render(<PrintCards content={c} />);
-    const expected = buildDeck(playableCards(c.cards));
+    const expected = buildDeck(playableCards(c.cards), { specialCopies: c.rules.specialCardCopies });
     // Wydruk to CAŁE pudełko: kompetencje plus problemy i postacie. Adam
     // zgłosił jako krytyczne, że bez nich nie da się rozegrać partii na
     // papierze — a to jedyny powód istnienia tej zakładki.
@@ -56,16 +56,20 @@ describe('PrintCards', () => {
     expect(screen.queryByText(draftCard!.name)).toBeNull();
   });
 
-  it('karty specjalne (ETER11) nie są podwajane, w przeciwieństwie do kompetencji', () => {
-    // Licznik po opisie, nie po nazwie: nazwa karty „ETER11” koliduje z
-    // etykietą kategorii (też „ETER11”), która w tym samym article ma
+  it('kart specjalnych jest tyle, ile mówią zasady — jak w pudełku', () => {
+    // Marcin zgłosił, że ETER11 wypadał jednemu graczowi cztery razy, a
+    // drugiemu ani razu; Adam ustalił po cztery karty ETER11 i cztery Czarne
+    // Łabędzie na całą talię. Wydruk musi się z tym zgadzać, bo to ta sama
+    // talia, tylko na papierze.
+    //
+    // Licznik po opisie, nie po nazwie: nazwa karty „ETER11" koliduje
+    // z etykietą kategorii (też „ETER11"), która w tym samym article ma
     // osobny akapit — liczenie po nazwie złapałoby oba i podwoiło wynik.
     const c = content();
     render(<PrintCards content={c} />);
     const description = 'Super Mentor. Zastępuje dowolną kartę potrzebną do rozwiązania problemu.';
-    const expectedCount = c.cards.filter((card) => card.description === description).length;
-    expect(expectedCount).toBeGreaterThan(0);
-    expect(screen.getAllByText(description)).toHaveLength(expectedCount);
+
+    expect(screen.getAllByText(description)).toHaveLength(c.rules.specialCardCopies);
   });
 
   /**
@@ -77,7 +81,7 @@ describe('PrintCards', () => {
   it("liczba w opisie rośnie po dodaniu karty w panelu", () => {
     const przed = content();
     const { unmount } = render(<PrintCards content={przed} />);
-    const bazowa = buildDeck(playableCards(przed.cards)).length;
+    const bazowa = buildDeck(playableCards(przed.cards), { specialCopies: przed.rules.specialCardCopies }).length;
     // Opis i przycisk osobno: gdy jedno z nich ma liczbę wpisaną na sztywno,
     // drugie i tak liczy poprawnie i test by tego nie zauważył.
     expect(opisMowiO(bazowa)).toBe(true);
@@ -91,7 +95,7 @@ describe('PrintCards', () => {
     po.cards.push({ ...po.cards.find((c) => c.category === "psychological")!, id: "nowa-testowa" });
     render(<PrintCards content={po} />);
 
-    const oczekiwana = buildDeck(playableCards(po.cards)).length;
+    const oczekiwana = buildDeck(playableCards(po.cards), { specialCopies: po.rules.specialCardCopies }).length;
     expect(oczekiwana).toBe(bazowa + 2);
     expect(opisMowiO(oczekiwana)).toBe(true);
     const razemPo = oczekiwana + po.problems.length + po.characters.length;

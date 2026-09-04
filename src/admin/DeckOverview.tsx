@@ -37,7 +37,7 @@ const CATEGORIES: CardCategory[] = [
  * na liczbę graczy, problemy bez podpowiedzi, ścianki nie do domknięcia.
  */
 export function DeckOverview({ content, onGoTo }: DeckOverviewProps) {
-  const deck = buildDeck(content.cards);
+  const deck = buildDeck(content.cards, { specialCopies: content.rules?.specialCardCopies });
   const { rules, problems, cards } = content;
 
   // Twarde sprawdzenie grywalności („ścianka bez ani jednej karty") liczy tylko

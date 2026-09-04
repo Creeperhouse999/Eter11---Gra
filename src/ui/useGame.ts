@@ -52,7 +52,9 @@ export function setupGame(
     // Wersje robocze (`draft`) nie trafiają do gry — panel obiecuje to
     // redaktorowi, a test pokrycia ścianek liczy tylko treść nieroboczą.
     // `orderedDeck`/samouczek podaje własną, ustaloną talię i jej nie ruszamy.
-    deck: content.orderedDeck ?? buildDeck(playableCards(content.cards)),
+    deck: content.orderedDeck ?? buildDeck(playableCards(content.cards), {
+        specialCopies: config.specialCardCopies,
+      }),
     problems: playableProblems(content.problems),
     seed,
     config,

@@ -115,7 +115,9 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
       // specjalnych, więc te same 2 karty ETER11 stanowiły dwa razy większy
       // odsetek talii i krążyły dwa razy częściej niż przy stole — zgłoszony
       // bug „jeden gracz dostał ETER11 cztery razy, drugi ani razu".
-      deck: buildDeck(playableCards(content.cards)),
+      deck: buildDeck(playableCards(content.cards), {
+        specialCopies: content.rules?.specialCardCopies,
+      }),
       problems: playableProblems(content.problems),
       // Ziarno z kodu pokoju — ta sama partia u wszystkich, powtarzalna.
       seed: [...code].reduce((sum, ch) => sum + ch.charCodeAt(0), 0),

@@ -31,6 +31,9 @@ const FIELDS: Field[] = [
   { key: 'missionsPerGame', label: 'Misji w grze', hint: 'Po tylu misjach gra się kończy.', min: 1, max: 20 },
   { key: 'teamWinThreshold', label: 'Próg zwycięstwa drużyny', hint: 'Tyle rozwiązanych problemów daje wspólną wygraną.', min: 1, max: 20 },
   { key: 'maxMatCardsPerMission', label: 'Kart z postaci na misję', hint: 'Ile kart ze swojej postaci gracz może użyć.', min: 0, max: 5 },
+  // Marcin zgłosił, że ETER11 wypadał jednemu graczowi cztery razy, a drugiemu
+  // ani razu — karty specjalne były pojedyncze, gdy zwykłe szły po dwie.
+  { key: 'specialCardCopies', label: 'Kart ETER11 i Łabędzi w talii', hint: 'Ile kart ETER11 i ile Czarnych Łabędzi trafia do talii. Jak w pudełku: policzalne i stałe.', min: 0, max: 12 },
   { key: 'pointsPerExperience', label: 'Punkty za doświadczenie', hint: 'Punktacja końcowa.', min: 0, max: 10 },
   { key: 'pointsPerFulfillment', label: 'Punkty za spełnienie', hint: 'Punktacja końcowa.', min: 0, max: 20 },
 ];

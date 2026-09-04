@@ -110,7 +110,11 @@ describe('Multiplayer — rozmiar talii przy starcie gry online', () => {
     expect(createGameSpy).toHaveBeenCalledTimes(1);
     const [input] = createGameSpy.mock.calls[0] as [{ deck: unknown[] }];
 
-    const expected = buildDeck(playableCards(BUILTIN_CONTENT.cards)).length;
+    // Talia online musi być IDENTYCZNA z tą przy stole — łącznie z liczbą kart
+    // specjalnych, którą zespół ustawia w zasadach.
+    const expected = buildDeck(playableCards(BUILTIN_CONTENT.cards), {
+      specialCopies: BUILTIN_CONTENT.rules.specialCardCopies,
+    }).length;
     const undoubled = playableCards(BUILTIN_CONTENT.cards).length;
     // Bez fixu: input.deck.length === undoubled (o połowę za mała talia).
     expect(input.deck.length).not.toBe(undoubled);

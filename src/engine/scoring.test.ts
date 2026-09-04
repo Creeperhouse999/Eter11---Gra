@@ -18,6 +18,7 @@ const config: RulesConfig = {
   missionsPerGame: 7,
   teamWinThreshold: 5,
   maxMatCardsPerMission: 1,
+  specialCardCopies: 4,
   maxHandSize: 7,
   pointsPerExperience: 1,
   pointsPerFulfillment: 2,
