@@ -35,8 +35,8 @@ const getBarrier = new Promise<void>((resolve) => {
 let txChain: Promise<unknown> = Promise.resolve();
 
 vi.mock('firebase/database', () => ({
-  ref: () => ({}),
-  get: async () => {
+  ref: (_db: unknown, path: string) => ({ path }),
+  get: async (r: { path?: string }) => {
     // Migawka jest zamrożona W CHWILI odczytu (jak prawdziwy snapshot RTDB),
     // nie żywym odczytem `currentRoom` — inaczej to, kto obudzi się z bariery
     // pierwszy, przypadkiem czytałby już zmutowany przez drugiego stan.
@@ -44,7 +44,14 @@ vi.mock('firebase/database', () => ({
     getCalls += 1;
     if (getCalls >= 2) releaseGet();
     await getBarrier;
-    return { exists: () => snapshot !== null, val: () => snapshot };
+    // Odczyt `players` (sprawdzenie limitu po zapisie) zwraca ŻYWĄ mapę,
+    // nie zamrożoną migawkę — inaczej drugi gracz nie zobaczyłby pierwszego
+    // i obaj uznaliby, że się zmieścili.
+    const czyGracze = String(r?.path ?? '').endsWith('/players');
+    return {
+      exists: () => snapshot !== null,
+      val: () => (czyGracze ? (currentRoom ? currentRoom.players : null) : snapshot),
+    };
   },
   update: vi.fn(async (_ref: unknown, patch: Record<string, unknown>) => {
     // Symuluje `update(ref(.../players), { [uid]: player })` starego kodu:
@@ -54,7 +61,10 @@ vi.mock('firebase/database', () => ({
   }),
   onDisconnect: vi.fn(),
   onValue: vi.fn(),
-  remove: vi.fn(),
+  remove: vi.fn(async (r: { path?: string }) => {
+    const uid = (r.path ?? '').split('/').pop();
+    if (currentRoom && uid) delete currentRoom.players[uid];
+  }),
   runTransaction: vi.fn((_ref: unknown, updateFn: (r: unknown) => unknown) => {
     // Symuluje atomowość prawdziwej transakcji RTDB: wywołania serializują
     // się jedno po drugim, każde widzi już scalony wynik poprzedniego.
@@ -67,7 +77,13 @@ vi.mock('firebase/database', () => ({
     return run;
   }),
   serverTimestamp: () => 0,
-  set: vi.fn(),
+  set: vi.fn(async (r: { path?: string }, value: unknown) => {
+    // Odwzorowuje zapis pod `rooms/<kod>/players/<uid>`: wstawia gracza
+    // do mapy, bez żadnej blokady — tak samo jak RTDB.
+    const uid = (r.path ?? '').split('/').pop();
+    if (!currentRoom || !uid) return;
+    currentRoom.players[uid] = value as never;
+  }),
 }));
 
 const { joinRoom } = await import('./room');

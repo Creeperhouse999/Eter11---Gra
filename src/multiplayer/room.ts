@@ -125,76 +125,91 @@ export async function joinRoom(input: {
     }
   }
 
-  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
-
-  // Odczyt PRZED transakcją — dołączanie jest pierwszym dotykiem tej ścieżki
-  // przez klienta, więc lokalny cache RTDB jest zimny. Bez tego `get()`
-  // pierwszy przebieg `runTransaction` poniżej dostaje `null` (SDK zgaduje
-  // z pustego cache), a zwrócenie tego `null` to dla RTDB próba ZAPISANIA
-  // null — czyli skasowania — pod pokojem, który naprawdę istnieje. Reguła
-  // bazy (`!data.exists()`) taki zapis odrzuca jako PERMISSION_DENIED, a to
-  // odrzucenie z reguł (nie ze sporu o nieaktualne dane) SDK NIE ponawia —
-  // dołączenie do istniejącego pokoju wywalało się wyjątkiem, zanim
-  // transakcja w ogóle zobaczyła prawdziwy stan (dokładnie zgłoszony bug:
-  // kod poprawny, drugi gracz dostawał "Nie udało się dołączyć"). `get()`
-  // ogrzewa cache, więc poniższa transakcja startuje już z realnymi danymi.
-  // (Odczyt zrobiliśmy wyżej, przy wybieraniu kodu — cache jest już ciepły.)
+  // Pokoju nie ma pod żadną wersją kodu — wpisanym ani poprawionym.
   if (!existing.exists()) {
     return { ok: false, error: 'Nie ma pokoju o takim kodzie.' };
   }
 
-  // Transakcja, bo dwóch graczy mogłoby dołączać do OSTATNIEGO wolnego
-  // miejsca w tej samej chwili — osobny `get()` + `update()` sprawdzał limit
-  // i zapisywał gracza nieatomowo, więc oboje przechodzili sprawdzenie i
-  // pokój kończył z pięcioma graczami mimo limitu czterech.
-  let result: { ok: boolean; error?: string } = {
-    ok: false,
-    error: 'Nie ma pokoju o takim kodzie.',
+  // Sprawdzenia liczymy na danych z `get()` wyżej, a gracza zapisujemy
+  // BEZPOŚREDNIO pod swoim węzłem — nie transakcją na całym pokoju.
+  //
+  // Transakcja była tu trzecim nieudanym podejściem: SDK woła jej funkcję
+  // z `null` przy pierwszym przebiegu (zgaduje z pustego lokalnego cache),
+  // więc dołączenie przerywało się bez zapisu, a gracz dostawał „nie ma
+  // pokoju o takim kodzie" przy pokoju, który był w bazie. Ani wcześniejszy
+  // `get()` (miał ogrzać cache), ani `applyLocally: false` tego nie zmieniły —
+  // sprawdzone na żywej bazie trzy razy z rzędu.
+  //
+  // Reguły bazy pozwalają pisać własny węzeł gracza (`$uid === auth.uid`),
+  // więc zapis nie potrzebuje transakcji na całości. Wyścig o ostatnie
+  // miejsce zostaje wyłapany zaraz po zapisie: jeśli graczy jest za dużo,
+  // wycofujemy własny wpis. To rzadki przypadek (czterech chętnych w tej
+  // samej sekundzie), a cena jest niska — w przeciwieństwie do dołączania,
+  // które nie działa nigdy.
+  const pokoj = hydrateRoom(existing.val() as Room);
+
+  if ((pokoj as Room & { kicked?: Record<string, boolean> }).kicked?.[uid]) {
+    return { ok: false, error: 'Zostałeś usunięty z tego pokoju.' };
+  }
+
+  const gracze = pokoj.players ?? {};
+  const wraca = Boolean(gracze[uid]);
+  if (!wraca) {
+    if (pokoj.phase !== 'lobby') {
+      return { ok: false, error: 'Gra już się zaczęła.' };
+    }
+    if (Object.keys(gracze).length >= 4) {
+      return { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
+    }
+  }
+
+  const player: RoomPlayer = {
+    uid,
+    name: input.name.trim() || 'Gracz',
+    characterId: input.characterId,
+    online: true,
+    ready: gracze[uid]?.ready ?? false,
+    joinedAt: gracze[uid]?.joinedAt ?? Date.now(),
   };
 
-  await runTransaction(roomRef, (room: (Room & { kicked?: Record<string, boolean> }) | null) => {
-    if (!room) {
-      // Pokój zniknął między odczytem wyżej a transakcją (skasowany w
-      // międzyczasie) — przerywamy BEZ zapisu (nie zwracamy `room`, bo to
-      // `null` skończyłoby się tą samą odmową z reguł co opisano wyżej).
-      return undefined;
-    }
-    if (room.kicked?.[uid]) {
-      result = { ok: false, error: 'Zostałeś usunięty z tego pokoju.' };
-      return room;
-    }
-    // Gracz wracający do swojego pokoju (rozłączenie) po prostu wchodzi znów.
-    // Limit i sprawdzenie liczą się po graczach PO `hydrateRoom` — surowy
-    // węzeł bywa zaśmiecony wpisem-widmem po wyrzuconym graczu (patrz
-    // `realPlayers` w hydrate.ts), który inaczej dożywotnio zajmowałby slot.
-    const players = hydrateRoom(room).players;
-    const rejoining = Boolean(players[uid]);
-    if (!rejoining) {
-      if (room.phase !== 'lobby') {
-        result = { ok: false, error: 'Gra już się zaczęła.' };
-        return room;
-      }
-      if (Object.keys(players).length >= 4) {
-        result = { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
-        return room;
-      }
-    }
-
-    const player: RoomPlayer = {
-      uid,
-      name: input.name.trim() || 'Gracz',
-      characterId: input.characterId,
-      online: true,
-      ready: players[uid]?.ready ?? false,
-      joinedAt: players[uid]?.joinedAt ?? Date.now(),
+  try {
+    await set(ref(rtdb, `${ROOMS}/${code}/players/${uid}`), player);
+  } catch (error) {
+    const wiadomosc = error instanceof Error ? error.message : String(error);
+    return {
+      ok: false,
+      error: wiadomosc.includes('permission')
+        ? 'Nie udało się dołączyć — brak uprawnień do tego pokoju.'
+        : 'Nie udało się dołączyć. Sprawdź połączenie i spróbuj jeszcze raz.',
     };
-    if (!room.players) room.players = {};
-    room.players[uid] = player;
-    result = { ok: true };
-    return room;
-  });
+  }
 
-  if (!result.ok) return result;
+  // Wyścig o ostatnie miejsce: dwóch graczy mogło zapisać się jednocześnie.
+  // Sprawdzamy po fakcie i wycofujemy własny wpis, jeśli przekroczyliśmy limit.
+  if (!wraca) {
+    const poZapisie = await get(ref(rtdb, `${ROOMS}/${code}/players`));
+    const wszyscy = hydrateRoom({ players: poZapisie.val() } as Room).players;
+
+    if (Object.keys(wszyscy).length > 4) {
+      // Wycofuje się TYLKO nadmiarowy, nie każdy, kto zobaczy tłok. Gdyby
+      // wycofywali się wszyscy przekroczeni, przy dwóch chętnych na jedno
+      // miejsce nie wszedłby nikt — a miejsce jest przecież wolne.
+      //
+      // Kolejność liczą wszyscy tak samo (czas dołączenia, przy remisie
+      // identyfikator), więc każdy dochodzi do tego samego wniosku, kto ma
+      // ustąpić — bez uzgadniania między sobą.
+      const kolejka = Object.values(wszyscy).sort(
+        (a, b) => a.joinedAt - b.joinedAt || a.uid.localeCompare(b.uid),
+      );
+      const mojeMiejsce = kolejka.findIndex((p) => p.uid === uid);
+
+      if (mojeMiejsce >= 4) {
+        await remove(ref(rtdb, `${ROOMS}/${code}/players/${uid}`));
+        return { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
+      }
+    }
+  }
+
   // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
   //
   // Zwracamy KOD, którego naprawdę użyliśmy. Ekran lobby odtwarzał go

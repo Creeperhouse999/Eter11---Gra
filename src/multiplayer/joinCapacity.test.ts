@@ -13,7 +13,7 @@ import type { Room } from './types';
 vi.mock('firebase/auth', () => ({ signInAnonymously: vi.fn() }));
 vi.mock('../firebase/client', () => ({ rtdb: {}, auth: { currentUser: { uid: 'newbie' } } }));
 vi.mock('firebase/database', () => ({
-  ref: () => ({}),
+  ref: (_db: unknown, path: string) => ({ path }),
   get: async () => ({
     exists: () => true,
     val: () => currentRoom,
@@ -21,14 +21,24 @@ vi.mock('firebase/database', () => ({
   update: vi.fn(async () => undefined),
   onDisconnect: vi.fn(),
   onValue: vi.fn(),
-  remove: vi.fn(),
+  remove: vi.fn(async (r: { path?: string }) => {
+    const uid = (r.path ?? '').split('/').pop();
+    if (currentRoom && uid) delete (currentRoom.players as Record<string, unknown>)[uid];
+  }),
   runTransaction: vi.fn(async (_ref: unknown, updateFn: (r: unknown) => unknown) => {
     const next = updateFn(currentRoom);
     if (next !== undefined) currentRoom = next as typeof currentRoom;
     return { committed: next !== undefined, snapshot: { val: () => currentRoom } };
   }),
   serverTimestamp: () => 0,
-  set: vi.fn(),
+  set: vi.fn(async (r: { path?: string }, value: unknown) => {
+    // Odwzorowuje zapis pod `rooms/<kod>/players/<uid>` — tak dołącza teraz
+    // gracz, zamiast transakcji na całym pokoju.
+    const uid = (r.path ?? '').split('/').pop();
+    if (!currentRoom || !uid) return;
+    if (!currentRoom.players) currentRoom.players = {} as never;
+    (currentRoom.players as Record<string, unknown>)[uid] = value;
+  }),
 }));
 
 let currentRoom: (Room & { kicked?: Record<string, boolean> }) | null = null;

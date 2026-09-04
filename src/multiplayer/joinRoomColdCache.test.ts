@@ -24,14 +24,17 @@ vi.mock('../firebase/client', () => ({ rtdb: {}, auth: {} }));
 let currentRoom: (Room & { kicked?: Record<string, boolean> }) | null = null;
 
 vi.mock('firebase/database', () => ({
-  ref: () => ({}),
+  ref: (_db: unknown, path: string) => ({ path }),
   get: async () => ({
     exists: () => currentRoom !== null,
     val: () => currentRoom,
   }),
   onDisconnect: vi.fn(),
   onValue: vi.fn(),
-  remove: vi.fn(),
+  remove: vi.fn(async (r: { path?: string }) => {
+    const uid = (r.path ?? '').split('/').pop();
+    if (currentRoom && uid) delete (currentRoom.players as Record<string, unknown>)[uid];
+  }),
   // Symuluje PRAWDZIWĄ dwuetapową transakcję RTDB przy zimnym cache:
   // pierwszy przebieg dostaje `null` (klient nigdy nie czytał tej ścieżki),
   // niezależnie od realnego stanu na serwerze. Jeśli zwrócona wartość różni
@@ -57,7 +60,14 @@ vi.mock('firebase/database', () => ({
     return { committed: true, snapshot: { val: () => currentRoom } };
   }),
   serverTimestamp: () => 0,
-  set: vi.fn(),
+  set: vi.fn(async (r: { path?: string }, value: unknown) => {
+    // Odwzorowuje zapis pod `rooms/<kod>/players/<uid>` — tak dołącza teraz
+    // gracz, zamiast transakcji na całym pokoju.
+    const uid = (r.path ?? '').split('/').pop();
+    if (!currentRoom || !uid) return;
+    if (!currentRoom.players) currentRoom.players = {} as never;
+    (currentRoom.players as Record<string, unknown>)[uid] = value;
+  }),
 }));
 
 const { joinRoom } = await import('./room');
