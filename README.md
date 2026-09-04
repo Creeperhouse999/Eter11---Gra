@@ -1,47 +1,30 @@
 # ETER11 — Save the World
 
 Webowa wersja karcianej gry edukacyjnej dla dzieci 8–12 lat i rodziców.
+Gracze rozwiązują problemy współczesnego świata, dokładając do nich karty
+kompetencji, talentów i mentorów.
 
 **Gra:** https://savetheworld-eter11.web.app
 
 > Repozytorium jest publiczne, więc README nie podaje adresu panelu
-> redakcyjnego, konta administracyjnego ani linków do konsoli projektu —
-> te namiary zespół trzyma prywatnie. Panel jest pod ścieżką `/admin`
-> tego samego hostingu, ale dostęp i tak chronią reguły bazy: bez konta
-> (zakładanego wyłącznie w konsoli) żaden zapis nie przejdzie.
+> redakcyjnego, kont ani linków do konsoli projektu — te namiary zespół
+> trzyma prywatnie. Panel jest pod ścieżką `/admin` tego samego hostingu,
+> ale dostęp i tak chronią reguły bazy: bez konta zakładanego w konsoli
+> żaden zapis nie przejdzie.
 
 ---
 
-## Zanim panel zacznie działać
+## Co gra potrafi
 
-Panel jest wdrożony, ale zapis do bazy jest jeszcze zablokowany. Dwa kroki
-do wykonania w przeglądarce — jednorazowo.
-
-### 1. Konto administracyjne
-
-1. Firebase Console → Authentication → projekt gry
-2. Zakładka **Sign-in method** → włącz **Email/Password**
-3. Zakładka **Users** → **Add user** → e-mail zespołu + hasło
-4. Skopiuj **User UID** z listy (długi ciąg znaków)
-
-Hasła ani adresu konta nie wpisujemy do repozytorium ani do kodu — przekaż
-je zespołowi prywatnie. Zmiana hasła później to jedno kliknięcie w konsoli,
-bez wdrożenia.
-
-### 2. Reguły bazy
-
-W pliku [`firestore.rules`](firestore.rules) zastąp `WSTAW_TUTAJ_UID_KONTA_ADMIN`
-skopiowanym UID, a potem:
-
-```bash
-npx firebase-tools deploy --only firestore:rules --project savetheworld-eter11
-```
-
-Do czasu wykonania tych kroków panel się otworzy, ale zapis zwróci błąd —
-i to jest zachowanie zamierzone: baza nie przyjmuje zapisu od nikogo,
-dopóki nie wskażesz konkretnego konta.
-
----
+- **Przy stole** — jedno urządzenie wędruje między graczami, ręka zakryta
+  dla wszystkich poza tym, czyja tura.
+- **Online** — pokój z czteroznakowym kodem, każdy gra na swoim telefonie.
+  Wspólny stan przez Realtime Database, przekazywanie kart między graczami,
+  reakcje, powrót do partii po rozłączeniu.
+- **Samouczek** — prowadzi przez pierwszą misję krok po kroku.
+- **Wydruk** — karty i instrukcja na papier, prosto z panelu.
+- **Dwa motywy** (jasny/ciemny) i dwa style (klasyczny/kolorowy).
+- **Offline** — gdy baza jest niedostępna, ładują się dane wbudowane.
 
 ## Uruchomienie lokalne
 
@@ -50,32 +33,40 @@ npm install
 npm run dev
 ```
 
-Gra: http://localhost:5173 (panel pod ścieżką `/admin` tego samego adresu)
+Gra: http://localhost:5173 (panel pod `/admin` tego samego adresu)
 
 ## Testy
 
 ```bash
-npm test          # jednorazowo
+npm test          # jednorazowo (~1200 testów)
 npm run test:watch
+npm test src/engine   # tylko wybrany katalog — dużo szybciej
 ```
 
 ## Wdrożenie
 
-```bash
-npm run deploy
+Push na `master` uruchamia GitHub Actions
+([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)):
+sprawdzenie typów → testy → build → `firebase deploy` (hosting) →
+oznaczenie zgłoszenia. **Ręczny deploy nie jest potrzebny.**
+
+Aby Actions oznaczył zgłoszenie jako naprawione, commit musi mieć trailer:
+
+```
+Report-Fixed: <fragment tytułu zgłoszenia> | <komentarz dla zespołu>
 ```
 
-Reguły bazy wdrażane osobno:
+Reguły bazy **nie** wchodzą w ten workflow — wdrażasz je osobno:
 
 ```bash
-# Firestore (zawartość gry, zgłoszenia, dyskusje, role)
+# Firestore (zawartość gry, zgłoszenia, dyskusje, role, powiadomienia)
 npx firebase-tools deploy --only firestore:rules --project savetheworld-eter11
-# Realtime Database (pokoje gry wieloosobowej)
+# Realtime Database (pokoje gry online)
 npx firebase-tools deploy --only database --project savetheworld-eter11
 ```
 
 **Zawsze podawaj `--project savetheworld-eter11`.** Na tym koncie jest więcej
-projektów Firebase, a bez jawnego wskazania CLI potrafi wdrożyć do niewłaściwego.
+projektów Firebase, a bez jawnego wskazania CLI potrafi wdrożyć do cudzego.
 
 ### Pułapka reguł Realtime Database
 
@@ -84,64 +75,74 @@ poddrzewo, a reguła na dziecku NIE może tego zawęzić — jeśli którakolwie
 na ścieżce daje `true`, zapis przechodzi. Dlatego w `database.rules.json` reguła
 na `rooms/$code` pozwala pisać tylko przy TWORZENIU pokoju (`!data.exists()`), a
 każde pole ma własną, węższą regułę (`phase` = tylko host, `state` = każdy gracz
-w pokoju itd.). Gdyby węzeł pokoju dawał szeroki `.write` członkom, dowolny gracz
-nadpisałby `phase`, `hostUid` czy cudzy wpis — reguła-dziecko by tego nie
-powstrzymała. Po każdej zmianie tych reguł warto zweryfikować REST-em, że
-nie-host NIE zmieni `phase`/`hostUid` (test host-vs-gość).
+w pokoju itd.). Po każdej zmianie warto sprawdzić REST-em, że nie-host NIE
+zmieni `phase` ani `hostUid`.
 
-RTDB dodatkowo **usuwa puste tablice, puste obiekty i pola `null`** — stan gry z
-bazy wraca okrojony, więc przed użyciem przechodzi przez `hydrateState`
-(`src/multiplayer/hydrate.ts`), które dokłada je z powrotem. Bez tego pierwsze
-`.some`/`.filter` na wyciętym polu wysypuje grę.
+RTDB dodatkowo **usuwa puste tablice, puste obiekty i pola `null`** — stan gry
+wraca z bazy okrojony, więc przed użyciem przechodzi przez `hydrateState`
+([`src/multiplayer/hydrate.ts`](src/multiplayer/hydrate.ts)). Bez tego pierwsze
+`.some`/`.filter` na wyciętym polu wywraca grę.
+
+Trzecia pułapka: `runTransaction` przy zimnym cache dostaje `null` zamiast
+istniejących danych i „widzi" pokój jako nieistniejący. Dlatego dołączanie do
+pokoju czyta stan przez `get()` i zapisuje własny węzeł gracza wprost, bez
+transakcji na całym pokoju.
 
 ---
 
 ## Panel redakcyjny
 
-Osiem sekcji, wszystkie zmiany zapisywane do Firestore:
+Wszystkie zmiany zapisywane do Firestore, z historią i cofaniem.
 
-| Sekcja | Co edytuje |
-|---|---|
-| **Przegląd** | Statystyki talii, ostrzeżenia o balansie, lista treści do weryfikacji |
-| **Problemy** | Historia, przeciwnik, cel, typ, cztery ścianki z podpowiedziami i kartami bonusowymi |
-| **Karty** | Kompetencje, talenty, mentorzy, ETER11, Czarne Łabędzie |
-| **Postacie** | Nazwy, typy i cechy postaci do wyboru przez graczy |
-| **Zasady** | Rundy na misję, karty na ręce, liczba misji, próg zwycięstwa, punktacja |
-| **Teksty** | Wszystkie napisy w grze — nagłówki, przyciski, komunikaty |
-| **Kolory** | Paleta z podglądem na żywo i sprawdzaniem kontrastu |
-| **Tryb testowy** | Rozgrywka na edytowanych kartach, cofanie ruchów, ręczny Czarny Łabędź |
+**Treść gry:** Problemy · Karty · Grafiki kart · Kody kart · Postacie ·
+Zasady · Teksty · Wstęp i ETER11
 
-Zapis jest blokowany, dopóki zawartość ma błędy — panel wypisuje je nad treścią.
-Chroni to graczy przed wersją gry, w której czegoś brakuje.
+**Wygląd:** Rodziny · Kategorie · Ikony · Kolory
 
-Karty i problemy oznaczone **„do weryfikacji"** zostały dopisane technicznie
-i czekają na sprawdzenie przez zespół merytoryczny. Dotyczy to problemów
-9, 11, 12 i 13 — instrukcja nie zawierała dla nich kompletnych wymagań.
+**Narzędzia:** Tryb testowy · Drukuj karty · Drukuj instrukcję · Presety
+
+**Zespół:** Aktywność · Zgłoszenia · Dyskusja · Pamięć · Ogłoszenia ·
+Strefa Nudy
+
+**Dane:** Statystyki · Historia · Konto · Osoby
+
+Zapis jest blokowany, dopóki zawartość ma błędy — panel wypisuje je nad
+treścią. Chroni to graczy przed wersją gry, w której czegoś brakuje.
+
+### Obieg zgłoszeń
+
+Zgłaszający pisze → (admin akceptuje, jeśli trzeba) → programista naprawia
+i stawia **naprawione** → zgłaszający sprawdza i stawia **potwierdzone**
+albo **odsyła do poprawki**.
+
+Statusu `done` nie stawia programista — to zdanie zgłaszającego, że u niego
+działa. Osobno od statusu idzie **postęp prac** („W kolejce" / „Robi się" /
+„Sprawdzam" / „Zrobione"), który mówi tylko, czy ktoś już przy tym siedzi.
 
 ---
 
 ## Struktura
 
 ```
-src/engine/   silnik gry — czysty TypeScript, bez React i bez sieci
-src/data/     karty, teksty i motyw wbudowane (zapas, gdy baza niedostępna)
-src/ui/       interfejs gry
-src/ui/icons/ zestaw ~70 ikon SVG rysowanych inline
-src/admin/    panel redakcyjny
-src/firebase/ klient bazy, walidacja, odczyt i zapis zawartości
+src/engine/      silnik gry — czysty TypeScript, bez React i bez sieci
+src/data/        karty, teksty i motyw wbudowane (zapas, gdy baza niedostępna)
+src/ui/          interfejs gry
+src/ui/icons/    zestaw ~70 ikon SVG rysowanych inline
+src/multiplayer/ pokoje, synchronizacja stanu, oferty kart
+src/admin/       panel redakcyjny
+src/firebase/    klient bazy, walidacja, odczyt i zapis zawartości
+scripts/         narzędzia CLI: zgłoszenia, postęp prac, dyskusje
 ```
 
 Silnik jest niezależny od React i Firebase — cała logika zasad testowana bez
-przeglądarki. Dzięki temu multiplayer w fazie 2 będzie tylko przesyłał akcje
-między klientami, bez przepisywania zasad.
+przeglądarki. Gra online przesyła stan policzony tym samym silnikiem, więc
+zasady istnieją w jednym miejscu.
 
-Gra działa offline: gdy baza jest niedostępna, ładują się dane wbudowane
-i pojawia się komunikat o trybie offline.
+## Praca nad projektem
 
-## Stan projektu
+Nad kodem pracuje agent (Claude) w pętli: czyta zgłoszenia, naprawia,
+weryfikuje, wypycha. Zasady tej pracy opisuje [`CLAUDE.md`](CLAUDE.md),
+a szczegóły pracy bez nadzoru — [`docs/PETLA.md`](docs/PETLA.md).
+Bieżąca lista zadań od zespołu: [`docs/LISTA.md`](docs/LISTA.md).
 
-**Faza 1 (gotowa):** rozgrywka na jednym urządzeniu, panel redakcyjny.
-**Faza 2 (planowana):** multiplayer online z kodem pokoju, każdy gracz na
-własnym telefonie.
-
-Dokumentacja projektowa: [`docs/superpowers/`](docs/superpowers/)
+Dokumentacja projektowa: [`docs/`](docs/)

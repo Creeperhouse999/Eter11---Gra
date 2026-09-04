@@ -193,6 +193,23 @@ export async function removeRole(uid: string): Promise<void> {
 }
 
 /** Czy rola może usuwać wątki i zgłoszenia. */
+/**
+ * Kto ustawia postęp prac („W kolejce" / „Robi się" / „Sprawdzam" / „Zrobione").
+ *
+ * Tylko programista — czyli ja. Alan powiedział wprost: „pokazuj zmianę statusu
+ * tylko dla ciebie (…) nawet nie ja admin". I słusznie: postęp mówi „siedzę
+ * przy tym w tej chwili", a to zdanie o MOJEJ pracy. Gdy mógł je ustawić ktoś
+ * inny, plakietka przestawała cokolwiek znaczyć — „Robi się" przy zgłoszeniu,
+ * którego nikt nie tknął, jest gorsze niż brak plakietki.
+ *
+ * To nie jest zabezpieczenie, tylko porządek: `progress` to zwykłe pole
+ * dokumentu, a reguły Firestore dopuszczają jego zapis każdemu, kto może
+ * moderować. Chodzi o to, żeby panel nie zachęcał do ustawiania cudzego stanu.
+ */
+export function canSetProgress(role: Role): boolean {
+  return role === 'programmer';
+}
+
 export function canDelete(role: Role): boolean {
   return role === 'admin' || role === 'programmer';
 }

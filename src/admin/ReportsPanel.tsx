@@ -7,6 +7,8 @@ import {
   watchReports,
   type Report,
   type ReportKind,
+  KIND_LABELS,
+  KIND_STYLE,
   type ReportStatus,
   type ReportPriority,
   type ReportProgress,
@@ -22,6 +24,7 @@ import {
 import {
   canDelete,
   canModerate,
+  canSetProgress,
   canReport,
   skipsApproval,
   watchTeam,
@@ -29,6 +32,7 @@ import {
   type TeamMember,
 } from '../firebase/roles';
 import { podpisNotatki } from '../firebase/noteAuthor';
+import { pozycjaWKolejce, doZdjeciaZRoboty } from '../firebase/queuePosition';
 import { notify, uidsForAuthor } from '../firebase/notifications';
 import { addDiscussion } from '../firebase/discussions';
 import { Alert } from '../ui/controls/Alert';
@@ -43,12 +47,14 @@ import { Icon, type IconName } from '../ui/icons/Icon';
 import { counted } from '../ui/plural';
 import { formatDate } from './formatDate';
 
-const KIND_OPTIONS = [
-  { value: 'bug' as const, label: 'Błąd', icon: 'warning' as const, color: 'var(--eter-danger)' },
-  { value: 'idea' as const, label: 'Pomysł', icon: 'bulb' as const, color: 'var(--eter-accent)' },
-];
-
-const KIND_LABELS: Record<ReportKind, string> = { bug: 'Błąd', idea: 'Pomysł' };
+/** Opcje wyboru rodzaju — składane z jednego źródła, żeby nowy rodzaj
+    wystarczyło dopisać w `reports.ts` i pojawiał się wszędzie naraz. */
+const KIND_OPTIONS = (['bug', 'idea', 'question'] as const).map((value) => ({
+  value,
+  label: KIND_LABELS[value],
+  icon: KIND_STYLE[value].icon as IconName,
+  color: KIND_STYLE[value].color,
+}));
 
 /**
  * Pilność do wyboru przy zgłaszaniu.
@@ -90,11 +96,13 @@ const PROGRESS_COLOR: Record<ReportProgress, string> = {
 const TITLE_PLACEHOLDER: Record<ReportKind, string> = {
   bug: 'Krótko: co się dzieje?',
   idea: 'Krótko: co warto dodać?',
+  question: 'Krótko: o co chcesz zapytać?',
 };
 
 const DESCRIPTION_PLACEHOLDER: Record<ReportKind, string> = {
   bug: 'Co dokładnie, w którym miejscu, co powinno się wydarzyć zamiast tego.',
   idea: 'Co dokładnie proponujesz i po co — jaki problem to rozwiązuje.',
+  question: 'O co pytasz i czego dotyczy — im konkretniej, tym krótsza odpowiedź.',
 };
 
 /**
@@ -390,6 +398,15 @@ export function ReportsPanel({
    */
   const changeProgress = async (report: Report, next: ReportProgress | null) => {
     try {
+      // Robić można jedną rzecz naraz. Alan zobaczył „Robi się" przy dwóch
+      // zgłoszeniach jednocześnie — z jego strony to znaczy, że plakietka
+      // kłamie. Branie nowego zdejmuje robotę z pozostałych; „Sprawdzam"
+      // zostaje na wielu, bo tam piłka jest po stronie zespołu.
+      if (next === 'working') {
+        await Promise.all(
+          doZdjeciaZRoboty(reports, report.id).map((id) => setReportProgress(id, 'queued')),
+        );
+      }
       await setReportProgress(report.id, next);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -917,7 +934,7 @@ export function ReportsPanel({
                   zgłoszenie w obiegu (i „działa" stawia zgłaszający); postęp
                   mówi tylko, czy ktoś już przy tym siedzi. Adam prosił, żeby
                   to było widać, zanim jeszcze cokolwiek jest naprawione. */}
-              {canModerate(role) && report.status !== 'done' && (
+              {canSetProgress(role) && report.status !== 'done' && (
                 <span className="flex items-center gap-1">
                   {PROGRESS_ORDER.map((krok) => {
                     const wybrany = report.progress === krok;
@@ -1203,16 +1220,16 @@ export function ReportsPanel({
                 className="flex w-full items-start gap-2.5 rounded-lg border-l-4 border border-edge bg-surface p-3 text-left transition hover:border-accent"
                 style={{
                   borderLeftColor:
-                    report.kind === 'bug' ? 'var(--eter-danger)' : 'var(--eter-accent)',
+                    KIND_STYLE[report.kind].color,
                 }}
               >
                 <span
                   className="mt-0.5 shrink-0"
                   style={{
-                    color: report.kind === 'bug' ? 'var(--eter-danger)' : 'var(--eter-accent)',
+                    color: KIND_STYLE[report.kind].color,
                   }}
                 >
-                  <Icon name={report.kind === 'bug' ? 'warning' : 'bulb'} size={16} />
+                  <Icon name={KIND_STYLE[report.kind].icon as IconName} size={16} />
                 </span>
 
                 <span className="min-w-0 flex-1">
@@ -1270,6 +1287,13 @@ export function ReportsPanel({
                         }}
                       >
                         {PROGRESS_LABELS[report.progress]}
+                        {/* Numer w kolejce. Alan prosił o to wielokrotnie:
+                            samo „W kolejce" nie mówi, kiedy sprawa ruszy.
+                            Numer 1 znaczy naprawdę „następne w kolejności",
+                            bo liczy się tak, jak biorę zgłoszenia. */}
+                        {report.progress === 'queued' &&
+                          pozycjaWKolejce(reports, report.id) !== null &&
+                          ` nr ${pozycjaWKolejce(reports, report.id)}`}
                       </span>
                     )}
                   </span>

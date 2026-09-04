@@ -28,6 +28,7 @@ import {
 } from '../firebase/roles';
 import { notify, uidsForAuthor } from '../firebase/notifications';
 import { Button } from '../ui/controls/Button';
+import { Select } from '../ui/controls/Select';
 import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { Avatar } from './Avatar';
@@ -91,6 +92,12 @@ function shortDate(iso: string): string {
  * Wypowiedzi wchodzą na żywo: rozmowa, w której odpowiedź pojawia się
  * dopiero po kliknięciu „odśwież", zamienia się w wymianę listów.
  */
+/** Opcje listy „Do kogo" — kolory jak kropki przy rodzaju zgłoszenia. */
+const CATEGORY_OPTIONS: Array<{ value: DiscussionCategory; label: string; color: string }> = [
+  { value: 'ai', label: CATEGORY_LABELS.ai, color: 'var(--eter-accent)' },
+  { value: 'zespol', label: CATEGORY_LABELS.zespol, color: 'var(--eter-accent-2)' },
+];
+
 export function DiscussionsPanel({
   author,
   role,
@@ -703,23 +710,16 @@ export function DiscussionsPanel({
             rows={3}
           />
         </div>
-        {/* Do kogo piszesz. Adam prosił o rozdzielenie rozmów ze mną od tych
-            z zespołem — decyzja zapada tutaj, przy zakładaniu, bo tylko autor
-            wie, od kogo oczekuje odpowiedzi. */}
+        {/* Do kogo piszesz. Wybór jak rodzaj zgłoszenia (Błąd/Pomysł) — lista
+            rozwijana, nie para przycisków: to jedna decyzja z dwóch opcji,
+            a nie dwa osobne działania. */}
         <div className="mt-3">
-          <span className="eter-label">Do kogo</span>
-          <div className="mt-1 flex flex-wrap gap-2">
-            {(['ai', 'zespol'] as const).map((kat) => (
-              <Button
-                key={kat}
-                size="sm"
-                variant={newCategory === kat ? 'primary' : 'ghost'}
-                onClick={() => setNewCategory(kat)}
-              >
-                {CATEGORY_LABELS[kat]}
-              </Button>
-            ))}
-          </div>
+          <Select
+            label="Do kogo"
+            value={newCategory}
+            options={CATEGORY_OPTIONS}
+            onChange={setNewCategory}
+          />
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -838,11 +838,6 @@ export function DiscussionsPanel({
                 {/* Stan wątku — Adam poprosił o te napisy wprost: po samej
                     liście nie dało się poznać, gdzie ktoś czeka na odpowiedź,
                     a gdzie jest coś nowego do przeczytania. */}
-                {/* Do kogo rozmowa — widać wprost, także gdy filtr stoi na
-                    „Wszystkie". Bez tego podział istniałby tylko w przyciskach. */}
-                <span className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold text-ink-dim uppercase ring-1 ring-edge">
-                  {CATEGORY_LABELS[kategoriaWatku(discussion)]}
-                </span>
                 {(() => {
                   const stan = stanWatku(discussion);
                   if (!stan) return null;

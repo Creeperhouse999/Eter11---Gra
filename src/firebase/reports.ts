@@ -12,7 +12,28 @@ import {
 } from 'firebase/firestore';
 import { db } from './client';
 
-export type ReportKind = 'bug' | 'idea';
+/**
+ * Rodzaj zgłoszenia.
+ *
+ * Alan prosił o typ „pytanie": nie każde zgłoszenie to usterka albo pomysł —
+ * czasem ktoś po prostu chce wiedzieć, jak coś działa albo czy da się zrobić.
+ * Wrzucanie takich rzeczy w „Błąd" zawyżało listę usterek, a w „Pomysł"
+ * sugerowało robotę do wykonania tam, gdzie wystarczy odpowiedź.
+ */
+export type ReportKind = 'bug' | 'idea' | 'question';
+
+export const KIND_LABELS: Record<ReportKind, string> = {
+  bug: 'Błąd',
+  idea: 'Pomysł',
+  question: 'Pytanie',
+};
+
+/** Ikona i kolor rodzaju — jedno źródło dla listy, plakietki i wyboru. */
+export const KIND_STYLE: Record<ReportKind, { icon: string; color: string }> = {
+  bug: { icon: 'warning', color: 'var(--eter-danger)' },
+  idea: { icon: 'bulb', color: 'var(--eter-accent)' },
+  question: { icon: 'message', color: 'var(--eter-accent-2)' },
+};
 
 /**
  * Obieg zgłoszenia.
