@@ -7,21 +7,22 @@ w kolejce.
 
 ## Do zrobienia
 
-- [ ] **Numerek w kolejce** — „W kolejce nr 3", pozycja wg pilności
+- [x] **Numerek w kolejce** — „W kolejce nr 3", pozycja wg pilności
       (ultra → high → medium → low, przy równej starsze pierwsze). Prosił
       wielokrotnie, wciąż nie ma.
-- [ ] **Jedno „Robi się" naraz** — ustawienie go gdzie indziej zdejmuje
+- [x] **Jedno „Robi się" naraz** — ustawienie go gdzie indziej zdejmuje
       poprzednie. „Sprawdzam" może być na wielu (to czeka na Adama, nie na mnie).
-- [ ] **Postęp prac tylko dla mnie** — `canSetProgress` (rola `programmer`).
+- [x] **Postęp prac tylko dla mnie** — `canSetProgress` (rola `programmer`).
       Funkcja i test są, NIEPODPIĘTE do panelu.
 - [ ] **Wiersz zgłoszenia na liście — bałagan.** Trzy plakietki przy tytule
       naraz. Ustalone: sam tytuł, pod nim jedna szara linia
       (rodzaj · pilność · data · autor · wpisy), stan jako kolorowa kropka.
 - [ ] **Filtry w zgłoszeniach.**
 - [ ] **Typy i pilność w dyskusjach** — to samo, co w zgłoszeniach. Prosił
-      1 września, obiecałem „robię teraz", nie zrobiłem.
+      1 września, obiecałem „robię teraz", nie zrobiłem. Typ „Pytanie"
+      w zgłoszeniach: ZROBIONE. Zostają dyskusje.
 - [ ] **Presety nazw** — Normalne / Dziecięce / Super dziecięce jako presety.
-- [ ] **README.**
+- [x] **README.**
 - [ ] **Przeciąganie zgłoszeń** — zmiana kolejności przez admina/co-admina.
 - [ ] **Styl Kolorowy od zera** — osobna wizualizacja panelu gracza z
       pikselowych kwadracików wg załączników Adama, NIE przemalowanie
@@ -32,7 +33,7 @@ w kolejce.
 - [ ] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
 - [ ] **Kolor karty z „Kodów kart"** ma się przenosić na zakładkę „Karty”
       i „Drukuj karty”; w „Kartach” też próbnik zamiast czterech kolorów.
-- [ ] **Edycja strony instrukcji przez kliknięcie** w zakładce „Drukuj
+- [x] **Edycja strony instrukcji przez kliknięcie** w zakładce „Drukuj
       instrukcję".
 - [ ] **Przekazanie karty** gdy odbiorca wziął już własną — Adam mówi, że
       dalej nie działa.

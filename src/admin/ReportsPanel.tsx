@@ -1238,67 +1238,59 @@ export function ReportsPanel({
                     style={{ overflowWrap: 'anywhere' }}
                   >
                     {report.title}
-                    {/* Odznaka tylko przy pilnych: „zwykły" to większość, więc
-                        znaczek przy każdym wpisie byłby szumem, a nie
-                        informacją. Kolor niesie to samo co napis — sam kolor
-                        gubi się przy czytaniu ekranu. */}
+                  </span>
+
+                  {/* Wszystko poza tytułem w jednej szarej linii.
+                      Alan: „bałagan" — przy tytule stały naraz trzy ramki
+                      („KRYTYCZNY", „ZWRÓCONE DO POPRAWKI", „ROBI SIĘ"),
+                      w trzech kolorach, i wiersz przestawał się czytać.
+                      Ramki niosły to samo, co da się powiedzieć słowem;
+                      kolor pilności zostaje, bo odróżnia krytyczne od reszty
+                      jednym spojrzeniem. */}
+                  <span className="mt-0.5 block font-mono text-[10px] text-ink-dim">
+                    {KIND_LABELS[report.kind]}
                     {(report.priority === 'high' || report.priority === 'ultra') && (
-                      <span
-                        className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
-                        style={{
-                          color: PRIORITY_COLOR[report.priority],
-                          border: `1px solid ${PRIORITY_COLOR[report.priority]}`,
-                        }}
-                      >
-                        {PRIORITY_LABELS[report.priority]}
-                      </span>
+                      <>
+                        {' · '}
+                        <span style={{ color: PRIORITY_COLOR[report.priority] }}>
+                          {PRIORITY_LABELS[report.priority].toLowerCase()}
+                        </span>
+                      </>
                     )}
-                    {/* Postęp prac. Alan poprosił, żeby zgłaszający widział, że
-                        ktoś zgłoszenie zauważył, jeszcze zanim cokolwiek jest
-                        naprawione — inaczej „nikt tego nie tknął" i „siedzę
-                        przy tym od godziny" wyglądają identycznie. */}
-                    {/* Co się z tym zgłoszeniem stało: „Ponownie zrobione",
-                        „Zwrócone do poprawki". Bez tego druga naprawa wygląda
-                        jak pierwsza — Alan zauważył to w zakładce „Wróciły". */}
                     {(() => {
                       const stan = etykietaStanu(report);
                       if (!stan) return null;
                       const wraca = report.status === 'reopened';
                       return (
-                        <span
-                          className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
-                          style={{
-                            color: wraca ? 'var(--eter-danger)' : 'var(--eter-cat-social)',
-                            border: `1px solid ${
-                              wraca ? 'var(--eter-danger)' : 'var(--eter-cat-social)'
-                            }`,
-                          }}
-                        >
-                          {stan}
-                        </span>
+                        <>
+                          {' · '}
+                          <span
+                            style={{
+                              color: wraca
+                                ? 'var(--eter-danger)'
+                                : 'var(--eter-cat-social)',
+                            }}
+                          >
+                            {stan.toLowerCase()}
+                          </span>
+                        </>
                       );
                     })()}
                     {pokazacPostep(report) && report.progress && (
-                      <span
-                        className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
-                        style={{
-                          color: PROGRESS_COLOR[report.progress],
-                          border: `1px solid ${PROGRESS_COLOR[report.progress]}`,
-                        }}
-                      >
-                        {PROGRESS_LABELS[report.progress]}
-                        {/* Numer w kolejce. Alan prosił o to wielokrotnie:
-                            samo „W kolejce" nie mówi, kiedy sprawa ruszy.
-                            Numer 1 znaczy naprawdę „następne w kolejności",
-                            bo liczy się tak, jak biorę zgłoszenia. */}
-                        {report.progress === 'queued' &&
-                          pozycjaWKolejce(reports, report.id) !== null &&
-                          ` nr ${pozycjaWKolejce(reports, report.id)}`}
-                      </span>
+                      <>
+                        {' · '}
+                        <span style={{ color: PROGRESS_COLOR[report.progress] }}>
+                          {PROGRESS_LABELS[report.progress].toLowerCase()}
+                          {/* Numer w kolejce — samo „w kolejce" nie mówi,
+                              kiedy sprawa ruszy. */}
+                          {report.progress === 'queued' &&
+                            pozycjaWKolejce(reports, report.id) !== null &&
+                            ` nr ${pozycjaWKolejce(reports, report.id)}`}
+                        </span>
+                      </>
                     )}
-                  </span>
-                  <span className="mt-0.5 block font-mono text-[10px] text-ink-dim">
-                    {KIND_LABELS[report.kind]} · {formatDate(report.createdAt)}
+                    {' · '}
+                    {formatDate(report.createdAt)}
                     {report.author && ` · ${report.author}`}
                     {(report.notes?.length ?? 0) > 0 &&
                       // Trzy formy polskiej odmiany, nie dwie: 5 to „wpisów",
