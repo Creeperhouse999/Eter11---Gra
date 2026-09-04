@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createGame, DEFAULT_CONFIG, reduce } from '../engine/reducer';
 import { playableProblems } from '../data/problems';
-import { playableCards } from '../data/cards';
+import { buildDeck, playableCards } from '../data/cards';
 import type { GameContent } from '../firebase/validate';
 import { LobbyScreen } from './LobbyScreen';
 import { RoomLobby } from './RoomLobby';
@@ -108,8 +108,14 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
 
     const fresh = createGame({
       players,
-      // Wersje robocze (`draft`) nie trafiają do gry — tak samo jak przy stole.
-      deck: playableCards(content.cards),
+      // Wersje robocze (`draft`) nie trafiają do gry, a zwykłe karty wchodzą w
+      // dwóch egzemplarzach (karty specjalne w jednym) — tak samo jak przy
+      // stole i w grze solo (`useGame.ts`). Bez `buildDeck()` talia online
+      // miała o połowę mniej zwykłych kart przy tej samej liczbie kart
+      // specjalnych, więc te same 2 karty ETER11 stanowiły dwa razy większy
+      // odsetek talii i krążyły dwa razy częściej niż przy stole — zgłoszony
+      // bug „jeden gracz dostał ETER11 cztery razy, drugi ani razu".
+      deck: buildDeck(playableCards(content.cards)),
       problems: playableProblems(content.problems),
       // Ziarno z kodu pokoju — ta sama partia u wszystkich, powtarzalna.
       seed: [...code].reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
