@@ -13,9 +13,10 @@ import {
 import type { GameContent } from '../firebase/validate';
 import { podsumujZestaw, type PozycjaZestawu } from './printSummary';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
+import { themeFamilyColor } from '../data/families';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
-import { KartaKompetencji } from './PrintCards';
+import { KartaKompetencji, type FamilyTheme } from './PrintCards';
 
 interface PrintManualProps {
   content: GameContent;
@@ -31,14 +32,6 @@ interface PrintManualProps {
    */
   onEdit?: (part: string) => void;
 }
-
-/** Kolory rodzin — te same, co na wydruku kart (zmienne CSS nie idą na papier). */
-const KOLOR_RODZINY: Record<string, string> = {
-  red: '#d92626',
-  blue: '#1f6fd0',
-  yellow: '#c98a00',
-  green: '#1f9d4d',
-};
 
 /** Strona wydruku — każda zaczyna się od nowej kartki. */
 function Strona({
@@ -77,12 +70,21 @@ function Strona({
   );
 }
 
-/** Miniatura karty — instrukcja tłumaczy zasady, pokazując prawdziwą kartę. */
+/**
+ * Miniatura karty — instrukcja tłumaczy zasady, pokazując prawdziwą kartę.
+ *
+ * `kolor` przychodzi już rozwiązany od wywołującego (z motywu gry): dawniej
+ * funkcja sama szukała go po `rodzina`, ale ten argument niesie ETYKIETĘ
+ * rodziny do wyświetlenia („Siła wewnętrzna"), nie jej identyfikator
+ * (`red`/`blue`/…) — więc odczyt zawsze chybiał i karta drukowała się
+ * czarnym obramowaniem bez względu na rodzinę.
+ */
 function Miniatura({
   nazwa,
   opis,
   kategoria,
   rodzina,
+  kolor = '#000000',
   ikona,
   grafika,
 }: {
@@ -90,11 +92,11 @@ function Miniatura({
   opis: string;
   kategoria: string;
   rodzina?: string;
+  kolor?: string;
   ikona: string;
   /** Grafika karty, gdy ją ma — instrukcja pokazuje wtedy prawdziwy awers. */
   grafika?: string;
 }) {
-  const kolor = rodzina ? KOLOR_RODZINY[rodzina] ?? '#000000' : '#000000';
   return (
     <div
       className="inline-block w-40 rounded border-2 p-2 align-top"
@@ -312,6 +314,7 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
                     ? familyLabel(przyklad.family, przyklad.category)
                     : undefined
                 }
+                kolor={przyklad.family ? themeFamilyColor(content.theme, przyklad.family) : undefined}
                 ikona={przyklad.icon}
                 grafika={przyklad.image}
               />
@@ -374,8 +377,8 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
                       slot.key === 'social' ? 'col-start-2 row-start-3' : '',
                     ].join(' ')}
                     style={{
-                      borderColor: KOLOR_RODZINY[slot.family] ?? '#000',
-                      color: KOLOR_RODZINY[slot.family] ?? '#000',
+                      borderColor: themeFamilyColor(content.theme, slot.family),
+                      color: themeFamilyColor(content.theme, slot.family),
                     }}
                   >
                     <p className="font-bold uppercase">{categoryLabel(slot.key)}</p>
@@ -461,12 +464,12 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
               w »drukuj karty«", żeby dało się rozpoznać każdą kartę
               w rozsypanej talii, a nie tylko jedną z całej kategorii. */}
           {zestaw.kategorie.map((pozycja) => (
-            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} theme={content.theme} />
           ))}
 
           <h3 className="mt-4 font-display text-sm font-bold">Karty specjalne</h3>
           {zestaw.specjalne.map((pozycja) => (
-            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} theme={content.theme} />
           ))}
 
           <p className="mt-4 text-[10px] leading-snug text-black/60">
@@ -489,7 +492,13 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
  * każdej karty"). Sama liczba nic nie mówi komuś, kto trzyma rozsypaną talię —
  * pomaga dopiero widok, jak każda karta naprawdę wygląda.
  */
-function PozycjaPodsumowania({ pozycja }: { pozycja: PozycjaZestawu }) {
+function PozycjaPodsumowania({
+  pozycja,
+  theme,
+}: {
+  pozycja: PozycjaZestawu;
+  theme: FamilyTheme;
+}) {
   return (
     <div className="mt-3 break-inside-avoid-page">
       <p className="text-xs font-bold uppercase tracking-wide">
@@ -502,7 +511,7 @@ function PozycjaPodsumowania({ pozycja }: { pozycja: PozycjaZestawu }) {
           zawsze trzy, tak jak reszta talii. */}
       <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3 print:grid-cols-3">
         {pozycja.karty.map((karta) => (
-          <KartaKompetencji key={karta.id} card={karta} />
+          <KartaKompetencji key={karta.id} card={karta} theme={theme} />
         ))}
       </div>
     </div>

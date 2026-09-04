@@ -1,6 +1,6 @@
 import { filtrujKarty } from './filterCards';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
+import { FAMILY_IDS, FAMILY_LABELS } from '../data/families';
 import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
 import { categoryColorVar, categoryLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
@@ -42,10 +42,17 @@ const SWAN_KINDS: Array<[BlackSwanKind, string]> = [
   ['swapHands', 'Wymiana rąk'],
 ];
 
+/**
+ * Kolor rodziny do swatcha przy opcji — TA SAMA zmienna CSS, którą maluje się
+ * karta w grze i którą Adam zmienia w zakładce „Kolory". Wcześniej stał tu
+ * wpisany na sztywno domyślny kolor (`FAMILY_COLORS`): edytor pokazywał
+ * pierwotny odcień nawet po zmianie motywu, więc „Karty" zdawało się
+ * ignorować to, co Adam właśnie ustawił gdzie indziej w panelu.
+ */
 const FAMILY_OPTIONS = FAMILY_IDS.map((id) => ({
   value: id,
   label: FAMILY_LABELS[id],
-  color: FAMILY_COLORS[id],
+  color: `var(--eter-family-${id})`,
 }));
 
 const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({

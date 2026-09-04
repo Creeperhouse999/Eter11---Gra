@@ -1,10 +1,18 @@
 import { buildDeck, playableCards } from '../data/cards';
 import { kolorPostaci } from '../data/characters';
+import { themeFamilyColor } from '../data/families';
+import type { ThemeColors } from '../data/theme';
 import type { GameContent } from '../firebase/validate';
 import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
+
+/** Kolory rodzin, które ten wydruk potrzebuje — reszta motywu jest bez znaczenia. */
+export type FamilyTheme = Pick<
+  ThemeColors,
+  'familyRed' | 'familyBlue' | 'familyYellow' | 'familyGreen'
+>;
 
 interface PrintCardsProps {
   content: GameContent;
@@ -26,21 +34,6 @@ interface PrintCardsProps {
 }
 
 /**
- * Kolory rodzin na wydruku.
- *
- * Wpisane wprost, nie przez zmienne CSS: przeglądarki nie przenoszą tła ani
- * zmiennych motywu na wydruk bez zgody użytkownika, a kolor rodziny NIESIE
- * ZASADĘ GRY — karta pasuje do ścianki tylko przy zgodnej rodzinie. Bez niego
- * fizyczna talia jest nie do rozegrania.
- */
-const KOLOR_RODZINY: Record<string, string> = {
-  red: '#d92626',
-  blue: '#1f6fd0',
-  yellow: '#c98a00',
-  green: '#1f9d4d',
-};
-
-/**
  * Kolory kart bez rodziny — na stole mają się odróżniać od kompetencji.
  *
  * Adam wybrał je wprost: „karty eter — zrób je na fioletowo", „karty łabędzia
@@ -50,9 +43,18 @@ const KOLOR_RODZINY: Record<string, string> = {
 const KOLOR_ETER = '#7c3aed';
 const KOLOR_LABEDZ = '#000000';
 
-/** Kolor obramowania karty kompetencji — rodzina, albo ETER11/Łabędź. */
-function kolorKarty(card: Card): string {
-  if (card.family) return KOLOR_RODZINY[card.family] ?? KOLOR_LABEDZ;
+/**
+ * Kolor obramowania karty kompetencji — rodzina, albo ETER11/Łabędź.
+ *
+ * Rodzina bierze kolor z MOTYWU gry (`content.theme`), nie z wpisanej na
+ * sztywno stałej. Adam zgłosił, że zmiana koloru rodziny w „Kodach kart" nie
+ * była widoczna na wydruku — bo tu stał osobny zestaw barw, którego żadna
+ * zmiana w panelu nie ruszała. Bierzemy dosłowny hex (nie zmienną CSS), żeby
+ * wydruk wyglądał tak samo bez względu na to, w którym trybie jasny/ciemny
+ * akurat jest panel administratora.
+ */
+function kolorKarty(card: Card, theme: FamilyTheme): string {
+  if (card.family) return themeFamilyColor(theme, card.family);
   return card.category === 'eter11' ? KOLOR_ETER : KOLOR_LABEDZ;
 }
 
@@ -65,13 +67,15 @@ function kolorKarty(card: Card): string {
  */
 export function KartaKompetencji({
   card,
+  theme,
   onEdit,
 }: {
   card: Card;
+  theme: FamilyTheme;
   onEdit?: (cardName: string) => void;
 }) {
   const label = card.family ? familyLabel(card.family, card.category) : undefined;
-  const kolor = kolorKarty(card);
+  const kolor = kolorKarty(card, theme);
   return (
     <article
       role={onEdit ? 'button' : undefined}
@@ -118,8 +122,8 @@ const UKLAD_SCIANEK: Record<SlotKey, string> = {
 };
 
 /** Jedna ścianka problemu: czego wymaga i w jakim kolorze. */
-function Scianka({ slot }: { slot: ProblemSlot }) {
-  const kolor = KOLOR_RODZINY[slot.family] ?? '#000000';
+function Scianka({ slot, theme }: { slot: ProblemSlot; theme: FamilyTheme }) {
+  const kolor = themeFamilyColor(theme, slot.family);
 
   return (
     <div
@@ -145,9 +149,11 @@ function Scianka({ slot }: { slot: ProblemSlot }) {
  */
 function KartaProblemu({
   problem,
+  theme,
   onEdit,
 }: {
   problem: Problem;
+  theme: FamilyTheme;
   onEdit?: (problemId: string) => void;
 }) {
   return (
@@ -193,7 +199,7 @@ function KartaProblemu({
           a w środku zostaje miejsce na odkładane karty. */}
       <div className="mt-2 grid grid-cols-3 grid-rows-3 gap-1">
         {problem.slots.map((slot) => (
-          <Scianka key={slot.key} slot={slot} />
+          <Scianka key={slot.key} slot={slot} theme={theme} />
         ))}
       </div>
     </article>
@@ -256,7 +262,12 @@ export function PrintCards({
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 print:mt-0 print:grid-cols-3 print:gap-3">
         {/* Problemy najpierw: przy stole rozkłada się je jako pierwsze. */}
         {content.problems.map((problem) => (
-          <KartaProblemu key={problem.id} problem={problem} onEdit={onEditProblem} />
+          <KartaProblemu
+            key={problem.id}
+            problem={problem}
+            theme={content.theme}
+            onEdit={onEditProblem}
+          />
         ))}
 
         {/* Postacie — każdy gracz bierze jedną na start. Karta jest duża jak
@@ -326,7 +337,7 @@ export function PrintCards({
         ))}
 
         {deck.map((card) => (
-          <KartaKompetencji key={card.id} card={card} onEdit={onEdit} />
+          <KartaKompetencji key={card.id} card={card} theme={content.theme} onEdit={onEdit} />
         ))}
       </div>
     </section>

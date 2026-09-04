@@ -1,4 +1,5 @@
 import type { CardCategory } from '../engine/types';
+import type { ThemeColors } from './theme';
 
 /**
  * Rodziny kart — drugi wymiar obok kategorii.
@@ -95,4 +96,36 @@ export function findFamily(
   familyId: FamilyId,
 ): Family | undefined {
   return families[category]?.find((f) => f.id === familyId);
+}
+
+/** Który klucz motywu niesie kolor danej rodziny — patrz `themeFamilyColor`. */
+const THEME_KEY: Record<FamilyId, 'familyRed' | 'familyBlue' | 'familyYellow' | 'familyGreen'> = {
+  red: 'familyRed',
+  blue: 'familyBlue',
+  yellow: 'familyYellow',
+  green: 'familyGreen',
+};
+
+/**
+ * Kolor rodziny z motywu gry — źródło prawdy, z którego korzysta cała gra
+ * (`var(--eter-family-*)`) oraz zakładka „Kolory".
+ *
+ * Adam zgłosił, że zmiana koloru w „Kodach kart" nie było widać w „Kartach"
+ * ani w „Drukuj karty": obie zakładki miały własny, wpisany na sztywno zestaw
+ * barw (`FAMILY_COLORS` w edytorze kart, osobna stała w druku), więc żadna
+ * z nich nie reagowała na to, co zespół ustawił w motywie. Wszystkie trzy
+ * miejsca mają teraz czytać tę samą wartość.
+ */
+export function themeFamilyColor(
+  theme: Pick<ThemeColors, 'familyRed' | 'familyBlue' | 'familyYellow' | 'familyGreen'>,
+  family: FamilyId,
+): string {
+  return theme[THEME_KEY[family]];
+}
+
+/** Motyw z podmienionym kolorem jednej rodziny — reszta bez zmian. */
+export function withFamilyColor<
+  T extends Pick<ThemeColors, 'familyRed' | 'familyBlue' | 'familyYellow' | 'familyGreen'>,
+>(theme: T, family: FamilyId, color: string): T {
+  return { ...theme, [THEME_KEY[family]]: color };
 }

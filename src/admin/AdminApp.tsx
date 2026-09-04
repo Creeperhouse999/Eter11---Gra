@@ -871,10 +871,15 @@ export function AdminApp() {
             onProblemsChange={(problems) => update({ problems })}
             characters={content.characters}
             onCharactersChange={(characters) => update({ characters })}
-            // Kolor karty należy do rodziny — bez tego próbnik w tabeli nie
-            // miałby czego zapisać.
-            families={content.families}
-            onFamiliesChange={(families) => update({ families })}
+            // Kolor karty to kolor jej rodziny w MOTYWIE gry — ten sam, który
+            // maluje kartę na stole i który zmienia się w zakładce „Kolory".
+            // Bez tego próbnik w tabeli zapisywał się w nieużywanym gdzie
+            // indziej polu i „Karty" oraz „Drukuj karty" go nie widziały.
+            theme={content.theme}
+            themeLight={content.themeLight}
+            onThemeChange={(mode, colors) =>
+              update(mode === 'light' ? { themeLight: colors } : { theme: colors })
+            }
           />
         )}
         {tab === 'activity' && <ActivityPanel onOpen={goToLink} />}

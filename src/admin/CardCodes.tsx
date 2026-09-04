@@ -6,7 +6,8 @@ import { TextField } from '../ui/controls/Field';
 import { useToast } from '../ui/controls/Toast';
 import { ImageUpload } from './ImageUpload';
 import { CATEGORY_ORDER } from '../data/categories';
-import type { FamilyMap } from '../data/families';
+import { themeFamilyColor, withFamilyColor } from '../data/families';
+import { LIGHT_THEME, type ThemeColors, type ThemeMode } from '../data/theme';
 import type { CardCategory, FamilyId } from '../engine/types';
 
 interface CardCodesProps {
@@ -24,12 +25,17 @@ interface CardCodesProps {
   characters?: Character[];
   onCharactersChange?: (characters: Character[]) => void;
   /**
-   * Rodziny — kolor karty należy do rodziny, nie do samej karty. Adam
-   * poprosił, żeby dało się go zmienić stąd („jeszcze kolor musi mieć opcję
-   * zmiany"), więc tabela musi umieć zapisać zmianę w rodzinie.
+   * Motyw — kolor karty jest kolorem RODZINY w motywie gry (dokładnie ten
+   * sam, który maluje kartę na stole i który zmienia się w zakładce
+   * „Kolory"), nie polem osobnym dla każdej kategorii. Adam zgłosił, że
+   * zmiana koloru stąd nie było widać w „Kartach" ani w „Drukuj karty" —
+   * bo próbnik zapisywał się w nieużywanym gdzie indziej polu rodziny.
+   * Zapis idzie teraz do obu wariantów motywu, żeby próbnik działał
+   * niezależnie od tego, w którym trybie (jasny/ciemny) akurat jest panel.
    */
-  families?: FamilyMap;
-  onFamiliesChange?: (families: FamilyMap) => void;
+  theme?: ThemeColors;
+  themeLight?: ThemeColors;
+  onThemeChange?: (mode: ThemeMode, theme: ThemeColors) => void;
 }
 
 /** Nazwa grupy, w której stoi dany wpis. */
@@ -69,8 +75,9 @@ export function CardCodes({
   onProblemsChange,
   characters,
   onCharactersChange,
-  families,
-  onFamiliesChange,
+  theme,
+  themeLight,
+  onThemeChange,
 }: CardCodesProps) {
   const toast = useToast();
   const [szukaj, setSzukaj] = useState('');
@@ -216,21 +223,23 @@ export function CardCodes({
   };
 
   /**
-   * Zmiana koloru karty = zmiana koloru jej RODZINY w tej kategorii.
+   * Zmiana koloru karty = zmiana koloru jej RODZINY w motywie gry.
    *
-   * Kolor nie należy do pojedynczej karty: wszystkie czerwone karty umysłu
-   * dzielą jeden odcień, bo to po nim gracz poznaje, że pasują do tej samej
-   * ścianki. Zmiana stąd przestawia więc całą rodzinę — i tak właśnie ma
-   * działać, inaczej jedna karta wyłamałaby się z reguły gry.
+   * Kolor nie należy do pojedynczej karty ani do jednej kategorii: wszystkie
+   * czerwone karty w całej grze dzielą jeden odcień (`--eter-family-red`),
+   * bo to po nim gracz poznaje, że pasują do tej samej ścianki — dokładnie
+   * tak samo, jak już działa zakładka „Rodziny kart". Zapisujemy w obu
+   * wariantach motywu (jasny i ciemny), żeby próbnik działał niezależnie od
+   * tego, w którym trybie akurat jest panel.
    */
   const zmienKolor = (card: Card, kolor: string) => {
-    if (!card.family || !families || !onFamiliesChange) return;
-    onFamiliesChange({
-      ...families,
-      [card.category]: (families[card.category] ?? []).map((f) =>
-        f.id === card.family ? { ...f, color: kolor } : f,
-      ),
-    });
+    if (!card.family || !onThemeChange || !theme) return;
+    onThemeChange('dark', withFamilyColor(theme, card.family, kolor));
+    // Motyw jasny startuje od wbudowanego, gdy zespół jeszcze go nie
+    // dotknął (`themeLight` bywa `undefined`) — tak samo jak w zakładce
+    // „Kolory". Bez tego edycja tutaj poprawiałaby tylko ciemny wariant,
+    // a próbnik w trybie jasnym dalej pokazywałby stary kolor.
+    onThemeChange('light', withFamilyColor(themeLight ?? LIGHT_THEME, card.family, kolor));
   };
 
   const kopiuj = async (kod: string) => {
@@ -405,15 +414,12 @@ export function CardCodes({
 
                     <td className="p-1.5">
                       {card?.family ? (
-                        onFamiliesChange && families ? (
+                        onThemeChange && theme ? (
                           <input
                             type="color"
                             data-testid="probka-koloru"
                             aria-label={`Kolor karty ${card.name}`}
-                            value={
-                              (families[card.category] ?? []).find((f) => f.id === card.family)
-                                ?.color ?? '#888888'
-                            }
+                            value={themeFamilyColor(theme, card.family)}
                             onChange={(e) => zmienKolor(card, e.target.value)}
                             className="h-6 w-8 cursor-pointer rounded border border-edge bg-surface align-middle"
                           />

@@ -266,18 +266,22 @@ describe('licznik pozycji', () => {
 });
 
 describe('zmiana koloru z tabeli', () => {
-  it('kolor karty da się zmienić wprost w wierszu', () => {
-    // Adam: „jeszcze kolor musi mieć opcję zmiany". Kolor należy do RODZINY
-    // (czerwona psychologiczna ma inny odcień niż czerwona cyfrowa), więc
-    // zmiana stąd przestawia rodzinę w tej kategorii.
-    const onFamilies = vi.fn();
+  it('kolor karty da się zmienić wprost w wierszu — trafia do motywu gry, nie do rodziny w treści', () => {
+    // Adam: „jeszcze kolor musi mieć opcję zmiany", a potem zgłosił, że
+    // zmiana nie było widać w „Kartach" ani w „Drukuj karty" — bo próbnik
+    // zapisywał kolor w polu rodziny konkretnej kategorii, którego żadne
+    // z tych dwóch miejsc nie czyta. Obie zakładki (i cała gra) czytają
+    // kolor rodziny z motywu (`--eter-family-*`), więc naprawiony próbnik
+    // ma zapisywać właśnie tam — w OBU wariantach motywu naraz.
+    const onThemeChange = vi.fn();
     render(
       <ToastProvider>
         <CardCodes
           cards={BUILTIN_CONTENT.cards}
           onChange={vi.fn()}
-          families={BUILTIN_CONTENT.families}
-          onFamiliesChange={onFamilies}
+          theme={BUILTIN_CONTENT.theme}
+          themeLight={BUILTIN_CONTENT.themeLight}
+          onThemeChange={onThemeChange}
         />
       </ToastProvider>,
     );
@@ -288,12 +292,8 @@ describe('zmiana koloru z tabeli', () => {
       target: { value: '#123456' },
     });
 
-    expect(onFamilies).toHaveBeenCalled();
-    const zapisane = onFamilies.mock.calls[onFamilies.mock.calls.length - 1][0];
-    const rodzina = zapisane[karta.category].find(
-      (f: { id: string }) => f.id === 'red',
-    );
-    expect(rodzina.color).toBe('#123456');
+    expect(onThemeChange).toHaveBeenCalledWith('dark', expect.objectContaining({ familyRed: '#123456' }));
+    expect(onThemeChange).toHaveBeenCalledWith('light', expect.objectContaining({ familyRed: '#123456' }));
   });
 
   it('bez rodziny nie ma czego zmieniać — karta specjalna zostaje bez próbnika', () => {
@@ -302,8 +302,9 @@ describe('zmiana koloru z tabeli', () => {
         <CardCodes
           cards={BUILTIN_CONTENT.cards}
           onChange={vi.fn()}
-          families={BUILTIN_CONTENT.families}
-          onFamiliesChange={vi.fn()}
+          theme={BUILTIN_CONTENT.theme}
+          themeLight={BUILTIN_CONTENT.themeLight}
+          onThemeChange={vi.fn()}
         />
       </ToastProvider>,
     );
