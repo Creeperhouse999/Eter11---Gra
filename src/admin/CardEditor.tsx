@@ -1,3 +1,4 @@
+import { filtrujKarty } from './filterCards';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { FAMILY_COLORS, FAMILY_IDS, FAMILY_LABELS } from '../data/families';
 import type { BlackSwanKind, Card, CardCategory, FamilyId } from '../engine/types';
@@ -285,27 +286,9 @@ export function CardEditor({ cards, onChange, initialSearch = '', onSearchChange
    * dokładnie ten przypadek, w którym redaktor sprawdza, czy taka karta już
    * istnieje. Każde słowo musi wystąpić, ale kolejność nie ma znaczenia.
    */
-  const terms = needle.split(/\s+/).filter(Boolean);
-
-  const visible = cards
-    .filter((card) => {
-      if (filter !== 'all' && card.category !== filter) return false;
-      if (family !== 'all' && card.family !== family) return false;
-      if (terms.length === 0) return true;
-
-      const haystack = `${card.name} ${card.description} ${card.category}`.toLowerCase();
-      return terms.every((term) => haystack.includes(term));
-    })
-    .sort((a, b) => {
-      if (sort === 'name') return a.name.localeCompare(b.name, 'pl');
-      if (sort === 'category') {
-        return (
-          a.category.localeCompare(b.category) || a.name.localeCompare(b.name, 'pl')
-        );
-      }
-      // `order` zostawia kolejność z pliku — tak, jak karty leżą w talii.
-      return 0;
-    });
+  // Samo sito siedzi w `filterCards.ts` — bez React, więc da się je sprawdzić
+  // wprost, bez montowania edytora z całą talią.
+  const visible = filtrujKarty(cards, { category: filter, family, szukaj: needle }, sort);
 
   // Ile zaznaczonych kart wypadło poza bieżący filtr. Zmiana hurtem ruszy je
   // razem z widocznymi, więc redaktor musi o nich wiedzieć, zanim kliknie.

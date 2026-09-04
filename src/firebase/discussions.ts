@@ -11,6 +11,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './client';
+import { PRIORITY_ORDER, type ReportPriority } from './reports';
 
 /**
  * Wątek dyskusji zespołu.
@@ -77,6 +78,57 @@ export interface Discussion {
   closed?: boolean;
   /** Do kogo rozmowa: do mnie czy do zespołu. Brak = wątek sprzed podziału. */
   category?: DiscussionCategory;
+  /**
+   * O czym rozmowa — te same trzy rodzaje, co w zgłoszeniach.
+   *
+   * Alan poprosił o „typy w dyskusjach" tym samym zgłoszeniem, co typ
+   * „pytanie" w zgłoszeniach. Powód jest ten sam: wątek „czy da się zrobić X"
+   * i wątek „X jest zepsute" wymagają czego innego, a na liście wyglądały
+   * identycznie. Brak pola = wątek sprzed podziału, liczy się jak pomysł,
+   * bo dyskusje zakładano głównie po to.
+   */
+  kind?: DiscussionKind;
+  /**
+   * Jak pilna rozmowa. Alan: „oraz pilność w dyskusjach".
+   *
+   * Wątek bywa blokujący („nie wiem, jak to nazwać, a jutro drukujemy") albo
+   * może poczekać tygodnie. Bez tego pola jedynym sygnałem była data — a
+   * najnowszy wątek nie znaczy najpilniejszy.
+   */
+  priority?: ReportPriority;
+}
+
+/** Rodzaje wątków — te same nazwy, co w zgłoszeniach, żeby nie uczyć dwóch słowników. */
+export type DiscussionKind = 'idea' | 'bug' | 'question';
+
+export const DISCUSSION_KIND_LABELS: Record<DiscussionKind, string> = {
+  idea: 'Pomysł',
+  bug: 'Problem',
+  question: 'Pytanie',
+};
+
+/** Rodzaj wątku, z domyślnym dla wpisów sprzed podziału. */
+export function rodzajWatku(discussion: { kind?: DiscussionKind }): DiscussionKind {
+  return discussion.kind ?? 'idea';
+}
+
+/** Pilność wątku; brak = zwykła, tak samo jak w zgłoszeniach. */
+export function pilnoscWatku(discussion: { priority?: ReportPriority }): ReportPriority {
+  return discussion.priority ?? 'medium';
+}
+
+/**
+ * Wątki ułożone tak, jak się je bierze: najpilniejsze na górze, przy równej
+ * pilności najnowsze pierwsze.
+ *
+ * Dotąd decydowała sama data, więc wątek „drukujemy jutro, jak to nazwać?"
+ * spadał pod świeżo założone luźne pomysły.
+ */
+export function wgPilnosci(discussions: Discussion[]): Discussion[] {
+  return discussions.slice().sort((a, b) => {
+    const roznica = PRIORITY_ORDER[pilnoscWatku(a)] - PRIORITY_ORDER[pilnoscWatku(b)];
+    return roznica !== 0 ? roznica : b.createdAt.localeCompare(a.createdAt);
+  });
 }
 
 const COLLECTION = 'discussions';
@@ -90,6 +142,8 @@ export async function addDiscussion(input: {
   author: string;
   /** Do kogo rozmowa. Bez wskazania trafia do rozmów ze mną — tak było zawsze. */
   category?: DiscussionCategory;
+  kind?: DiscussionKind;
+  priority?: ReportPriority;
   /**
    * Wypowiedzi startowe wątku. Pusto przy zwykłym zakładaniu; wypełnione, gdy
    * wątek powstaje z odrzuconego zgłoszenia — przenosimy wtedy jego treść i
@@ -124,6 +178,8 @@ export async function addDiscussion(input: {
       messages: input.messages ?? [],
       closed: false,
       category: input.category ?? 'ai',
+      kind: input.kind ?? 'idea',
+      priority: input.priority ?? 'medium',
     });
     return { ok: true, id: entry.id };
   } catch (error) {
@@ -148,6 +204,8 @@ export async function loadDiscussions(): Promise<Discussion[]> {
       messages: data.messages ?? [],
       closed: data.closed ?? false,
       category: data.category,
+      kind: data.kind,
+      priority: data.priority,
     };
   });
 }
@@ -181,6 +239,8 @@ export function watchDiscussions(
             messages: data.messages ?? [],
             closed: data.closed ?? false,
             category: data.category,
+            kind: data.kind,
+            priority: data.priority,
           };
         }),
       );

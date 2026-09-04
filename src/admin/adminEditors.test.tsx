@@ -122,22 +122,11 @@ describe('CharacterEditor', () => {
 });
 
 describe('CardEditor', () => {
-  it('filtruje karty po kategorii', async () => {
-    render(
-      <CardEditor cards={ALL_CARDS} onChange={vi.fn()} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
-
-    const list = await screen.findByRole('listbox', { name: 'Filtruj kategorię' });
-    fireEvent.click(within(list).getByRole('option', { name: /Mentor/ }));
-
-    const mentorCount = ALL_CARDS.filter((c) => c.category === 'mentor').length;
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 2 }).textContent).toContain(
-        `${mentorCount} z ${ALL_CARDS.length}`,
-      ),
-    );
-  });
+  /* Filtrowanie po kategorii sprawdza teraz `filterCards.test.ts` — wprost na
+     funkcji, bez montowania edytora z całą talią. Tamten test trwał sekundy
+     i przy rosnącej suicie wysypywał się na timeout, więc mówił o wolnym
+     renderze zamiast o filtrowaniu. Tu zostaje to, czego bez DOM sprawdzić
+     się nie da: że lista rozwijana w ogóle działa (poniżej, klawiatura). */
 
   it('lista kategorii obsługuje klawiaturę', async () => {
     render(

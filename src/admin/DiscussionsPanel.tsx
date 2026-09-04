@@ -14,9 +14,15 @@ import {
   kategoriaWatku,
   widoczneWatki,
   CATEGORY_LABELS,
+  DISCUSSION_KIND_LABELS,
+  rodzajWatku,
+  pilnoscWatku,
+  wgPilnosci,
   type Discussion,
   type DiscussionCategory,
+  type DiscussionKind,
 } from '../firebase/discussions';
+import { PRIORITY_LABELS, type ReportPriority } from '../firebase/reports';
 import { addReport } from '../firebase/reports';
 import {
   canDelete,
@@ -92,6 +98,20 @@ function shortDate(iso: string): string {
  * Wypowiedzi wchodzą na żywo: rozmowa, w której odpowiedź pojawia się
  * dopiero po kliknięciu „odśwież", zamienia się w wymianę listów.
  */
+/** Opcje rodzaju i pilności wątku — te same słowa, co w zgłoszeniach. */
+const KIND_OPTIONS: Array<{ value: DiscussionKind; label: string }> = [
+  { value: 'idea', label: DISCUSSION_KIND_LABELS.idea },
+  { value: 'bug', label: DISCUSSION_KIND_LABELS.bug },
+  { value: 'question', label: DISCUSSION_KIND_LABELS.question },
+];
+
+const PRIORITY_OPTIONS: Array<{ value: ReportPriority; label: string }> = [
+  { value: 'ultra', label: PRIORITY_LABELS.ultra },
+  { value: 'high', label: PRIORITY_LABELS.high },
+  { value: 'medium', label: PRIORITY_LABELS.medium },
+  { value: 'low', label: PRIORITY_LABELS.low },
+];
+
 /** Opcje listy „Do kogo" — kolory jak kropki przy rodzaju zgłoszenia. */
 const CATEGORY_OPTIONS: Array<{ value: DiscussionCategory; label: string; color: string }> = [
   { value: 'ai', label: CATEGORY_LABELS.ai, color: 'var(--eter-accent)' },
@@ -153,6 +173,9 @@ export function DiscussionsPanel({
   const [category, setCategory] = useState<DiscussionCategory | null>(null);
   /** Kategoria zakładanego wątku. Domyślnie do mnie — tak wygląda większość. */
   const [newCategory, setNewCategory] = useState<DiscussionCategory>('ai');
+  /** Rodzaj i pilność zakładanego wątku — Alan prosił o jedno i drugie. */
+  const [newKind, setNewKind] = useState<DiscussionKind>('idea');
+  const [newPriority, setNewPriority] = useState<ReportPriority>('medium');
 
   /**
    * Otwarty wątek: z adresu, gdy podano `openId`; inaczej własny stan.
@@ -210,6 +233,8 @@ export function DiscussionsPanel({
       description,
       author,
       category: newCategory,
+      kind: newKind,
+      priority: newPriority,
       // Zrzut dołączony przy zakładaniu wątku wchodzi jako pierwsza wypowiedź
       // (bez tekstu) — sam wątek (`description`) nie ma pola na obrazek.
       ...(newImages[0]
@@ -409,7 +434,7 @@ export function DiscussionsPanel({
     }
   };
 
-  const visible = widoczneWatki(discussions, { closed: showClosed, category });
+  const visible = wgPilnosci(widoczneWatki(discussions, { closed: showClosed, category }));
   const closedCount = discussions.filter((d) => d.closed).length;
   /** Ile wątków w danej kategorii przy bieżącym stanie — do liczników przycisków. */
   const ile = (kat: DiscussionCategory | null) =>
@@ -713,12 +738,22 @@ export function DiscussionsPanel({
         {/* Do kogo piszesz. Wybór jak rodzaj zgłoszenia (Błąd/Pomysł) — lista
             rozwijana, nie para przycisków: to jedna decyzja z dwóch opcji,
             a nie dwa osobne działania. */}
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           <Select
             label="Do kogo"
             value={newCategory}
             options={CATEGORY_OPTIONS}
             onChange={setNewCategory}
+          />
+          <Select label="Rodzaj" value={newKind} options={KIND_OPTIONS} onChange={setNewKind} />
+          {/* Pilność ustawia zakładający — to on wie, czy rzecz blokuje robotę,
+              czy może poczekać. Bez tego o kolejności decydowała sama data,
+              a najnowszy wątek nie znaczy najpilniejszy. */}
+          <Select
+            label="Pilność"
+            value={newPriority}
+            options={PRIORITY_OPTIONS}
+            onChange={setNewPriority}
           />
         </div>
 
@@ -858,6 +893,25 @@ export function DiscussionsPanel({
                 })()}
               </span>
               <span className="mt-0.5 block text-xs text-ink-dim">
+                {/* Rodzaj i pilność w tej samej szarej linii, co reszta —
+                    dokładnie jak w zgłoszeniach. Osobne ramki przy tytule już
+                    raz zrobiły z listy zgłoszeń bałagan, więc tu ich nie ma.
+                    Pilność pokazujemy tylko przy pilnych: „zwykła" to
+                    większość, więc znacznik przy każdym byłby szumem. */}
+                {DISCUSSION_KIND_LABELS[rodzajWatku(discussion)]}
+                {(() => {
+                  const pilnosc = pilnoscWatku(discussion);
+                  if (pilnosc !== 'ultra' && pilnosc !== 'high') return null;
+                  return (
+                    <>
+                      {' · '}
+                      <span className="text-danger">
+                        {PRIORITY_LABELS[pilnosc].toLowerCase()}
+                      </span>
+                    </>
+                  );
+                })()}
+                {' · '}
                 {discussion.author} · {shortDate(discussion.createdAt)}
                 {discussion.messages.length > 0 &&
                   ` · ${discussion.messages.length} ${
