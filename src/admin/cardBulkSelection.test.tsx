@@ -47,7 +47,7 @@ describe('zaznaczanie kart do zmiany hurtem', { timeout: 30_000 }, () => {
     // `Select` to własny komponent — otwiera się kliknięciem, jak w panelu.
     fireEvent.click(screen.getByRole('button', { name: 'Filtruj kategorię' }));
     const kategorie = screen.getByRole('listbox', { name: 'Filtruj kategorię' });
-    fireEvent.click(within(kategorie).getByRole('option', { name: /Cyfrow/i }));
+    fireEvent.click(within(kategorie).getByRole('option', { name: /Supermoc Technologii/i }));
 
     // Sedno: pasek ma powiedzieć, że zaznaczenie dotyczy czegoś spoza ekranu.
     expect(screen.getByText(/poza widokiem/i)).toBeTruthy();

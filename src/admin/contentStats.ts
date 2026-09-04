@@ -206,7 +206,7 @@ export function contentStats(content: GameContent): StatGroup[] {
         {
           label: 'Najbardziej napięta kategoria',
           // Nazwa, nie klucz: `psychological` to identyfikator dla silnika,
-          // a redaktor zna tę kategorię jako „Psychologiczna".
+          // a redaktor zna tę kategorię jako „Supermoc Umysłu".
           value: tightest ? categoryLabel(tightest.key) : '—',
           note: tightest
             ? `${demand.get(tightest.key) ?? 0} ścianek na ${supply.get(tightest.key) ?? 0} kart`

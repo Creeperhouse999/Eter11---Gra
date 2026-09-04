@@ -100,7 +100,7 @@ describe('GameApp — misja', () => {
 
     expect(screen.getByText(/Runda/)).toBeDefined();
     // Pięć ścianek jako przyciski z etykietami kategorii.
-    for (const label of ['Psychologiczna', 'Cyfrowa', 'Społeczna', 'Mentor', 'Talent']) {
+    for (const label of ['Supermoc Umysłu', 'Supermoc Technologii', 'Supermoc Ludzi', 'Mentor', 'Talent']) {
       expect(
         screen.getAllByLabelText(new RegExp(label)).length,
         `brak ścianki ${label}`,

@@ -22,7 +22,7 @@ describe('nazwy kategorii', () => {
   afterEach(() => setCategoryStyles(undefined));
 
   it('domyślnie używa nazw wbudowanych', () => {
-    expect(categoryLabel('psychological')).toBe('Psychologiczna');
+    expect(categoryLabel('psychological')).toBe('Supermoc Umysłu');
     expect(slotIcon('digital')).toBe('chip');
   });
 

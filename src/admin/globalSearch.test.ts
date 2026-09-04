@@ -52,9 +52,10 @@ describe('szukanie w całej treści', () => {
   });
 
   it('znajduje karty po nazwie kategorii, nie po kluczu silnika', () => {
-    // Zgłoszenie Adama: „cyfrowe" pokazywało jeden wynik zamiast wszystkich
-    // kart tej kategorii, bo szukanie sięgało klucza `digital`, nie nazwy.
-    const hits = searchContent(BUILTIN_CONTENT, 'cyfrowa');
+    // Zgłoszenie Adama: nazwa kategorii pokazywała jeden wynik zamiast
+    // wszystkich kart tej kategorii, bo szukanie sięgało klucza `digital`,
+    // nie nazwy widocznej dla gracza.
+    const hits = searchContent(BUILTIN_CONTENT, 'supermoc technologii');
     const cardHits = hits.filter((h) => h.tab === 'cards');
 
     const digitalCards = BUILTIN_CONTENT.cards.filter((c) => c.category === 'digital');

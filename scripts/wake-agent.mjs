@@ -30,8 +30,8 @@ const STATE_FILE = process.env.STATE_FILE ?? 'agent-state.json';
 const apiKey = 'AIzaSyAaA1OJrJSjmDU7RPo6KXv0HhzVG9OI1X0';
 const token = process.env.CLAUDE_CODE_TOKEN;
 
-/** Pobiera identyfikatory dokumentów z kolekcji (odczyt publiczny, REST). */
-async function ids(collection) {
+/** Pobiera dokumenty kolekcji (odczyt publiczny, REST). */
+async function pobierz(collection) {
   const url =
     `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)` +
     `/documents/${collection}?key=${apiKey}&pageSize=300`;
@@ -45,7 +45,23 @@ async function ids(collection) {
   }
 
   const data = await response.json();
-  return (data.documents ?? []).map((doc) => doc.name.split('/').pop());
+  return data.documents ?? [];
+}
+
+/**
+ * Odciski wątków dyskusji: identyfikator PLUS liczba wiadomości.
+ *
+ * Sam identyfikator wystarcza tylko na nowe wątki, a odpowiedź w dyskusji to
+ * nowa wiadomość w wątku, który już istnieje — po samych identyfikatorach
+ * wyglądałaby na „nic nowego" i agent nigdy by się nie obudził. Wiadomości
+ * leżą w tablicy `messages` wewnątrz dokumentu wątku, więc jej długość mówi,
+ * czy ktoś dopisał.
+ */
+async function odciskiWatkow() {
+  return (await pobierz('discussions')).map((doc) => {
+    const ile = doc.fields?.messages?.arrayValue?.values?.length ?? 0;
+    return `${doc.name.split('/').pop()}:${ile}`;
+  });
 }
 
 /**
@@ -53,19 +69,17 @@ async function ids(collection) {
  * się od tego, że ktoś potwierdził „działa".
  */
 async function otwarteZgloszenia() {
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)` +
-    `/documents/reports?key=${apiKey}&pageSize=300`;
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Nie udało się odczytać reports: ${response.status}`);
-
-  const data = await response.json();
   const zamkniete = ['done', 'fixed', 'dismissed'];
 
-  return (data.documents ?? [])
+  return (await pobierz('reports'))
     .filter((doc) => !zamkniete.includes(doc.fields?.status?.stringValue ?? ''))
-    .map((doc) => doc.name.split('/').pop());
+    // Liczba notatek w odcisku: dopisanie komentarza pod zgłoszeniem („dalej
+    // nie działa", odpowiedź zgłaszającego) to też coś, na co agent ma
+    // zareagować, a samo id się przy tym nie zmienia.
+    .map((doc) => {
+      const ile = doc.fields?.notes?.arrayValue?.values?.length ?? 0;
+      return `${doc.name.split('/').pop()}:${ile}`;
+    });
 }
 
 // Czy to pierwszy przebieg, sprawdzamy PRZED zapisem stanu — po zapisie plik
@@ -78,9 +92,9 @@ const poprzedni = pierwszyPrzebieg
 
 const teraz = {
   reports: await otwarteZgloszenia(),
-  // Dyskusje agent sprawdza przy okazji każdego pobudki — Alan chce, żeby
-  // odpisywał na wątki, nie tylko naprawiał zgłoszenia.
-  discussions: await ids('discussions'),
+  // Dyskusje agent sprawdza przy każdej pobudce — Alan chce, żeby odpisywał
+  // na wątki, nie tylko naprawiał zgłoszenia.
+  discussions: await odciskiWatkow(),
 };
 
 const nowe = (klucz) => {

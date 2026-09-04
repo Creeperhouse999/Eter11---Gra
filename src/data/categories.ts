@@ -27,9 +27,13 @@ export type CategoryMap = Record<CardCategory, CategoryStyle>;
  * i ikony pokazywane graczowi, a redaktor ma prawo je zmienić.
  */
 export const DEFAULT_CATEGORIES: CategoryMap = {
-  psychological: { label: 'Psychologiczna', icon: 'brain' },
-  digital: { label: 'Cyfrowa', icon: 'chip' },
-  social: { label: 'Społeczna', icon: 'handshake' },
+  // „Supermoce" zamiast nazw z podręcznika: gra jest dla dzieci 8–13 lat,
+  // a „kompetencja psychologiczna" to słownik dla dorosłych. Adam wybrał ten
+  // wariant w dyskusji „Dziecięce nazwy"; Talent i Mentor zostawił bez zmian,
+  // bo oba są krótkie i zrozumiałe same z siebie.
+  psychological: { label: 'Supermoc Umysłu', icon: 'brain' },
+  digital: { label: 'Supermoc Technologii', icon: 'chip' },
+  social: { label: 'Supermoc Ludzi', icon: 'handshake' },
   mentor: { label: 'Mentor', icon: 'compass' },
   talent: { label: 'Talent', icon: 'star' },
   eter11: { label: 'ETER11', icon: 'spark' },
