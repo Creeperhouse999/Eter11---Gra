@@ -289,7 +289,7 @@ export const INTRO_RULES: IntroScene[] = [
     icon: 'medal',
     heading: 'Po misji zabierasz kartę',
     body:
-      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nKartę kompetencji — psychologiczną, cyfrową albo społeczną — możesz zamiast tego oddać innemu graczowi i dostać za to doświadczenie, bo uczenie innych też się liczy. Talent i mentor zostają przy Tobie.',
+      'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nKartę kompetencji — psychologiczną, cyfrową albo społeczną — albo mentora możesz zamiast tego oddać innemu graczowi i dostać za to doświadczenie, bo uczenie innych też się liczy. Mentor to ktoś, kogo da się komuś polecić. Talent jest Twój i zostaje przy Tobie.',
   },
   {
     icon: 'sprout',

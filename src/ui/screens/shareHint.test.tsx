@@ -2,25 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { isCompetence } from '../components/categoryStyles';
 
 /**
- * Talentu i mentora nie da się przekazać innemu graczowi — dzielić można się
- * kompetencjami, nie cechami charakteru ani ludźmi.
+ * `isCompetence` mówi, czy kategoria to kompetencja (psychologiczna, cyfrowa,
+ * społeczna) — używają jej zliczenia i walidacja treści, np. pokrycie ścianek
+ * problemu. To INNE pytanie niż „czy kartą wolno się podzielić z innym
+ * graczem" — tamto sprawdza `isShareable` (patrz `shareHint.test.tsx`
+ * w historii: mentor kiedyś nie był shareable, dziś Adam ustalił, że jest —
+ * `isCompetence` się wtedy NIE zmieniło, bo mentor nadal nie jest
+ * kompetencją, tylko osobną kategorią).
  *
- * Zasada jest w porządku, ale ekran podsumowania po prostu nie pokazywał przy
- * takiej karcie przycisku „przekaż". Gracz widział kartę z jedną opcją
- * zamiast dwóch i zgłosił to jako zepsutą grę — nie miał skąd wiedzieć, że
- * tak ma być.
- *
- * Ten test pilnuje samej reguły, na której opiera się komunikat. Gdyby ktoś
- * dopisał talent do kompetencji, wyjaśnienie zaczęłoby kłamać.
+ * Ten test pilnuje samej definicji kompetencji, nie reguły przekazywania.
  */
-describe('kto może dostać kartę', () => {
-  it('kompetencje wolno przekazywać', () => {
+describe('które kategorie są kompetencjami', () => {
+  it('psychologiczna, cyfrowa i społeczna — tak', () => {
     expect(isCompetence('psychological')).toBe(true);
     expect(isCompetence('digital')).toBe(true);
     expect(isCompetence('social')).toBe(true);
   });
 
-  it('talentu i mentora nie', () => {
+  it('talent i mentor — nie (osobne kategorie, nie kompetencje)', () => {
     expect(isCompetence('talent')).toBe(false);
     expect(isCompetence('mentor')).toBe(false);
   });

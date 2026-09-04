@@ -87,14 +87,18 @@ describe('wstęp dla dorosłych mówi prawdę', () => {
   });
 
   it('nie obiecuje, że każdą kartę da się oddać innemu graczowi', () => {
-    // Oddać wolno wyłącznie kompetencje — talent i mentor zostają u właściciela
-    // (`isCompetence` w reduktorze). Wstęp mówił „możesz też oddać ją innemu
-    // graczowi" o KAŻDEJ zabieranej karcie, a UI tłumaczyło się dopiero po
-    // kliknięciu: „Mentor zostaje przy Tobie".
+    // Oddać wolno kompetencje i mentora — talent zostaje u właściciela
+    // (`isShareable` w reduktorze; Adam: „mentora można przekazywać, talentu
+    // nie" — mentor to ktoś, kogo da się komuś polecić, talent jest własny).
+    // Wstęp kiedyś mówił „możesz też oddać ją innemu graczowi" o KAŻDEJ
+    // zabieranej karcie, a UI tłumaczyło się dopiero po kliknięciu — dlatego
+    // pilnujemy, żeby wstęp wprost nazwał WYJĄTEK (dziś tylko talent), a nie
+    // milczał o nim.
     const scena = INTRO_RULES.find((s) => s.heading === 'Po misji zabierasz kartę');
     expect(scena, 'scena o zabieraniu karty istnieje').toBeDefined();
 
-    expect(scena!.body).toMatch(/talent i mentor zostają/i);
+    expect(scena!.body).toMatch(/talent .{0,20}zostaj/i);
+    expect(scena!.body).not.toMatch(/talent i mentor zostają/i);
   });
 
   it('nie obiecuje mechaniki zależnej od tego, kto siedzi przy stole', () => {

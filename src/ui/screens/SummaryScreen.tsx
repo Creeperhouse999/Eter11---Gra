@@ -4,7 +4,7 @@ import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Card, Character } from '../../engine/types';
 import {
   categoryLabel,
-  isCompetence,
+  isShareable,
   SLOT_ORDER,
 } from '../components/categoryStyles';
 import { CardView } from '../components/CardView';
@@ -208,7 +208,7 @@ export function SummaryScreen({
                   const canShare =
                     !shared &&
                     !alreadyTook &&
-                    isCompetence(play.card.category) &&
+                    isShareable(play.card.category) &&
                     hasReceiver &&
                     isOwn &&
                     // Karta pożyczona z własnej karty postaci wraca do
@@ -290,15 +290,16 @@ export function SummaryScreen({
                           Przekaż graczowi
                         </Button>
                       )}
-                      {/* Brak przycisku „przekaż" przy talencie i mentorze
-                          wyglądał jak usterka: gracz widział kartę z jedną
-                          opcją zamiast dwóch i nie miał skąd wiedzieć, że tak
-                          ma być. Cisza jest gorsza niż odmowa z powodem. */}
-                      {!shared && !canShare && keepable && !isCompetence(play.card.category) && (
+                      {/* Brak przycisku „przekaż" przy talencie wyglądał jak
+                          usterka: gracz widział kartę z jedną opcją zamiast
+                          dwóch i nie miał skąd wiedzieć, że tak ma być. Cisza
+                          jest gorsza niż odmowa z powodem. Mentor NIE trafia
+                          tutaj już — Adam ustalił, że mentora wolno przekazać
+                          (`isShareable`, to samo sprawdza reduktor), więc
+                          dostaje zwykły przycisk „Przekaż graczowi" wyżej. */}
+                      {!shared && !canShare && keepable && !isShareable(play.card.category) && (
                         <span className="text-center text-[11px] leading-snug text-ink-dim">
-                          {play.card.category === 'mentor'
-                            ? 'Mentor zostaje przy Tobie — nie da się go przekazać.'
-                            : 'Talent jest Twój — nie da się go przekazać.'}
+                          Talent jest Twój — nie da się go przekazać.
                         </span>
                       )}
                       {shared && (
