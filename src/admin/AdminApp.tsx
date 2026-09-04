@@ -21,6 +21,7 @@ import { useConfirm } from '../ui/controls/useConfirm';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { CardEditor } from './CardEditor';
 import { CardImagesEditor } from './CardImagesEditor';
+import { CardCodes } from './CardCodes';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
@@ -56,6 +57,7 @@ type Tab =
   | 'problems'
   | 'cards'
   | 'cardImages'
+  | 'cardCodes'
   | 'families'
   | 'categories'
   | 'icons'
@@ -89,6 +91,8 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'problems', label: 'Problemy', icon: 'clash' },
   { key: 'cards', label: 'Karty', icon: 'clipboard' },
   { key: 'cardImages', label: 'Grafiki kart', icon: 'upload' },
+  // Cała talia w tabeli: kody dla grafików i szybka poprawka nazwy.
+  { key: 'cardCodes', label: 'Kody kart', icon: 'columns' },
   { key: 'characters', label: 'Postacie', icon: 'people' },
   { key: 'rules', label: 'Zasady', icon: 'balance' },
   { key: 'text', label: 'Teksty', icon: 'bubbles' },
@@ -849,6 +853,9 @@ export function AdminApp() {
             content={content}
             onEdit={(cardName) => route.navigate('cards', null, { filter: cardName })}
           />
+        )}
+        {tab === 'cardCodes' && (
+          <CardCodes cards={content.cards} onChange={(cards) => update({ cards })} />
         )}
         {tab === 'manual' && <PrintManual content={content} />}
         {tab === 'boredom' && (
