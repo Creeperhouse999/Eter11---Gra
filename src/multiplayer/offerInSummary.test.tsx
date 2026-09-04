@@ -78,7 +78,6 @@ describe('OnlineGame — okno przyjęcia karty w podsumowaniu', () => {
       <OnlineGame
         room={roomWithOffer(state)}
         uid="p2"
-        myTurn={false}
         activeUid="p1"
         {...noopProps}
       />,
@@ -97,7 +96,6 @@ describe('OnlineGame — okno przyjęcia karty w podsumowaniu', () => {
       <OnlineGame
         room={roomWithOffer(state)}
         uid="p2"
-        myTurn={false}
         activeUid="p1"
         {...noopProps}
         onAcceptOffer={onAcceptOffer}

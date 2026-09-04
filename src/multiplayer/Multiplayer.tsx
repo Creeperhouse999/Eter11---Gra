@@ -32,7 +32,6 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
     room,
     connected,
     activeUid,
-    myTurn,
     isHost,
     dispatch,
     kick,
@@ -179,7 +178,6 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
     <OnlineGame
       room={room}
       uid={uid}
-      myTurn={myTurn}
       activeUid={activeUid}
       dispatch={dispatch}
       propose={propose}

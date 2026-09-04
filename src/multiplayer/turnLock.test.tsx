@@ -34,11 +34,16 @@ vi.mock('./room', () => ({ revealerUid: () => 'a' }));
 
 const { OnlineGame } = await import('./OnlineGame');
 
+/**
+ * Aktywny gracz stoi na indeksie 0 listy SILNIKA. To ta sama lista, z której
+ * ekran misji bierze aktywnego — i to po niej, nie po składzie pokoju, musi
+ * iść blokada (patrz `turnOwner.ts`).
+ */
 const state = {
   phase: 'mission',
   missionNumber: 0,
   activePlayerIndex: 0,
-  players: [],
+  players: [{ id: 'a' }, { id: 'b' }],
   solvedProblems: [],
   unsolvedProblems: [],
   problemPile: [],
@@ -54,12 +59,12 @@ const room = {
   },
 } as unknown as Room;
 
-function renderGame(myTurn: boolean) {
+/** `uid` decyduje o turze: „a" jest aktywny w stanie gry, „b" czeka. */
+function renderGame(uid: string, pokoj: Room = room) {
   render(
     <OnlineGame
-      room={room}
-      uid={myTurn ? 'a' : 'b'}
-      myTurn={myTurn}
+      room={pokoj}
+      uid={uid}
       activeUid="a"
       dispatch={async () => null}
       propose={async () => null}
@@ -74,7 +79,7 @@ function renderGame(myTurn: boolean) {
 
 describe('kolejność ruchów w grze online', () => {
   it('poza swoją turą nie da się zagrać, wymienić ani spasować', () => {
-    renderGame(false);
+    renderGame('b');
     const mission = screen.getByTestId('mission');
     expect(mission.dataset.play).toBe('false');
     expect(mission.dataset.swap).toBe('false');
@@ -82,7 +87,7 @@ describe('kolejność ruchów w grze online', () => {
   });
 
   it('w swojej turze wszystkie ruchy są dozwolone', () => {
-    renderGame(true);
+    renderGame('a');
     const mission = screen.getByTestId('mission');
     expect(mission.dataset.play).toBe('true');
     expect(mission.dataset.swap).toBe('true');
@@ -90,7 +95,32 @@ describe('kolejność ruchów w grze online', () => {
   });
 
   it('czekający widzi, na kogo czeka — po imieniu', () => {
-    renderGame(false);
+    renderGame('b');
     expect(screen.getByText(/Adam/)).toBeTruthy();
+  });
+
+  /**
+   * Regresja zgłoszona przez Adama godzinę po pierwszej wersji blokady:
+   * „wyświetla się informacja, ale teraz gracz 1 nie może dodać karty do
+   * problemu pomimo, że pasuje".
+   *
+   * Blokada szła wtedy za listą graczy POKOJU. Gdy ktoś opuścił pokój, jego
+   * wpis znikał z `room.players`, ale zostawał w `state.players` — ten sam
+   * indeks wskazywał w każdej z list kogo innego, więc aktywny gracz dostawał
+   * zablokowane karty i partia stała. Tu gracz „x" wyszedł: w pokoju zostali
+   * „a" i „b", a w stanie gry aktywny (indeks 1) jest wciąż „b".
+   */
+  it('aktywny gra także wtedy, gdy skład pokoju zmienił się w trakcie', () => {
+    const poWyjsciu = {
+      ...room,
+      state: {
+        ...state,
+        activePlayerIndex: 1,
+        players: [{ id: 'x' }, { id: 'b' }, { id: 'a' }],
+      },
+    } as unknown as Room;
+
+    renderGame('b', poWyjsciu);
+    expect(screen.getByTestId('mission').dataset.play).toBe('true');
   });
 });

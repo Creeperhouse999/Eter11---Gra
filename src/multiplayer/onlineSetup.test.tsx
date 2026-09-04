@@ -66,7 +66,6 @@ describe('OnlineGame — faza setup między misjami', () => {
       <OnlineGame
         room={roomFor(betweenMissionsState())}
         uid="p1"
-        myTurn
         activeUid="p1"
         dispatch={dispatch}
         {...noopProps}
@@ -84,7 +83,6 @@ describe('OnlineGame — faza setup między misjami', () => {
       <OnlineGame
         room={roomFor(betweenMissionsState())}
         uid="p2"
-        myTurn={false}
         activeUid="p1"
         dispatch={dispatch}
         {...noopProps}

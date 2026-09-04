@@ -12,11 +12,11 @@ import { WaitingOverlay } from './WaitingOverlay';
 import { DisconnectBanner } from './DisconnectBanner';
 import { CardOfferModal } from './CardOfferModal';
 import { revealerUid } from './room';
+import { czyMojaTura } from './turnOwner';
 
 interface OnlineGameProps {
   room: Room;
   uid: string;
-  myTurn: boolean;
   activeUid?: string;
   dispatch: (action: Action) => Promise<string | null>;
   /** Proponuje przekazanie karty; zwraca powód odrzucenia albo `null` przy sukcesie. */
@@ -39,7 +39,6 @@ interface OnlineGameProps {
 export function OnlineGame({
   room,
   uid,
-  myTurn,
   activeUid,
   dispatch,
   propose,
@@ -51,6 +50,10 @@ export function OnlineGame({
 }: OnlineGameProps) {
   const [rejection, setRejection] = useState<string | null>(null);
   const state = room.state as GameState;
+
+  // Czyja tura — z listy graczy SILNIKA, tej samej, z której ekran misji bierze
+  // aktywnego gracza i w czyim imieniu wysyła ruch.
+  const mojaTura = czyMojaTura(state, uid);
 
   // Adapter do `MissionScreen`, który oczekuje kształtu `Game`. Ruch tłumaczymy
   // na zapis sieciowy; historia i cofanie w grze online nie mają sensu (stan
@@ -196,17 +199,21 @@ export function OnlineGame({
         game={game}
         characters={characters}
         onQuit={onLeave}
-        alwaysRevealed={myTurn}
+        alwaysRevealed={mojaTura}
         // Poza swoją turą karty nie dają się chwycić ani zagrać. Zapis do bazy
         // i tak odrzucał cudzy ruch, ale ekran o tym nie wiedział: dziecko
         // klikało, coś się ruszało i dopiero po chwili dostawało czerwone
         // „To nie Twoja kolej." — wyglądało to jak gra bez kolejek. Ten sam
         // mechanizm blokuje ruchy w samouczku.
-        allows={() => myTurn}
+        //
+        // Turę liczymy z `state.players` (patrz `czyMojaTura`), a NIE z `myTurn`
+        // liczonego z listy graczy pokoju: przy zmianie składu obie listy
+        // rozjeżdżają się i blokada zamykała grę aktywnemu graczowi.
+        allows={() => mojaTura}
       />
 
       {/* Gdy gra ktoś inny — delikatna nakładka, plansza wciąż widoczna. */}
-      {!myTurn && !offlineActive && <WaitingOverlay activeName={activeName} />}
+      {!mojaTura && !offlineActive && <WaitingOverlay activeName={activeName} />}
 
       {offlineActive && (
         <DisconnectBanner
