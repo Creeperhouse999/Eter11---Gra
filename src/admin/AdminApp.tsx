@@ -29,6 +29,7 @@ import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
 import { PrintManual } from './PrintManual';
 import { BoredomPanel } from './BoredomPanel';
+import { ActivityPanel } from './ActivityPanel';
 import { PresetBar } from './PresetBar';
 import { PresetBundleBar } from './PresetBundleBar';
 import { PRESET_SECTIONS, type PresetSection } from '../firebase/presets';
@@ -71,6 +72,7 @@ type Tab =
   | 'manual'
   | 'presets'
   | 'boredom'
+  | 'activity'
   | 'reports'
   | 'discussions'
   | 'memory'
@@ -113,6 +115,9 @@ const TABS: Array<{ key: Tab; label: string; icon: IconName }> = [
   { key: 'presets', label: 'Presety', icon: 'bookmark' },
 
   // Komunikacja zespołu
+  // Adam chce widzieć na żywo, co jest w robocie, bez klikania po
+  // pod-zakładkach zgłoszeń.
+  { key: 'activity', label: 'Aktywność', icon: 'bolt' },
   { key: 'reports', label: 'Zgłoszenia', icon: 'megaphone' },
   { key: 'discussions', label: 'Dyskusja', icon: 'message' },
   { key: 'memory', label: 'Pamięć', icon: 'bulb' },
@@ -872,6 +877,7 @@ export function AdminApp() {
             onFamiliesChange={(families) => update({ families })}
           />
         )}
+        {tab === 'activity' && <ActivityPanel onOpen={goToLink} />}
         {tab === 'manual' && <PrintManual content={content} />}
         {tab === 'boredom' && (
           <BoredomPanel
