@@ -143,6 +143,8 @@ export function DiscussionsPanel({
     setLocalOpenId(next);
     onOpenChange?.(next);
   };
+  /** Zrzut dołączony do NOWEGO wątku — osobno od `replyImages` (odpowiedzi). */
+  const [newImages, setNewImages] = useState<string[]>([]);
   const [reply, setReply] = useState('');
   const [replyImages, setReplyImages] = useState<string[]>([]);
   const [replying, setReplying] = useState(false);
@@ -181,7 +183,26 @@ export function DiscussionsPanel({
     if (createInFlight.current) return;
     createInFlight.current = true;
     setSending(true);
-    const result = await addDiscussion({ title, description, author });
+    const result = await addDiscussion({
+      title,
+      description,
+      author,
+      // Zrzut dołączony przy zakładaniu wątku wchodzi jako pierwsza wypowiedź
+      // (bez tekstu) — sam wątek (`description`) nie ma pola na obrazek.
+      ...(newImages[0]
+        ? {
+            messages: [
+              {
+                author,
+                authorUid: currentUid,
+                text: '',
+                image: newImages[0],
+                at: new Date().toISOString(),
+              },
+            ],
+          }
+        : {}),
+    });
     setSending(false);
     createInFlight.current = false;
 
@@ -190,6 +211,7 @@ export function DiscussionsPanel({
       return;
     }
     clearDraft();
+    setNewImages([]);
     toast('Wątek założony.', 'success');
   };
 
@@ -633,10 +655,19 @@ export function DiscussionsPanel({
             rows={3}
           />
         </div>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-xs text-ink-dim">
-            Podpiszesz się jako <span className="text-ink">{author}</span>
-          </span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-ink-dim">
+              Podpiszesz się jako <span className="text-ink">{author}</span>
+            </span>
+            <ImageUpload
+              value={newImages}
+              onChange={setNewImages}
+              folder="discussions"
+              max={1}
+              namePrefix={`msg-new-${author}`}
+            />
+          </div>
           <Button
             variant="primary"
             icon="plus"

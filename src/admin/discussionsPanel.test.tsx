@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { ToastProvider } from '../ui/controls/Toast';
 import type { Discussion } from '../firebase/discussions';
 import type { Role } from '../firebase/roles';
@@ -18,7 +18,8 @@ import type { Role } from '../firebase/roles';
 // Klient Firebase inicjalizuje się przy imporcie — atrapy, żeby panel dało się
 // wyrenderować bez sieci. ImageUpload woła getStorage(app), więc też atrapa.
 vi.mock('../firebase/client', () => ({ app: {}, db: {}, auth: {}, rtdb: {} }));
-vi.mock('../firebase/upload', () => ({ uploadImage: vi.fn() }));
+const uploadImage = vi.fn(async (..._args: unknown[]) => ({ ok: true, url: 'https://x/zrzut.png' }));
+vi.mock('../firebase/upload', () => ({ uploadImage: (input: unknown) => uploadImage(input) }));
 
 // Zespół i powiadomienia: panele nasłuchują listy członków (most podpis→konto)
 // i wysyłają powiadomienia. W teście nie ma prawdziwej bazy, więc atrapy —
@@ -36,6 +37,7 @@ vi.mock("../firebase/notifications", () => ({
 const deleteDiscussion = vi.fn(async (_id: string) => {});
 const setDiscussionClosed = vi.fn(async (_id: string, _closed: boolean) => {});
 const addMessage = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
+const addDiscussion = vi.fn(async (..._args: unknown[]) => ({ ok: true, id: 'new1' }));
 let thread: Discussion;
 
 vi.mock('../firebase/discussions', async (importOriginal) => {
@@ -49,7 +51,7 @@ vi.mock('../firebase/discussions', async (importOriginal) => {
       cb([thread]);
       return () => {};
     },
-    addDiscussion: vi.fn(async () => ({ ok: true })),
+    addDiscussion: (input: unknown) => addDiscussion(input),
     addMessage: (discussion: Discussion, input: unknown) => addMessage(discussion, input),
     setDiscussionClosed: (id: string, closed: boolean) => setDiscussionClosed(id, closed),
     deleteDiscussion: (id: string) => deleteDiscussion(id),
@@ -92,6 +94,10 @@ beforeEach(() => {
   addMessage.mockResolvedValue({ ok: true });
   addReport.mockClear();
   addReport.mockResolvedValue({ ok: true });
+  addDiscussion.mockClear();
+  addDiscussion.mockResolvedValue({ ok: true, id: 'new1' });
+  uploadImage.mockClear();
+  uploadImage.mockResolvedValue({ ok: true, url: 'https://x/zrzut.png' });
 });
 
 /**
@@ -286,5 +292,56 @@ describe('DiscussionsPanel — szkic nowego wątku przetrwa odmontowanie', () =>
     const temat = screen.getByLabelText('Temat') as HTMLInputElement;
     // Bez fixu: pole znowu puste — szkic zginął razem z odmontowanym panelem.
     expect(temat.value).toBe('Szkic w trakcie pisania');
+  });
+});
+
+/**
+ * Dołączenie zrzutu przy ZAKŁADANIU nowego wątku (nie tylko przy odpowiedzi).
+ *
+ * Zgłoszenie „Nie można dodawać załącznika w dyskusjach": formularz „Nowy
+ * wątek" (Temat + Pierwsza wypowiedź) nie miał żadnego pola do dołączenia
+ * obrazka — tylko odpowiedź w już istniejącym wątku miała `ImageUpload`.
+ * Zgłaszający chciał od razu dołączyć zrzut do NOWEGO wątku i nie miał jak.
+ */
+describe('DiscussionsPanel — załącznik przy zakładaniu wątku', () => {
+  it('formularz nowego wątku ma opcję dołączenia obrazka', async () => {
+    renderPanel('admin');
+    // Jeden przycisk „Dodaj obraz" — w formularzu nowego wątku (żaden wątek
+    // nie jest otwarty, więc formularz odpowiedzi z drugim takim przyciskiem
+    // się nie renderuje).
+    expect(await screen.findAllByRole('button', { name: 'Dodaj obraz' })).toHaveLength(1);
+  });
+
+  it('zrzut dołączony przy zakładaniu wątku trafia do addDiscussion jako pierwsza wypowiedź', async () => {
+    renderPanel('admin', 'u-tester');
+
+    fireEvent.change(screen.getByLabelText('Temat'), { target: { value: 'Nowy temat' } });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['dane'], 'zrzut.png', { type: 'image/png' });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(uploadImage).toHaveBeenCalledTimes(1);
+    // Miniatura wgranego zrzutu pojawia się w formularzu.
+    expect(await screen.findByAltText('')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Załóż wątek' }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(addDiscussion).toHaveBeenCalledTimes(1);
+    const [input] = addDiscussion.mock.calls[0] as [
+      { title: string; messages?: Array<{ image?: string; authorUid?: string }> },
+    ];
+    expect(input.title).toBe('Nowy temat');
+    expect(input.messages).toHaveLength(1);
+    expect(input.messages![0].image).toBe('https://x/zrzut.png');
+    expect(input.messages![0].authorUid).toBe('u-tester');
   });
 });
