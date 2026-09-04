@@ -34,9 +34,12 @@ jobs:
       - name: Pobierz kod
         uses: actions/checkout@v4
         with:
-          # Potrzebny poprzedni commit, by odczytać trailer Report-Fixed z jego
-          # opisu (oznaczanie zgłoszenia poniżej).
-          fetch-depth: 2
+          # Cała historia, nie dwa commity: agent w chmurze naprawia po kilka
+          # zgłoszeń w jednym biegu i pushuje je razem. Przy `fetch-depth: 2`
+          # workflow widział tylko ostatni commit, więc oznaczało się jedno
+          # zgłoszenie, a trailery z pozostałych ginęły — zgłoszenia zostawały
+          # otwarte mimo wdrożonej naprawy.
+          fetch-depth: 0
 
       - name: Node 20
         uses: actions/setup-node@v4
@@ -75,28 +78,45 @@ jobs:
           BOT_EMAIL: ${{ secrets.BOT_EMAIL }}
           BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
         run: |
-          LINE=$(git log -1 --pretty=%B | grep -iE '^Report-Fixed:' | head -1 || true)
-          if [ -z "$LINE" ]; then
-            echo "Brak trailera Report-Fixed w commicie — nic nie oznaczam."
-            exit 0
-          fi
           if [ -z "$BOT_PASSWORD" ]; then
             echo "Brak BOT_PASSWORD w sekretach — pomijam oznaczanie."
             exit 0
           fi
-          REST="${LINE#*:}"
-          TITLE="${REST%%|*}"
-          COMMENT="${REST#*|}"
-          [ "$COMMENT" = "$REST" ] && COMMENT="Naprawione i wdrożone automatycznie."
-          TITLE="$(echo "$TITLE" | sed 's/^ *//;s/ *$//')"
-          COMMENT="$(echo "$COMMENT" | sed 's/^ *//;s/ *$//')"
-          echo "Oznaczam zgłoszenie: \"$TITLE\" → fixed"
-          # Nieudane oznaczenie NIE może wywrócić wdrożenia: kod jest już na
-          # produkcji, a to tylko dopisek w panelu. Zdarza się, gdy fragment
-          # tytułu nie pasuje do żadnego zgłoszenia — np. gdy trailer wskazuje
-          # wątek dyskusji zamiast zgłoszenia. Czerwony przebieg wyglądałby
-          # wtedy jak nieudany deploy i kazał szukać problemu tam, gdzie go nie
-          # ma.
-          if ! node scripts/mark-report.mjs "$TITLE" fixed "$COMMENT"; then
-            echo "::warning::Nie udało się oznaczyć zgłoszenia \"$TITLE\" — sprawdź, czy taki tytuł istnieje. Wdrożenie przebiegło poprawnie."
+
+          # WSZYSTKIE commity z tego pusha, nie tylko ostatni. Agent w chmurze
+          # naprawia po kilka zgłoszeń w jednym biegu i pushuje je razem —
+          # `git log -1` oznaczał wtedy jedno, a reszta zostawała otwarta mimo
+          # wdrożonej naprawy. `before` bywa samymi zerami (pierwszy push na
+          # gałąź, push po force) — wtedy spadamy do ostatniego commita.
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            ZAKRES="-1"
+          else
+            ZAKRES="$BEFORE..${{ github.sha }}"
           fi
+
+          TRAILERY=$(git log $ZAKRES --pretty=%B | grep -iE '^Report-Fixed:' || true)
+          if [ -z "$TRAILERY" ]; then
+            echo "Brak trailera Report-Fixed w tym pushu — nic nie oznaczam."
+            exit 0
+          fi
+
+          echo "$TRAILERY" | while IFS= read -r LINE; do
+            REST="${LINE#*:}"
+            TITLE="${REST%%|*}"
+            COMMENT="${REST#*|}"
+            [ "$COMMENT" = "$REST" ] && COMMENT="Naprawione i wdrożone automatycznie."
+            TITLE="$(echo "$TITLE" | sed 's/^ *//;s/ *$//')"
+            COMMENT="$(echo "$COMMENT" | sed 's/^ *//;s/ *$//')"
+            echo "Oznaczam zgłoszenie: \"$TITLE\" → fixed"
+            # Nieudane oznaczenie NIE może wywrócić wdrożenia: kod jest już na
+            # produkcji, a to tylko dopisek w panelu. Zdarza się, gdy fragment
+            # tytułu nie pasuje do żadnego zgłoszenia — np. gdy trailer wskazuje
+            # wątek dyskusji zamiast zgłoszenia. Czerwony przebieg wyglądałby
+            # wtedy jak nieudany deploy i kazał szukać problemu tam, gdzie go
+            # nie ma. Jedno nietrafione oznaczenie nie przerywa też pozostałych.
+            if ! node scripts/mark-report.mjs "$TITLE" fixed "$COMMENT"; then
+              echo "::warning::Nie udało się oznaczyć zgłoszenia \"$TITLE\" — sprawdź, czy taki tytuł istnieje. Wdrożenie przebiegło poprawnie."
+            fi
+          done
