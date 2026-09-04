@@ -3,6 +3,7 @@ import {
   applyTheme,
   DEFAULT_THEME,
   LIGHT_THEME,
+  THEME_PRESETS,
   THEME_GROUPS,
   type ThemeColors,
   type ThemeMode,
@@ -89,6 +90,39 @@ export function ThemeEditor({ theme, themeLight, onChange }: ThemeEditorProps) {
           Przywróć domyślne
         </Button>
       </div>
+
+      {/* Gotowe style. Adam poprosił, żeby dało się przełączyć całą grę na
+          wariant dziecięcy jednym kliknięciem, zamiast układać dwadzieścia
+          kolorów ręcznie. Wypełniają pola — własne poprawki nadal działają.
+          Tylko dla trybu ciemnego: oba style są ciemne, a jasny ma osobną,
+          rozjaśnioną paletę i podmiana wstawiłaby tam biały tekst na białym. */}
+      {mode === 'dark' && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {THEME_PRESETS.map((preset) => (
+            <button
+              key={preset.name}
+              type="button"
+              onClick={() => update(preset.colors)}
+              className="rounded-lg border border-edge px-3 py-2 text-left transition hover:border-accent"
+            >
+              <span className="flex items-center gap-2">
+                {/* Trzy kropki z palety — widać, co się wybiera, bez klikania. */}
+                {[preset.colors.familyRed, preset.colors.accent, preset.colors.familyYellow].map(
+                  (kolor) => (
+                    <span
+                      key={kolor}
+                      className="inline-block h-3 w-3 rounded-full"
+                      style={{ backgroundColor: kolor }}
+                    />
+                  ),
+                )}
+                <span className="font-display text-sm font-bold">{preset.name}</span>
+              </span>
+              <span className="mt-0.5 block text-xs text-ink-dim">{preset.opis}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Przełącznik trybu: edytujesz osobno kolory ciemnego i jasnego. */}
       <div className="mt-3 inline-flex rounded-lg border border-edge p-0.5" role="tablist">

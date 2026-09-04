@@ -105,6 +105,69 @@ export const LIGHT_THEME: ThemeColors = {
   familyGreen: '#1f9d57',
 };
 
+/**
+ * Styl „Kolorowy" — wariant dla dzieci.
+ *
+ * Adam przysłał grafiki: świecące tęczowe klocki na ciemnym tle, mocne
+ * nasycone barwy, wesoło i zabawkowo — i poprosił, żeby obecny wygląd został
+ * jako „Klasyczny", a ten stanął obok jako drugi do wyboru.
+ *
+ * Tło zostaje ciemne (na nim neon świeci; na białym te same kolory bledną),
+ * ale wszystko inne idzie w górę nasycenia. Rodziny i kategorie dostają
+ * czyste barwy tęczy zamiast przygaszonych — z zachowaniem tego, co niesie
+ * znaczenie: czerwony dalej jest czerwony, niebieski niebieski, bo kolor
+ * decyduje o dopasowaniu karty do ścianki.
+ */
+export const COLORFUL_THEME: ThemeColors = {
+  // Granat zamiast czerni: pod neonem czysta czerń wygląda jak dziura,
+  // a lekko niebieskie tło trzyma wszystko razem.
+  bg: '#12083a',
+  surface: '#1d1160',
+  raised: '#2a1a80',
+  edge: '#5b3fd9',
+  ink: '#ffffff',
+  // Jasny liliowy zamiast szarego: szary na fioletowym tle wygląda brudno.
+  inkDim: '#c4b5fd',
+  accent: '#22e0d6',
+  accent2: '#ff5fd2',
+  danger: '#ff4d6d',
+  success: '#3ef08a',
+  typeAction: '#ff5252',
+  typeThinking: '#3d9bff',
+  typeCooperation: '#ffd633',
+  typeSelfchange: '#3ef08a',
+  catPsychological: '#ff5fd2',
+  catEter11: '#ffffff',
+  catBlackswan: '#a78bfa',
+  catDigital: '#22d3ff',
+  catSocial: '#ffd633',
+  catTalent: '#c084fc',
+  catMentor: '#22e0d6',
+  familyRed: '#ff5252',
+  familyBlue: '#3d9bff',
+  familyYellow: '#ffd633',
+  familyGreen: '#3ef08a',
+};
+
+/**
+ * Gotowe style do wyboru w panelu.
+ *
+ * Redaktor nie musi układać dwudziestu kolorów od zera — klika styl i ma
+ * spójny zestaw. Własne poprawki nadal działają: preset tylko wypełnia pola.
+ */
+export const THEME_PRESETS: Array<{ name: string; opis: string; colors: ThemeColors }> = [
+  {
+    name: 'Klasyczny',
+    opis: 'Ciemny, spokojny — ten, który znacie.',
+    colors: DEFAULT_THEME,
+  },
+  {
+    name: 'Kolorowy',
+    opis: 'Tęczowy i dziecięcy, wg grafik Adama.',
+    colors: COLORFUL_THEME,
+  },
+];
+
 export type ThemeMode = 'dark' | 'light';
 
 /**
