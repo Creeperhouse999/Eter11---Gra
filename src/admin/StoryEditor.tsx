@@ -6,7 +6,14 @@ import { TextField, TextArea } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
 import { IconPicker } from './IconPicker';
 
-export type StoryPart = 'story' | 'box' | 'rules' | 'adults' | 'faq' | 'tutorial';
+export type StoryPart =
+  | 'story'
+  | 'storyGood'
+  | 'box'
+  | 'rules'
+  | 'adults'
+  | 'faq'
+  | 'tutorial';
 
 interface StoryEditorProps {
   intro?: IntroContent;
@@ -26,7 +33,15 @@ type Part = StoryPart;
 /** Części zbudowane ze scen — wszystkie poza samouczkiem, który ma inny kształt. */
 type CzescScen = Exclude<StoryPart, 'tutorial'>;
 
-const PART_IDS: Part[] = ['story', 'box', 'adults', 'rules', 'faq', 'tutorial'];
+const PART_IDS: Part[] = [
+  'story',
+  'storyGood',
+  'box',
+  'adults',
+  'rules',
+  'faq',
+  'tutorial',
+];
 
 /** Czy dany slug z adresu to znana pod-zakładka wstępu. */
 export function isStoryPart(value: string): value is StoryPart {
@@ -38,6 +53,12 @@ const PARTS: Array<{ id: Part; label: string; hint: string }> = [
     id: 'story',
     label: 'Historia',
     hint: 'Wstęp narracyjny — wciąga w świat gry, zanim padnie słowo o zasadach.',
+  },
+  {
+    id: 'storyGood',
+    label: 'Historia — Dobry 2111',
+    hint:
+      'Druga wersja wstępu: świat, w którym problemy rozwiązano. Adam porównuje obie na żywych graczach — wybór wersji jest przy wydruku instrukcji.',
   },
   {
     id: 'rules',
@@ -97,6 +118,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
     Array.isArray(intro?.[key]) ? intro![key]! : DEFAULT_INTRO[key] ?? [];
   const current: Required<IntroContent> = {
     story: scenesOf('story'),
+    storyGood: scenesOf('storyGood'),
     rules: scenesOf('rules'),
     adults: scenesOf('adults'),
     box: scenesOf('box'),

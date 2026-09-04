@@ -28,6 +28,7 @@ import {
   type Role,
   type TeamMember,
 } from '../firebase/roles';
+import { podpisNotatki } from '../firebase/noteAuthor';
 import { notify, uidsForAuthor } from '../firebase/notifications';
 import { addDiscussion } from '../firebase/discussions';
 import { Alert } from '../ui/controls/Alert';
@@ -728,13 +729,13 @@ export function ReportsPanel({
                             }}
                           >
                             {/* Podpis: imię autora, gdy notatkę zapisano razem
-                                z nim. Bez tego każda notatka od zespołu stała
-                                pod jedną etykietą, nawet gdy pisał ją co-admin
-                                albo admin. Stare notatki bez `author` spadają
-                                do strony obiegu: po stronie naprawiającego
-                                podpisuje się Claude (to jego rola w zespole),
-                                po drugiej — zgłaszający. */}
-                            {note.author || (dev ? 'Claude' : 'Zgłaszający')}
+                                z nim; inaczej imię ze zgłoszenia (patrz
+                                `podpisNotatki`). Wcześniej stara notatka
+                                zgłaszającego spadała do bezosobowego
+                                „Zgłaszający" i w jednym wątku ten sam człowiek
+                                podpisywał się raz imieniem, raz nie —
+                                wyglądało to na trzecią osobę w rozmowie. */}
+                            {podpisNotatki(note, report)}
                           </span>
                           <span className="font-mono text-[10px] text-ink-dim">
                             {formatDate(note.at)}

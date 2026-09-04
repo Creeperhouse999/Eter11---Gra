@@ -51,6 +51,15 @@ export interface IntroContent {
    */
   box?: IntroScene[];
   faq?: IntroScene[];
+  /**
+   * Druga narracja — „Dobry 2111", świat, w którym problemy rozwiązano.
+   *
+   * Adam chce porównać obie wersje na żywych graczach i zgłosił, że „brakuje
+   * w panelu możliwości edycji treści Złego i dobrego 2111". Zły siedzi
+   * w `story`; ta wersja żyła dotąd wyłącznie jako stała w kodzie, więc każda
+   * poprawka słowa wymagała wdrożenia.
+   */
+  storyGood?: IntroScene[];
 }
 
 export const INTRO_STORY: IntroScene[] = [
@@ -344,4 +353,5 @@ export const DEFAULT_INTRO: IntroContent = {
   adults: INTRO_FOR_ADULTS,
   box: INTRO_BOX,
   faq: INTRO_FAQ,
+  storyGood: INTRO_STORY_GOOD,
 };
