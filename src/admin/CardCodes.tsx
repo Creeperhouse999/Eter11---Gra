@@ -6,6 +6,7 @@ import { TextField } from '../ui/controls/Field';
 import { useToast } from '../ui/controls/Toast';
 import { ImageUpload } from './ImageUpload';
 import { CATEGORY_ORDER } from '../data/categories';
+import type { FamilyMap } from '../data/families';
 import type { CardCategory, FamilyId } from '../engine/types';
 
 interface CardCodesProps {
@@ -22,6 +23,13 @@ interface CardCodesProps {
   onProblemsChange?: (problems: Problem[]) => void;
   characters?: Character[];
   onCharactersChange?: (characters: Character[]) => void;
+  /**
+   * Rodziny — kolor karty należy do rodziny, nie do samej karty. Adam
+   * poprosił, żeby dało się go zmienić stąd („jeszcze kolor musi mieć opcję
+   * zmiany"), więc tabela musi umieć zapisać zmianę w rodzinie.
+   */
+  families?: FamilyMap;
+  onFamiliesChange?: (families: FamilyMap) => void;
 }
 
 /** Nazwa grupy, w której stoi dany wpis. */
@@ -61,6 +69,8 @@ export function CardCodes({
   onProblemsChange,
   characters,
   onCharactersChange,
+  families,
+  onFamiliesChange,
 }: CardCodesProps) {
   const toast = useToast();
   const [szukaj, setSzukaj] = useState('');
@@ -203,6 +213,24 @@ export function CardCodes({
         (problems ?? []).map((p) => (p.id === wpis.id ? { ...p, image: url } : p)),
       );
     }
+  };
+
+  /**
+   * Zmiana koloru karty = zmiana koloru jej RODZINY w tej kategorii.
+   *
+   * Kolor nie należy do pojedynczej karty: wszystkie czerwone karty umysłu
+   * dzielą jeden odcień, bo to po nim gracz poznaje, że pasują do tej samej
+   * ścianki. Zmiana stąd przestawia więc całą rodzinę — i tak właśnie ma
+   * działać, inaczej jedna karta wyłamałaby się z reguły gry.
+   */
+  const zmienKolor = (card: Card, kolor: string) => {
+    if (!card.family || !families || !onFamiliesChange) return;
+    onFamiliesChange({
+      ...families,
+      [card.category]: (families[card.category] ?? []).map((f) =>
+        f.id === card.family ? { ...f, color: kolor } : f,
+      ),
+    });
   };
 
   const kopiuj = async (kod: string) => {
@@ -377,12 +405,26 @@ export function CardCodes({
 
                     <td className="p-1.5">
                       {card?.family ? (
-                        <span
-                          data-testid="probka-koloru"
-                          title={card.family}
-                          className="inline-block h-4 w-4 rounded border border-edge align-middle"
-                          style={{ backgroundColor: `var(--eter-family-${card.family})` }}
-                        />
+                        onFamiliesChange && families ? (
+                          <input
+                            type="color"
+                            data-testid="probka-koloru"
+                            aria-label={`Kolor karty ${card.name}`}
+                            value={
+                              (families[card.category] ?? []).find((f) => f.id === card.family)
+                                ?.color ?? '#888888'
+                            }
+                            onChange={(e) => zmienKolor(card, e.target.value)}
+                            className="h-6 w-8 cursor-pointer rounded border border-edge bg-surface align-middle"
+                          />
+                        ) : (
+                          <span
+                            data-testid="probka-koloru"
+                            title={card.family}
+                            className="inline-block h-4 w-4 rounded border border-edge align-middle"
+                            style={{ backgroundColor: `var(--eter-family-${card.family})` }}
+                          />
+                        )
                       ) : (
                         <span className="text-xs text-ink-dim">—</span>
                       )}

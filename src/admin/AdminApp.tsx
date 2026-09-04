@@ -866,6 +866,10 @@ export function AdminApp() {
             onProblemsChange={(problems) => update({ problems })}
             characters={content.characters}
             onCharactersChange={(characters) => update({ characters })}
+            // Kolor karty należy do rodziny — bez tego próbnik w tabeli nie
+            // miałby czego zapisać.
+            families={content.families}
+            onFamiliesChange={(families) => update({ families })}
           />
         )}
         {tab === 'manual' && <PrintManual content={content} />}
