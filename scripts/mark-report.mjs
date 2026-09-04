@@ -163,3 +163,96 @@ if (result.error) {
   process.exit(1);
 }
 console.log(`✓ "${field(doc, 'title')}" → ${status}${comment ? ' (+ komentarz)' : ''}`);
+
+/**
+ * Powiadomienie dla zgłaszającego.
+ *
+ * Alan zgłosił: „napraw, aby każde działanie, które wykonałeś, pojawiało się
+ * w powiadomieniach". Panel wysyłał je przy zmianie statusu, ten skrypt nie —
+ * a naprawy z chmury idą właśnie skryptem, więc zgłaszający dowiadywał się
+ * o nich tylko wtedy, gdy sam zajrzał na listę.
+ *
+ * Link prowadzi wprost do zgłoszenia (`?open=<id>`), tak jak prosił Alan:
+ * „abym mógł klikać w powiadomienie i aby to kierowało mnie do danego
+ * miejsca, którego dotyczy powiadomienie".
+ */
+async function powiadomZglaszajacego() {
+  const autor = field(doc, 'author').trim();
+  if (!autor) return;
+
+  // Zgłoszenia pamiętają podpis („Adam"), nie konto — konta szukamy po imieniu
+  // albo po adresie e-mail, tak samo jak robi to panel (`uidsForAuthor`).
+  const rolesRes = await fetch(`${BASE}/roles?key=${API_KEY}&pageSize=100`);
+  const rolesData = await rolesRes.json();
+  const szukane = autor.toLowerCase();
+
+  const uids = (rolesData.documents ?? [])
+    .filter((r) => {
+      const f = r.fields ?? {};
+      const imie = (f.name?.stringValue ?? '').trim().toLowerCase();
+      const mail = (f.email?.stringValue ?? '').trim().toLowerCase();
+      return imie === szukane || mail === szukane || mail.split('@')[0] === szukane;
+    })
+    .map((r) => r.name.split('/').pop());
+
+  if (uids.length === 0) {
+    console.log(`  (bez powiadomienia — nie znalazłem konta dla „${autor}")`);
+    return;
+  }
+
+  // Reguły bazy dopuszczają tylko cztery rodzaje powiadomień, a z tego dwa
+  // dotyczą zgłoszeń. Komentarz bez zmiany statusu (`new`) jedzie jako
+  // `report-fixed`, bo to ten sam dzwonek „jest coś nowego przy Twoim
+  // zgłoszeniu" — poszerzanie listy w regułach byłoby luzowaniem uprawnień
+  // dla samej etykiety.
+  const TYTULY = {
+    fixed: `Twoje zgłoszenie czeka na sprawdzenie: „${field(doc, 'title')}"`,
+    dismissed: `Twoje zgłoszenie zostało odrzucone: „${field(doc, 'title')}"`,
+    new: `Nowa wiadomość w zgłoszeniu: „${field(doc, 'title')}"`,
+    reopened: `Zgłoszenie wróciło do poprawki: „${field(doc, 'title')}"`,
+  };
+  const tytul = TYTULY[status];
+  if (!tytul) return;
+
+  const RODZAJE = {
+    fixed: 'report-fixed',
+    dismissed: 'report-dismissed',
+    new: 'report-fixed',
+    reopened: 'report-fixed',
+  };
+
+  const createdAt = new Date().toISOString();
+  let wyslane = 0;
+
+  for (const uid of uids) {
+    const res = await fetch(`${BASE}/notifications?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        fields: {
+          uid: { stringValue: uid },
+          kind: { stringValue: RODZAJE[status] },
+          title: { stringValue: tytul },
+          ...(comment ? { body: { stringValue: comment.slice(0, 300) } } : {}),
+          from: { stringValue: 'Claude' },
+          link: { stringValue: `/admin/reports/${status}?open=${id}` },
+          createdAt: { stringValue: createdAt },
+          read: { booleanValue: false },
+        },
+      }),
+    });
+    if (res.ok) wyslane += 1;
+    else console.log(`  (powiadomienie odrzucone: ${(await res.json()).error?.message})`);
+  }
+
+  if (wyslane > 0) console.log(`  → powiadomiono ${autor}`);
+}
+
+// Nieudane powiadomienie nie może wywrócić oznaczenia: status jest już
+// zapisany, a to tylko dzwonek. Inaczej CI świeciłby na czerwono po udanej
+// naprawie.
+try {
+  await powiadomZglaszajacego();
+} catch (error) {
+  console.log(`  (powiadomienie się nie udało: ${error.message})`);
+}
