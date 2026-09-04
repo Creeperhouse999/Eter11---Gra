@@ -78,6 +78,45 @@ Panel ma zakładkę **Pamięć** — wspólny notatnik zespołu, kolekcja `memor
 
 **Dopisuj tam co jakiś czas** — po większej serii zadań albo gdy dowiesz się czegoś trwałego o zespole czy produkcie. Nie czekaj, aż ktoś poprosi. Wpisuj fakty, które nie wynikają z kodu ani z historii gita: kto za co odpowiada, co zespół już ustalił, jakie są ograniczenia. Nie wpisuj szczegółów pojedynczej rozmowy ani osób spoza zespołu. Zanim dopiszesz, sprawdź listę — jeśli podobny wpis jest, popraw go zamiast dokładać drugi.
 
+## Zasady, o których notorycznie zapominam (Alan kazał zapisać)
+
+**1. Postęp prac na zgłoszeniu — ustawiaj GO SAM, na bieżąco.**
+Pole `progress` (`W kolejce` / `Robi się` / `Sprawdzam` / `Zrobione`) mówi
+zespołowi, że zgłoszenie zostało zauważone. To Twoje zadanie, nie czyjeś:
+`node scripts/set-progress.mjs "<fragment tytułu>" working`. Bierzesz
+zgłoszenie → `working`. Skończyłeś → `finished`. Nie zostawiaj tego na koniec
+i nie oznaczaj hurtem wszystkiego naraz — plakietka „W kolejce" przy
+zgłoszeniu, którego nikt nie tknął, to kłamstwo. NIE rusza pola `status`,
+to osobna rzecz i należy do zgłaszającego.
+
+**2. Kolejność brana ŚCIŚLE wg pilności, od góry listy.**
+`ultra` → `high` → `medium` → `low`, przy równej pilności od najstarszych.
+Nie bierz zgłoszenia dlatego, że akurat masz je przed oczami albo wydaje się
+łatwiejsze — Alan to widzi i słusznie się czepia. Zakładka **„Wróciły"**
+(`reopened`) to NIE jest zamknięte: ktoś sprawdził poprzednią naprawę i dalej
+nie działa. Czytaj notatki, żeby nie powtórzyć tego, co już zawiodło.
+
+**3. Dyskusje odpisuj w KAŻDEJ turze, tak samo jak zgłoszenia.**
+Zespół czekał miesiącami na odpowiedzi, bo skrypt cicho odrzucał zapisy.
+Jeśli `discuss.mjs` zwróci błąd — to jest usterka do naprawienia OD RAZU,
+nie powód, żeby odpuścić wątek. Pisz KRÓTKO: dyskusje są od decyzji
+i propozycji, nie od dziennika zmian.
+
+**4. Skończ jedną rzecz, zanim weźmiesz następną.**
+Alan: „ma być UPORZĄDKOWANE i czyste, a nie chaos". Jedna naprawa = jeden
+commit, zweryfikowana, oznaczona, dopiero potem kolejna. Nie zostawiaj
+diagnozy w połowie, żeby pobiec do czegoś ciekawszego.
+
+**5. Testuj to, co naprawiłeś — nie coś obok.**
+Break-test, który przechodzi po cofnięciu poprawki, niczego nie broni.
+Jeśli logika siedzi w komponencie, wydziel ją do osobnej funkcji i testuj
+ją wprost, zamiast montować pół aplikacji i sprawdzać sąsiedni mechanizm.
+
+**6. Nie odhaczaj zgłoszenia, którego nie zrobiłeś.**
+Trailer `Report-Fixed` znaczy „gotowe", nie „zaczynam". Raz oznaczyłem tak
+zgłoszenie z zapowiedzią „resztę zrobię potem" — dla zgłaszającego to
+wyglądało na skończone i sprawa przepadła.
+
 ## Working Discipline
 
 - **Track multi-step work** with a todo list so progress is visible.
