@@ -16,6 +16,7 @@ import {
   PROGRESS_LABELS,
   PROGRESS_ORDER,
   pokazacPostep,
+  mozeDopisacUwage,
   etykietaStanu,
 } from '../firebase/reports';
 import {
@@ -811,7 +812,14 @@ export function ReportsPanel({
               ) : (
                 <div className="eter-fade-in mt-3 rounded-lg border border-danger bg-raised p-3">
                   <TextArea
-                    label="Co dokładnie nadal nie działa?"
+                    label={
+                      // Przy zgłoszeniu, które już raz wróciło, pytanie „co
+                      // nadal nie działa" brzmi jak powtórka — tu chodzi
+                      // o dopisanie czegoś do trwającej rozmowy.
+                      report.status === 'reopened'
+                        ? 'Co chcesz dopisać?'
+                        : 'Co dokładnie nadal nie działa?'
+                    }
                     value={comment}
                     rows={3}
                     onChange={(e) => setComment(e.target.value)}
@@ -838,7 +846,9 @@ export function ReportsPanel({
                       disabled={comment.trim().length === 0}
                       onClick={() => void changeStatus(report, 'reopened')}
                     >
-                      Odeślij do poprawki
+                      {/* Status zostaje ten sam, gdy zgłoszenie już wróciło —
+                          wtedy to zwykłe dopisanie uwagi, nie odsyłanie. */}
+                      {report.status === 'reopened' ? 'Dopisz uwagę' : 'Odeślij do poprawki'}
                     </Button>
                     <Button
                       size="sm"
@@ -952,6 +962,28 @@ export function ReportsPanel({
                   </Button>
                 </>
               )}
+
+              {/* Dopisanie uwagi bez zmiany statusu.
+                  Adam trafił na zgłoszenie, które sam odesłał do poprawki, i nie
+                  miał jak dołożyć zrzutu — formularz uwagi wisiał wyłącznie przy
+                  „naprawione". Rozmowa o własnym zgłoszeniu nie może zależeć od
+                  tego, czy programista zdążył je znów oznaczyć. */}
+              {mozeDopisacUwage(report.status) &&
+                report.status !== 'fixed' &&
+                commenting !== report.id && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="message"
+                    onClick={() => {
+                      setCommenting(report.id);
+                      setComment('');
+                      setCommentImages([]);
+                    }}
+                  >
+                    Dopisz uwagę
+                  </Button>
+                )}
 
               {report.status === 'done' && (
                 <Button

@@ -149,6 +149,24 @@ export function etykietaStanu(report: {
   return null;
 }
 
+/**
+ * Czy zgłaszający może dopisać uwagę do zgłoszenia.
+ *
+ * Adam zgłosił: „nie mogę Ci odpowiedzieć, nie mogę klikać »dalej nie
+ * działa«". Trafił na zgłoszenie, które sam wcześniej odesłał do poprawki
+ * (`reopened`) — chciał dołożyć zrzut ekranu, a formularz uwagi pokazywał się
+ * TYLKO przy `fixed`. Rozmowa o własnym zgłoszeniu zależała więc od tego, czy
+ * programista zdążył je znów oznaczyć jako naprawione.
+ *
+ * Otwarte jest wszystko, co jest w toku. Zamknięte (`done`, `dismissed`) nie:
+ * dopisek pod zamkniętą sprawą nikogo nie powiadomi i zginie — od tego jest
+ * nowe zgłoszenie. `pending` też nie, bo czeka na decyzję moderatora, nie na
+ * rozmowę.
+ */
+export function mozeDopisacUwage(status: ReportStatus): boolean {
+  return status === 'new' || status === 'fixed' || status === 'reopened';
+}
+
 /** Kolejność do wyświetlania — od „jeszcze nie zacząłem" do „skończone". */
 export const PROGRESS_ORDER: ReportProgress[] = [
   'queued',

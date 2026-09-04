@@ -99,7 +99,7 @@ describe('ReportsPanel — notatka nie dubluje się przy odesłaniu do poprawki'
 
     fireEvent.click((await screen.findByText('Zgłoszenie testowe')).closest('button')!);
     fireEvent.click(await screen.findByRole('button', { name: /Dalej nie działa/ }));
-    fireEvent.change(await screen.findByLabelText(/Co dokładnie nadal nie działa/), {
+    fireEvent.change(await screen.findByLabelText(/Co dokładnie nadal nie działa|Co chcesz dopisać/), {
       target: { value: 'To nie jest imię gracza; tylko tryb jasny/ciemny' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Odeślij do poprawki/ }));
@@ -110,7 +110,7 @@ describe('ReportsPanel — notatka nie dubluje się przy odesłaniu do poprawki'
     // Zgłoszenie mówi o duplikacie, który ZOSTAJE (znika dopiero po odświeżeniu
     // strony), nie o takim, który sam się cofa milisekundę później.
     await waitForElementToBeRemoved(() =>
-      screen.queryByLabelText(/Co dokładnie nadal nie działa/),
+      screen.queryByLabelText(/Co dokładnie nadal nie działa|Co chcesz dopisać/),
     );
 
     const notes = screen.getAllByText('To nie jest imię gracza; tylko tryb jasny/ciemny');
