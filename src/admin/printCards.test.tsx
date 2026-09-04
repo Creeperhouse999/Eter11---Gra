@@ -28,7 +28,7 @@ const content = (): GameContent => ({
  */
 function opisMowiO(ile: number): boolean {
   return screen
-    .getAllByText((_t, el) => (el?.textContent ?? '').startsWith('Pełna talia do gry'))
+    .getAllByText((_t, el) => (el?.textContent ?? '').startsWith('Wszystko, czego trzeba'))
     .some((el) => (el.textContent ?? '').includes(`${ile} kart`));
 }
 
@@ -37,8 +37,12 @@ describe('PrintCards', () => {
     const c = content();
     render(<PrintCards content={c} />);
     const expected = buildDeck(playableCards(c.cards));
-    expect(screen.getByRole('button', { name: `Drukuj (${expected.length} kart)` })).toBeTruthy();
-    expect(document.querySelectorAll('article')).toHaveLength(expected.length);
+    // Wydruk to CAŁE pudełko: kompetencje plus problemy i postacie. Adam
+    // zgłosił jako krytyczne, że bez nich nie da się rozegrać partii na
+    // papierze — a to jedyny powód istnienia tej zakładki.
+    const razem = expected.length + c.problems.length + c.characters.length;
+    expect(screen.getByRole('button', { name: `Drukuj (${razem} kart)` })).toBeTruthy();
+    expect(document.querySelectorAll('article')).toHaveLength(razem);
   });
 
   it('pomija karty oznaczone jako robocze (draft)', () => {
@@ -77,7 +81,8 @@ describe('PrintCards', () => {
     // Opis i przycisk osobno: gdy jedno z nich ma liczbę wpisaną na sztywno,
     // drugie i tak liczy poprawnie i test by tego nie zauważył.
     expect(opisMowiO(bazowa)).toBe(true);
-    expect(screen.getByRole("button", { name: `Drukuj (${bazowa} kart)` })).toBeTruthy();
+    const razemPrzed = bazowa + przed.problems.length + przed.characters.length;
+    expect(screen.getByRole("button", { name: `Drukuj (${razemPrzed} kart)` })).toBeTruthy();
     unmount();
 
     // Redaktor dodaje kartę kompetencji — do talii wchodzi w dwóch
@@ -89,7 +94,8 @@ describe('PrintCards', () => {
     const oczekiwana = buildDeck(playableCards(po.cards)).length;
     expect(oczekiwana).toBe(bazowa + 2);
     expect(opisMowiO(oczekiwana)).toBe(true);
-    expect(screen.getByRole("button", { name: `Drukuj (${oczekiwana} kart)` })).toBeTruthy();
+    const razemPo = oczekiwana + po.problems.length + po.characters.length;
+    expect(screen.getByRole("button", { name: `Drukuj (${razemPo} kart)` })).toBeTruthy();
   });
 
   /**
