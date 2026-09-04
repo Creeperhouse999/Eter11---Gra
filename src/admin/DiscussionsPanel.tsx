@@ -261,13 +261,6 @@ export function DiscussionsPanel({
       .filter((url): url is string => Boolean(url))
       .slice(0, 5);
 
-    // Zgłoszenie bez zdjęć nie ma sensu w tym przepływie — to zwykle zrzut,
-    // który trzeba pokazać programiście. Blokujemy, zamiast tworzyć puste.
-    if (images.length === 0) {
-      toast('Ten wątek nie ma żadnego zdjęcia — dołącz zrzut, zanim zrobisz z niego zgłoszenie.', 'danger');
-      return;
-    }
-
     const rozmowa = [
       discussion.description,
       ...discussion.messages.map((m) => `${m.author}: ${m.text}`),

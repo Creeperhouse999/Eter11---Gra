@@ -56,7 +56,8 @@ vi.mock('../firebase/discussions', async (importOriginal) => {
   };
 });
 
-vi.mock('../firebase/reports', () => ({ addReport: vi.fn(async () => ({ ok: true })) }));
+const addReport = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
+vi.mock('../firebase/reports', () => ({ addReport: (input: unknown) => addReport(input) }));
 
 const { DiscussionsPanel } = await import('./DiscussionsPanel');
 
@@ -89,6 +90,8 @@ beforeEach(() => {
   setDiscussionClosed.mockResolvedValue(undefined);
   addMessage.mockClear();
   addMessage.mockResolvedValue({ ok: true });
+  addReport.mockClear();
+  addReport.mockResolvedValue({ ok: true });
 });
 
 /**
@@ -203,5 +206,30 @@ describe('DiscussionsPanel — zamykanie wątku', () => {
 
     expect(setDiscussionClosed).toHaveBeenCalledWith('d1', true);
     expect(screen.queryByText(/nie udało się/i)).toBeNull();
+  });
+});
+
+/**
+ * Zamiana wątku w zgłoszenie bez zdjęcia w rozmowie.
+ *
+ * Regresja: `toReport` blokował konwersję, jeśli żadna wypowiedź w wątku nie
+ * niosła obrazka („Ten wątek nie ma żadnego zdjęcia — dołącz zrzut...").
+ * Wiele ustaleń zespołu to czysty tekst (np. decyzja o nazewnictwie kart) —
+ * dla takich wątków przycisk „Zrób z tego zgłoszenie" nie dawał żadnego
+ * sposobu na utworzenie zgłoszenia, mimo że `addReport` i tak traktuje
+ * zdjęcia jako opcjonalne.
+ */
+describe('DiscussionsPanel — zamiana wątku w zgłoszenie', () => {
+  it('wątek bez zdjęć też da się zamienić w zgłoszenie', async () => {
+    renderPanel('admin');
+    openThread();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zrób z tego zgłoszenie' }));
+
+    expect(await screen.findByText(/Zgłoszenie utworzone/i)).toBeTruthy();
+    expect(addReport).toHaveBeenCalledTimes(1);
+    const [input] = addReport.mock.calls[0] as [{ images?: string[] }];
+    expect(input.images).toEqual([]);
+    expect(screen.queryByText(/dołącz zrzut/i)).toBeNull();
   });
 });
