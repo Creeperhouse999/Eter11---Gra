@@ -5,26 +5,33 @@ interface WaitingOverlayProps {
 }
 
 /**
- * Delikatny znak, że teraz gra ktoś inny.
+ * Znak, że teraz gra ktoś inny.
  *
- * Nie zasłania planszy — dziecko ma śledzić cudzy ruch, nie gapić się na
- * przyciemniony ekran. Pasek u góry mówi, na kogo czekamy, a plansza pod nim
- * jest przygaszona i nieklikalna.
+ * Adam poprosił wprost: „powinna się wyświetlić wyraźna informacja na środku
+ * w ramce: teraz ruch gracza …". Wcześniej był to wąski pasek u samej góry —
+ * przy grze na telefonie, gdzie wzrok siedzi na kartach na dole, dziecko go
+ * po prostu nie widziało i próbowało grać poza kolejką.
+ *
+ * Ramka stoi na środku, ale planszy nie zasłania: tło jest przezroczyste,
+ * a `pointer-events-none` przepuszcza dotyk niżej — śledzenie cudzego ruchu
+ * to połowa nauki w tej grze. Same karty blokuje osobno `allows` w
+ * `OnlineGame`, więc kliknięcie i tak nic nie zrobi.
  */
 export function WaitingOverlay({ activeName }: WaitingOverlayProps) {
   return (
     <div
       aria-live="polite"
-      className="eter-fade-in pointer-events-none fixed inset-x-0 top-0 flex justify-center p-3"
+      className="eter-fade-in pointer-events-none fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: 'var(--z-toast)' }}
     >
-      <div className="flex max-w-full min-w-0 items-center gap-2 rounded-full border border-accent bg-surface/95 px-4 py-2 shadow-lg backdrop-blur">
-        <span className="eter-pulse shrink-0 text-accent">
-          <Icon name="people" size={16} />
+      <div className="flex w-full max-w-sm min-w-0 flex-col items-center gap-2 rounded-2xl border-2 border-accent bg-surface/95 px-5 py-5 text-center shadow-2xl backdrop-blur">
+        <span className="eter-pulse text-accent">
+          <Icon name="people" size={28} />
         </span>
-        <span className="min-w-0 break-words text-sm font-semibold">
-          Teraz gra <span className="text-accent">{activeName}</span> — poczekaj na swoją kolej
-        </span>
+        <p className="min-w-0 font-display text-lg font-bold break-words">
+          Teraz ruch gracza <span className="text-accent">{activeName}</span>
+        </p>
+        <p className="text-sm text-ink-dim">Poczekaj na swoją kolej — zagrać możesz dopiero po nim.</p>
       </div>
     </div>
   );

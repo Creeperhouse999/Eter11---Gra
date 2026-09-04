@@ -197,6 +197,12 @@ export function OnlineGame({
         characters={characters}
         onQuit={onLeave}
         alwaysRevealed={myTurn}
+        // Poza swoją turą karty nie dają się chwycić ani zagrać. Zapis do bazy
+        // i tak odrzucał cudzy ruch, ale ekran o tym nie wiedział: dziecko
+        // klikało, coś się ruszało i dopiero po chwili dostawało czerwone
+        // „To nie Twoja kolej." — wyglądało to jak gra bez kolejek. Ten sam
+        // mechanizm blokuje ruchy w samouczku.
+        allows={() => myTurn}
       />
 
       {/* Gdy gra ktoś inny — delikatna nakładka, plansza wciąż widoczna. */}
