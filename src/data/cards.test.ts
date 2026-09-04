@@ -16,6 +16,25 @@ describe('ALL_CARDS', () => {
     }
   });
 
+  /**
+   * Zgłoszenie „Do poprawki: Karta robocza: Nieustępliwość" (ze Strefy Nudy):
+   * „za trudne słowo" dla gry 8-13 lat. Nie może to być „Wytrwałość" —
+   * ten prostszy synonim jest już zajęty przez kartę talentu
+   * (`tal-r-wytrwalosc`), więc dwie karty nosiłyby tę samą nazwę
+   * (dokładnie to, co wyłapuje statystyka „Powtórzone nazwy").
+   */
+  it('karta psy-r-wytrwalosc nie nosi trudnego słowa „Nieustępliwość" ani nazwy zajętej przez inną kartę', () => {
+    const card = ALL_CARDS.find((c) => c.id === 'psy-r-wytrwalosc');
+    expect(card, 'karta psy-r-wytrwalosc zniknęła z ALL_CARDS').toBeTruthy();
+    expect(card!.name).not.toBe('Nieustępliwość');
+
+    const inna = ALL_CARDS.filter((c) => c.id !== card!.id);
+    expect(
+      inna.some((c) => c.name === card!.name),
+      `nazwa „${card!.name}" koliduje z inną kartą`,
+    ).toBe(false);
+  });
+
   it('zawiera karty każdej kategorii kompetencji', () => {
     for (const category of ['psychological', 'digital', 'social'] as const) {
       const count = ALL_CARDS.filter((c) => c.category === category).length;
