@@ -16,6 +16,7 @@ import {
   PROGRESS_LABELS,
   PROGRESS_ORDER,
   pokazacPostep,
+  etykietaStanu,
 } from '../firebase/reports';
 import {
   canDelete,
@@ -293,6 +294,10 @@ export function ReportsPanel({
   };
   /** Zgłoszenie z otwartym polem komentarza. */
   const [commenting, setCommenting] = useState<string | null>(null);
+  // Zrzuty dołączane do notatki — Adam prosił o to przy odsyłaniu zgłoszenia
+  // do poprawki: „nie mogę dodać załącznika", a to zdjęcie najszybciej
+  // pokazuje, co dokładnie nadal nie gra.
+  const [commentImages, setCommentImages] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   /**
    * Edycja treści zgłoszenia (tytuł + opis) — dla moderatora.
@@ -411,7 +416,14 @@ export function ReportsPanel({
       await setReportStatus(
         report.id,
         next,
-        text ? { from, text, author: noteAuthor } : undefined,
+        text
+          ? {
+              from,
+              text,
+              author: noteAuthor,
+              ...(commentImages.length ? { images: commentImages } : {}),
+            }
+          : undefined,
       );
 
       // Autor zgłoszenia ma się dowiedzieć, że coś się z nim stało — bez
@@ -448,6 +460,7 @@ export function ReportsPanel({
       if (commenting === report.id) {
         setCommenting(null);
         setComment('');
+        setCommentImages([]);
       }
       toast(STATUS_TOAST[next]);
     } catch {
@@ -586,6 +599,7 @@ export function ReportsPanel({
     setOpenId(null);
     setCommenting(null);
     setComment('');
+    setCommentImages([]);
   };
 
   const renderReport = (report: Report) => {
@@ -731,6 +745,28 @@ export function ReportsPanel({
                         >
                           {note.text}
                         </p>
+
+                        {/* Zrzuty dołączone do TEJ notatki. Bez ich pokazania
+                            wgrany plik nigdzie by się nie pojawił, a autor
+                            uwagi byłby przekonany, że coś przesłał. */}
+                        {(note.images?.length ?? 0) > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {note.images!.map((url) => (
+                              <button
+                                key={url}
+                                type="button"
+                                onClick={() => setPreview(url)}
+                                className="overflow-hidden rounded border border-edge transition hover:border-accent"
+                              >
+                                <img
+                                  src={url}
+                                  alt="Zrzut ekranu do uwagi"
+                                  className="h-20 w-20 object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -765,6 +801,7 @@ export function ReportsPanel({
                       onClick={() => {
                         setCommenting(null);
                         setComment('');
+                        setCommentImages([]);
                       }}
                     >
                       Anuluj
@@ -780,6 +817,20 @@ export function ReportsPanel({
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Np. nadal mogę położyć zieloną kartę na czerwoną ściankę."
                   />
+                  {/* Zrzut ekranu przy odsyłaniu do poprawki — Adam prosił
+                      o to wprost. Zdjęcie pokazuje w sekundę to, co opisem
+                      zajmuje akapit, i oszczędza rundę pytań „a jak to
+                      wygląda u Ciebie". */}
+                  <div className="mt-2">
+                    <ImageUpload
+                      value={commentImages}
+                      onChange={setCommentImages}
+                      folder="reports"
+                      max={3}
+                      namePrefix={`${report.id}-uwaga`}
+                      label="Zrzut ekranu (opcjonalnie)"
+                    />
+                  </div>
                   <div className="mt-2 flex gap-2">
                     <Button
                       size="sm"
@@ -795,6 +846,7 @@ export function ReportsPanel({
                       onClick={() => {
                         setCommenting(null);
                         setComment('');
+                        setCommentImages([]);
                       }}
                     >
                       Anuluj
@@ -831,6 +883,7 @@ export function ReportsPanel({
                     onClick={() => {
                       setCommenting(report.id);
                       setComment('');
+                      setCommentImages([]);
                     }}
                   >
                     Odrzuć
@@ -892,6 +945,7 @@ export function ReportsPanel({
                     onClick={() => {
                       setCommenting(report.id);
                       setComment('');
+                      setCommentImages([]);
                     }}
                   >
                     Dalej nie działa
@@ -1070,6 +1124,7 @@ export function ReportsPanel({
                 // po zmianie zakładki nie ma już czego komentować.
                 setCommenting(null);
                 setComment('');
+                setCommentImages([]);
               }}
               aria-current={active ? 'page' : undefined}
               className={[
@@ -1152,6 +1207,27 @@ export function ReportsPanel({
                         ktoś zgłoszenie zauważył, jeszcze zanim cokolwiek jest
                         naprawione — inaczej „nikt tego nie tknął" i „siedzę
                         przy tym od godziny" wyglądają identycznie. */}
+                    {/* Co się z tym zgłoszeniem stało: „Ponownie zrobione",
+                        „Zwrócone do poprawki". Bez tego druga naprawa wygląda
+                        jak pierwsza — Alan zauważył to w zakładce „Wróciły". */}
+                    {(() => {
+                      const stan = etykietaStanu(report);
+                      if (!stan) return null;
+                      const wraca = report.status === 'reopened';
+                      return (
+                        <span
+                          className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
+                          style={{
+                            color: wraca ? 'var(--eter-danger)' : 'var(--eter-cat-social)',
+                            border: `1px solid ${
+                              wraca ? 'var(--eter-danger)' : 'var(--eter-cat-social)'
+                            }`,
+                          }}
+                        >
+                          {stan}
+                        </span>
+                      );
+                    })()}
                     {pokazacPostep(report) && report.progress && (
                       <span
                         className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"

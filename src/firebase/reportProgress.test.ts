@@ -32,7 +32,8 @@ vi.mock('firebase/firestore', () => ({
   updateDoc: (ref: unknown, data: Record<string, unknown>) => updateDoc(ref, data),
 }));
 
-const { setReportProgress, PROGRESS_LABELS, toReport, pokazacPostep } = await import('./reports');
+const { setReportProgress, PROGRESS_LABELS, toReport, pokazacPostep, etykietaStanu } =
+  await import('./reports');
 
 beforeEach(() => updateDoc.mockClear());
 
@@ -118,5 +119,47 @@ describe('postęp a zamknięte zgłoszenie', () => {
 
   it('brak postępu to brak plakietki, niezależnie od statusu', () => {
     expect(pokazacPostep({ status: 'new' })).toBe(false);
+  });
+});
+
+describe('postęp po odesłaniu do poprawki', () => {
+  it('zgłoszenie zwrócone do poprawki nie pokazuje już „Zrobione"', () => {
+    // Alan zgłosił: „w zakładce »Wróciły« rzeczy przekazane do robienia mają
+    // wciąż status »zrobione«". To sprzeczność: zgłaszający właśnie powiedział,
+    // że NIE działa, a plakietka twierdzi, że praca skończona.
+    expect(pokazacPostep({ status: 'reopened', progress: 'finished' })).toBe(false);
+  });
+
+  it('ale „robi się" przy zwróconym zgłoszeniu pokazujemy — ktoś już wrócił do tematu', () => {
+    expect(pokazacPostep({ status: 'reopened', progress: 'working' })).toBe(true);
+    expect(pokazacPostep({ status: 'reopened', progress: 'queued' })).toBe(true);
+  });
+
+  it('„Zrobione" zostaje przy zgłoszeniu czekającym na sprawdzenie', () => {
+    // Tu jest na miejscu: mówi zgłaszającemu, że jest co sprawdzać.
+    expect(pokazacPostep({ status: 'fixed', progress: 'finished' })).toBe(true);
+  });
+});
+
+describe('etykieta stanu zgłoszenia na liście', () => {
+  it('zgłoszenie naprawione PO powrocie mówi „Ponownie zrobione — sprawdź"', () => {
+    // Alan: „status powinien się zmieniać ze »zrobione« na »Ponownie zrobione
+    // — sprawdź«". Bez tego druga naprawa wygląda jak pierwsza i nie widać,
+    // że coś już raz zawiodło.
+    expect(
+      etykietaStanu({ status: 'fixed', notes: [{ from: 'reporter', text: 'nie działa', at: '' }] }),
+    ).toMatch(/ponownie/i);
+  });
+
+  it('pierwsza naprawa mówi po prostu „Do sprawdzenia"', () => {
+    expect(etykietaStanu({ status: 'fixed', notes: [] })).toMatch(/do sprawdzenia/i);
+  });
+
+  it('zgłoszenie odesłane do poprawki mówi „Zwrócone do poprawki"', () => {
+    expect(etykietaStanu({ status: 'reopened', notes: [] })).toMatch(/zwrócone do poprawki/i);
+  });
+
+  it('zgłoszenie czekające na programistę nie dostaje etykiety — nic się z nim nie stało', () => {
+    expect(etykietaStanu({ status: 'new', notes: [] })).toBeNull();
   });
 });

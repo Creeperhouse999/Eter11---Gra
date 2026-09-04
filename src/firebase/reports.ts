@@ -55,6 +55,15 @@ export interface ReportNote {
    * bierze się z niego; brak (stare notatki) — spada do generycznej etykiety.
    */
   author?: string;
+  /**
+   * Zrzuty ekranu dołączone do TEJ notatki.
+   *
+   * Adam prosił o możliwość dołączenia zdjęcia przy odsyłaniu zgłoszenia do
+   * poprawki — pokazuje, co dokładnie nadal nie gra. Zdjęcia idą z notatką,
+   * nie do zgłoszenia: te drugie opisują stan pierwotny, a wrzucone razem
+   * mieszałyby dwie różne rzeczy w jednej galerii.
+   */
+  images?: string[];
 }
 
 /**
@@ -104,7 +113,40 @@ export function pokazacPostep(report: {
   progress?: ReportProgress;
 }): boolean {
   if (!report.progress) return false;
-  return report.status !== 'done' && report.status !== 'dismissed';
+  if (report.status === 'done' || report.status === 'dismissed') return false;
+  // Zgłoszenie odesłane do poprawki nie może chwalić się „Zrobione": zgłaszający
+  // właśnie sprawdził i powiedział, że NIE działa. Alan zauważył tę sprzeczność
+  // w zakładce „Wróciły". Wcześniejsze kroki („robi się", „w kolejce") zostają —
+  // one mówią prawdę o tym, że ktoś już wrócił do tematu.
+  if (report.status === 'reopened' && report.progress === 'finished') return false;
+  return true;
+}
+
+/**
+ * Krótka etykieta mówiąca, co się z tym zgłoszeniem stało.
+ *
+ * Alan zgłosił, że nie widać różnicy między pierwszą a kolejną naprawą:
+ * „status powinien się zmieniać ze »zrobione« na »Ponownie zrobione —
+ * sprawdź«", a odesłane do poprawki ma mówić „Zwrócone do poprawki".
+ *
+ * Że zgłoszenie już raz wracało, poznajemy po notatce od zgłaszającego —
+ * pisze ją tylko wtedy, gdy odsyła sprawę z powrotem. Osobne pole byłoby
+ * kolejną rzeczą do pilnowania przy każdej zmianie statusu.
+ *
+ * `null` znaczy „nic szczególnego" — zgłoszenie czeka w kolejce i nie ma
+ * o czym informować.
+ */
+export function etykietaStanu(report: {
+  status: ReportStatus;
+  notes?: ReportNote[];
+}): string | null {
+  const wracalo = (report.notes ?? []).some((note) => note.from === 'reporter');
+
+  if (report.status === 'reopened') return 'Zwrócone do poprawki';
+  if (report.status === 'fixed') {
+    return wracalo ? 'Ponownie zrobione — sprawdź' : 'Do sprawdzenia';
+  }
+  return null;
 }
 
 /** Kolejność do wyświetlania — od „jeszcze nie zacząłem" do „skończone". */
@@ -283,7 +325,7 @@ export async function setReportProgress(
 export async function setReportStatus(
   id: string,
   status: ReportStatus,
-  note?: { from: ReportNote['from']; text: string; author?: string },
+  note?: { from: ReportNote['from']; text: string; author?: string; images?: string[] },
 ): Promise<void> {
   const text = note?.text.trim();
   const author = note?.author?.trim();
@@ -299,6 +341,9 @@ export async function setReportStatus(
             // Podpis autorem tylko, gdy go znamy — pusty `author` w arrayUnion
             // tworzyłby notatki różniące się pustym polem i psuł dedup.
             ...(author ? { author } : {}),
+            // Zrzuty tylko, gdy są — z tego samego powodu co wyżej. Notatka
+            // bez zdjęcia ma się zapisywać dokładnie tak jak dotąd.
+            ...(note?.images?.length ? { images: note.images.slice(0, 3) } : {}),
           }),
         }
       : {}),
