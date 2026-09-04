@@ -42,6 +42,29 @@ export interface DiscussionMessage {
   image?: string;
 }
 
+/**
+ * Rodzaj rozmowy.
+ *
+ * Adam: „aby w dyskusjach był podział: 1. dyskusje z AI, 2. dyskusje
+ * z twórcami". Wątki mieszały się na jednej liście, więc pytanie do zespołu
+ * ginęło między prośbami skierowanymi do mnie i odwrotnie — nikt nie wiedział,
+ * czy ktoś na nie w ogóle czeka.
+ *
+ * Wątki sprzed podziału nie mają tego pola. Liczą się jako `ai`, bo takie
+ * właśnie były: wszystkie dotychczasowe rozmowy prowadzone były ze mną.
+ */
+export type DiscussionCategory = 'ai' | 'zespol';
+
+export const CATEGORY_LABELS: Record<DiscussionCategory, string> = {
+  ai: 'Z AI',
+  zespol: 'Z twórcami',
+};
+
+/** Kategoria wątku, z domyślną dla wpisów sprzed podziału. */
+export function kategoriaWatku(discussion: { category?: DiscussionCategory }): DiscussionCategory {
+  return discussion.category ?? 'ai';
+}
+
 export interface Discussion {
   id: string;
   title: string;
@@ -52,6 +75,8 @@ export interface Discussion {
   messages: DiscussionMessage[];
   /** Wątek ustalony — schodzi z listy, ale zostaje do wglądu. */
   closed?: boolean;
+  /** Do kogo rozmowa: do mnie czy do zespołu. Brak = wątek sprzed podziału. */
+  category?: DiscussionCategory;
 }
 
 const COLLECTION = 'discussions';
@@ -63,6 +88,8 @@ export async function addDiscussion(input: {
   title: string;
   description: string;
   author: string;
+  /** Do kogo rozmowa. Bez wskazania trafia do rozmów ze mną — tak było zawsze. */
+  category?: DiscussionCategory;
   /**
    * Wypowiedzi startowe wątku. Pusto przy zwykłym zakładaniu; wypełnione, gdy
    * wątek powstaje z odrzuconego zgłoszenia — przenosimy wtedy jego treść i
@@ -96,6 +123,7 @@ export async function addDiscussion(input: {
       createdAt: new Date().toISOString(),
       messages: input.messages ?? [],
       closed: false,
+      category: input.category ?? 'ai',
     });
     return { ok: true, id: entry.id };
   } catch (error) {
@@ -119,6 +147,7 @@ export async function loadDiscussions(): Promise<Discussion[]> {
       createdAt: data.createdAt,
       messages: data.messages ?? [],
       closed: data.closed ?? false,
+      category: data.category,
     };
   });
 }
@@ -151,6 +180,7 @@ export function watchDiscussions(
             createdAt: data.createdAt,
             messages: data.messages ?? [],
             closed: data.closed ?? false,
+            category: data.category,
           };
         }),
       );
@@ -320,6 +350,14 @@ export async function setDiscussionClosed(id: string, closed: boolean): Promise<
   await updateDoc(doc(db, COLLECTION, id), { closed });
 }
 
+/** Przeniesienie wątku do drugiej kategorii — gdy trafił nie tam, gdzie trzeba. */
+export async function setDiscussionCategory(
+  id: string,
+  category: DiscussionCategory,
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), { category });
+}
+
 /** Usunięcie wątku. Reguły dopuszczają to wyłącznie zalogowanym. */
 export async function deleteDiscussion(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
@@ -349,6 +387,27 @@ export function stanWatku(discussion: Discussion): StanWatku | null {
   if (!ostatnia) return 'czeka-na-ai';
 
   return ostatnia.author === PODPIS_AI ? 'nowa-odpowiedz' : 'czeka-na-ai';
+}
+
+/**
+ * Wątki widoczne przy danym ustawieniu listy.
+ *
+ * Dwa niezależne sita: stan (otwarte / ustalone) i kategoria (z AI /
+ * z twórcami). Kategoria `null` znaczy „wszystkie" — po wejściu w zakładkę
+ * widać całość, a dopiero kliknięcie zawęża.
+ *
+ * Wątki sprzed podziału nie mają kategorii; `kategoriaWatku` liczy je jako
+ * rozmowy ze mną, bo takie były. Bez tego zniknęłyby z obu list naraz.
+ */
+export function widoczneWatki(
+  discussions: Discussion[],
+  filtr: { closed: boolean; category: DiscussionCategory | null },
+): Discussion[] {
+  return discussions.filter((d) => {
+    if (Boolean(d.closed) !== filtr.closed) return false;
+    if (filtr.category && kategoriaWatku(d) !== filtr.category) return false;
+    return true;
+  });
 }
 
 /** Napisy do plakietek — tak, jak sformułował je Adam. */

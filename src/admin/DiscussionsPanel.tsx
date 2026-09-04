@@ -10,7 +10,12 @@ import {
   watchDiscussions,
   stanWatku,
   STAN_WATKU_LABELS,
+  setDiscussionCategory,
+  kategoriaWatku,
+  widoczneWatki,
+  CATEGORY_LABELS,
   type Discussion,
+  type DiscussionCategory,
 } from '../firebase/discussions';
 import { addReport } from '../firebase/reports';
 import {
@@ -135,6 +140,14 @@ export function DiscussionsPanel({
   const [sending, setSending] = useState(false);
 
   /**
+   * Do kogo rozmowa — Adam prosił o podział „dyskusje z AI / z twórcami".
+   * `null` = wszystkie: po wejściu widać całość, kliknięcie zawęża.
+   */
+  const [category, setCategory] = useState<DiscussionCategory | null>(null);
+  /** Kategoria zakładanego wątku. Domyślnie do mnie — tak wygląda większość. */
+  const [newCategory, setNewCategory] = useState<DiscussionCategory>('ai');
+
+  /**
    * Otwarty wątek: z adresu, gdy podano `openId`; inaczej własny stan.
    * Dzięki temu link `?open=<id>` otwiera właściwą rozmowę, a bez adresu
    * (np. w teście jednostkowym) panel działa jak dawniej.
@@ -189,6 +202,7 @@ export function DiscussionsPanel({
       title,
       description,
       author,
+      category: newCategory,
       // Zrzut dołączony przy zakładaniu wątku wchodzi jako pierwsza wypowiedź
       // (bez tekstu) — sam wątek (`description`) nie ma pola na obrazek.
       ...(newImages[0]
@@ -371,8 +385,28 @@ export function DiscussionsPanel({
     }
   };
 
-  const visible = discussions.filter((d) => (showClosed ? d.closed : !d.closed));
+  /**
+   * Przeniesienie wątku do drugiej kategorii.
+   *
+   * Wynik zapisu sprawdzamy: reguły Firestore dopuszczają zmianę `category`
+   * tylko osobom z prawem do dyskusji, a ciche „nic się nie stało" przy
+   * odmowie było już raz źródłem nieporozumień w tym panelu.
+   */
+  const przeniesDo = async (thread: Discussion) => {
+    const docelowa: DiscussionCategory = kategoriaWatku(thread) === 'ai' ? 'zespol' : 'ai';
+    try {
+      await setDiscussionCategory(thread.id, docelowa);
+      toast(`Wątek jest teraz w „${CATEGORY_LABELS[docelowa]}".`, 'success');
+    } catch {
+      toast('Nie udało się przenieść wątku. Sprawdź, czy jesteś zalogowany.', 'danger');
+    }
+  };
+
+  const visible = widoczneWatki(discussions, { closed: showClosed, category });
   const closedCount = discussions.filter((d) => d.closed).length;
+  /** Ile wątków w danej kategorii przy bieżącym stanie — do liczników przycisków. */
+  const ile = (kat: DiscussionCategory | null) =>
+    widoczneWatki(discussions, { closed: showClosed, category: kat }).length;
 
   // Wątek bierzemy z listy po identyfikatorze, a nie z kopii zapamiętanej
   // przy otwarciu — inaczej wypowiedzi wchodzące na żywo nie pojawiłyby się
@@ -566,6 +600,18 @@ export function DiscussionsPanel({
               >
                 {thread.closed ? 'Otwórz ponownie' : 'Ustalone'}
               </Button>
+              {/* Przeniesienie do drugiej kategorii — wątek bywa założony
+                  odruchowo „do AI", a okazuje się pytaniem do zespołu (albo
+                  odwrotnie). Bez tego jedynym wyjściem byłoby założenie nowego
+                  i przepisanie rozmowy. */}
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="undo"
+                onClick={() => void przeniesDo(thread)}
+              >
+                Przenieś do „{CATEGORY_LABELS[kategoriaWatku(thread) === 'ai' ? 'zespol' : 'ai']}"
+              </Button>
               {/* Usunąć wątek może TYLKO admin (reguły Firestore: jestAdmin).
                   Wcześniej przycisk był niezabezpieczony, więc co-admin/edytor
                   też go widział, klikał i dostawał fałszywe „Wątek usunięty",
@@ -657,6 +703,25 @@ export function DiscussionsPanel({
             rows={3}
           />
         </div>
+        {/* Do kogo piszesz. Adam prosił o rozdzielenie rozmów ze mną od tych
+            z zespołem — decyzja zapada tutaj, przy zakładaniu, bo tylko autor
+            wie, od kogo oczekuje odpowiedzi. */}
+        <div className="mt-3">
+          <span className="eter-label">Do kogo</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {(['ai', 'zespol'] as const).map((kat) => (
+              <Button
+                key={kat}
+                size="sm"
+                variant={newCategory === kat ? 'primary' : 'ghost'}
+                onClick={() => setNewCategory(kat)}
+              >
+                {CATEGORY_LABELS[kat]}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-xs text-ink-dim">
@@ -700,6 +765,34 @@ export function DiscussionsPanel({
         </Button>
       </div>
 
+      {/* Do kogo rozmowa. Adam: „aby w dyskusjach był podział: 1. dyskusje
+          z AI, 2. dyskusje z twórcami" — na jednej liście pytanie do zespołu
+          ginęło między prośbami do mnie. „Wszystkie" zostaje jako domyślne,
+          żeby nikt nie przeoczył wątku tylko dlatego, że stoi w drugim sicie. */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant={category === null ? 'primary' : 'ghost'}
+          onClick={() => setCategory(null)}
+        >
+          Wszystkie {ile(null)}
+        </Button>
+        <Button
+          size="sm"
+          variant={category === 'ai' ? 'primary' : 'ghost'}
+          onClick={() => setCategory('ai')}
+        >
+          {CATEGORY_LABELS.ai} {ile('ai')}
+        </Button>
+        <Button
+          size="sm"
+          variant={category === 'zespol' ? 'primary' : 'ghost'}
+          onClick={() => setCategory('zespol')}
+        >
+          {CATEGORY_LABELS.zespol} {ile('zespol')}
+        </Button>
+      </div>
+
       {loading && <p className="mt-4 text-sm text-ink-dim">Wczytuję…</p>}
 
       {/* `role="alert"`: komunikat pojawia się dopiero po nieudanym wczytaniu,
@@ -717,7 +810,11 @@ export function DiscussionsPanel({
 
       {!loading && !error && visible.length === 0 && (
         <p className="mt-4 text-sm text-ink-dim">
-          {showClosed ? 'Nic jeszcze nie zostało ustalone.' : 'Nie ma otwartych wątków.'}
+          {showClosed
+            ? 'Nic jeszcze nie zostało ustalone.'
+            : category
+              ? `Nie ma otwartych wątków w „${CATEGORY_LABELS[category]}".`
+              : 'Nie ma otwartych wątków.'}
         </p>
       )}
 
@@ -741,6 +838,11 @@ export function DiscussionsPanel({
                 {/* Stan wątku — Adam poprosił o te napisy wprost: po samej
                     liście nie dało się poznać, gdzie ktoś czeka na odpowiedź,
                     a gdzie jest coś nowego do przeczytania. */}
+                {/* Do kogo rozmowa — widać wprost, także gdy filtr stoi na
+                    „Wszystkie". Bez tego podział istniałby tylko w przyciskach. */}
+                <span className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold text-ink-dim uppercase ring-1 ring-edge">
+                  {CATEGORY_LABELS[kategoriaWatku(discussion)]}
+                </span>
                 {(() => {
                   const stan = stanWatku(discussion);
                   if (!stan) return null;

@@ -236,13 +236,14 @@ service cloud.firestore {
       // nowa tablica bez ostatniego elementu musi być identyczna ze starą —
       // więc każda edycja historii jest odrzucana, a nie tylko skracanie.
       //
-      // Pola tematu, autora i daty wątku zostają; `closed` wolno przełączać.
+      // Pola tematu, autora i daty wątku zostają; `closed` i `category`
+      // (do kogo rozmowa: do AI czy do zespołu) wolno przełączać.
       allow update: if mozeDyskutowac()
                     // `editIndex` towarzyszy poprawie i usunięciu wypowiedzi —
                     // mówi regule, którego elementu dotyczy zmiana, bo reguły
                     // nie potrafią przejść po tablicy i znaleźć różnicy same.
                     && request.resource.data.diff(resource.data)
-                         .affectedKeys().hasOnly(['messages', 'closed', 'editIndex'])
+                         .affectedKeys().hasOnly(['messages', 'closed', 'editIndex', 'category'])
                     && request.resource.data.messages is list
                     && request.resource.data.messages.size() <= 200
                     && (
