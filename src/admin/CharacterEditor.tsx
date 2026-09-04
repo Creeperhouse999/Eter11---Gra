@@ -5,6 +5,7 @@ import { Select } from '../ui/controls/Select';
 import { useToast } from '../ui/controls/Toast';
 import { useConfirm } from '../ui/controls/useConfirm';
 import { IconPicker } from './IconPicker';
+import { kolorPostaci } from '../data/characters';
 import { newId } from './newId';
 
 interface CharacterEditorProps {
@@ -81,11 +82,23 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
         {characters.map((character) => (
           <li key={character.id} className="eter-rise rounded-lg border border-edge bg-surface p-3">
             <div className="grid gap-2 sm:grid-cols-[9rem_1fr_9rem_auto]">
-              <IconPicker
-                value={character.icon}
-                label=""
-                onChange={(icon) => update(character.id, { icon })}
-              />
+              <span className="flex items-center gap-2">
+                <IconPicker
+                  value={character.icon}
+                  label=""
+                  onChange={(icon) => update(character.id, { icon })}
+                />
+                {/* Kolor karty postaci — Adam poprosił, żeby każda miała inny
+                    i żeby dało się go zmienić stąd. Przy stole karty leżą obok
+                    siebie i jednakowe wyglądają jak komplet. */}
+                <input
+                  type="color"
+                  value={kolorPostaci(character, characters)}
+                  aria-label={`Kolor karty postaci ${character.name}`}
+                  onChange={(e) => update(character.id, { color: e.target.value })}
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-edge bg-surface"
+                />
+              </span>
               <TextField
                 value={character.name}
                 onChange={(e) => update(character.id, { name: e.target.value })}

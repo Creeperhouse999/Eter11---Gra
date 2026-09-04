@@ -321,6 +321,12 @@ export function validateContent(content: unknown): ValidationResult {
     else if (character.name.length > MAX_LENGTHS.characterName) {
       add(`Postać ${character.id}: nazwa ma ${character.name.length} znaków, a mieści się ${MAX_LENGTHS.characterName}.`);
     }
+
+    // Zły zapis koloru jest cichy: przeglądarka go ignoruje i karta wychodzi
+    // bezbarwna, bez żadnego błędu. Łatwiej wyłapać to tutaj niż na wydruku.
+    if (character.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(character.color)) {
+      add(`Postać ${character.id}: kolor „${character.color}" nie jest zapisem #rrggbb.`);
+    }
   }
 
   // Gra przy stole ma co najmniej dwóch graczy, a każdy musi dostać INNĄ

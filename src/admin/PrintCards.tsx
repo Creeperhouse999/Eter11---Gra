@@ -1,4 +1,5 @@
 import { buildDeck, playableCards } from '../data/cards';
+import { kolorPostaci } from '../data/characters';
 import type { GameContent } from '../firebase/validate';
 import type { Problem, ProblemSlot, SlotKey } from '../engine/types';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
@@ -43,11 +44,11 @@ const KOLOR_RODZINY: Record<string, string> = {
  * Kolory kart bez rodziny — na stole mają się odróżniać od kompetencji.
  *
  * Adam wybrał je wprost: „karty eter — zrób je na fioletowo", „karty łabędzia
- * — niech pozostaną czarne", „kartę postaci w innym kolorze".
+ * — niech pozostaną czarne". Kolor karty postaci bierze się z niej samej
+ * (`kolorPostaci`), bo Adam poprosił, żeby każda miała inny.
  */
 const KOLOR_ETER = '#7c3aed';
 const KOLOR_LABEDZ = '#000000';
-const KOLOR_POSTAC = '#0d9488';
 
 /** Gdzie na karcie problemu siedzi która ścianka — układ zamówiony przez Adama. */
 const UKLAD_SCIANEK: Record<SlotKey, string> = {
@@ -221,7 +222,7 @@ export function PrintCards({
                   }
                 : undefined
             }
-            style={{ borderColor: KOLOR_POSTAC }}
+            style={{ borderColor: kolorPostaci(postac, content.characters) }}
             className={[
               'col-span-2 break-inside-avoid-page rounded-lg border-4 bg-white p-3 text-black print:rounded-none',
               onEditCharacter ? 'cursor-pointer print:cursor-auto' : '',
@@ -229,12 +230,12 @@ export function PrintCards({
           >
             <p
               className="text-[10px] font-bold uppercase tracking-wide"
-              style={{ color: KOLOR_POSTAC }}
+              style={{ color: kolorPostaci(postac, content.characters) }}
             >
               Postać
             </p>
             <div className="mt-1 flex items-center gap-2">
-              <span style={{ color: KOLOR_POSTAC }}>
+              <span style={{ color: kolorPostaci(postac, content.characters) }}>
                 <Icon name={postac.icon as IconName} size={24} />
               </span>
               <p className="font-display text-base font-bold leading-tight">{postac.name}</p>
@@ -251,7 +252,10 @@ export function PrintCards({
                   key={klucz}
                   data-testid={`mat-${klucz}`}
                   className={`${UKLAD_SCIANEK[klucz]} rounded border-2 border-dashed p-1 text-center`}
-                  style={{ borderColor: KOLOR_POSTAC, color: KOLOR_POSTAC }}
+                  style={{
+                    borderColor: kolorPostaci(postac, content.characters),
+                    color: kolorPostaci(postac, content.characters),
+                  }}
                 >
                   <p className="text-[8px] font-bold uppercase leading-tight">
                     {categoryLabel(klucz)}

@@ -102,6 +102,16 @@ export interface Character {
   kind: 'child' | 'parent' | 'teacher';
   traits: string;
   icon: string;
+  /**
+   * Kolor karty postaci (zapis #rrggbb).
+   *
+   * Adam poprosił, żeby każda postać miała inny kolor i żeby dało się go
+   * zmienić w panelu: przy stole gracze trzymają karty obok siebie, a
+   * jednakowe wyglądają jak komplet, nie jak „moja i twoja".
+   *
+   * Brak pola (treść sprzed tej zmiany) znaczy „weź domyślny z listy".
+   */
+  color?: string;
 }
 
 /** Karta doświadczenia. Typ ma znaczenie dla warunku spełnienia. */
