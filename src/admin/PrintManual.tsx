@@ -15,6 +15,7 @@ import { podsumujZestaw, type PozycjaZestawu } from './printSummary';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
+import { KartaKompetencji } from './PrintCards';
 
 interface PrintManualProps {
   content: GameContent;
@@ -161,6 +162,9 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
   // Podsumowanie techniczne — Adam poprosił o stronę z liczbami: ile jest
   // problemów, postaci, kart specjalnych i kart z każdej kategorii. Liczone
   // z treści gry, żeby wydrukowana kartka nie zaczęła kłamać po dodaniu karty.
+  // `rules` idzie razem z treścią — inaczej karty specjalne liczyłyby się
+  // jako różne projekty (2 ETER11, 3 Łabędzie), a nie jako sztuki w talii
+  // (Adam: „w talii będzie 4 eter11, 4 czarne łabędzie").
   const zestaw = podsumujZestaw(content);
 
   const grywalne = playableCards(content.cards);
@@ -452,27 +456,25 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
           </div>
 
           <h3 className="mt-4 font-display text-sm font-bold">Karty do zagrania</h3>
-          {/* Równa siatka, nie `flex-wrap`: przy zawijaniu kafelek z długą
-              nazwą („kompetencje poznawczo-społeczne") rozpychał się na dwie
-              szerokości i rząd się rwał — na papierze wyglądało to na błąd
-              składu, a nie na porządek. */}
-          <div className="mt-1 grid grid-cols-3 gap-2">
-            {zestaw.kategorie.map((pozycja) => (
-              <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
-            ))}
-          </div>
+          {/* Pełna wizualizacja każdej karty, nie jeden przykład na kategorię —
+              Adam poprosił wprost o widok „wg tego jak wyglądają one
+              w »drukuj karty«", żeby dało się rozpoznać każdą kartę
+              w rozsypanej talii, a nie tylko jedną z całej kategorii. */}
+          {zestaw.kategorie.map((pozycja) => (
+            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+          ))}
 
           <h3 className="mt-4 font-display text-sm font-bold">Karty specjalne</h3>
-          <div className="mt-1 grid grid-cols-3 gap-2">
-            {zestaw.specjalne.map((pozycja) => (
-              <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
-            ))}
-          </div>
+          {zestaw.specjalne.map((pozycja) => (
+            <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+          ))}
 
           <p className="mt-4 text-[10px] leading-snug text-black/60">
-            Każda karta do zagrania jest w talii w dwóch egzemplarzach, poza
-            specjalnymi — tych jest tyle, ile mówią zasady w panelu. Liczby
-            powyżej to karty RÓŻNE, nie sztuki w talii.
+            Liczba obok nazwy to sztuki w fizycznej talii — tyle powinno być
+            w pudełku po przeliczeniu. Karty kompetencji, talentów
+            i mentorów są w talii w dwóch egzemplarzach; karty specjalne
+            tyle razy, ile mówi zasada „Kart ETER11 i Łabędzi w talii"
+            w panelu. Poniżej pokazany jest każdy różny projekt karty.
           </p>
         </Strona>
       </div>
@@ -481,39 +483,28 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
 }
 
 /**
- * Jedna pozycja podsumowania: nazwa, liczba i przykładowa karta.
- *
- * Sama liczba nic nie mówi komuś, kto trzyma rozsypaną talię — „7 mentorów"
- * pomaga dopiero wtedy, gdy widać, jak mentor wygląda.
+ * Jedna pozycja podsumowania: nazwa kategorii z liczbą sztuk w talii, a pod
+ * nią KAŻDA różna karta tej kategorii — w pełnej wizualizacji, dokładnie tak,
+ * jak wygląda w zakładce „Drukuj karty" (Adam: „umieść pełną wizualizację
+ * każdej karty"). Sama liczba nic nie mówi komuś, kto trzyma rozsypaną talię —
+ * pomaga dopiero widok, jak każda karta naprawdę wygląda.
  */
 function PozycjaPodsumowania({ pozycja }: { pozycja: PozycjaZestawu }) {
   return (
-    <div className="flex items-start gap-2 rounded border border-black/40 p-2">
-      <span className="font-display text-xl leading-none font-bold">{pozycja.ile}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-bold uppercase leading-tight">
-          {pozycja.nazwa}
-        </span>
-        {pozycja.przyklad && (
-          <span className="mt-1 block">
-            {pozycja.przyklad.image ? (
-              <img
-                src={pozycja.przyklad.image}
-                alt=""
-                className="h-14 w-full rounded object-cover"
-                style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
-              />
-            ) : (
-              <span className="inline-block">
-                <Icon name={pozycja.przyklad.icon as IconName} size={20} />
-              </span>
-            )}
-            <span className="mt-0.5 block text-[9px] leading-tight text-black/70">
-              np. {pozycja.przyklad.name}
-            </span>
-          </span>
-        )}
-      </span>
+    <div className="mt-3 break-inside-avoid-page">
+      <p className="text-xs font-bold uppercase tracking-wide">
+        {pozycja.nazwa} —{' '}
+        <span className="font-display text-base">{pozycja.ile}</span> w talii
+      </p>
+      {/* Dwie kolumny na wąskim telefonie — te same karty co w „Drukuj karty",
+          czyli pełnowymiarowe, a nie miniatury. W stałych trzech kolumnach
+          nazwa typu „Ciekawość" łamała się w połowie słowa. Na wydruku
+          zawsze trzy, tak jak reszta talii. */}
+      <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3 print:grid-cols-3">
+        {pozycja.karty.map((karta) => (
+          <KartaKompetencji key={karta.id} card={karta} />
+        ))}
+      </div>
     </div>
   );
 }

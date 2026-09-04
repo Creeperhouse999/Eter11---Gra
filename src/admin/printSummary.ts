@@ -1,5 +1,5 @@
-import { playableCards } from '../data/cards';
-import type { Card, CardCategory, Problem, Character } from '../engine/types';
+import { buildDeck, playableCards } from '../data/cards';
+import type { Card, CardCategory, Problem, Character, RulesConfig } from '../engine/types';
 
 /**
  * Podsumowanie techniczne zestawu — ile czego jest w pudełku.
@@ -15,13 +15,21 @@ import type { Card, CardCategory, Problem, Character } from '../engine/types';
  * przy pierwszym liczeniu kart dziecko myśli, że zestaw jest niekompletny.
  *
  * Wersje robocze (`draft`) nie idą do gry, więc nie liczą się też do wydruku.
+ *
+ * Adam zgłosił stronę jako reopened: liczby kart specjalnych liczyły RÓŻNE
+ * projekty (2 ETER11, 3 Czarne Łabędzie), a nie sztuki, które faktycznie
+ * trafiają do talii — w pudełku jest tyle, ile mówi zasada „Kart ETER11
+ * i Łabędzi w talii" w panelu (domyślnie po 4). Liczymy więc z tej samej
+ * talii, którą buduje „Drukuj karty" (`buildDeck`), żeby obie zakładki
+ * zgadzały się ze sobą i z fizycznym pudełkiem.
  */
 export interface PozycjaZestawu {
   klucz: string;
   nazwa: string;
+  /** Ile sztuk tej kategorii trafia do fizycznej talii — tyle ma być w pudełku. */
   ile: number;
-  /** Przykładowa karta — z niej wydruk bierze ikonę, kolor i tytuł. */
-  przyklad?: Card;
+  /** Wszystkie różne karty tej kategorii — Adam poprosił o pełną wizualizację, nie jeden przykład. */
+  karty: Card[];
 }
 
 /** Kategorie kart w kolejności, w jakiej Adam je wymienił. */
@@ -57,21 +65,21 @@ export function podsumujZestaw(content: {
   cards: Card[];
   problems: Problem[];
   characters: Character[];
+  rules?: Pick<RulesConfig, 'specialCardCopies'>;
 }): PodsumowanieZestawu {
   const karty = playableCards(content.cards ?? []);
+  // Ta sama talia, którą buduje „Drukuj karty" — stąd liczby na obu stronach
+  // się zgadzają, a karty specjalne liczą się tyle razy, ile mówi zasada
+  // w panelu, nie tyle, ile jest różnych projektów.
+  const talia = buildDeck(karty, { specialCopies: content.rules?.specialCardCopies });
 
   const policz = (lista: Array<{ klucz: CardCategory; nazwa: string }>): PozycjaZestawu[] =>
-    lista.map(({ klucz, nazwa }) => {
-      const zKategorii = karty.filter((c) => c.category === klucz);
-      return {
-        klucz,
-        nazwa,
-        ile: zKategorii.length,
-        // Przykład z grafiką ma pierwszeństwo: strona ma pokazywać, jak karta
-        // wygląda naprawdę, a nie samą ikonę zastępczą.
-        przyklad: zKategorii.find((c) => c.image) ?? zKategorii[0],
-      };
-    });
+    lista.map(({ klucz, nazwa }) => ({
+      klucz,
+      nazwa,
+      ile: talia.filter((c) => c.category === klucz).length,
+      karty: karty.filter((c) => c.category === klucz),
+    }));
 
   const specjalne = policz(SPECJALNE);
 
@@ -81,6 +89,6 @@ export function podsumujZestaw(content: {
     kategorie: policz(KATEGORIE),
     specjalne,
     specjalneRazem: specjalne.reduce((suma, p) => suma + p.ile, 0),
-    kartyRazem: karty.length,
+    kartyRazem: talia.length,
   };
 }

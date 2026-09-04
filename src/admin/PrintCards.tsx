@@ -1,7 +1,7 @@
 import { buildDeck, playableCards } from '../data/cards';
 import { kolorPostaci } from '../data/characters';
 import type { GameContent } from '../firebase/validate';
-import type { Problem, ProblemSlot, SlotKey } from '../engine/types';
+import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
@@ -49,6 +49,62 @@ const KOLOR_RODZINY: Record<string, string> = {
  */
 const KOLOR_ETER = '#7c3aed';
 const KOLOR_LABEDZ = '#000000';
+
+/** Kolor obramowania karty kompetencji — rodzina, albo ETER11/Łabędź. */
+function kolorKarty(card: Card): string {
+  if (card.family) return KOLOR_RODZINY[card.family] ?? KOLOR_LABEDZ;
+  return card.category === 'eter11' ? KOLOR_ETER : KOLOR_LABEDZ;
+}
+
+/**
+ * Karta kompetencji, talentu, mentora albo karta specjalna — dokładnie tak,
+ * jak wygląda na fizycznym wydruku w „Drukuj karty". Używana też w stronie
+ * „Podsumowanie techniczne" instrukcji, żeby obie zakładki pokazywały tę
+ * samą kartę tym samym wyglądem — Adam poprosił wprost o „pełną wizualizację
+ * każdej karty, wg tego jak wyglądają one w »drukuj karty«".
+ */
+export function KartaKompetencji({
+  card,
+  onEdit,
+}: {
+  card: Card;
+  onEdit?: (cardName: string) => void;
+}) {
+  const label = card.family ? familyLabel(card.family, card.category) : undefined;
+  const kolor = kolorKarty(card);
+  return (
+    <article
+      role={onEdit ? 'button' : undefined}
+      tabIndex={onEdit ? 0 : undefined}
+      onClick={onEdit ? () => onEdit(card.name) : undefined}
+      onKeyDown={
+        onEdit
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEdit(card.name);
+              }
+            }
+          : undefined
+      }
+      style={{ borderColor: kolor }}
+      className={[
+        'break-inside-avoid-page rounded-lg border-2 bg-white p-3 text-black print:rounded-none',
+        onEdit ? 'cursor-pointer transition hover:opacity-80 print:cursor-auto' : '',
+      ].join(' ')}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: kolor }}>
+        {categoryLabel(card.category)}
+        {label ? ` · ${label}` : ''}
+      </p>
+      <span className="mt-1 inline-block" style={{ color: kolor }}>
+        <Icon name={card.icon as IconName} size={22} />
+      </span>
+      <p className="mt-1 font-display text-sm font-bold leading-tight">{card.name}</p>
+      <p className="mt-1 text-xs leading-snug text-black/80">{card.description}</p>
+    </article>
+  );
+}
 
 /** Gdzie na karcie problemu siedzi która ścianka — układ zamówiony przez Adama. */
 const UKLAD_SCIANEK: Record<SlotKey, string> = {
@@ -269,55 +325,9 @@ export function PrintCards({
           </article>
         ))}
 
-        {deck.map((card) => {
-          const label = card.family ? familyLabel(card.family, card.category) : undefined;
-          // Kolor rodziny na obramowaniu — bez niego nie widać na papierze,
-          // czy karta pasuje do ścianki. Karty bez rodziny (ETER11, Czarny
-          // Łabędź) zostają czarne, bo pasują wszędzie.
-          // ETER11 dostaje fiolet, Łabędź zostaje czarny — tak wybrał Adam,
-          // żeby dało się je odróżnić na wydruku bez czytania nazwy.
-          const kolor = card.family
-            ? KOLOR_RODZINY[card.family] ?? KOLOR_LABEDZ
-            : card.category === 'eter11'
-              ? KOLOR_ETER
-              : KOLOR_LABEDZ;
-          return (
-            <article
-              key={card.id}
-              role={onEdit ? 'button' : undefined}
-              tabIndex={onEdit ? 0 : undefined}
-              onClick={onEdit ? () => onEdit(card.name) : undefined}
-              onKeyDown={
-                onEdit
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onEdit(card.name);
-                      }
-                    }
-                  : undefined
-              }
-              style={{ borderColor: kolor }}
-              className={[
-                'break-inside-avoid-page rounded-lg border-2 bg-white p-3 text-black print:rounded-none',
-                onEdit ? 'cursor-pointer transition hover:opacity-80 print:cursor-auto' : '',
-              ].join(' ')}
-            >
-              <p
-                className="text-[10px] font-bold uppercase tracking-wide"
-                style={{ color: kolor }}
-              >
-                {categoryLabel(card.category)}
-                {label ? ` · ${label}` : ''}
-              </p>
-              <span className="mt-1 inline-block" style={{ color: kolor }}>
-                <Icon name={card.icon as IconName} size={22} />
-              </span>
-              <p className="mt-1 font-display text-sm font-bold leading-tight">{card.name}</p>
-              <p className="mt-1 text-xs leading-snug text-black/80">{card.description}</p>
-            </article>
-          );
-        })}
+        {deck.map((card) => (
+          <KartaKompetencji key={card.id} card={card} onEdit={onEdit} />
+        ))}
       </div>
     </section>
   );

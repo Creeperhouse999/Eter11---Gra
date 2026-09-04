@@ -13,6 +13,14 @@ import type { Card, Character, Problem } from '../engine/types';
  * przy pierwszym przeliczeniu zestawu uzna, że czegoś brakuje. Dlatego liczymy
  * z treści gry i dlatego wersje robocze (`draft`) — które do gry nie trafiają —
  * nie mogą się doliczać.
+ *
+ * Adam zgłosił stronę po raz drugi: liczby kart specjalnych pokazywały ile
+ * jest RÓŻNYCH projektów (2 ETER11, 3 Łabędzie), a nie ile sztuk trafia do
+ * fizycznej talii („w talii będzie 4 eter11, 4 czarne łabędzie" — tyle, ile
+ * mówi zasada „specialCardCopies" w panelu). Liczymy więc z tej samej talii,
+ * którą buduje `buildDeck` dla zakładki „Drukuj karty" — stąd karty
+ * kompetencji/talentów/mentorów też wychodzą w dwóch egzemplarzach, tak jak
+ * naprawdę są w pudełku.
  */
 
 function karta(over: Partial<Card>): Card {
@@ -27,7 +35,7 @@ function karta(over: Partial<Card>): Card {
 }
 
 describe('podsumowanie techniczne zestawu', () => {
-  it('liczy karty w każdej kategorii osobno', () => {
+  it('liczy sztuki w talii, nie różne projekty — każda karta zwykła idzie w dwóch egzemplarzach', () => {
     const wynik = podsumujZestaw({
       cards: [
         karta({ id: 'a', category: 'talent' }),
@@ -42,11 +50,14 @@ describe('podsumowanie techniczne zestawu', () => {
     });
 
     const ile = (klucz: string) => wynik.kategorie.find((k) => k.klucz === klucz)?.ile;
-    expect(ile('talent')).toBe(2);
-    expect(ile('mentor')).toBe(1);
-    expect(ile('psychological')).toBe(1);
-    expect(ile('digital')).toBe(1);
-    expect(ile('social')).toBe(1);
+    expect(ile('talent')).toBe(4);
+    expect(ile('mentor')).toBe(2);
+    expect(ile('psychological')).toBe(2);
+    expect(ile('digital')).toBe(2);
+    expect(ile('social')).toBe(2);
+
+    // Ale różnych PROJEKTÓW karty — do wizualizacji — dalej jest tyle, ile w treści.
+    expect(wynik.kategorie.find((k) => k.klucz === 'talent')?.karty).toHaveLength(2);
   });
 
   it('nie liczy wersji roboczych — te nie trafiają do pudełka', () => {
@@ -62,12 +73,36 @@ describe('podsumowanie techniczne zestawu', () => {
       characters: [],
     });
 
-    expect(wynik.kategorie.find((k) => k.klucz === 'talent')?.ile).toBe(1);
+    // Jedna karta gotowa, ale w talii i tak w dwóch egzemplarzach.
+    expect(wynik.kategorie.find((k) => k.klucz === 'talent')?.ile).toBe(2);
     expect(wynik.problemy).toBe(1);
-    expect(wynik.kartyRazem).toBe(1);
+    expect(wynik.kartyRazem).toBe(2);
   });
 
-  it('karty specjalne mają własną sumę', () => {
+  it('karty specjalne liczą się tyle razy, ile mówi zasada w panelu — nie tyle, ile jest wariantów', () => {
+    const wynik = podsumujZestaw({
+      cards: [
+        karta({ id: 'e1', category: 'eter11' }),
+        karta({ id: 'e2', category: 'eter11' }),
+        karta({ id: 'bs', category: 'blackswan' }),
+      ],
+      problems: [],
+      characters: [],
+      rules: { specialCardCopies: 4 },
+    });
+
+    // Adam: „w talii będzie 4 eter11, 4 czarne łabędzie" — po 4 na kategorię,
+    // razem 8, niezależnie od tego, ile jest różnych wariantów Łabędzia.
+    expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.ile).toBe(4);
+    expect(wynik.specjalne.find((s) => s.klucz === 'blackswan')?.ile).toBe(4);
+    expect(wynik.specjalneRazem).toBe(8);
+
+    // Różnych projektów w tej kategorii dalej jest tyle, ile faktycznie
+    // istnieje — do pełnej wizualizacji każdej karty.
+    expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.karty).toHaveLength(2);
+  });
+
+  it('bez podanej zasady karty specjalne nie dublują się (zgodnie z buildDeck)', () => {
     const wynik = podsumujZestaw({
       cards: [
         karta({ id: 'e1', category: 'eter11' }),
@@ -82,7 +117,7 @@ describe('podsumowanie techniczne zestawu', () => {
     expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.ile).toBe(2);
   });
 
-  it('przykładem jest karta z grafiką, gdy taka w kategorii istnieje', () => {
+  it('pokazuje wszystkie różne karty kategorii, nie jeden przykład', () => {
     const wynik = podsumujZestaw({
       cards: [
         karta({ id: 'bez', category: 'mentor' }),
@@ -92,7 +127,8 @@ describe('podsumowanie techniczne zestawu', () => {
       characters: [],
     });
 
-    expect(wynik.kategorie.find((k) => k.klucz === 'mentor')?.przyklad?.id).toBe('zGrafika');
+    const identyfikatory = wynik.kategorie.find((k) => k.klucz === 'mentor')?.karty.map((c) => c.id);
+    expect(identyfikatory).toEqual(['bez', 'zGrafika']);
   });
 
   it('policzone postacie zgadzają się z listą', () => {
