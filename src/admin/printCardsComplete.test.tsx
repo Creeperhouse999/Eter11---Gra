@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { PrintCards } from './PrintCards';
 
@@ -88,5 +88,98 @@ describe('wydruk zawiera wszystko, z czego składa się gra', () => {
     const zPrzycisku = Number(przycisk.textContent?.match(/\d+/)?.[0]);
 
     expect(zPrzycisku).toBe(naEkranie);
+  });
+});
+
+describe('karta postaci pokazuje, gdzie kłaść zbierane karty', () => {
+  it('ma pola na wszystkie pięć kategorii', () => {
+    // Adam: „aby karty postaci miały wizualizacje, które będą informowały
+    // gracza o tym, gdzie położyć karty, które będzie zbierał". Bez tego
+    // gracz przy stole nie wie, gdzie odkładać zdobycze.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    const karta = screen.getAllByText(postac.name)[0].closest('article')!;
+
+    for (const klucz of ['psychological', 'digital', 'social', 'talent', 'mentor']) {
+      expect(within(karta).getByTestId(`mat-${klucz}`)).toBeTruthy();
+    }
+  });
+
+  it('układ pól jest ten sam co na karcie problemu', () => {
+    // Ten sam porządek na obu kartach: gracz uczy się go raz.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    const karta = screen.getAllByText(postac.name)[0].closest('article')!;
+
+    const klasy = (klucz: string) =>
+      within(karta).getByTestId(`mat-${klucz}`).className;
+
+    expect(klasy('talent')).toContain('col-start-1');
+    expect(klasy('mentor')).toContain('col-start-3');
+    expect(klasy('psychological')).toContain('col-start-1');
+    expect(klasy('digital')).toContain('col-start-3');
+    expect(klasy('social')).toContain('col-start-2');
+  });
+
+  it('karta postaci jest duża jak karta problemu', () => {
+    // Adam prosił wprost: „niech karty postaci będą wielkości kart problemów".
+    // Pola na pięć kategorii nie zmieszczą się na małej karcie.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    const karta = screen.getAllByText(postac.name)[0].closest('article')!;
+    expect(karta.className).toContain('col-span-2');
+  });
+
+  it('karta postaci ma własny kolor, inny niż karty kompetencji', () => {
+    // Adam: „zrób kartę postaci w innym kolorze". Na stole ma się od razu
+    // odróżniać od kart, które się na niej kładzie.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    const karta = screen.getAllByText(postac.name)[0].closest('article')!;
+    expect(karta.getAttribute('style')).toMatch(/border-color/);
+  });
+
+  it('ETER11 jest fioletowy, Czarny Łabędź zostaje czarny', () => {
+    // Adam: „karty eter — zrób je na fioletowo", „karty łabędzia — niech
+    // pozostaną czarne". Kolor odróżnia je od siebie na wydruku.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    // Przeglądarka zapisuje kolor jako rgb, nie jako zapis szesnastkowy —
+    // porównujemy więc wartość, nie sposób jej zapisu.
+    const eter = BUILTIN_CONTENT.cards.find((c) => c.category === 'eter11')!;
+    const kartaEter = screen.getAllByText(eter.description)[0].closest('article')!;
+    expect(kartaEter.getAttribute('style')).toContain('rgb(124, 58, 237)');
+
+    const labedz = BUILTIN_CONTENT.cards.find((c) => c.category === 'blackswan')!;
+    const kartaLabedz = screen.getAllByText(labedz.description)[0].closest('article')!;
+    expect(kartaLabedz.getAttribute('style')).toContain('rgb(0, 0, 0)');
+  });
+
+  it('kliknięcie problemu i postaci prowadzi do edycji', () => {
+    // Adam: „abym mógł klikać w karty problemów i postaci i być przeniesionym
+    // do edycji — tak samo jak z kartami kompetencji".
+    const onEdit = vi.fn();
+    const onEditProblem = vi.fn();
+    const onEditCharacter = vi.fn();
+    render(
+      <PrintCards
+        content={BUILTIN_CONTENT}
+        onEdit={onEdit}
+        onEditProblem={onEditProblem}
+        onEditCharacter={onEditCharacter}
+      />,
+    );
+
+    const problem = BUILTIN_CONTENT.problems[0];
+    fireEvent.click(screen.getAllByText(problem.name)[0].closest('article')!);
+    expect(onEditProblem).toHaveBeenCalledWith(problem.id);
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    fireEvent.click(screen.getAllByText(postac.name)[0].closest('article')!);
+    expect(onEditCharacter).toHaveBeenCalledWith(postac.name);
   });
 });

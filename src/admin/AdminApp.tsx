@@ -852,6 +852,10 @@ export function AdminApp() {
           <PrintCards
             content={content}
             onEdit={(cardName) => route.navigate('cards', null, { filter: cardName })}
+            // Problem otwiera się po id (edytor rozwija konkretny), postać po
+            // nazwie — tak samo jak karta, bo edytor postaci filtruje po niej.
+            onEditProblem={(problemId) => route.navigate('problems', null, { open: problemId })}
+            onEditCharacter={(name) => route.navigate('characters', null, { filter: name })}
           />
         )}
         {tab === 'cardCodes' && (

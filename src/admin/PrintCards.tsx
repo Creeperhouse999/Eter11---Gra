@@ -15,6 +15,13 @@ interface PrintCardsProps {
    * odszukaniu tej samej karty w zakładce „Karty”.
    */
   onEdit?: (cardName: string) => void;
+  /**
+   * Skok do edycji problemu i postaci — Adam poprosił o to samo, co przy
+   * kartach: „abym mógł klikać w karty problemów i postaci i być
+   * przeniesionym do edycji".
+   */
+  onEditProblem?: (problemId: string) => void;
+  onEditCharacter?: (characterName: string) => void;
 }
 
 /**
@@ -31,6 +38,16 @@ const KOLOR_RODZINY: Record<string, string> = {
   yellow: '#c98a00',
   green: '#1f9d4d',
 };
+
+/**
+ * Kolory kart bez rodziny — na stole mają się odróżniać od kompetencji.
+ *
+ * Adam wybrał je wprost: „karty eter — zrób je na fioletowo", „karty łabędzia
+ * — niech pozostaną czarne", „kartę postaci w innym kolorze".
+ */
+const KOLOR_ETER = '#7c3aed';
+const KOLOR_LABEDZ = '#000000';
+const KOLOR_POSTAC = '#0d9488';
 
 /** Gdzie na karcie problemu siedzi która ścianka — układ zamówiony przez Adama. */
 const UKLAD_SCIANEK: Record<SlotKey, string> = {
@@ -69,9 +86,33 @@ function Scianka({ slot }: { slot: ProblemSlot }) {
  * i wszystkie wymagania. Adam prosił o to wprost: „może być większa
  * wielkościowo, aby pomieścić opis oraz wymagania do rozwiązania problemu".
  */
-function KartaProblemu({ problem }: { problem: Problem }) {
+function KartaProblemu({
+  problem,
+  onEdit,
+}: {
+  problem: Problem;
+  onEdit?: (problemId: string) => void;
+}) {
   return (
-    <article className="col-span-2 break-inside-avoid-page rounded-lg border-4 border-black bg-white p-3 text-black print:rounded-none">
+    <article
+      role={onEdit ? 'button' : undefined}
+      tabIndex={onEdit ? 0 : undefined}
+      onClick={onEdit ? () => onEdit(problem.id) : undefined}
+      onKeyDown={
+        onEdit
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEdit(problem.id);
+              }
+            }
+          : undefined
+      }
+      className={[
+        'col-span-2 break-inside-avoid-page rounded-lg border-4 border-black bg-white p-3 text-black print:rounded-none',
+        onEdit ? 'cursor-pointer print:cursor-auto' : '',
+      ].join(' ')}
+    >
       <p className="text-[10px] font-bold uppercase tracking-wide text-black/60">
         Problem
       </p>
@@ -116,7 +157,12 @@ function KartaProblemu({ problem }: { problem: Problem }) {
  * fizyczna talia różniłaby się od cyfrowej i test przy stole nie
  * odzwierciedlałby prawdziwego balansu.
  */
-export function PrintCards({ content, onEdit }: PrintCardsProps) {
+export function PrintCards({
+  content,
+  onEdit,
+  onEditProblem,
+  onEditCharacter,
+}: PrintCardsProps) {
   const deck = buildDeck(playableCards(content.cards), {
     specialCopies: content.rules?.specialCardCopies,
   });
@@ -153,27 +199,69 @@ export function PrintCards({ content, onEdit }: PrintCardsProps) {
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 print:mt-0 print:grid-cols-3 print:gap-3">
         {/* Problemy najpierw: przy stole rozkłada się je jako pierwsze. */}
         {content.problems.map((problem) => (
-          <KartaProblemu key={problem.id} problem={problem} />
+          <KartaProblemu key={problem.id} problem={problem} onEdit={onEditProblem} />
         ))}
 
-        {/* Postacie — każdy gracz bierze jedną na start. */}
+        {/* Postacie — każdy gracz bierze jedną na start. Karta jest duża jak
+            karta problemu, bo mieści pola na zbierane karty: Adam prosił, żeby
+            gracz widział wprost, gdzie co odkładać. */}
         {content.characters.map((postac) => (
           <article
             key={postac.id}
-            className="break-inside-avoid-page rounded-lg border-2 border-black bg-white p-3 text-black print:rounded-none"
+            role={onEditCharacter ? 'button' : undefined}
+            tabIndex={onEditCharacter ? 0 : undefined}
+            onClick={onEditCharacter ? () => onEditCharacter(postac.name) : undefined}
+            onKeyDown={
+              onEditCharacter
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onEditCharacter(postac.name);
+                    }
+                  }
+                : undefined
+            }
+            style={{ borderColor: KOLOR_POSTAC }}
+            className={[
+              'col-span-2 break-inside-avoid-page rounded-lg border-4 bg-white p-3 text-black print:rounded-none',
+              onEditCharacter ? 'cursor-pointer print:cursor-auto' : '',
+            ].join(' ')}
           >
-            <p className="text-[10px] font-bold uppercase tracking-wide text-black/60">
+            <p
+              className="text-[10px] font-bold uppercase tracking-wide"
+              style={{ color: KOLOR_POSTAC }}
+            >
               Postać
             </p>
-            <span className="mt-1 inline-block">
-              <Icon name={postac.icon as IconName} size={22} />
-            </span>
-            <p className="mt-1 font-display text-sm font-bold leading-tight">
-              {postac.name}
+            <div className="mt-1 flex items-center gap-2">
+              <span style={{ color: KOLOR_POSTAC }}>
+                <Icon name={postac.icon as IconName} size={24} />
+              </span>
+              <p className="font-display text-base font-bold leading-tight">{postac.name}</p>
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-black/80">{postac.traits}</p>
+
+            <p className="mt-2 text-[9px] font-bold uppercase tracking-wide text-black/50">
+              Tu odkładaj zdobyte karty
             </p>
-            <p className="mt-1 text-xs leading-snug text-black/80">
-              {postac.traits}
-            </p>
+            {/* Ten sam układ co na karcie problemu — gracz uczy się go raz. */}
+            <div className="mt-1 grid grid-cols-3 grid-rows-3 gap-1">
+              {(Object.keys(UKLAD_SCIANEK) as SlotKey[]).map((klucz) => (
+                <div
+                  key={klucz}
+                  data-testid={`mat-${klucz}`}
+                  className={`${UKLAD_SCIANEK[klucz]} rounded border-2 border-dashed p-1 text-center`}
+                  style={{ borderColor: KOLOR_POSTAC, color: KOLOR_POSTAC }}
+                >
+                  <p className="text-[8px] font-bold uppercase leading-tight">
+                    {categoryLabel(klucz)}
+                  </p>
+                </div>
+              ))}
+              <div className="col-start-2 row-start-2 flex items-center justify-center rounded border border-dashed border-black/30 p-1 text-center text-[7px] leading-tight text-black/50">
+                karta postaci
+              </div>
+            </div>
           </article>
         ))}
 
@@ -182,7 +270,13 @@ export function PrintCards({ content, onEdit }: PrintCardsProps) {
           // Kolor rodziny na obramowaniu — bez niego nie widać na papierze,
           // czy karta pasuje do ścianki. Karty bez rodziny (ETER11, Czarny
           // Łabędź) zostają czarne, bo pasują wszędzie.
-          const kolor = card.family ? KOLOR_RODZINY[card.family] ?? '#000000' : '#000000';
+          // ETER11 dostaje fiolet, Łabędź zostaje czarny — tak wybrał Adam,
+          // żeby dało się je odróżnić na wydruku bez czytania nazwy.
+          const kolor = card.family
+            ? KOLOR_RODZINY[card.family] ?? KOLOR_LABEDZ
+            : card.category === 'eter11'
+              ? KOLOR_ETER
+              : KOLOR_LABEDZ;
           return (
             <article
               key={card.id}
