@@ -11,6 +11,7 @@ import {
   type NarrativeVariant,
 } from '../data/intro';
 import type { GameContent } from '../firebase/validate';
+import { podsumujZestaw, type PozycjaZestawu } from './printSummary';
 import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
@@ -55,12 +56,15 @@ function Miniatura({
   kategoria,
   rodzina,
   ikona,
+  grafika,
 }: {
   nazwa: string;
   opis: string;
   kategoria: string;
   rodzina?: string;
   ikona: string;
+  /** Grafika karty, gdy ją ma — instrukcja pokazuje wtedy prawdziwy awers. */
+  grafika?: string;
 }) {
   const kolor = rodzina ? KOLOR_RODZINY[rodzina] ?? '#000000' : '#000000';
   return (
@@ -72,9 +76,21 @@ function Miniatura({
         {kategoria}
         {rodzina ? ` · ${rodzina}` : ''}
       </p>
-      <span className="mt-0.5 inline-block" style={{ color: kolor }}>
-        <Icon name={ikona as IconName} size={18} />
-      </span>
+      {grafika ? (
+        /* Karty z grafiką pokazujemy tak, jak wyglądają naprawdę — po to, żeby
+           dało się je rozpoznać w rozsypanej talii. `print-color-adjust` każe
+           drukarce zachować obraz zamiast go wybielić w trybie oszczędnym. */
+        <img
+          src={grafika}
+          alt=""
+          className="mt-0.5 h-20 w-full rounded object-cover"
+          style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+        />
+      ) : (
+        <span className="mt-0.5 inline-block" style={{ color: kolor }}>
+          <Icon name={ikona as IconName} size={18} />
+        </span>
+      )}
       <p className="mt-0.5 text-xs font-bold leading-tight">{nazwa}</p>
       <p className="mt-0.5 text-[9px] leading-tight text-black/70">{opis}</p>
     </div>
@@ -114,6 +130,11 @@ export function PrintManual({ content }: PrintManualProps) {
   // o „możliwość edycji każdej strony", więc idą z treści jak reszta.
   const box = content.intro?.box?.length ? content.intro.box : INTRO_BOX;
   const faq = content.intro?.faq?.length ? content.intro.faq : INTRO_FAQ;
+
+  // Podsumowanie techniczne — Adam poprosił o stronę z liczbami: ile jest
+  // problemów, postaci, kart specjalnych i kart z każdej kategorii. Liczone
+  // z treści gry, żeby wydrukowana kartka nie zaczęła kłamać po dodaniu karty.
+  const zestaw = podsumujZestaw(content);
 
   const grywalne = playableCards(content.cards);
   const przyklad = grywalne.find((c) => c.family) ?? grywalne[0];
@@ -252,6 +273,7 @@ export function PrintManual({ content }: PrintManualProps) {
                     : undefined
                 }
                 ikona={przyklad.icon}
+                grafika={przyklad.image}
               />
             )}
             {eter && (
@@ -260,6 +282,7 @@ export function PrintManual({ content }: PrintManualProps) {
                 opis={eter.description}
                 kategoria={categoryLabel(eter.category)}
                 ikona={eter.icon}
+                grafika={eter.image}
               />
             )}
             {labedz && (
@@ -268,6 +291,7 @@ export function PrintManual({ content }: PrintManualProps) {
                 opis={labedz.description}
                 kategoria={categoryLabel(labedz.category)}
                 ikona={labedz.icon}
+                grafika={labedz.image}
               />
             )}
           </div>
@@ -355,7 +379,101 @@ export function PrintManual({ content }: PrintManualProps) {
             </div>
           ))}
         </Strona>
+
+        {/* 6 — Podsumowanie techniczne. Adam: „ile jest kart problemów,
+            postaci, specjalnych kart oraz kart talentów, mentorów, psych,
+            cyfr i społecznych (…) przy każdej nazwie umieść cyfrę oraz
+            grafikę przykładową danej karty". */}
+        <Strona numer={6} tytul="Podsumowanie techniczne">
+          <p className="text-sm leading-snug">
+            Co powinno być w pudełku. Przeliczcie zestaw przed pierwszą grą —
+            i po każdej, żeby nic nie zostało pod stołem.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-3">
+            <div className="rounded border-2 border-black px-3 py-2">
+              <p className="font-display text-2xl leading-none font-bold">{zestaw.problemy}</p>
+              <p className="text-[10px] font-bold uppercase">Karty problemów</p>
+            </div>
+            <div className="rounded border-2 border-black px-3 py-2">
+              <p className="font-display text-2xl leading-none font-bold">{zestaw.postacie}</p>
+              <p className="text-[10px] font-bold uppercase">Karty postaci</p>
+            </div>
+            <div className="rounded border-2 border-black px-3 py-2">
+              <p className="font-display text-2xl leading-none font-bold">
+                {zestaw.specjalneRazem}
+              </p>
+              <p className="text-[10px] font-bold uppercase">Karty specjalne</p>
+            </div>
+            <div className="rounded border-2 border-black px-3 py-2">
+              <p className="font-display text-2xl leading-none font-bold">{zestaw.kartyRazem}</p>
+              <p className="text-[10px] font-bold uppercase">Wszystkie karty do gry</p>
+            </div>
+          </div>
+
+          <h3 className="mt-4 font-display text-sm font-bold">Karty do zagrania</h3>
+          {/* Równa siatka, nie `flex-wrap`: przy zawijaniu kafelek z długą
+              nazwą („kompetencje poznawczo-społeczne") rozpychał się na dwie
+              szerokości i rząd się rwał — na papierze wyglądało to na błąd
+              składu, a nie na porządek. */}
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            {zestaw.kategorie.map((pozycja) => (
+              <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+            ))}
+          </div>
+
+          <h3 className="mt-4 font-display text-sm font-bold">Karty specjalne</h3>
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            {zestaw.specjalne.map((pozycja) => (
+              <PozycjaPodsumowania key={pozycja.klucz} pozycja={pozycja} />
+            ))}
+          </div>
+
+          <p className="mt-4 text-[10px] leading-snug text-black/60">
+            Każda karta do zagrania jest w talii w dwóch egzemplarzach, poza
+            specjalnymi — tych jest tyle, ile mówią zasady w panelu. Liczby
+            powyżej to karty RÓŻNE, nie sztuki w talii.
+          </p>
+        </Strona>
       </div>
     </section>
+  );
+}
+
+/**
+ * Jedna pozycja podsumowania: nazwa, liczba i przykładowa karta.
+ *
+ * Sama liczba nic nie mówi komuś, kto trzyma rozsypaną talię — „7 mentorów"
+ * pomaga dopiero wtedy, gdy widać, jak mentor wygląda.
+ */
+function PozycjaPodsumowania({ pozycja }: { pozycja: PozycjaZestawu }) {
+  return (
+    <div className="flex items-start gap-2 rounded border border-black/40 p-2">
+      <span className="font-display text-xl leading-none font-bold">{pozycja.ile}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-bold uppercase leading-tight">
+          {pozycja.nazwa}
+        </span>
+        {pozycja.przyklad && (
+          <span className="mt-1 block">
+            {pozycja.przyklad.image ? (
+              <img
+                src={pozycja.przyklad.image}
+                alt=""
+                className="h-14 w-full rounded object-cover"
+                style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+              />
+            ) : (
+              <span className="inline-block">
+                <Icon name={pozycja.przyklad.icon as IconName} size={20} />
+              </span>
+            )}
+            <span className="mt-0.5 block text-[9px] leading-tight text-black/70">
+              np. {pozycja.przyklad.name}
+            </span>
+          </span>
+        )}
+      </span>
+    </div>
   );
 }
