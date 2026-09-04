@@ -15,6 +15,7 @@ import {
   PRIORITY_ORDER,
   PROGRESS_LABELS,
   PROGRESS_ORDER,
+  pokazacPostep,
 } from '../firebase/reports';
 import {
   canDelete,
@@ -1151,7 +1152,7 @@ export function ReportsPanel({
                         ktoś zgłoszenie zauważył, jeszcze zanim cokolwiek jest
                         naprawione — inaczej „nikt tego nie tknął" i „siedzę
                         przy tym od godziny" wyglądają identycznie. */}
-                    {report.progress && (
+                    {pokazacPostep(report) && report.progress && (
                       <span
                         className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
                         style={{

@@ -87,6 +87,26 @@ export const PROGRESS_LABELS: Record<ReportProgress, string> = {
   finished: 'Zrobione',
 };
 
+/**
+ * Czy pokazać plakietkę postępu przy tym zgłoszeniu.
+ *
+ * Zgłoszenie zamknięte (`done` — zgłaszający potwierdził, `dismissed` —
+ * odrzucone) plakietki nie dostaje: „Zrobione, a czeka w kolejce" to
+ * sprzeczność dla czytającego. Chowamy przy ODCZYCIE, nie przy zapisie, bo
+ * zgłoszenie bywa zamknięte między pobraniem listy a zapisem postępu —
+ * i wtedy sama ostrożność przy zapisie nie wystarcza.
+ *
+ * `fixed` plakietkę zachowuje: czeka na sprawdzenie przez zgłaszającego,
+ * a „Zrobione" mówi mu wprost, że praca po naszej stronie się skończyła.
+ */
+export function pokazacPostep(report: {
+  status: ReportStatus;
+  progress?: ReportProgress;
+}): boolean {
+  if (!report.progress) return false;
+  return report.status !== 'done' && report.status !== 'dismissed';
+}
+
 /** Kolejność do wyświetlania — od „jeszcze nie zacząłem" do „skończone". */
 export const PROGRESS_ORDER: ReportProgress[] = [
   'queued',

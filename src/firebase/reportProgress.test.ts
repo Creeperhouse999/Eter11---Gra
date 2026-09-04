@@ -32,7 +32,7 @@ vi.mock('firebase/firestore', () => ({
   updateDoc: (ref: unknown, data: Record<string, unknown>) => updateDoc(ref, data),
 }));
 
-const { setReportProgress, PROGRESS_LABELS, toReport } = await import('./reports');
+const { setReportProgress, PROGRESS_LABELS, toReport, pokazacPostep } = await import('./reports');
 
 beforeEach(() => updateDoc.mockClear());
 
@@ -95,5 +95,28 @@ describe('postęp prac nad zgłoszeniem', () => {
     });
 
     expect(dziwne.progress).toBeUndefined();
+  });
+});
+
+describe('postęp a zamknięte zgłoszenie', () => {
+  it('zgłoszenie potwierdzone przez zgłaszającego nie pokazuje już postępu prac', () => {
+    // Alan zauważył: „dlaczego jest zamknięty report ze statusem w kolejce".
+    // Zgłoszenie bywa zamknięte MIĘDZY odczytem listy a zapisem postępu, więc
+    // sama ostrożność przy zapisie nie wystarcza — plakietkę chowamy przy
+    // odczycie. „Zrobione, a czeka w kolejce" to sprzeczność dla czytającego.
+    expect(pokazacPostep({ status: 'done', progress: 'queued' })).toBe(false);
+    expect(pokazacPostep({ status: 'dismissed', progress: 'working' })).toBe(false);
+  });
+
+  it('zgłoszenie w robocie postęp pokazuje — po to jest', () => {
+    expect(pokazacPostep({ status: 'new', progress: 'working' })).toBe(true);
+    expect(pokazacPostep({ status: 'reopened', progress: 'queued' })).toBe(true);
+    // `fixed` czeka na sprawdzenie przez zgłaszającego — „Zrobione" jest tu
+    // sensowną informacją, bo mówi, że praca po naszej stronie się skończyła.
+    expect(pokazacPostep({ status: 'fixed', progress: 'finished' })).toBe(true);
+  });
+
+  it('brak postępu to brak plakietki, niezależnie od statusu', () => {
+    expect(pokazacPostep({ status: 'new' })).toBe(false);
   });
 });
