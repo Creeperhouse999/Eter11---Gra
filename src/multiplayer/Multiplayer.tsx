@@ -8,6 +8,7 @@ import { RoomLobby } from './RoomLobby';
 import { OnlineGame } from './OnlineGame';
 import { leaveRoom, playersInOrder, startGame } from './room';
 import { useRoom } from './useRoom';
+import { useToast } from '../ui/controls/Toast';
 
 interface MultiplayerProps {
   /** Treść gry (karty, problemy) — ta sama co w grze jednoosobowej. */
@@ -25,6 +26,7 @@ interface MultiplayerProps {
 export function Multiplayer({ content, onExit }: MultiplayerProps) {
   const [code, setCode] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
+  const toast = useToast();
 
   const {
     room,
@@ -120,7 +122,16 @@ export function Multiplayer({ content, onExit }: MultiplayerProps) {
     // tego kroku wszyscy dostawali pusty ekran (MissionScreen bez `mission`
     // rysuje nic). Odpalamy START_MISSION tu, żeby zapisać stan już z misją.
     const started = reduce(fresh, { type: 'START_MISSION' });
-    await startGame(code, started.rejected ? fresh : started.state);
+    try {
+      await startGame(code, started.rejected ? fresh : started.state);
+    } catch (e) {
+      // `startGame` zapisuje do RTDB (reguły, sieć) — bez tego przechwycenia
+      // odrzucony zapis kończył się niezłapanym odrzuceniem obietnicy: przycisk
+      // „Zaczynamy" nic nie robił, bez żadnego komunikatu. Surowy błąd do
+      // konsoli (dla programisty), a graczowi czytelny toast zamiast ciszy.
+      console.error('Rozpoczęcie gry nie powiodło się:', e);
+      toast('Nie udało się rozpocząć gry. Spróbuj ponownie.', 'danger');
+    }
   };
 
   if (!code || !uid) {
