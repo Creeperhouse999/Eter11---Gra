@@ -1,3 +1,4 @@
+import { bezPustych } from './withoutUndefined';
 import { useRef, useState } from 'react';
 import type { Card } from '../engine/types';
 import type { CardImage } from '../data/cardImages';
@@ -81,17 +82,19 @@ export function CardImagesEditor({ cardImages, cards, onChange }: CardImagesEdit
     const previousCardId = image.cardId;
 
     const nextImages = images.map((i) => {
-      if (i.id === imageId) return { ...i, cardId: cardId || undefined };
+      if (i.id === imageId) return bezPustych({ ...i, cardId: cardId || undefined });
       // Inna grafika mogła już trzymać tę samą kartę — bez tego dwie
       // grafiki wskazywałyby ją naraz, a biblioteka pokazywałaby starą
       // jako wciąż „przypisaną”, choć karta realnie nosi już nową.
-      if (cardId && i.cardId === cardId) return { ...i, cardId: undefined };
+      if (cardId && i.cardId === cardId) return bezPustych({ ...i, cardId: undefined });
       return i;
     });
     const nextCards = cards.map((card) => {
       if (cardId && card.id === cardId) return { ...card, image: image.url };
       if (previousCardId && card.id === previousCardId && card.id !== cardId && card.image === image.url) {
-        return { ...card, image: undefined };
+        // Pole USUWAMY, nie zerujemy: Firestore odrzuca cały zapis, gdy
+        // natrafi na `undefined` (patrz `bezPustych`).
+        return bezPustych({ ...card, image: undefined });
       }
       return card;
     });
@@ -113,7 +116,11 @@ export function CardImagesEditor({ cardImages, cards, onChange }: CardImagesEdit
 
     const nextImages = images.filter((i) => i.id !== imageId);
     const nextCards = image.cardId
-      ? cards.map((card) => (card.id === image.cardId && card.image === image.url ? { ...card, image: undefined } : card))
+      ? cards.map((card) =>
+          card.id === image.cardId && card.image === image.url
+            ? bezPustych({ ...card, image: undefined })
+            : card,
+        )
       : cards;
     onChange({ cardImages: nextImages, cards: nextCards });
     toast('Grafika usunięta.');
