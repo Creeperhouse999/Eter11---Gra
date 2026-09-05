@@ -430,23 +430,28 @@ export async function deleteDiscussion(id: string): Promise<void> {
  * i „czeka na odp. od AI", gdy odpowiedzi jeszcze nie było. Po samej liście
  * nie dało się tego poznać — trzeba było otwierać wątek po wątku.
  *
- * Rozstrzyga OSTATNIA wypowiedź: jeśli należy do człowieka, piłka jest po
- * mojej stronie; jeśli do mnie — jest co przeczytać. Wątek ustalony (`closed`)
- * nie ma stanu, bo nikt na nic nie czeka.
+ * Pierwsza wersja rozstrzygała po tym, czy ostatnia wypowiedź to AI, czy
+ * „ktokolwiek inny" — więc wątek Adama z Marcinem (bez AI w ogóle) zawsze
+ * wisiał jako „czeka na odpowiedź od AI", nawet gdy to Marcin właśnie
+ * odpisał Adamowi. Adam po tym: „powinno być »nowa odpowiedź — sprawdź«, gdy
+ * napisał INNY user, albo Ty [AI] napisałeś". Rozstrzyga więc PATRZĄCY, nie
+ * AI: jeśli ostatnie słowo należy do przeglądającego wątek, piłka jest po
+ * jego stronie („czeka"); jeśli do kogokolwiek innego — jest co przeczytać.
+ * Wątek bez odpowiedzi liczy tak samo, biorąc autora WĄTKU (jego pytanie
+ * samo jest „ostatnią wypowiedzią") — więc pytanie Marcina bez odpowiedzi
+ * pokaże się Adamowi jako „nowa odpowiedź", nie „czeka na AI".
+ *
+ * Wątek ustalony (`closed`) nie ma stanu, bo nikt na nic nie czeka.
  */
 export type StanWatku = 'czeka-na-ai' | 'nowa-odpowiedz';
 
-/** Podpis, którym podpisuję się w dyskusjach (patrz `scripts/discuss.mjs`). */
-const PODPIS_AI = 'Claude';
-
-export function stanWatku(discussion: Discussion): StanWatku | null {
+export function stanWatku(discussion: Discussion, viewerAuthor: string): StanWatku | null {
   if (discussion.closed) return null;
 
   const ostatnia = discussion.messages?.[discussion.messages.length - 1];
-  // Wątek bez odpowiedzi: sam opis jest pytaniem, na które nikt nie odpisał.
-  if (!ostatnia) return 'czeka-na-ai';
+  const ostatniAutor = ostatnia?.author ?? discussion.author;
 
-  return ostatnia.author === PODPIS_AI ? 'nowa-odpowiedz' : 'czeka-na-ai';
+  return ostatniAutor === viewerAuthor ? 'czeka-na-ai' : 'nowa-odpowiedz';
 }
 
 /**
@@ -470,8 +475,13 @@ export function widoczneWatki(
   });
 }
 
-/** Napisy do plakietek — tak, jak sformułował je Adam. */
+/**
+ * Napisy do plakietek — tak, jak sformułował je Adam. Pierwsza wersja miała
+ * krótsze napisy („Czeka na odpowiedź", „Nowa odpowiedź") — Adam poprosił
+ * o dopisanie „od AI" i „— sprawdź", bo same rzeczowniki nie mówiły, na co
+ * dokładnie ktoś czeka ani co ma zrobić z tym, co nowe.
+ */
 export const STAN_WATKU_LABELS: Record<StanWatku, string> = {
-  'czeka-na-ai': 'Czeka na odpowiedź',
-  'nowa-odpowiedz': 'Nowa odpowiedź',
+  'czeka-na-ai': 'Czeka na odpowiedź od AI',
+  'nowa-odpowiedz': 'Nowa odpowiedź - sprawdź',
 };

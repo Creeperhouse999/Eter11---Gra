@@ -874,7 +874,7 @@ export function DiscussionsPanel({
                     liście nie dało się poznać, gdzie ktoś czeka na odpowiedź,
                     a gdzie jest coś nowego do przeczytania. */}
                 {(() => {
-                  const stan = stanWatku(discussion);
+                  const stan = stanWatku(discussion, author);
                   if (!stan) return null;
                   const czeka = stan === 'czeka-na-ai';
                   return (

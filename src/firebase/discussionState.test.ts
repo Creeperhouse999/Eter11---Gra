@@ -4,12 +4,15 @@ import { stanWatku, type Discussion } from './discussions';
 /**
  * Plakietka stanu na liście wątków.
  *
- * Adam poprosił: „w ramce danej dyskusji zrób napisy — »nowa odpowiedź«,
- * jeśli ktoś odpowiedział na komentarz AI albo innej osoby, oraz »czeka na
- * odp. od AI«, jeśli jeszcze nie odpowiedziałeś na komentarz usera".
+ * Pierwsza wersja patrzyła tylko na to, czy ostatnie słowo należy do AI —
+ * więc rozmowa dwóch osób z zespołu (bez AI w ogóle) zawsze wisiała jako
+ * „czeka na odpowiedź od AI", nawet gdy to WŁAŚNIE druga osoba odpisała.
+ * Adam po tym: „powinno być »nowa odpowiedź — sprawdź«, gdy napisał inny
+ * user, albo Ty [AI] napisałeś [i ja jako user powinienem odpisać]".
  *
- * Sens: po liście wątków nie da się poznać, gdzie coś się ruszyło, a gdzie
- * ktoś czeka. Przy ośmiu wątkach trzeba otwierać każdy po kolei.
+ * Rozstrzyga więc PATRZĄCY na listę, nie AI: piłka jest po jego stronie
+ * tylko wtedy, gdy TO ON napisał ostatnie słowo — inaczej jest coś nowego
+ * do sprawdzenia, bez znaczenia, czy napisała to AI, czy kolega z zespołu.
  */
 
 const watek = (autorzy: string[]): Discussion =>
@@ -28,27 +31,41 @@ const watek = (autorzy: string[]): Discussion =>
   }) as Discussion;
 
 describe('stan wątku dyskusji', () => {
-  it('ostatnie słowo człowieka = czeka na odpowiedź AI', () => {
-    expect(stanWatku(watek(['Claude', 'Adam']))).toBe('czeka-na-ai');
+  it('ostatnie słowo patrzącego = czeka na odpowiedź', () => {
+    expect(stanWatku(watek(['Claude', 'Adam']), 'Adam')).toBe('czeka-na-ai');
   });
 
   it('ostatnie słowo AI = jest nowa odpowiedź do przeczytania', () => {
-    expect(stanWatku(watek(['Adam', 'Claude']))).toBe('nowa-odpowiedz');
+    expect(stanWatku(watek(['Adam', 'Claude']), 'Adam')).toBe('nowa-odpowiedz');
   });
 
-  it('wątek bez odpowiedzi czeka na AI — sam opis to pytanie bez reakcji', () => {
-    expect(stanWatku(watek([]))).toBe('czeka-na-ai');
+  it('wątek bez odpowiedzi: patrzy jego własny autor = czeka na odpowiedź', () => {
+    expect(stanWatku(watek([]), 'Adam')).toBe('czeka-na-ai');
   });
 
   it('wątek ustalony nie ma stanu — nikt na nic nie czeka', () => {
     const zamkniety = { ...watek(['Adam']), closed: true };
 
-    expect(stanWatku(zamkniety)).toBeNull();
+    expect(stanWatku(zamkniety, 'Adam')).toBeNull();
   });
 
-  it('rozmowa dwóch osób bez AI też czeka na AI', () => {
-    // Nikt z zespołu nie pisze jako „Claude", więc ostatnie słowo należy do
-    // człowieka — a to znaczy, że odpowiedzi jeszcze nie było.
-    expect(stanWatku(watek(['Adam', 'Marcin']))).toBe('czeka-na-ai');
+  it(
+    'inny członek zespołu odpisał jako ostatni — to nowa odpowiedź, ' +
+      'nie „czeka na AI" (regresja: pierwsza wersja liczyła KAŻDEGO ' +
+      'nie-AI jako „czeka na AI", więc rozmowa Adama z Marcinem bez AI ' +
+      'wisiała tak zawsze, nawet gdy to Marcin właśnie odpisał)',
+    () => {
+      expect(stanWatku(watek(['Adam', 'Marcin']), 'Adam')).toBe('nowa-odpowiedz');
+    },
+  );
+
+  it('to JA napisałem ostatni do kolegi z zespołu = czeka na odpowiedź', () => {
+    expect(stanWatku(watek(['Marcin', 'Adam']), 'Adam')).toBe('czeka-na-ai');
+  });
+
+  it('wątek bez odpowiedzi założony przez kogoś innego = nowa odpowiedź', () => {
+    // `watek` zawsze ustawia `author: 'Adam'` — patrzy tu Milena, więc
+    // niezaczepiony wątek Adama to dla niej coś nowego do sprawdzenia.
+    expect(stanWatku(watek([]), 'Milena')).toBe('nowa-odpowiedz');
   });
 });
