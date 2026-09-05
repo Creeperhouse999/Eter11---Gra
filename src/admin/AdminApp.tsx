@@ -880,6 +880,11 @@ export function AdminApp() {
             onThemeChange={(mode, colors) =>
               update(mode === 'light' ? { themeLight: colors } : { theme: colors })
             }
+            // Ten sam wzorzec skoku co w „Drukuj karty" (patrz `PrintCards`
+            // niżej): karta po nazwie (edytor filtruje po niej), problem po id
+            // (edytor rozwija konkretny).
+            onEditCard={(cardName) => route.navigate('cards', null, { filter: cardName })}
+            onEditProblem={(problemId) => route.navigate('problems', null, { open: problemId })}
           />
         )}
         {tab === 'activity' && <ActivityPanel onOpen={goToLink} />}

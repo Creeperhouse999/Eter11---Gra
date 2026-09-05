@@ -36,6 +36,16 @@ interface CardCodesProps {
   theme?: ThemeColors;
   themeLight?: ThemeColors;
   onThemeChange?: (mode: ThemeMode, theme: ThemeColors) => void;
+  /**
+   * Skok do pełnej edycji — Adam poprosił wprost: „mogę edytować pojedyncze
+   * elementy, ale zrób przycisk, który przeniesie mnie do danej karty do
+   * zakładki »karty« albo »problemy«". Tabela tutaj poprawia szybko literówkę
+   * czy kod; pełny opis, wymagania i historię edytuje się tam. Ten sam wzorzec
+   * (nazwa dla kart, id dla problemów) już działa w „Drukuj karty" — patrz
+   * `PrintCards.onEdit`/`onEditProblem`.
+   */
+  onEditCard?: (cardName: string) => void;
+  onEditProblem?: (problemId: string) => void;
 }
 
 /** Nazwa grupy, w której stoi dany wpis. */
@@ -78,6 +88,8 @@ export function CardCodes({
   theme,
   themeLight,
   onThemeChange,
+  onEditCard,
+  onEditProblem,
 }: CardCodesProps) {
   const toast = useToast();
   const [szukaj, setSzukaj] = useState('');
@@ -314,12 +326,36 @@ export function CardCodes({
                 return (
                   <tr key={`${grupa.nazwa}-${wpis.id}`} className="border-b border-edge/60">
                     <td className="p-1.5">
-                      <input
-                        className="w-full rounded border border-edge bg-surface px-2 py-1 text-sm"
-                        value={wpis.name}
-                        aria-label={`Nazwa: ${wpis.id}`}
-                        onChange={(e) => zmienNazwe(wpis, e.target.value)}
-                      />
+                      <span className="flex items-center gap-1">
+                        <input
+                          className="w-full rounded border border-edge bg-surface px-2 py-1 text-sm"
+                          value={wpis.name}
+                          aria-label={`Nazwa: ${wpis.id}`}
+                          onChange={(e) => zmienNazwe(wpis, e.target.value)}
+                        />
+                        {/* Skok do pełnej edycji — patrz komentarz przy
+                            `onEditCard`/`onEditProblem` w propsach. Postać nie
+                            ma tu przycisku: Adam prosił konkretnie o „karty"
+                            i „problemy". */}
+                        {wpis.card && onEditCard && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            icon="arrowRight"
+                            aria-label={`Edytuj w zakładce Karty: ${wpis.name}`}
+                            onClick={() => onEditCard(wpis.name)}
+                          />
+                        )}
+                        {wpis.problem && onEditProblem && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            icon="arrowRight"
+                            aria-label={`Edytuj w zakładce Problemy: ${wpis.name}`}
+                            onClick={() => onEditProblem(wpis.id)}
+                          />
+                        )}
+                      </span>
                       {card?.draft && (
                         <span className="mt-0.5 inline-block font-mono text-[9px] uppercase text-ink-dim">
                           robocza

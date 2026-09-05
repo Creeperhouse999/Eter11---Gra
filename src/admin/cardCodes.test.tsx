@@ -195,6 +195,68 @@ describe('edycja w tabeli kodów', () => {
   });
 });
 
+describe('skok do pełnej edycji', () => {
+  // Adam: „mogę edytować pojedyncze elementy, ale zrób przycisk, który
+  // przeniesie mnie do danej karty do zakładki »karty« albo »problemy«".
+  // Bez callbacków (jak w domyślnym `renderTabeli`) przycisku nie ma —
+  // AdminApp poda go dopiero, gdy zna nawigację; test tego nie udaje.
+
+  it('karta ma przycisk do zakładki Karty, przekazujący jej nazwę', () => {
+    const onEditCard = vi.fn();
+    render(
+      <ToastProvider>
+        <CardCodes cards={BUILTIN_CONTENT.cards} onChange={vi.fn()} onEditCard={onEditCard} />
+      </ToastProvider>,
+    );
+
+    const karta = BUILTIN_CONTENT.cards[0];
+    const wiersz = screen.getByText(karta.id).closest('tr')!;
+    fireEvent.click(within(wiersz).getByRole('button', { name: /edytuj w zakładce karty/i }));
+
+    expect(onEditCard).toHaveBeenCalledWith(karta.name);
+  });
+
+  it('problem ma przycisk do zakładki Problemy, przekazujący jego id', () => {
+    const onEditProblem = vi.fn();
+    render(
+      <ToastProvider>
+        <CardCodes
+          cards={BUILTIN_CONTENT.cards}
+          onChange={vi.fn()}
+          problems={BUILTIN_CONTENT.problems}
+          onEditProblem={onEditProblem}
+        />
+      </ToastProvider>,
+    );
+
+    const problem = BUILTIN_CONTENT.problems[0];
+    const wiersz = screen.getByText(problem.id).closest('tr')!;
+    fireEvent.click(
+      within(wiersz).getByRole('button', { name: /edytuj w zakładce problemy/i }),
+    );
+
+    expect(onEditProblem).toHaveBeenCalledWith(problem.id);
+  });
+
+  it('postać nie dostaje przycisku skoku — Adam prosił tylko o karty i problemy', () => {
+    render(
+      <ToastProvider>
+        <CardCodes
+          cards={BUILTIN_CONTENT.cards}
+          onChange={vi.fn()}
+          characters={BUILTIN_CONTENT.characters}
+          onEditCard={vi.fn()}
+          onEditProblem={vi.fn()}
+        />
+      </ToastProvider>,
+    );
+
+    const postac = BUILTIN_CONTENT.characters[0];
+    const wiersz = screen.getByText(postac.id).closest('tr')!;
+    expect(within(wiersz).queryByRole('button', { name: /edytuj w zakładce/i })).toBeNull();
+  });
+});
+
 describe('tabela obejmuje wszystko, z czego składa się gra', () => {
   it('pokazuje problemy z ich kodami', () => {
     // Adam: „dodaj do kody kart również karty problemów (rodzina »Problemy
