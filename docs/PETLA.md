@@ -122,6 +122,13 @@ Nie zostawiaj commitów lokalnie.
   fragment trafia w oba, skrypt odmawia i zgłoszenie zostaje otwarte mimo
   „success" w Actions. Podawaj tyle tytułu, żeby był jednoznaczny, i po deployu
   sprawdź, czy status faktycznie się zmienił.
+- Fragment w `Report-Fixed:` (i argument `mark-report.mjs`/`set-progress.mjs`)
+  potrafi wyglądać identycznie na ekranie i mimo to NIE pasować — panel bywa
+  zapisuje spację NIEROZDZIELAJĄCĄ (NBSP) tam, gdzie Ty wpiszesz zwykłą.
+  `.includes()` porównuje bajty, więc dopasowanie cicho pada, krok w Actions
+  tylko OSTRZEGA, a zgłoszenie zostaje błędnie „reopened" mimo wdrożonej
+  naprawy (skrypty normalizują to od `53f4d9f` — ale krótszy fragment bez
+  spacji w newralgicznym miejscu i tak jest bezpieczniejszy).
 - **Zanim napiszesz nowy plik testowy — sprawdź, czy nie istnieje.** `Write`
   nadpisuje bez ostrzeżenia. Raz skasowałem tak cały test regresji do zgłoszenia
   Adama; wyszło dopiero z tego, że liczba plików w przebiegu się nie zmieniła.
