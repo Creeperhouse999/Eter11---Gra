@@ -168,6 +168,12 @@ export function CardView({
         // i część kart była nieosiągalna. `pan-x` godzi oba: w bok scroll,
         // w górę i w dół przeciąganie.
         touchAction: draggable ? 'pan-x' : undefined,
+        // Zmienna, nie `color` na elemencie: wygląd „Kolorowy" czyta ją przez
+        // `currentColor`-podobne `var(--eter-tile-accent)`, żeby pokolorować
+        // poświatę kafla barwą rodziny/kategorii KARTY. Ustawienie wprost
+        // `color` tutaj przeciekłoby na dzieci bez własnego koloru (np. opis
+        // karty) i zafarbowałoby tekst, którego nikt o to nie prosił.
+        ...({ '--eter-tile-accent': accent } as React.CSSProperties),
         ...(dealIndex === undefined
           ? {}
           : ({ '--eter-delay': `${dealIndex * 55}ms` } as React.CSSProperties)),

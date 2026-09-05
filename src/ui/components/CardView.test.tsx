@@ -34,3 +34,29 @@ describe('CardView — szerokość karty na ściance (compact)', () => {
     expect(root.className).toContain('w-[6.5rem]');
   });
 });
+
+/**
+ * Poświata kafla w wyglądzie „Kolorowy" (theme.css, `.eter-tile`) liczy się
+ * z `--eter-tile-accent`, nie z `currentColor` — bo `currentColor` na tym
+ * elemencie to zwykły kolor tekstu, nie kolor rodziny karty (żadne dziecko
+ * karty nie ustawia `color` na SAMYM SOBIE, więc `currentColor` nie miał
+ * skąd wziąć barwy rodziny). Bez tej zmiennej każda karta świeciła tym samym
+ * blado-białym poświatem — stąd zgłoszenie Adama „nie różni się wiele od
+ * klasycznego". Ten test pilnuje źródła, nie samego CSS: element musi
+ * naprawdę NIEŚĆ kolor swojej rodziny w tej zmiennej.
+ */
+describe('CardView — zmienna koloru kafla dla wyglądu Kolorowy', () => {
+  it('kafel niesie kolor rodziny karty w --eter-tile-accent', () => {
+    const { container } = render(<CardView card={card} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.style.getPropertyValue('--eter-tile-accent')).toBe('var(--eter-family-red)');
+  });
+
+  it('bez rodziny kafel bierze kolor kategorii', () => {
+    const bezRodziny: Card = { ...card, family: undefined };
+    const { container } = render(<CardView card={bezRodziny} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.style.getPropertyValue('--eter-tile-accent')).not.toBe('');
+    expect(root.style.getPropertyValue('--eter-tile-accent')).not.toBe('var(--eter-family-red)');
+  });
+});

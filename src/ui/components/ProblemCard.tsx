@@ -128,6 +128,15 @@ export function ProblemCard({
               : playable
                 ? '0 0 20px -8px var(--eter-accent)'
                 : undefined,
+            // Wygląd „Kolorowy" czyta tę zmienną, żeby poświata ścianki (patrz
+            // `.eter-tile` w theme.css) świeciła kolorem RODZINY, której ta
+            // ścianka wymaga — nie ogólnym tekstowym kolorem tła, jak dotąd
+            // (stąd poświata wyglądała jak biały obrys, „nie różniła się wiele
+            // od klasycznego", jak napisał Adam). Zmienna, nie `color` wprost:
+            // dzieci ścianki (etykieta kategorii w stanie pustym) inherytują
+            // domyślny kolor tekstu i mają go nadal, `--eter-tile-accent` samo
+            // nic nie maluje, dopóki CSS go nie użyje.
+            ...({ '--eter-tile-accent': familyColor } as React.CSSProperties),
           }}
         >
           {/* Nagłówek ścianki: kategoria plus wymagany kolor rodziny */}

@@ -330,19 +330,48 @@
  * Kolor niesie zasadę gry (karta pasuje do ścianki tylko przy zgodnej
  * rodzinie), więc w tym wyglądzie ma świecić, a nie tylko obrysowywać —
  * dokładnie jak kafle na grafikach Adama.
+ *
+ * Adam po drugiej wersji: „nie różni się wiele od klasycznego". Przyczyna:
+ * ta poświata liczyła się z `currentColor`, a żaden kafel nigdie nie ustawiał
+ * `color` na samym sobie — więc `currentColor` brał zwykły kolor tekstu
+ * (biel/liliowy), nie kolor rodziny karty. Efekt: każda karta świeciła tym
+ * samym bladym kolorem zamiast własną barwą, więc plansza wyglądała prawie
+ * jak w Klasycznym. `CardView` i `ProblemCard` ustawiają teraz zmienną
+ * `--eter-tile-accent` na kolor rodziny/kategorii KARTY — to ona, nie
+ * `currentColor`, steruje poświatą i szklaną poświatą tła poniżej. Zmienna,
+ * nie `color`: dzieci kafla, które nie mają własnego koloru (np. pusta
+ * etykieta ścianki), mają zostać w zwykłym kolorze tekstu, nie zafarbować się
+ * przy okazji.
+ *
+ * Poświata w rogu (nie na całej powierzchni): pełne wypełnienie kafla barwą
+ * rodziny zabrałoby kontrast tekstowi, który tej samej barwy używa na napisy
+ * (nazwa karty, etykieta) — bezpieczne dla czytelności jest jaśniejsze,
+ * szklane podświetlenie w rogu, gasnące do zwykłego tła tam, gdzie leży tekst.
  */
 [data-skin='colorful'] .eter-tile {
   border-radius: 0.35rem;
+  background:
+    radial-gradient(
+      85% 75% at 14% 10%,
+      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 70%, white 20%) 0%,
+      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 45%, transparent) 34%,
+      transparent 68%
+    ),
+    var(--eter-raised);
   box-shadow:
-    inset 0 0 12px -6px currentColor,
-    0 0 16px -6px currentColor;
-  transition: box-shadow var(--eter-normal) var(--eter-ease);
+    inset 0 1px 0 0 color-mix(in srgb, white 30%, transparent),
+    inset 0 0 14px -6px var(--eter-tile-accent, currentColor),
+    0 0 16px -6px var(--eter-tile-accent, currentColor);
+  transition:
+    box-shadow var(--eter-normal) var(--eter-ease),
+    background var(--eter-normal) var(--eter-ease);
 }
 
 [data-skin='colorful'] .eter-tile:hover {
   box-shadow:
-    inset 0 0 14px -4px currentColor,
-    0 0 22px -4px currentColor;
+    inset 0 1px 0 0 color-mix(in srgb, white 45%, transparent),
+    inset 0 0 16px -4px var(--eter-tile-accent, currentColor),
+    0 0 22px -4px var(--eter-tile-accent, currentColor);
 }
 
 /* Podpisy i etykiety: rozstrzelone wersaliki, jak na panelach z grafik. */
