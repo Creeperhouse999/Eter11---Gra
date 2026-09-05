@@ -87,4 +87,18 @@ describe('lista aktywności', () => {
   it('pusta lista nie wywraca widoku', () => {
     expect(buildActivity([])).toEqual([]);
   });
+
+  it('niesie czas rozpoczęcia bieżącego etapu — Adam poprosił o niego wprost', () => {
+    const lista = buildActivity([
+      zgloszenie({ id: 'a', progress: 'working', progressAt: '2026-09-04T20:05:00.000Z' }),
+    ]);
+
+    expect(lista[0].progressAt).toBe('2026-09-04T20:05:00.000Z');
+  });
+
+  it('zgłoszenie bez zmiany etapu nie ma czasu rozpoczęcia — nic nie kłamie', () => {
+    const lista = buildActivity([zgloszenie({ id: 'a' })]);
+
+    expect(lista[0].progressAt).toBeUndefined();
+  });
 });

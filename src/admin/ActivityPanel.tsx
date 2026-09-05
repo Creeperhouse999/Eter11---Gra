@@ -7,6 +7,7 @@ import {
 } from '../firebase/reports';
 import { buildActivity } from './activityFeed';
 import { wgRecznejKolejnosci, poPrzesunieciu } from './reorderQueue';
+import { formatDate } from './formatDate';
 import { Icon } from '../ui/icons/Icon';
 
 interface ActivityPanelProps {
@@ -116,6 +117,15 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
           {(w.priority === 'ultra' || w.priority === 'high') && (
             <span className="font-mono text-[10px] text-danger">
               {w.priority === 'ultra' ? 'krytyczny' : 'wysoki'}
+            </span>
+          )}
+          {/* Adam: „dodaj czas, kiedy zacząłeś robić daną zakładkę" — tylko
+              przy tym, co faktycznie jest w robocie. `progressAt` już istnieje
+              na zgłoszeniu (ustawiany przy każdej zmianie `progress`),
+              wcześniej po prostu nie było go tu widać. */}
+          {(w.progress === 'working' || w.progress === 'testing') && w.progressAt && (
+            <span className="block font-mono text-[10px] text-ink-dim">
+              od {formatDate(w.progressAt)}
             </span>
           )}
         </span>

@@ -19,6 +19,17 @@ export interface ActivityItem {
   link: string;
   /** Pilność, do podpisu na liście. */
   priority: Report['priority'];
+  /**
+   * Kiedy zaczął się BIEŻĄCY etap (`progress`) — Adam poprosił o „czas, kiedy
+   * zacząłeś robić daną zakładkę". Pole już istnieje na zgłoszeniu
+   * (`progressAt`, ustawiane przy każdej zmianie `progress`); tu tylko
+   * przechodzi dalej, żeby panel miał co pokazać przy pozycji „W robocie".
+   *
+   * Nie ma odpowiednika „kiedy zacznę kolejne" — to poprosił Adam też, ale
+   * praca idzie wg pilności zgłoszeń w danej chwili, nie wg harmonogramu:
+   * nie da się uczciwie podać czasu, którego samo działanie jeszcze nie zna.
+   */
+  progressAt?: string;
 }
 
 /**
@@ -72,5 +83,6 @@ export function buildActivity(reports: Report[]): ActivityItem[] {
       // Adam prosił, żeby „każde zadanie się klikało i przenosiło do wątku".
       link: `/admin/reports/${r.status}?open=${r.id}`,
       priority: r.priority,
+      progressAt: r.progressAt,
     }));
 }
