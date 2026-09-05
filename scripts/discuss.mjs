@@ -253,9 +253,15 @@ if (command === 'reply') {
     process.exit(1);
   }
 
+  // Normalizacja białych znaków (NBSP z panelu, wielokrotna spacja) do
+  // pojedynczej zwykłej spacji — patrz ten sam zabieg w mark-report.mjs,
+  // gdzie brak go kosztował źle oznaczone zgłoszenie mimo poprawnego
+  // fragmentu tytułu.
+  const normalizuj = (tekst) => tekst.toLowerCase().replace(/\s+/g, ' ').trim();
+
   const threads = await listDiscussions();
-  const needle = query.toLowerCase();
-  const matches = threads.filter((d) => field(d, 'title').toLowerCase().includes(needle));
+  const needle = normalizuj(query);
+  const matches = threads.filter((d) => normalizuj(field(d, 'title')).includes(needle));
 
   if (matches.length === 0) {
     console.error(`Nie znaleziono wątku z tytułem zawierającym „${query}".`);

@@ -97,9 +97,24 @@ if (!VALID.includes(status)) {
   process.exit(1);
 }
 
+/**
+ * Do porównania: małe litery, a wszystkie odmiany białych znaków (spacja
+ * nierozdzielająca ` ` z panelu, tabulator, wielokrotna spacja) jako
+ * pojedyncza zwykła spacja.
+ *
+ * Zgłoszenie z prawdziwym tytułem „…wybiera się ta sama postać" (NBSP
+ * między słowami — tak zapisał je panel) nie dawało się oznaczyć fragmentem
+ * ze zwykłą spacją w tym samym miejscu: `.includes()` porównuje bajt po
+ * bajcie, więc `  !== ' '` mimo identycznego wyglądu na ekranie.
+ * Commit z trailerem `Report-Fixed:` przechodził przez Actions bez błędu
+ * (skrypt tylko OSTRZEGA), a zgłoszenie zostawało błędnie „reopened" mimo
+ * wdrożonej naprawy.
+ */
+const normalizuj = (tekst) => tekst.toLowerCase().replace(/\s+/g, ' ').trim();
+
 const reports = await listReports();
-const needle = query.toLowerCase();
-const matches = reports.filter((d) => field(d, 'title').toLowerCase().includes(needle));
+const needle = normalizuj(query);
+const matches = reports.filter((d) => normalizuj(field(d, 'title')).includes(needle));
 
 if (matches.length === 0) {
   console.error(`Nie znaleziono zgłoszenia z tytułem zawierającym "${query}".`);

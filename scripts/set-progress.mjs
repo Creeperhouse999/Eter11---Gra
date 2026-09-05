@@ -150,7 +150,10 @@ if (arg1 === '--all-open') {
   process.exit(ok === otwarte.length ? 0 : 1);
 }
 
-const pasujace = lista.filter((r) => r.title.toLowerCase().includes(arg1.toLowerCase()));
+// Normalizacja białych znaków (NBSP z panelu, wielokrotna spacja) do
+// pojedynczej zwykłej spacji — patrz ten sam zabieg w mark-report.mjs.
+const normalizuj = (tekst) => tekst.toLowerCase().replace(/\s+/g, ' ').trim();
+const pasujace = lista.filter((r) => normalizuj(r.title).includes(normalizuj(arg1)));
 if (pasujace.length === 0) {
   console.error(`Żadne zgłoszenie nie pasuje do „${arg1}".`);
   process.exit(1);
