@@ -197,12 +197,18 @@ export function SummaryScreen({
               <div className="flex min-w-0 flex-wrap gap-3">
                 {plays.map((play) => {
                   const shared = mission.sharedCardIds.includes(play.card.id);
-                  // Odbiorcą może być tylko ktoś, kto nie zabrał jeszcze
-                  // karty w tej misji — bez tego przycisk prowadził do listy,
-                  // na której nie było nikogo.
+                  // Odbiorcą może być tylko ktoś, kto nie DOSTAŁ jeszcze
+                  // prezentu w tej misji — limit prezentów liczy się osobno
+                  // od własnej zdobyczy (`takenToMat`), którą gracz mógł już
+                  // zabrać i nadal ma prawo coś dostać (patrz reduktor,
+                  // `shareCard`). Ten warunek kiedyś sprawdzał `takenToMat`,
+                  // więc gracz, który zabrał swoją kartę, znikał z listy
+                  // odbiorców — Adam zgłosił, że nie dało się mu wtedy
+                  // przekazać NICZEGO, mimo że reduktor już na to pozwalał.
                   const hasReceiver = state.players.some(
                     (other) =>
-                      other.id !== player.id && !mission.takenToMat.includes(other.id),
+                      other.id !== player.id &&
+                      !(mission.receivedCards ?? []).includes(other.id),
                   );
 
                   const canShare =
@@ -315,25 +321,27 @@ export function SummaryScreen({
                 <div className="mt-4 rounded-lg border border-accent bg-raised p-3">
                   {state.players.some(
                     (other) =>
-                      other.id !== player.id && !mission.takenToMat.includes(other.id),
+                      other.id !== player.id &&
+                      !(mission.receivedCards ?? []).includes(other.id),
                   ) ? (
                     <p className="text-sm">
                       Komu przekazujesz kartę <strong>{sharing.card.name}</strong>?
                     </p>
                   ) : (
                     <p className="text-sm text-ink-dim">
-                      Wszyscy zabrali już kartę w tej misji — nie ma komu jej przekazać.
+                      Wszyscy dostali już prezent w tej misji — nie ma komu jej przekazać.
                       Zabierz ją dla siebie albo zostaw na później.
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {state.players
-                      // Kto zabrał już kartę w tej misji, nie może dostać
-                      // kolejnej — limit dotyczy też kart otrzymanych.
+                      // Kto już DOSTAŁ prezent w tej misji, nie może dostać
+                      // kolejnego — a to osobny limit od własnej zdobyczy
+                      // (`takenToMat`), którą mógł zabrać bez przeszkód.
                       .filter(
                         (other) =>
                           other.id !== player.id &&
-                          !mission.takenToMat.includes(other.id),
+                          !(mission.receivedCards ?? []).includes(other.id),
                       )
                       .map((other) => (
                         <Button
