@@ -12,6 +12,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './client';
+import { wyslijNaDiscord } from './discordNotify';
+import { embedNoweZgloszenie, embedZmianaStanu } from './discordMessage';
 
 /**
  * Rodzaj zgłoszenia.
@@ -268,14 +270,17 @@ export async function addReport(input: {
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Wpisz tytuł zgłoszenia.' };
 
+  const status: ReportStatus = input.status ?? 'pending';
+  const createdAt = new Date().toISOString();
+
   try {
-    await addDoc(collection(db, COLLECTION), {
+    const entry = await addDoc(collection(db, COLLECTION), {
       kind: input.kind,
       title,
       description: input.description.trim(),
       author: input.author?.trim() ?? '',
-      status: (input.status ?? 'pending') satisfies ReportStatus,
-      createdAt: new Date().toISOString(),
+      status,
+      createdAt,
       // Pilność zapisujemy tylko wtedy, gdy ktoś ją wybrał: brak pola czyta
       // się jako „zwykły", więc wartość domyślna niczego nie wnosi.
       ...(input.priority ? { priority: input.priority } : {}),
@@ -287,6 +292,26 @@ export async function addReport(input: {
       // Wysyłanie jej odrzucało KAŻDE zgłoszenie z błędem uprawnień, czyli
       // kanał zgłaszania błędów był martwy od początku.
     });
+
+    // Powiadomienie na Discorda — PO udanym zapisie i bez czekania na nie.
+    // Alan poprosił, żeby kanał brał zmiany „sam z panelu, a nie od agenta",
+    // więc wysyła je ta przeglądarka, w której ktoś kliknął „Wyślij".
+    // Nieosiągalny Discord nie może zablokować zgłoszenia, dlatego wynik
+    // wysyłki nas tu nie interesuje (`sendToDiscord` nigdy nie rzuca).
+    void wyslijNaDiscord('zgloszenia', () =>
+      embedNoweZgloszenie({
+        id: entry.id,
+        kind: input.kind,
+        title,
+        description: input.description.trim(),
+        author: input.author?.trim() ?? '',
+        status,
+        createdAt,
+        notes: [],
+        ...(input.priority ? { priority: input.priority } : {}),
+      } as Report),
+    );
+
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -394,6 +419,12 @@ export async function setReportStatus(
   id: string,
   status: ReportStatus,
   note?: { from: ReportNote['from']; text: string; author?: string; images?: string[] },
+  /**
+   * Zgłoszenie potrzebne wyłącznie do powiadomienia na Discordzie (tytuł).
+   * Opcjonalne, bo skrypty CLI wołają tę funkcję bez wczytanego dokumentu —
+   * wtedy powiadomienie po prostu nie leci, zamiast wywracać zapis.
+   */
+  report?: Report,
 ): Promise<void> {
   const text = note?.text.trim();
   const author = note?.author?.trim();
@@ -416,6 +447,14 @@ export async function setReportStatus(
         }
       : {}),
   });
+
+  // Powiadomienie po udanym zapisie. Bez wczytanego zgłoszenia (skrypty CLI)
+  // nie ma czym zatytułować ramki, więc po prostu nie wysyłamy.
+  if (report) {
+    void wyslijNaDiscord('zmianyStanu', () =>
+      embedZmianaStanu(report, status, text, note?.images?.[0]),
+    );
+  }
 }
 
 /**

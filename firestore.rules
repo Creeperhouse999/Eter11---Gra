@@ -482,6 +482,22 @@ service cloud.firestore {
       allow delete: if jestAdmin();
     }
 
+    // Ustawienia integracji — na razie tylko webhook Discorda.
+    //
+    // Adres webhooka jest jak hasło: kto go ma, może pisać na kanał zespołu.
+    // Dlatego NIE stoi w repozytorium (jest publiczne) i nie czyta go nikt
+    // niezalogowany — także gra, która przecież loguje się anonimowo.
+    match /settings/{item} {
+      allow read: if mozeEdytowac();
+      // Zmienia wyłącznie admin: to on odpowiada za to, dokąd wychodzą
+      // treści zgłoszeń i dyskusji.
+      allow write: if jestAdmin()
+                   && request.resource.data.keys()
+                        .hasOnly(['webhookUrl', 'zgloszenia', 'zmianyStanu', 'dyskusje'])
+                   && request.resource.data.webhookUrl is string
+                   && request.resource.data.webhookUrl.size() <= 300;
+    }
+
     match /memory/{note} {
       // Odczyt dla tych, którzy przy grze pracują — czyli tak jak zapis,
       // bez `viewer`. To notatki o nas i o pracy nad grą („kto za co

@@ -28,6 +28,7 @@ import { FamilyEditor } from './FamilyEditor';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
 import { PrintManual } from './PrintManual';
+import { DiscordSettingsPanel } from './DiscordSettingsPanel';
 import { BoredomPanel } from './BoredomPanel';
 import { ActivityPanel } from './ActivityPanel';
 import { PresetBar } from './PresetBar';
@@ -965,7 +966,12 @@ export function AdminApp() {
         {tab === 'stats' && <StatsPanel content={content} />}
         {tab === 'team' && auth.user && canManageRoles(auth.role) && (
           <TeamPanel currentUid={auth.user.uid} />
+        
         )}
+        {/* Podpięcie kanału Discorda — decyzja o tym, dokąd wychodzą treści
+            zgłoszeń i dyskusji, więc razem z zarządzaniem rolami. */}
+        {tab === 'team' && auth.user && canManageRoles(auth.role) && <DiscordSettingsPanel />}
+
         {tab === 'history' && canViewHistory(auth.role) && (
           <HistoryPanel
             currentVersion={baseVersion}

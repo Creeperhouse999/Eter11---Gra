@@ -12,6 +12,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './client';
 import { PRIORITY_ORDER, type ReportPriority } from './reports';
+import { wyslijNaDiscord } from './discordNotify';
+import { embedNowyWatek, embedOdpowiedz } from './discordMessage';
 
 /**
  * Wątek dyskusji zespołu.
@@ -169,18 +171,32 @@ export async function addDiscussion(input: {
     return { ok: false, error: 'Napisz, o czym ma być rozmowa — sam temat nikomu nic nie mówi.' };
   }
 
+  const createdAt = new Date().toISOString();
+
   try {
     const entry = await addDoc(collection(db, COLLECTION), {
       title,
       description,
       author,
-      createdAt: new Date().toISOString(),
+      createdAt,
       messages: input.messages ?? [],
       closed: false,
       category: input.category ?? 'ai',
       kind: input.kind ?? 'idea',
       priority: input.priority ?? 'medium',
     });
+    // Powiadomienie na kanał — po udanym zapisie, bez czekania na wynik.
+    void wyslijNaDiscord('dyskusje', () =>
+      embedNowyWatek({
+        id: entry.id,
+        title,
+        description,
+        author,
+        createdAt,
+        messages: input.messages ?? [],
+      }),
+    );
+
     return { ok: true, id: entry.id };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -288,7 +304,7 @@ export async function addMessage(
 
   try {
     const ref = doc(db, COLLECTION, discussion.id);
-    return await runTransaction(db, async (tx) => {
+    const wynik = await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists()) return { ok: false, error: 'Tego wątku już nie ma.' };
 
@@ -302,6 +318,16 @@ export async function addMessage(
       tx.update(ref, { messages: [...current, message] });
       return { ok: true };
     });
+
+    if (wynik.ok) {
+      // Odpowiedzi w wątkach ginęły najczęściej ze wszystkiego — właśnie po to
+      // ten kanał powstaje.
+      void wyslijNaDiscord('dyskusje', () =>
+        embedOdpowiedz(discussion, author, text, input.image),
+      );
+    }
+
+    return wynik;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Nie udało się wysłać: ${reason}` };
