@@ -66,10 +66,17 @@ export const DEFAULT_FAMILIES: FamilyMap = {
     { id: 'green', name: 'Świat bez sieci', color: FAMILY_COLORS.green, icon: 'radio', description: 'Radzić sobie, gdy technologia zawodzi.' },
   ],
   social: [
-    { id: 'red', name: 'Obrona i odwaga', color: FAMILY_COLORS.red, icon: 'cape', description: 'Stanąć po stronie krzywdzonych, nie milczeć.' },
-    { id: 'blue', name: 'Myślenie krytyczne', color: FAMILY_COLORS.blue, icon: 'puzzle', description: 'Pytać, sprawdzać, przewidywać skutki.' },
+    // Adam po rozmowie „Przypomnij idee kolorów i rodzin": czerwony to
+    // odwaga I DZIAŁANIE — dopisane wprost do opisu, nie tylko do nazwy.
+    { id: 'red', name: 'Obrona i odwaga', color: FAMILY_COLORS.red, icon: 'cape', description: 'Stanąć po stronie krzywdzonych i działać, zamiast milczeć.' },
+    // Niebieski to myślenie ORAZ organizacja — Adam: „organizacja do
+    // niebieskiego". Sama nazwa „Myślenie krytyczne" o tym nie mówiła.
+    { id: 'blue', name: 'Myślenie i planowanie', color: FAMILY_COLORS.blue, icon: 'puzzle', description: 'Pytać, sprawdzać, planować, zanim grupa zacznie działać.' },
     { id: 'yellow', name: 'Porozumienie', color: FAMILY_COLORS.yellow, icon: 'message', description: 'Rozmawiać, godzić, tłumaczyć jednych drugim.' },
-    { id: 'green', name: 'Działanie razem', color: FAMILY_COLORS.green, icon: 'handshake', description: 'Łączyć ludzi i organizować wspólne działanie.' },
+    // Adam: „zielony to NIE powinno być działanie i organizacja — powinien
+    // być zwiazany z łagodnością, wspieraniem, emocjami". Dawne „Działanie
+    // razem" niosło dokładnie to, co teraz ma nieść czerwony i niebieski.
+    { id: 'green', name: 'Wsparcie i łagodność', color: FAMILY_COLORS.green, icon: 'handshake', description: 'Wspierać innych, dawać im poczucie bezpieczeństwa i zrozumienia.' },
   ],
   mentor: [
     { id: 'red', name: 'Przywództwo', color: FAMILY_COLORS.red, icon: 'flag', description: 'Brać odpowiedzialność, gdy inni się wahają.' },

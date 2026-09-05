@@ -69,7 +69,7 @@ const social: Card[] = [
   { id: 'soc-r-straznik-slowa', name: 'Strażnik Dobrego Słowa', category: 'social', family: 'red', icon: 'megaphone', description: 'Pokazuje innym, jak wspierać zamiast wyśmiewać.' },
   { id: 'soc-r-straznik-prawdy', name: 'Strażnik Prawdy', category: 'social', family: 'red', icon: 'check', description: 'Przekazuje sprawdzone informacje i zatrzymuje plotki.' },
 
-  // Niebieska — Myślenie krytyczne
+  // Niebieska — Myślenie i planowanie
   { id: 'soc-b-krytyczne', name: 'Krytyczne myślenie', category: 'social', family: 'blue', icon: 'puzzle', description: 'Pyta „skąd to wiesz?" zanim uwierzy.' },
   { id: 'soc-b-przyszlosciowe', name: 'Myślenie przyszłościowe', category: 'social', family: 'blue', icon: 'telescope', description: 'Przewiduje skutki decyzji, zanim zapadną.' },
   { id: 'soc-b-rozwiazywanie', name: 'Rozwiązywanie problemów', category: 'social', family: 'blue', icon: 'wrench', description: 'Rozkłada wielki problem na małe, wykonalne kroki.' },
@@ -79,7 +79,7 @@ const social: Card[] = [
   { id: 'soc-y-mediator', name: 'Mediator', category: 'social', family: 'yellow', icon: 'peace', description: 'Znajduje wspólny język tam, gdzie wszyscy się kłócą.' },
   { id: 'soc-y-relacje', name: 'Mistrz Dobrych Relacji', category: 'social', family: 'yellow', icon: 'hearts', description: 'Pomaga ludziom spokojnie porozmawiać i rozwiązać konflikt.' },
 
-  // Zielona — Działanie razem
+  // Zielona — Wsparcie i łagodność
   { id: 'soc-g-wspolpraca', name: 'Współpraca', category: 'social', family: 'green', icon: 'handshake', description: 'Łączy siły zamiast ciągnąć w swoją stronę.' },
   { id: 'soc-g-spolecznik', name: 'Społecznik', category: 'social', family: 'green', icon: 'heartHands', description: 'Organizuje zbiórki i zachęca innych do pomocy.' },
   { id: 'soc-g-mistrz-wspolpracy', name: 'Mistrz Współpracy', category: 'social', family: 'green', icon: 'earth', description: 'Łączy ludzi, firmy i miasta wokół jednego celu.' },
