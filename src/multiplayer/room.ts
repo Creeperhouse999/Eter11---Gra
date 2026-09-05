@@ -215,6 +215,40 @@ export async function joinRoom(input: {
         return { ok: false, error: 'Pokój jest pełny (najwyżej czterech graczy).' };
       }
     }
+
+    // Wyścig o tę samą postać: dwóch dołączających mogło policzyć „pierwszą
+    // wolną" z TEGO SAMEGO stanu (żaden z zapisów jeszcze nie doszedł), więc
+    // obaj wybrali identyczną — dokładnie to zgłosił Adam: „nie mogę
+    // kontynuować gry 2 graczy, bo wybiera się ta sama postać". Transakcja
+    // rozstrzyga po fakcie, tym samym wzorcem co wyścig o miejsce wyżej: kto
+    // dołączył wcześniej (czas dołączenia, przy remisie identyfikator),
+    // zostaje przy swoim wyborze; późniejszy sam się przestawia na pierwszą,
+    // której jeszcze nikt nie ma. Obaj liczą tę kolejność identycznie, więc
+    // dochodzą do tego samego wniosku bez uzgadniania między sobą.
+    await runTransaction(ref(rtdb, `${ROOMS}/${code}`), (current: Room | null) => {
+      // `undefined`, nie `current`, gdy transakcja naprawdę nie ma danych —
+      // to pierwszy dotyk tej ścieżki w tej sesji (świeży pokój, zimny lokalny
+      // cache SDK, patrz `joinRoomColdCache.test.ts`), więc zwrócenie tego
+      // samego `null` co dostaliśmy próbowałoby ZAPISAĆ `null` nad istniejącym
+      // pokojem i reguły odrzuciłyby to jako PERMISSION_DENIED. `undefined`
+      // każe transakcji spróbować drugi raz na prawdziwym stanie.
+      if (!current) return undefined;
+      if (!current.players?.[uid]) return current;
+      const gracze = current.players;
+      const moj = gracze[uid];
+      const inni = Object.values(gracze).filter((p) => p.uid !== uid);
+
+      const kolidujacy = inni.filter((p) => p.characterId === moj.characterId);
+      if (kolidujacy.length === 0) return current; // Nikt inny nie ma tej postaci.
+
+      const jestemPozniej = kolidujacy.some(
+        (p) => p.joinedAt < moj.joinedAt || (p.joinedAt === moj.joinedAt && p.uid < uid),
+      );
+      if (!jestemPozniej) return current; // Ja byłem pierwszy — zostaję przy wyborze.
+
+      moj.characterId = pierwszaWolnaPostac(gracze, ALL_CHARACTERS);
+      return current;
+    });
   }
 
   // Obecność (nasłuch `.info/connected`) pilnuje `useRoom` — patrz trackPresence.
