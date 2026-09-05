@@ -42,25 +42,48 @@ export interface ActivityItem {
 const KOLEJNOSC: Array<ReportProgress | 'brak'> = ['working', 'testing', 'queued', 'brak'];
 
 /**
+ * Etap zgłoszenia, jaki NAPRAWDĘ obowiązuje teraz.
+ *
+ * `progress` zostaje na zgłoszeniu z POPRZEDNIEGO okrążenia — a zgłaszający
+ * może je odesłać do poprawki (`reopened`) długo po tym, jak sam oznaczyłem
+ * je jako „Zrobione". Reopened+finished to więc kłamstwo: ktoś już sprawdził
+ * i powiedział, że NIE działa, a plakietka dalej chwali się ukończeniem.
+ * Ten sam rozjazd naprawia już `pokazacPostep` (chowa samą plakietkę na
+ * liście zgłoszeń) — tutaj chodzi o coś poważniejszego niż plakietka:
+ * `finished` był warunkiem WYRZUCENIA z całej listy aktywności, więc
+ * odesłane do poprawki zgłoszenie znikało z niej na dobre. Adam zgłosił
+ * dokładnie to: „w liście kolejnych powinny być też te, które wróciły do
+ * poprawy" — a nie znikać, jakby nikt nic nie robił.
+ *
+ * Traktujemy taki przypadek jak brak etapu („brak") — z powrotem w kolejce,
+ * czekające na ponowne wzięcie na warsztat, tak jak każde świeże zgłoszenie.
+ */
+function biezacyEtap(r: Report): ReportProgress | undefined {
+  if (r.status === 'reopened' && r.progress === 'finished') return undefined;
+  return r.progress;
+}
+
+/**
  * Składa listę aktywności z otwartych zgłoszeń.
  *
  * Dane już istnieją: `progress` ustawiam przy każdym kroku pracy nad
  * zgłoszeniem. Ta funkcja tylko układa je w jedną listę, żeby nie trzeba było
  * przeklikiwać sześciu pod-zakładek, by zobaczyć, co się dzieje.
  *
- * Zamknięte (`done`, `dismissed`) i skończone odpadają — to już nie jest
- * aktywność, tylko historia.
+ * Zamknięte (`done`, `dismissed`) i naprawdę skończone odpadają — to już nie
+ * jest aktywność, tylko historia.
  */
 export function buildActivity(reports: Report[]): ActivityItem[] {
   const otwarte = reports.filter((r) => {
     if (r.status === 'done' || r.status === 'dismissed') return false;
     // „Zrobione" znaczy, że praca po mojej stronie się skończyła — czeka
-    // wtedy na zgłaszającego, nie na mnie.
-    if (r.progress === 'finished') return false;
+    // wtedy na zgłaszającego, nie na mnie. Ale nie wtedy, gdy zgłoszenie
+    // WRÓCIŁO (patrz `biezacyEtap`) — wtedy to znów aktywna praca.
+    if (biezacyEtap(r) === 'finished') return false;
     return true;
   });
 
-  const etap = (r: Report) => KOLEJNOSC.indexOf(r.progress ?? 'brak');
+  const etap = (r: Report) => KOLEJNOSC.indexOf(biezacyEtap(r) ?? 'brak');
 
   return otwarte
     .slice()
@@ -74,15 +97,21 @@ export function buildActivity(reports: Report[]): ActivityItem[] {
       if (roznicaPilnosci !== 0) return roznicaPilnosci;
       return a.createdAt.localeCompare(b.createdAt);
     })
-    .map((r) => ({
-      id: r.id,
-      title: r.title,
-      stan: r.progress ? PROGRESS_LABELS[r.progress] : 'Czeka w kolejce',
-      progress: r.progress,
-      // Link prowadzi wprost do zgłoszenia, razem z jego pod-zakładką —
-      // Adam prosił, żeby „każde zadanie się klikało i przenosiło do wątku".
-      link: `/admin/reports/${r.status}?open=${r.id}`,
-      priority: r.priority,
-      progressAt: r.progressAt,
-    }));
+    .map((r) => {
+      const stanTeraz = biezacyEtap(r);
+      return {
+        id: r.id,
+        title: r.title,
+        stan: stanTeraz ? PROGRESS_LABELS[stanTeraz] : 'Czeka w kolejce',
+        progress: stanTeraz,
+        // Link prowadzi wprost do zgłoszenia, razem z jego pod-zakładką —
+        // Adam prosił, żeby „każde zadanie się klikało i przenosiło do wątku".
+        link: `/admin/reports/${r.status}?open=${r.id}`,
+        priority: r.priority,
+        // Zresetowany etap (patrz `biezacyEtap`) nie ma już czasu rozpoczęcia
+        // z poprzedniego, zamkniętego okrążenia — to byłby czas MYLĄCY, nie
+        // czas TEGO podejścia.
+        progressAt: stanTeraz ? r.progressAt : undefined,
+      };
+    });
 }

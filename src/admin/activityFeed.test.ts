@@ -102,3 +102,50 @@ describe('lista aktywności', () => {
     expect(lista[0].progressAt).toBeUndefined();
   });
 });
+
+describe('zgłoszenie odesłane do poprawki (reopened) po tym, jak było „Zrobione”', () => {
+  // Adam: „w liście kolejnych zadań powinny być wszystkie zadania — łącznie
+  // z (…) tymi, które wróciły do poprawy". Regresja: `progress` zostaje na
+  // zgłoszeniu z POPRZEDNIEGO okrążenia; gdy zgłaszający odsyła je z powrotem
+  // (`reopened`), stare `finished` samo nie znika — a `finished` był
+  // warunkiem WYRZUCENIA z całej listy aktywności. Zgłoszenie, nad którym
+  // znowu trzeba pracować, znikało więc bez śladu.
+
+  it('nie znika z listy — to znowu aktywna praca, nie historia', () => {
+    const lista = buildActivity([
+      zgloszenie({ id: 'a', status: 'reopened', progress: 'finished' }),
+    ]);
+
+    expect(lista.map((w) => w.id)).toEqual(['a']);
+  });
+
+  it('wraca do kolejki, nie chwali się starym „Zrobione”', () => {
+    const lista = buildActivity([
+      zgloszenie({ id: 'a', status: 'reopened', progress: 'finished' }),
+    ]);
+
+    expect(lista[0].progress).toBeUndefined();
+    expect(lista[0].stan).toBe('Czeka w kolejce');
+  });
+
+  it('nie niesie czasu rozpoczęcia z zamkniętego, poprzedniego okrążenia', () => {
+    const lista = buildActivity([
+      zgloszenie({
+        id: 'a',
+        status: 'reopened',
+        progress: 'finished',
+        progressAt: '2026-09-01T10:00:00.000Z',
+      }),
+    ]);
+
+    expect(lista[0].progressAt).toBeUndefined();
+  });
+
+  it('zgłoszenie SKOŃCZONE, ale nie odesłane do poprawki, dalej znika — to naprawdę historia', () => {
+    const lista = buildActivity([
+      zgloszenie({ id: 'a', status: 'fixed', progress: 'finished' }),
+    ]);
+
+    expect(lista).toEqual([]);
+  });
+});
