@@ -18,6 +18,7 @@ import {
   watchRoom,
 } from './room';
 import type { CardOffer, Reaction, ReactionKind, Room } from './types';
+import { aktywnyUid } from './turnOwner';
 
 /**
  * Podłączenie do pokoju: nasłuch na żywo plus akcje gracza.
@@ -53,9 +54,16 @@ export function useRoom(code: string | null, uid: string | null) {
     return trackPresence(code, uid);
   }, [code, uid]);
 
-  // Gracze w kolejności tur — indeks aktywnego z tej listy wskazuje, czyj ruch.
+  // Gracze w kolejności dołączenia — do wyświetlenia listy w poczekalni i przy
+  // stole, NIE do liczenia tury (patrz `activeUid` niżej).
   const order = room ? playersInOrder(room) : [];
-  const activeUid = room?.state ? order[room.state.activePlayerIndex]?.uid : undefined;
+  // Aktywny gracz wg `state.players` — to samo źródło, z którego `MissionScreen`
+  // bierze aktywnego gracza i czyją rękę pokazuje (patrz `aktywnyUid`). Wcześniej
+  // liczyliśmy to z kolejności POKOJU (`playersInOrder`), która rozjeżdża się od
+  // `state.players`, gdy ktoś opuści pokój w trakcie gry — ekran misji poprawnie
+  // odblokowywał kartę aktywnemu graczowi, a zapis tutaj i tak odrzucał ruch
+  // „To nie Twoja kolej", bo liczył turę z INNEJ listy.
+  const activeUid = aktywnyUid(room?.state);
   const myTurn = Boolean(uid && activeUid === uid);
 
   /**

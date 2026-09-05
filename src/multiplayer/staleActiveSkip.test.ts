@@ -56,7 +56,14 @@ function roomWith(statePhase: GameState['phase']): Room {
       p1: { uid: 'p1', name: 'Ala', characterId: 'c1', online: true, ready: true, joinedAt: 1 },
       p2: { uid: 'p2', name: 'Bo', characterId: 'c2', online: false, ready: true, joinedAt: 2 },
     },
-    state: { phase: statePhase, activePlayerIndex: 1, players: [] } as unknown as GameState,
+    // `players` (silnika) niesie teraz aktywnego gracza — `useRoom` liczy
+    // aktywnego z TEJ listy (`aktywnyUid`, patrz `turnOwner.ts`), tak samo
+    // jak ekran misji, nie z osobnej kolejności pokoju.
+    state: {
+      phase: statePhase,
+      activePlayerIndex: 1,
+      players: [{ id: 'p1' }, { id: 'p2' }],
+    } as unknown as GameState,
     lastAction: null,
     turnStartedAt: 0, // deadline (turnStartedAt + 60s) dawno w przeszłości
     reactions: [],

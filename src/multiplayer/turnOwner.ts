@@ -21,8 +21,22 @@ import type { GameState } from '../engine/types';
  * Dlatego blokadę liczymy z `state.players` — tak jak `MissionScreen` liczy,
  * czyją rękę pokazuje i w czyim imieniu wysyła ruch.
  */
-export function czyMojaTura(state: GameState | undefined, uid: string): boolean {
-  const aktywny = state?.players?.[state.activePlayerIndex];
-  if (!aktywny) return false;
-  return aktywny.id === uid;
+/**
+ * Uid aktywnego gracza wg `state.players` — TO SAMO źródło, którego używa
+ * `czyMojaTura` i `MissionScreen`. `useRoom` miał WŁASNE, drugie liczenie tego
+ * samego pytania z `playersInOrder(room)` (kolejność POKOJU) — dokładnie ten
+ * rozjazd, który wyżej opisuje komentarz przy `czyMojaTura`. Skutek: ekran
+ * poprawnie ODBLOKOWAŁ kartę aktywnemu graczowi (liczy z `state.players`), ale
+ * `useRoom.dispatch` i tak odrzucał zapis („To nie Twoja kolej") — liczył
+ * z kolejności pokoju, która po odejściu gracza wskazywała już kogoś innego.
+ * Jedna poprawka nie mogła tego złapać, bo obie strony (odblokowanie w UI
+ * i zapis do bazy) miały osobne, rozjeżdżające się implementacje tego samego
+ * pytania. Ten helper jest teraz jedynym źródłem dla obu.
+ */
+export function aktywnyUid(state: GameState | null | undefined): string | undefined {
+  return state?.players?.[state.activePlayerIndex]?.id;
+}
+
+export function czyMojaTura(state: GameState | null | undefined, uid: string): boolean {
+  return aktywnyUid(state) === uid;
 }
