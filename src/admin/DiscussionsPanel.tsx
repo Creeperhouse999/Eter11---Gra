@@ -8,8 +8,6 @@ import {
   deleteDiscussion,
   setDiscussionClosed,
   watchDiscussions,
-  stanWatku,
-  STAN_WATKU_LABELS,
   setDiscussionCategory,
   kategoriaWatku,
   widoczneWatki,
@@ -870,27 +868,6 @@ export function DiscussionsPanel({
             <span className="min-w-0 flex-1">
               <span className="block font-display font-bold">
                 {discussion.title}
-                {/* Stan wątku — Adam poprosił o te napisy wprost: po samej
-                    liście nie dało się poznać, gdzie ktoś czeka na odpowiedź,
-                    a gdzie jest coś nowego do przeczytania. */}
-                {(() => {
-                  const stan = stanWatku(discussion, author);
-                  if (!stan) return null;
-                  const czeka = stan === 'czeka-na-ai';
-                  return (
-                    <span
-                      className="ml-2 rounded px-1.5 py-0.5 align-middle font-mono text-[9px] font-bold uppercase"
-                      style={{
-                        color: czeka ? 'var(--eter-accent-2)' : 'var(--eter-success)',
-                        border: `1px solid ${
-                          czeka ? 'var(--eter-accent-2)' : 'var(--eter-success)'
-                        }`,
-                      }}
-                    >
-                      {STAN_WATKU_LABELS[stan]}
-                    </span>
-                  );
-                })()}
               </span>
               <span className="mt-0.5 block text-xs text-ink-dim">
                 {/* Rodzaj i pilność w tej samej szarej linii, co reszta —
@@ -898,6 +875,13 @@ export function DiscussionsPanel({
                     raz zrobiły z listy zgłoszeń bałagan, więc tu ich nie ma.
                     Pilność pokazujemy tylko przy pilnych: „zwykła" to
                     większość, więc znacznik przy każdym byłby szumem. */}
+                {/* Do kogo rozmowa — tag w szarej linii, tak jak rodzaj
+                    i pilność w zgłoszeniach. Plakietka „nowa odpowiedź"
+                    stała tu wcześniej przy tytule; Alan słusznie zauważył,
+                    że od powiadamiania jest dzwonek, a lista ma mówić, CO to
+                    za wątek, nie czy jest przeczytany. */}
+                {CATEGORY_LABELS[kategoriaWatku(discussion)]}
+                {' · '}
                 {DISCUSSION_KIND_LABELS[rodzajWatku(discussion)]}
                 {(() => {
                   const pilnosc = pilnoscWatku(discussion);
