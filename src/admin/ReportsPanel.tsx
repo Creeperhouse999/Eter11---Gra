@@ -31,6 +31,7 @@ import {
   type TeamMember,
 } from '../firebase/roles';
 import { podpisNotatki } from '../firebase/noteAuthor';
+import { statusPoUwadze, etykietaUwagi } from '../firebase/statusPoUwadze';
 import { pozycjaWKolejce, doZdjeciaZRoboty } from '../firebase/queuePosition';
 import {
   przesiej,
@@ -867,11 +868,13 @@ export function ReportsPanel({
                       size="sm"
                       variant="danger"
                       disabled={comment.trim().length === 0}
-                      onClick={() => void changeStatus(report, 'reopened')}
+                      onClick={() => void changeStatus(report, statusPoUwadze(report.status))}
                     >
-                      {/* Status zostaje ten sam, gdy zgłoszenie już wróciło —
-                          wtedy to zwykłe dopisanie uwagi, nie odsyłanie. */}
-                      {report.status === 'reopened' ? 'Dopisz uwagę' : 'Odeślij do poprawki'}
+                      {/* Uwaga odsyła do poprawki TYLKO przy zgłoszeniu
+                          naprawionym — tam było co sprawdzać. Alan zauważył,
+                          że komentarz do NOWEGO zgłoszenia przerzucał je do
+                          „Wróciły", choć nikt go jeszcze nie tknął. */}
+                      {etykietaUwagi(report.status)}
                     </Button>
                     <Button
                       size="sm"
