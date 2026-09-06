@@ -1,3 +1,4 @@
+import { liczbaKartRund } from '../data/roundCards';
 import { kartyDoswiadczen, liczbaKartDoswiadczen } from '../data/experienceCards';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -46,7 +47,8 @@ describe('PrintCards', () => {
       expected.length +
       c.problems.length +
       c.characters.length +
-      liczbaKartDoswiadczen(kartyDoswiadczen(c.experienceCards));
+      liczbaKartDoswiadczen(kartyDoswiadczen(c.experienceCards)) +
+      liczbaKartRund(c.roundCards);
     expect(screen.getByRole('button', { name: `Drukuj (${razem} kart)` })).toBeTruthy();
     expect(document.querySelectorAll('article')).toHaveLength(razem);
   });
@@ -95,7 +97,8 @@ describe('PrintCards', () => {
       bazowa +
       przed.problems.length +
       przed.characters.length +
-      liczbaKartDoswiadczen(kartyDoswiadczen(przed.experienceCards));
+      liczbaKartDoswiadczen(kartyDoswiadczen(przed.experienceCards)) +
+      liczbaKartRund(przed.roundCards);
     expect(screen.getByRole("button", { name: `Drukuj (${razemPrzed} kart)` })).toBeTruthy();
     unmount();
 
@@ -112,7 +115,8 @@ describe('PrintCards', () => {
       oczekiwana +
       po.problems.length +
       po.characters.length +
-      liczbaKartDoswiadczen(kartyDoswiadczen(po.experienceCards));
+      liczbaKartDoswiadczen(kartyDoswiadczen(po.experienceCards)) +
+      liczbaKartRund(po.roundCards);
     expect(screen.getByRole("button", { name: `Drukuj (${razemPo} kart)` })).toBeTruthy();
   });
 

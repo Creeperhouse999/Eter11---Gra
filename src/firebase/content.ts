@@ -1,6 +1,7 @@
 import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { LIGHT_THEME } from '../data/theme';
+import { liczbaKartRund } from '../data/roundCards';
 import { db } from './client';
 import { validateContent, type GameContent } from './validate';
 
@@ -56,6 +57,9 @@ function migrate(raw: Record<string, unknown>): GameContent {
     // Karty doświadczeń: zapis sprzed ich dodania nie ma pola, a pusta lista
     // (redaktor skasował wszystko) też ma dać domyślne — wydruk bez nagród
     // to gra bez jednej z nagród.
+    // Karty rund: zła wartość (tekst, zero, ujemna) spada do domyślnych 11 —
+    // `liczbaKartRund` to pilnuje, więc tu wystarczy przekazać, co jest.
+    roundCards: liczbaKartRund(raw.roundCards as number | undefined),
     experienceCards: (raw.experienceCards as GameContent['experienceCards'])?.length
       ? (raw.experienceCards as GameContent['experienceCards'])
       : BUILTIN_CONTENT.experienceCards,

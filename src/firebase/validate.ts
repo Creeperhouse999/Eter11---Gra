@@ -6,6 +6,7 @@ import {
 import { FAMILY_IDS, type Family, type FamilyMap } from '../data/families';
 import type { FamilySymbols } from '../data/familySymbols';
 import { MAX_EXPERIENCE_COPIES, type ExperienceCardDef } from '../data/experienceCards';
+import { MAX_ROUND_CARDS } from '../data/roundCards';
 
 /** Rodzaje kart doświadczeń — te same, co w `experienceCards.ts`. */
 const EXPERIENCE_KINDS: readonly string[] = ['solve', 'share', 'growth'];
@@ -67,6 +68,11 @@ export interface GameContent {
    * domyślne (patrz `experienceCards.ts`).
    */
   experienceCards?: ExperienceCardDef[];
+  /**
+   * Ile kart rund (cyfry 1…n) wydrukować. Opcjonalne — brak znaczy domyślne
+   * 11, tyle, ile podał Adam (patrz `roundCards.ts`).
+   */
+  roundCards?: number;
 }
 
 export interface ValidationResult {
@@ -571,6 +577,17 @@ export function validateContent(content: unknown): ValidationResult {
           add(`Symbole kolorów: symbol dla „${family}" nie jest nazwą ikony.`);
         }
       }
+    }
+  }
+
+  if (data.roundCards !== undefined) {
+    // Liczba kart rund: całkowita, 1…MAX. Zero to gra bez licznika, tekst
+    // „jedenaście" to NaN w `Array.from` — obie rzeczy lepiej zatrzymać tu.
+    const n = data.roundCards;
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < 1) {
+      add('Karty rund: liczba musi być całkowita i co najmniej 1.');
+    } else if (n > MAX_ROUND_CARDS) {
+      add(`Karty rund: najwyżej ${MAX_ROUND_CARDS}.`);
     }
   }
 

@@ -26,6 +26,7 @@ import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
 import { ExperienceCardsEditor } from './ExperienceCardsEditor';
+import { RoundCardsEditor } from './RoundCardsEditor';
 import { setFamilyNames, setFamilySymbols } from '../ui/components/categoryStyles';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
@@ -813,6 +814,13 @@ export function AdminApp() {
           <ExperienceCardsEditor
             cards={content.experienceCards}
             onChange={(experienceCards) => update({ experienceCards })}
+          />
+        )}
+        {/* Karty rund — Adam: „dodaj do zakładki kart i »drukuj karty«". */}
+        {tab === 'cards' && (
+          <RoundCardsEditor
+            count={content.roundCards}
+            onChange={(roundCards) => update({ roundCards })}
           />
         )}
         {tab === 'cardImages' && (

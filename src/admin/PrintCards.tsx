@@ -11,6 +11,7 @@ import {
   rozwinDoDruku,
   type ExperienceCardDef,
 } from '../data/experienceCards';
+import { liczbaKartRund, numeryRund } from '../data/roundCards';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
@@ -263,7 +264,8 @@ export function PrintCards({
     deck.length +
     content.problems.length +
     content.characters.length +
-    liczbaKartDoswiadczen(kartyDoswiadczen(content.experienceCards));
+    liczbaKartDoswiadczen(kartyDoswiadczen(content.experienceCards)) +
+    liczbaKartRund(content.roundCards);
 
   return (
     <section>
@@ -398,7 +400,41 @@ export function PrintCards({
           </>
         );
       })()}
+
+      {/* Karty rund — licznik przy stole. Adam: „prosta karta z cyframi,
+          11 kart, na każdej jedna cyfra". Po każdej rundzie odwraca się
+          kolejną, więc cyfra ma być widoczna z drugiego końca stołu — stąd
+          duża, nic więcej na karcie. */}
+      <h3 className="mt-8 font-display text-base font-bold">
+        Karty rund{' '}
+        <span className="font-mono text-xs font-normal text-ink-dim">
+          {liczbaKartRund(content.roundCards)} szt.
+        </span>
+      </h3>
+      <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6 print:grid-cols-4">
+        {numeryRund(content.roundCards).map((n) => (
+          <KartaRundy key={n} numer={n} />
+        ))}
+      </div>
     </section>
+  );
+}
+
+/**
+ * Karta rundy — sama cyfra.
+ *
+ * Wszystkie jednakowe poza numerem, żeby odwrócona kupka wyglądała jak jedna
+ * talia, a nie jak dwanaście różnych karteczek.
+ */
+function KartaRundy({ numer }: { numer: number }) {
+  return (
+    <article
+      data-testid={`round-${numer}`}
+      className="flex aspect-[3/4] break-inside-avoid-page flex-col items-center justify-center rounded-lg border-2 border-black bg-white text-black print:rounded-none"
+    >
+      <p className="text-[9px] font-bold uppercase tracking-widest text-black/50">Runda</p>
+      <p className="font-display text-5xl font-bold leading-none">{numer}</p>
+    </article>
   );
 }
 

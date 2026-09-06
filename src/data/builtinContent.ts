@@ -2,6 +2,7 @@ import { ALL_CARDS } from './cards';
 import { DEFAULT_CATEGORIES } from './categories';
 import { DEFAULT_INTRO } from './intro';
 import { DEFAULT_EXPERIENCE_CARDS } from './experienceCards';
+import { DEFAULT_ROUND_CARDS } from './roundCards';
 import { TUTORIAL_STEPS } from './tutorial';
 import { ALL_CHARACTERS } from './characters';
 import { DEFAULT_FAMILIES } from './families';
@@ -33,5 +34,6 @@ export const BUILTIN_CONTENT: GameContent = {
   cardImages: [],
   intro: DEFAULT_INTRO,
   experienceCards: DEFAULT_EXPERIENCE_CARDS,
+  roundCards: DEFAULT_ROUND_CARDS,
   tutorial: TUTORIAL_STEPS,
 };

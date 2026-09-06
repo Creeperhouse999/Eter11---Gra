@@ -336,6 +336,15 @@ export const INTRO_RULES: IntroScene[] = [
       'W swojej turze robisz jedną rzecz: kładziesz kartę na ściankę albo wymieniasz karty, których nie chcesz.\n\nWymiana też jest ruchem. Zamieniasz tyle kart, ile zaznaczysz, i dostajesz tyle samo nowych.',
   },
   {
+    // Adam poprosił o ten akapit razem z kartami rund: „gracze ustalają, ile
+    // rund chcą mieć na rozwiązanie problemu (…) po każdej rundzie odwracają
+    // kolejną kartę z cyfrą, aby wiedzieć, ile im rund zostało".
+    icon: 'hourglass',
+    heading: 'Ile rund na problem',
+    body:
+      'Przed misją ustalcie razem, ile rund dajecie sobie na problem. Polecamy 5. Jeśli chcecie łatwiej — 8. Najwięcej to 11.\n\nPo każdej rundzie odwróćcie kolejną kartę rundy z cyfrą — wtedy wszyscy widzą, ile zostało. Jeśli po ostatniej ustalonej rundzie problem wciąż nie jest rozwiązany, wygrywa problem: trafia na stos nierozwiązanych.\n\nPrzy stole ustalacie to sami. W grze na ekranie liczbę rund ustawia się w Zasadach.',
+  },
+  {
     icon: 'medal',
     heading: 'Po misji zabierasz kartę',
     body:
