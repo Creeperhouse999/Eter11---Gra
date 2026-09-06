@@ -5,6 +5,10 @@ import {
 } from '../ui/components/categoryStyles';
 import { FAMILY_IDS, type Family, type FamilyMap } from '../data/families';
 import type { FamilySymbols } from '../data/familySymbols';
+import { MAX_EXPERIENCE_COPIES, type ExperienceCardDef } from '../data/experienceCards';
+
+/** Rodzaje kart doświadczeń — te same, co w `experienceCards.ts`. */
+const EXPERIENCE_KINDS: readonly string[] = ['solve', 'share', 'growth'];
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
@@ -57,6 +61,12 @@ export interface GameContent {
   cardImages?: CardImage[];
   intro?: IntroContent;
   tutorial?: TutorialStep[];
+  /**
+   * Karty doświadczeń do druku — trzy rodzaje z tytułem, zdaniem i liczbą
+   * sztuk. Opcjonalne: treść sprzed tej zmiany ich nie ma, wtedy wydruk bierze
+   * domyślne (patrz `experienceCards.ts`).
+   */
+  experienceCards?: ExperienceCardDef[];
 }
 
 export interface ValidationResult {
@@ -561,6 +571,37 @@ export function validateContent(content: unknown): ValidationResult {
           add(`Symbole kolorów: symbol dla „${family}" nie jest nazwą ikony.`);
         }
       }
+    }
+  }
+
+  if (data.experienceCards !== undefined) {
+    // Karty doświadczeń: lista {kind, title, text, count}. Zła liczba sztuk
+    // to nie tylko brzydki wydruk — `Array.from({ length: NaN })` rzuca,
+    // a ujemna wielkość wywraca rozwinięcie kopii. Sprawdzamy więc kształt,
+    // zanim cokolwiek trafi do „Drukuj karty".
+    if (!Array.isArray(data.experienceCards)) {
+      add('Karty doświadczeń: nie są listą.');
+    } else {
+      data.experienceCards.forEach((karta, i) => {
+        if (!isObject(karta)) {
+          add(`Karty doświadczeń #${i + 1}: nie jest obiektem.`);
+          return;
+        }
+        if (!EXPERIENCE_KINDS.includes(karta.kind as string)) {
+          add(`Karty doświadczeń #${i + 1}: nieznany rodzaj „${String(karta.kind)}".`);
+        }
+        if (!isText(karta.title) || !karta.title.trim()) {
+          add(`Karty doświadczeń #${i + 1}: brak tytułu.`);
+        }
+        if (!isText(karta.text) || !karta.text.trim()) {
+          add(`Karty doświadczeń #${i + 1}: brak zdania, za co się ją dostaje.`);
+        }
+        if (typeof karta.count !== 'number' || !Number.isInteger(karta.count) || karta.count < 0) {
+          add(`Karty doświadczeń #${i + 1}: liczba sztuk musi być liczbą całkowitą ≥ 0.`);
+        } else if (karta.count > MAX_EXPERIENCE_COPIES) {
+          add(`Karty doświadczeń #${i + 1}: najwyżej ${MAX_EXPERIENCE_COPIES} sztuk.`);
+        }
+      });
     }
   }
 

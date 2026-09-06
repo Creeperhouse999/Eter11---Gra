@@ -1,3 +1,4 @@
+import { kartyDoswiadczen, liczbaKartDoswiadczen } from '../data/experienceCards';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ALL_CARDS, buildDeck, playableCards } from '../data/cards';
@@ -40,7 +41,12 @@ describe('PrintCards', () => {
     // Wydruk to CAŁE pudełko: kompetencje plus problemy i postacie. Adam
     // zgłosił jako krytyczne, że bez nich nie da się rozegrać partii na
     // papierze — a to jedyny powód istnienia tej zakładki.
-    const razem = expected.length + c.problems.length + c.characters.length;
+    // Karty doświadczeń też wychodzą z drukarki, więc liczą się do sumy.
+    const razem =
+      expected.length +
+      c.problems.length +
+      c.characters.length +
+      liczbaKartDoswiadczen(kartyDoswiadczen(c.experienceCards));
     expect(screen.getByRole('button', { name: `Drukuj (${razem} kart)` })).toBeTruthy();
     expect(document.querySelectorAll('article')).toHaveLength(razem);
   });
@@ -85,7 +91,11 @@ describe('PrintCards', () => {
     // Opis i przycisk osobno: gdy jedno z nich ma liczbę wpisaną na sztywno,
     // drugie i tak liczy poprawnie i test by tego nie zauważył.
     expect(opisMowiO(bazowa)).toBe(true);
-    const razemPrzed = bazowa + przed.problems.length + przed.characters.length;
+    const razemPrzed =
+      bazowa +
+      przed.problems.length +
+      przed.characters.length +
+      liczbaKartDoswiadczen(kartyDoswiadczen(przed.experienceCards));
     expect(screen.getByRole("button", { name: `Drukuj (${razemPrzed} kart)` })).toBeTruthy();
     unmount();
 
@@ -98,7 +108,11 @@ describe('PrintCards', () => {
     const oczekiwana = buildDeck(playableCards(po.cards), { specialCopies: po.rules.specialCardCopies }).length;
     expect(oczekiwana).toBe(bazowa + 2);
     expect(opisMowiO(oczekiwana)).toBe(true);
-    const razemPo = oczekiwana + po.problems.length + po.characters.length;
+    const razemPo =
+      oczekiwana +
+      po.problems.length +
+      po.characters.length +
+      liczbaKartDoswiadczen(kartyDoswiadczen(po.experienceCards));
     expect(screen.getByRole("button", { name: `Drukuj (${razemPo} kart)` })).toBeTruthy();
   });
 

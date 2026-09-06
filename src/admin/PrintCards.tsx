@@ -5,6 +5,12 @@ import type { ThemeColors } from '../data/theme';
 import type { GameContent } from '../firebase/validate';
 import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
 import { categoryLabel, familyLabel, familySymbol } from '../ui/components/categoryStyles';
+import {
+  kartyDoswiadczen,
+  liczbaKartDoswiadczen,
+  rozwinDoDruku,
+  type ExperienceCardDef,
+} from '../data/experienceCards';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
@@ -250,7 +256,14 @@ export function PrintCards({
   const deck = buildDeck(playableCards(content.cards), {
     specialCopies: content.rules?.specialCardCopies,
   });
-  const razem = deck.length + content.problems.length + content.characters.length;
+  // Suma na przycisku ma liczyć WSZYSTKO, co wychodzi z drukarki — także karty
+  // doświadczeń. Adam pytał kiedyś wprost, czy opis się aktualizuje; liczba
+  // niezgodna z tym, co widać, jest gorsza niż jej brak.
+  const razem =
+    deck.length +
+    content.problems.length +
+    content.characters.length +
+    liczbaKartDoswiadczen(kartyDoswiadczen(content.experienceCards));
 
   return (
     <section>
@@ -361,6 +374,60 @@ export function PrintCards({
           <KartaKompetencji key={card.id} card={card} theme={content.theme} onEdit={onEdit} />
         ))}
       </div>
+
+      {/* Karty doświadczeń — nagrody do ręki przy grze przy stole. Adam:
+          „zrób do druku karty doświadczeń (…) oraz dodaj do kart do druku".
+          Osobno, za talią: nie idą do talii ani na ścianki, więc nie mogą
+          wyglądać jak karty do zagrania — inny kolor obrysu i własny nagłówek,
+          żeby przy rozcinaniu wydruku od razu wiedzieć, co odłożyć na bok. */}
+      {(() => {
+        const definicje = kartyDoswiadczen(content.experienceCards);
+        return (
+          <>
+            <h3 className="mt-8 font-display text-base font-bold">
+              Karty doświadczeń{' '}
+              <span className="font-mono text-xs font-normal text-ink-dim">
+                {liczbaKartDoswiadczen(definicje)} szt.
+              </span>
+            </h3>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 print:grid-cols-3">
+              {rozwinDoDruku(definicje).map((karta) => (
+                <KartaDoswiadczenia key={karta.id} karta={karta} />
+              ))}
+            </div>
+          </>
+        );
+      })()}
     </section>
+  );
+}
+
+/** Kolor kart doświadczeń — złoto: nagroda, nie narzędzie. Wpisany wprost,
+    jak reszta kolorów wydruku (zmienne CSS nie idą na papier). */
+const KOLOR_DOSWIADCZENIA = '#b8860b';
+
+/**
+ * Karta doświadczenia do druku.
+ *
+ * Bez ikony kategorii i bez rodziny — to nie jest karta do zagrania. Tytuł
+ * i jedno zdanie, za co się ją dostaje: dziecko przy stole ma wiedzieć, co
+ * właśnie zdobyło, bez pytania dorosłego.
+ */
+function KartaDoswiadczenia({ karta }: { karta: ExperienceCardDef }) {
+  return (
+    <article
+      data-testid={`experience-${karta.kind}`}
+      className="break-inside-avoid-page rounded-lg border-2 border-dashed bg-white p-3 text-black print:rounded-none"
+      style={{ borderColor: KOLOR_DOSWIADCZENIA }}
+    >
+      <p
+        className="text-[10px] font-bold uppercase tracking-wide"
+        style={{ color: KOLOR_DOSWIADCZENIA }}
+      >
+        Doświadczenie
+      </p>
+      <p className="mt-1 font-display text-sm font-bold leading-tight">{karta.title}</p>
+      <p className="mt-1 text-xs leading-snug text-black/80">{karta.text}</p>
+    </article>
   );
 }

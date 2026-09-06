@@ -25,6 +25,7 @@ import { CardCodes } from './CardCodes';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
+import { ExperienceCardsEditor } from './ExperienceCardsEditor';
 import { setFamilyNames, setFamilySymbols } from '../ui/components/categoryStyles';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
@@ -803,6 +804,15 @@ export function AdminApp() {
             // naprawdę przyszła z zewnątrz.
             initialSearch={route.params.filter ?? ''}
             onSearchChange={(value) => route.setParam('filter', value || null)}
+          />
+        )}
+        {/* Karty doświadczeń do druku — Adam: „dodaj do zakładki »Karty«
+            kategorię karty doświadczeń". Osobna sekcja pod talią, bo te
+            kartoniki nie idą do talii ani na ścianki. */}
+        {tab === 'cards' && (
+          <ExperienceCardsEditor
+            cards={content.experienceCards}
+            onChange={(experienceCards) => update({ experienceCards })}
           />
         )}
         {tab === 'cardImages' && (

@@ -53,6 +53,12 @@ function migrate(raw: Record<string, unknown>): GameContent {
     // zakładki „Grafiki kart" w panelu. Sprawdzamy więc kształt wprost.
     customIcons: Array.isArray(raw.customIcons) ? (raw.customIcons as GameContent['customIcons']) : [],
     cardImages: Array.isArray(raw.cardImages) ? (raw.cardImages as GameContent['cardImages']) : [],
+    // Karty doświadczeń: zapis sprzed ich dodania nie ma pola, a pusta lista
+    // (redaktor skasował wszystko) też ma dać domyślne — wydruk bez nagród
+    // to gra bez jednej z nagród.
+    experienceCards: (raw.experienceCards as GameContent['experienceCards'])?.length
+      ? (raw.experienceCards as GameContent['experienceCards'])
+      : BUILTIN_CONTENT.experienceCards,
     intro: (raw.intro as GameContent['intro']) ?? BUILTIN_CONTENT.intro,
     tutorial: (raw.tutorial as GameContent['tutorial'])?.length
       ? (raw.tutorial as GameContent['tutorial'])

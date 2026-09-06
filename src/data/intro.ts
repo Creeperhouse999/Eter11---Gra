@@ -342,6 +342,17 @@ export const INTRO_RULES: IntroScene[] = [
       'Rozwiązany problem to nie koniec. Każdy, kto wyłożył kartę, zabiera jedną na swoją kartę postaci — zostaje z Wami do końca gry.\n\nKartę kompetencji — psychologiczną, cyfrową albo społeczną — albo mentora możesz zamiast tego oddać innemu graczowi i dostać za to doświadczenie, bo uczenie innych też się liczy. Mentor to ktoś, kogo da się komuś polecić. Talent jest Twój i zostaje przy Tobie.',
   },
   {
+    // Trzy poziomy wygranej — Adam poprosił o ten akapit razem z kartami
+    // doświadczeń: „wyjaśnij ideę tego, że można nie rozwiązać problemu, ale
+    // można osiągać sukces lub spełnienie". Warunki spisane tak, jak liczy je
+    // silnik (`fulfillmentProgress`), żeby papier nie mówił czego innego niż
+    // ekran finału.
+    icon: 'flag',
+    heading: 'Trzy sposoby na wygraną',
+    body:
+      'Wspólny sukces — gdy jako drużyna rozwiążecie co najmniej 5 problemów. Sukces indywidualny — gdy jako pierwszy zbierzesz na karcie postaci komplet pięciu kart: po jednej z każdej kategorii. Spełnienie postaci — gdy do kompletu dołożysz doświadczenie: kartę za rozwiązanie problemu, kartę za rozwój postaci (komplet) i kartę za uczenie innych — czyli oddałeś komuś swoją kompetencję albo mentora, i sam od kogoś dostałeś.\n\nNie trzeba wygrać wszystkiego naraz. Problem może zostać nierozwiązany, a Ty i tak rośniesz: zbierasz doświadczenie, uczysz innych, kompletujesz postać. Tak jest w życiu — sprawy toczą się dalej, a rozwój nie jest nagrodą za wygraną, tylko drogą do niej.',
+  },
+  {
     icon: 'sprout',
     heading: 'Przegrana to też ruch do przodu',
     body:
