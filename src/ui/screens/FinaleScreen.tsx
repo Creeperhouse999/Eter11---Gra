@@ -84,7 +84,11 @@ export function FinaleScreen({
               1 zdanie". Puste pole (redaktor wyczyścił) nie zostawia śmieci —
               tak samo jak przykłady zawodów niżej. */}
           {(team.won ? text.finaleEpilogueWon : text.finaleEpilogueLost).trim() && (
-            <p className="mt-2 max-w-prose text-sm leading-relaxed">
+            // `whitespace-pre-line` zachowuje puste linie z tekstu, więc epilog
+            // czyta się jak zakończenie książki — akapitami. Bez tego pięć
+            // akapitów zlewało się w jedną ścianę tekstu, której dziecko nie
+            // przeczyta do końca.
+            <p className="mt-2 max-w-prose text-sm leading-relaxed whitespace-pre-line">
               {team.won ? text.finaleEpilogueWon : text.finaleEpilogueLost}
             </p>
           )}
