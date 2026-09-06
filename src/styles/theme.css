@@ -68,6 +68,11 @@
   --eter-font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --eter-font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --eter-font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+  /*
+   * Krój do liczb w wyglądzie „Kolorowy" — pod Klasycznym zostaje mono, żeby
+   * zmienna miała bezpieczną wartość, zanim skórka ją nadpisze niżej.
+   */
+  --eter-font-pixel: var(--eter-font-mono);
 }
 
 /* Delikatna siatka w tle — sugeruje panel operacyjny, nie przeszkadza w czytaniu */
@@ -306,11 +311,39 @@
    ============================================================ */
 
 [data-skin='colorful'] body {
-  /* Tło jak z grafik: granatowa głębia z poświatą, nie płaska czerń. */
+  /*
+   * Tło jak z grafik: mozaika drobnych, świecących kwadracików w tęczowym
+   * przejściu barw, nie płaska czerń. Adam (4. runda zgłoszenia): sama
+   * poświata w rogu ekranu to wciąż „ten sam interfejs" — siatka kwadratów
+   * ma być widoczna OD RAZU, w tle, a nie tylko na kartach.
+   */
   background:
-    radial-gradient(circle at 20% 20%, rgb(var(--eter-accent-rgb) / 0.08), transparent 45%),
-    radial-gradient(circle at 80% 70%, rgb(255 95 210 / 0.07), transparent 45%),
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.22) 0,
+      rgb(0 0 0 / 0.22) 1px,
+      transparent 1px,
+      transparent 64px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgb(0 0 0 / 0.22) 0,
+      rgb(0 0 0 / 0.22) 1px,
+      transparent 1px,
+      transparent 64px
+    ),
+    linear-gradient(
+      120deg,
+      rgb(255 95 210 / 0.16),
+      rgb(120 130 255 / 0.16) 22%,
+      rgb(90 220 200 / 0.14) 44%,
+      rgb(255 214 90 / 0.14) 66%,
+      rgb(255 110 90 / 0.16) 100%
+    ),
+    radial-gradient(circle at 20% 20%, rgb(var(--eter-accent-rgb) / 0.1), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgb(255 95 210 / 0.08), transparent 45%),
     var(--eter-bg);
+  background-attachment: fixed;
 }
 
 /* Karty, ścianki i panele stają się świecącymi kaflami. */
@@ -348,8 +381,16 @@
  * (nazwa karty, etykieta) — bezpieczne dla czytelności jest jaśniejsze,
  * szklane podświetlenie w rogu, gasnące do zwykłego tła tam, gdzie leży tekst.
  */
+/*
+ * Kształt kafla: dwa rogi ucięte w duży łuk, dwa proste — sylwetka
+ * „szklanego klocka", nie zwykły zaokrąglony prostokąt Klasycznego. Sam
+ * `border-radius` (bez `overflow: hidden`) niczego nie przycina — zawartość
+ * karty stoi normalnie w prostokątnym pudełku, zmienia się tylko rysunek tła
+ * i cienia pod spodem, więc żaden napis ani ikona w rogu nie znika.
+ */
 [data-skin='colorful'] .eter-tile {
-  border-radius: 0.35rem;
+  position: relative;
+  border-radius: 0.2rem 0.6rem 0.2rem 0.6rem;
   background:
     radial-gradient(
       85% 75% at 14% 10%,
@@ -374,10 +415,41 @@
     0 0 22px -4px var(--eter-tile-accent, currentColor);
 }
 
+/*
+ * Odblask szkła w rogu — osobna warstwa NAD kaflem (`::after`), nie tło
+ * samego kafla. Dzięki temu może mieć własny, ostro ucięty trójkątny kształt
+ * (`clip-path`) bez ryzyka, że przytnie tekst albo ikonę karty — przycina
+ * tylko siebie, pusty i niereagujący na kliknięcia (`pointer-events: none`).
+ */
+[data-skin='colorful'] .eter-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, color-mix(in srgb, white 55%, transparent) 0%, transparent 22%);
+  clip-path: polygon(0 0, 46% 0, 0 46%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 /* Podpisy i etykiety: rozstrzelone wersaliki, jak na panelach z grafik. */
 [data-skin='colorful'] .eter-label {
   letter-spacing: 0.14em;
   text-shadow: 0 0 10px rgb(var(--eter-accent-rgb) / 0.5);
+}
+
+/*
+ * Liczniki (runda, zamknięte ścianki) w kroju pikselowym — jedno z
+ * najbardziej widocznych miejsc, gdzie Klasyczny i Kolorowy dotąd wyglądały
+ * identycznie, bo `.eter-bump` niosło tylko animację, nie krój. Tylko cyfry
+ * i „/" (`.eter-bump` nie owija dłuższego tekstu), więc bez polskich znaków
+ * — stąd wystarczy zaimportowany subset `latin`.
+ */
+[data-skin='colorful'] .eter-bump {
+  font-family: var(--eter-font-pixel);
+}
+[data-skin='colorful'] {
+  --eter-font-pixel: 'Press Start 2P', var(--eter-font-mono);
 }
 
 /*

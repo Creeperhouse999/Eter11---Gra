@@ -30,6 +30,23 @@ describe('skórka Kolorowy przemalowuje grę', () => {
     expect(sekcja).toMatch(/\.eter-tile[\s\S]*border-radius/);
   });
 
+  it('kafel ma ucięty kształt, nie zwykły prostokąt jak w Klasycznym', () => {
+    // Adam po czwartej turze: samo świecenie w rogu to wciąż „ten sam
+    // interfejs". `.eter-tile` musi mieć NIERÓWNY promień rogów (kształt
+    // różny od jednej wspólnej wartości), inaczej sylwetka karty jest
+    // identyczna z Klasycznym i różni je tylko poświata.
+    const match = sekcja.match(/\.eter-tile\s*\{[\s\S]*?border-radius:\s*([^;]+);/);
+    expect(match, 'brak border-radius w regule .eter-tile').toBeTruthy();
+    const wartosci = match![1].trim().split(/\s+/);
+    expect(new Set(wartosci).size, `promienie rogów: ${match![1]}`).toBeGreaterThan(1);
+  });
+
+  it('liczniki (runda, ścianki) dostają inny krój niż w Klasycznym', () => {
+    // Round counter i licznik ścianek to jedne z pierwszych rzeczy, na które
+    // patrzy gracz — a dotąd wyglądały identycznie w obu wyglądach.
+    expect(sekcja).toMatch(/\.eter-bump[\s\S]*?font-family/);
+  });
+
   it('tło gry dostaje głębię, nie płaską czerń', () => {
     expect(sekcja).toMatch(/body[\s\S]*radial-gradient/);
   });

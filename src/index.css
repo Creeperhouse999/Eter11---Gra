@@ -16,6 +16,12 @@
 @import '@fontsource/inter/latin-ext-600.css';
 @import '@fontsource/jetbrains-mono/latin-500.css';
 @import '@fontsource/jetbrains-mono/latin-ext-500.css';
+/*
+ * Tylko do liczb w wyglądzie „Kolorowy" (runda, wynik, licznik ścianek) —
+ * dlatego wystarczy `latin`, bez polskich znaków: cyfry i „/" ich nie
+ * potrzebują, a cała rodzina to jedna waga i jeden plik.
+ */
+@import '@fontsource/press-start-2p/latin-400.css';
 
 @import './styles/theme.css';
 
