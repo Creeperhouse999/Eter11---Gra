@@ -55,15 +55,24 @@ export type FamilyMap = Record<CardCategory, Family[]>;
 export const DEFAULT_FAMILIES: FamilyMap = {
   psychological: [
     { id: 'red', name: 'Siła wewnętrzna', color: FAMILY_COLORS.red, icon: 'shield', description: 'Wytrzymać, nie poddać się, obronić swoje zdanie.' },
-    { id: 'blue', name: 'Spokój i uważność', color: FAMILY_COLORS.blue, icon: 'dove', description: 'Wyciszyć emocje, zauważyć to, co ważne.' },
+    // Adam po rozmowie „Przypomnij idee kolorów i rodzin": niebieski to
+    // MYŚLENIE I ORGANIZACJA we wszystkich kategoriach. Dawne „Spokój
+    // i uważność" (wyciszanie emocji) należało do zielonego.
+    { id: 'blue', name: 'Rozwaga i plan', color: FAMILY_COLORS.blue, icon: 'puzzle', description: 'Zatrzymać się, pomyśleć i ułożyć, co robić po kolei.' },
     { id: 'yellow', name: 'Zrozumienie innych', color: FAMILY_COLORS.yellow, icon: 'ear', description: 'Wysłuchać, wczuć się, pomóc komuś wrócić do siebie.' },
-    { id: 'green', name: 'Kierowanie sobą', color: FAMILY_COLORS.green, icon: 'balance', description: 'Wiedzieć, co ważne, i prowadzić innych do celu.' },
+    // Zielony to ŁAGODNOŚĆ, WSPARCIE, EMOCJE — Adam wprost: „zielony
+    // powinien być związany z łagodnością, wspieraniem, emocjami". Dawne
+    // „Kierowanie sobą" (prowadzenie innych do celu) to organizacja,
+    // czyli niebieski.
+    { id: 'green', name: 'Spokój i emocje', color: FAMILY_COLORS.green, icon: 'dove', description: 'Uspokoić siebie i innych, poradzić sobie z tym, co czujesz.' },
   ],
   digital: [
     { id: 'red', name: 'Bezpieczeństwo', color: FAMILY_COLORS.red, icon: 'lock', description: 'Chronić dane, wykrywać zagrożenia, zatrzymywać ataki.' },
     { id: 'blue', name: 'Dane i analiza', color: FAMILY_COLORS.blue, icon: 'chart', description: 'Znajdować wzory i wyciągać wnioski z liczb.' },
     { id: 'yellow', name: 'Tworzenie i kod', color: FAMILY_COLORS.yellow, icon: 'code', description: 'Budować programy, roboty i nowe rozwiązania.' },
-    { id: 'green', name: 'Świat bez sieci', color: FAMILY_COLORS.green, icon: 'radio', description: 'Radzić sobie, gdy technologia zawodzi.' },
+    // Zielony niesie wsparcie i troskę także tutaj: nie „technologia
+    // zawiodła", tylko „pomagam komuś, kto sobie z nią nie radzi".
+    { id: 'green', name: 'Pomoc i uważność w sieci', color: FAMILY_COLORS.green, icon: 'handshake', description: 'Pomóc komuś, kto gubi się w sieci, i zauważyć, gdy dzieje mu się krzywda.' },
   ],
   social: [
     // Adam po rozmowie „Przypomnij idee kolorów i rodzin": czerwony to
