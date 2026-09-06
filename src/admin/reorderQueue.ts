@@ -42,6 +42,40 @@ export function wgRecznejKolejnosci<T extends Pick<Report, 'id' | 'queueRank'>>(
 }
 
 /**
+ * Nowe rangi po przeciągnięciu pozycji w dowolne miejsce listy.
+ *
+ * Adam poprosił o to po strzałkach: „najlepiej abym mógł przesuwać je
+ * ręcznie — bez strzałek. Czyli że łapię i przesuwam". Strzałki przestawiają
+ * o jedno miejsce, więc przeniesienie zgłoszenia z końca na górę wymagało
+ * kilkunastu kliknięć.
+ *
+ * `zId` ląduje w miejscu, w którym leżało `nadId`; wszystko poniżej przesuwa
+ * się w dół. `null` znaczy „nic się nie zmieniło" — upuszczenie na siebie
+ * albo na pozycję spoza listy.
+ */
+export function poPrzeciagnieciu(
+  lista: Array<Pick<Report, 'id' | 'queueRank'>>,
+  zId: string,
+  nadId: string,
+): Array<{ id: string; queueRank: number }> | null {
+  if (zId === nadId) return null;
+
+  const ulozona = wgRecznejKolejnosci(lista);
+  const skad = ulozona.findIndex((r) => r.id === zId);
+  const dokad = ulozona.findIndex((r) => r.id === nadId);
+  if (skad < 0 || dokad < 0) return null;
+
+  const przestawiona = [...ulozona];
+  const [element] = przestawiona.splice(skad, 1);
+  przestawiona.splice(dokad, 0, element);
+
+  // Rangi dla CAŁEJ listy — z tego samego powodu co przy strzałkach: gdyby
+  // rangę dostawał tylko przeciągnięty wpis, reszta zostałaby bez niej
+  // i kolejność zależałaby od historii klikania, nie od tego, co widać.
+  return przestawiona.map((r, index) => ({ id: r.id, queueRank: index }));
+}
+
+/**
  * Nowe rangi po przesunięciu jednej pozycji o jedno miejsce.
  *
  * Zwraca komplet par `id → ranga` dla CAŁEJ listy, nie tylko dla przesuwanego

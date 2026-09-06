@@ -7,7 +7,7 @@ import {
 } from '../firebase/reports';
 import { watchDiscussions, type Discussion } from '../firebase/discussions';
 import { buildActivity, buildAwaitingReview, buildDiscussionQueue } from './activityFeed';
-import { wgRecznejKolejnosci, poPrzesunieciu } from './reorderQueue';
+import { wgRecznejKolejnosci, poPrzesunieciu, poPrzeciagnieciu } from './reorderQueue';
 import { formatDate } from './formatDate';
 import { Icon } from '../ui/icons/Icon';
 
@@ -75,6 +75,27 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
   const doSprawdzenia = buildAwaitingReview(reports);
 
   /** Przesunięcie pozycji o jedno miejsce w obrębie swojej listy. */
+  /** Co jest właśnie ciągnięte — do podświetlenia miejsca upuszczenia. */
+  const [ciagniete, setCiagniete] = useState<string | null>(null);
+  const [nadCzym, setNadCzym] = useState<string | null>(null);
+
+  /**
+   * Upuszczenie pozycji na inną.
+   *
+   * Adam poprosił o to po strzałkach: „najlepiej abym mógł przesuwać je
+   * ręcznie — bez strzałek. Czyli że łapię i przesuwam". Strzałki zostają
+   * obok: działają na dotyku i z klawiatury, gdzie ciągnięcie myszą odpada.
+   */
+  const upusc = async (grupa: typeof lista, zId: string, nadId: string) => {
+    const rangi = poPrzeciagnieciu(grupa, zId, nadId);
+    if (!rangi) return;
+    try {
+      await setQueueOrder(rangi);
+    } catch {
+      setBlad('Nie udało się zapisać kolejności.');
+    }
+  };
+
   const przesun = async (
     grupa: typeof lista,
     id: string,
@@ -95,7 +116,44 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
    * jak w sekcji „W robocie", gdzie kolejność wynika z tego, co robię.
    */
   const wiersz = (w: (typeof lista)[number], grupa?: typeof lista) => (
-    <li key={w.id} className="flex items-stretch gap-1">
+    <li
+      key={w.id}
+      // Przeciągać można tylko w obrębie listy, która ma co porządkować.
+      draggable={Boolean(grupa && grupa.length > 1)}
+      onDragStart={(e) => {
+        setCiagniete(w.id);
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox nie zaczyna ciągnięcia bez danych w schowku zdarzenia.
+        e.dataTransfer.setData('text/plain', w.id);
+      }}
+      onDragEnd={() => {
+        setCiagniete(null);
+        setNadCzym(null);
+      }}
+      onDragOver={(e) => {
+        if (!grupa || !ciagniete || ciagniete === w.id) return;
+        // Bez tego przeglądarka nie pozwoli upuścić — domyślnie zabrania.
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setNadCzym(w.id);
+      }}
+      onDragLeave={() => setNadCzym((cel) => (cel === w.id ? null : cel))}
+      onDrop={(e) => {
+        e.preventDefault();
+        const zId = ciagniete ?? e.dataTransfer.getData('text/plain');
+        setCiagniete(null);
+        setNadCzym(null);
+        if (grupa && zId) void upusc(grupa, zId, w.id);
+      }}
+      className={[
+        'flex items-stretch gap-1 rounded-lg transition',
+        grupa && grupa.length > 1 ? 'cursor-grab active:cursor-grabbing' : '',
+        ciagniete === w.id ? 'opacity-40' : '',
+        // Kreska w miejscu, gdzie karta wyląduje — bez niej upuszczanie jest
+        // zgadywanką, bo lista nie mówi, dokąd trafi.
+        nadCzym === w.id && ciagniete !== w.id ? 'ring-2 ring-accent' : '',
+      ].join(' ')}
+    >
       {grupa && grupa.length > 1 && (
         <span className="flex shrink-0 flex-col justify-center gap-0.5">
           <button
@@ -186,7 +244,8 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
       </h3>
       <p className="mt-1 text-xs text-ink-dim">
         Zgłoszenia (nowe, wróciły do poprawy) i dyskusje, na które czekam
-        z odpowiedzią. Strzałkami ustawisz kolejność zgłoszeń.
+        z odpowiedzią. Kolejność ustawisz, przeciągając wpisy myszą — albo
+        strzałkami, gdy wygodniej.
       </p>
       {wKolejce.length === 0 ? (
         <p className="mt-1 text-sm text-ink-dim">Nic nie stoi w kolejce.</p>

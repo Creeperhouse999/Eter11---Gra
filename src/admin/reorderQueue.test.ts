@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { wgRecznejKolejnosci, poPrzesunieciu } from './reorderQueue';
+import { wgRecznejKolejnosci, poPrzesunieciu, poPrzeciagnieciu } from './reorderQueue';
 
 /**
  * Adam: „zrób, abym mógł zarówno »w kolejce«, jak i »lista kolejnych zadań«
@@ -76,5 +76,53 @@ describe('ręczna kolejność kolejki', () => {
       lista = lista.map((r) => ({ ...r, queueRank: mapa.get(r.id) }));
     }
     expect(wgRecznejKolejnosci(lista).map((r) => r.id)).toEqual(['d', 'a', 'b', 'c']);
+  });
+});
+
+/**
+ * Adam po strzałkach: „najlepiej abym mógł przesuwać je ręcznie — bez
+ * strzałek. Czyli że łapię i przesuwam". Strzałki przestawiają o jedno
+ * miejsce, więc przeniesienie zgłoszenia z końca listy na górę wymagało
+ * kilkunastu kliknięć.
+ */
+describe('przeciąganie pozycji w kolejce', () => {
+  it('upuszczenie na górę przenosi na pierwsze miejsce', () => {
+    const wynik = poPrzeciagnieciu([z('a'), z('b'), z('c'), z('d')], 'd', 'a')!;
+    expect(wynik.map((r) => r.id)).toEqual(['d', 'a', 'b', 'c']);
+  });
+
+  it('upuszczenie na dół przenosi na koniec', () => {
+    const wynik = poPrzeciagnieciu([z('a'), z('b'), z('c')], 'a', 'c')!;
+    expect(wynik.map((r) => r.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('upuszczenie w środek wstawia dokładnie w to miejsce', () => {
+    const wynik = poPrzeciagnieciu([z('a'), z('b'), z('c'), z('d')], 'a', 'c')!;
+    expect(wynik.map((r) => r.id)).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('upuszczenie na samego siebie niczego nie zmienia', () => {
+    expect(poPrzeciagnieciu([z('a'), z('b')], 'a', 'a')).toBeNull();
+  });
+
+  it('nieznana pozycja nie rusza listy', () => {
+    expect(poPrzeciagnieciu([z('a')], 'a', 'nie-ma')).toBeNull();
+    expect(poPrzeciagnieciu([z('a')], 'nie-ma', 'a')).toBeNull();
+  });
+
+  it('każda pozycja dostaje kolejną rangę od zera', () => {
+    const wynik = poPrzeciagnieciu([z('a'), z('b'), z('c')], 'c', 'a')!;
+    expect(wynik).toEqual([
+      { id: 'c', queueRank: 0 },
+      { id: 'a', queueRank: 1 },
+      { id: 'b', queueRank: 2 },
+    ]);
+  });
+
+  it('przeciąganie liczy się od kolejności WIDOCZNEJ, nie wejściowej', () => {
+    // Lista wchodzi nieuporządkowana, ale na ekranie „x" stoi pierwsze.
+    const lista = [z('y', 1), z('x', 0), z('z', 2)];
+    const wynik = poPrzeciagnieciu(lista, 'z', 'x')!;
+    expect(wynik.map((r) => r.id)).toEqual(['z', 'x', 'y']);
   });
 });
