@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ToastProvider } from '../ui/controls/Toast';
 import type { Room, RoomPlayer } from './types';
 
@@ -17,6 +17,7 @@ vi.mock('./room', () => ({
 }));
 
 const { RoomLobby } = await import('./RoomLobby');
+const { setCharacter } = await import('./room');
 
 const player = (uid: string, characterId: string, joinedAt: number): RoomPlayer => ({
   uid,
@@ -87,5 +88,29 @@ describe('RoomLobby — start dopiero przy różnych postaciach', () => {
   it('blokuje start przy jednym graczu', () => {
     renderLobby([player('h', 'ch-odkrywca', 1)]);
     expect(startButton().disabled).toBe(true);
+  });
+});
+
+/**
+ * Adam zgłosił, że zmiana postaci w poczekalni „nie działa" — klika wolną
+ * postać i nic się nie dzieje. Przyczyna: `setCharacter(...).then(...)` bez
+ * `.catch()` gubił każde odrzucenie zapisu jako nieobsłużone odrzucenie
+ * obietnicy — przycisk wyglądał na martwy, bez żadnego komunikatu dla gracza.
+ */
+describe('RoomLobby — zmiana postaci pokazuje błąd, gdy zapis się nie uda', () => {
+  it('nieudany zapis (odrzucona obietnica) kończy się komunikatem, nie ciszą', async () => {
+    vi.mocked(setCharacter).mockRejectedValueOnce(new Error('PERMISSION_DENIED'));
+
+    renderLobby([player('h', 'ch-odkrywca', 1), player('g', 'ch-badacz', 2)]);
+
+    // Host (uid „h") klika wolną postać — dowolną, która nie jest już jego
+    // ani zajęta przez „g" (`aria-checked="false"` i nie `disabled`).
+    const wolna = screen
+      .getAllByRole('radio')
+      .find((el) => !(el as HTMLButtonElement).disabled && el.getAttribute('aria-checked') === 'false');
+    expect(wolna, 'brak wolnej, niezaznaczonej postaci do kliknięcia').toBeTruthy();
+    fireEvent.click(wolna!);
+
+    expect(await screen.findByText(/Nie udało się zmienić postaci/i)).toBeTruthy();
   });
 });

@@ -147,9 +147,20 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
                   aria-label={character.name}
                   disabled={Boolean(takenBy)}
                   onClick={() => {
-                    void setCharacter(room.code, uid, character.id).then((ok) => {
-                      if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
-                    });
+                    // Adam zgłosił, że zmiana postaci w poczekalni „nie działa" —
+                    // bez `.catch()` odrzucenie zapisu (np. przez reguły bazy przy
+                    // niewyklarowanym jeszcze stanie pokoju, albo zwykły zanik
+                    // sieci) ginęło jako nieobsłużone odrzucenie obietnicy: przycisk
+                    // wyglądał, jakby nic nie zrobił, bez ŻADNEGO komunikatu. Gracz
+                    // nie miał jak odróżnić „zajęte przez kogoś" od „coś się
+                    // wywaliło" — obie kończyły się ciszą.
+                    void setCharacter(room.code, uid, character.id)
+                      .then((ok) => {
+                        if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
+                      })
+                      .catch(() => {
+                        toast('Nie udało się zmienić postaci. Spróbuj jeszcze raz.', 'danger');
+                      });
                   }}
                   className={[
                     'flex h-11 w-11 items-center justify-center rounded-lg border transition',
