@@ -52,6 +52,15 @@ export interface IntroContent {
   box?: IntroScene[];
   faq?: IntroScene[];
   /**
+   * Skrócona instrukcja — kartka, którą każdy gracz trzyma przy sobie.
+   *
+   * Adam: „to, co mamy, to instrukcja główna, a teraz potrzebujemy krótkiej
+   * instrukcji, którą będzie miał każdy gracz przy sobie — skrót
+   * najważniejszych". Instrukcja główna ma sześć stron i leży na środku stołu;
+   * w trakcie partii nikt jej nie czyta, bo trzeba by ją komuś zabrać.
+   */
+  handbook?: IntroScene[];
+  /**
    * Druga narracja — „Dobry 2111", świat, w którym problemy rozwiązano.
    *
    * Adam chce porównać obie wersje na żywych graczach i zgłosił, że „brakuje
@@ -165,6 +174,47 @@ export const INTRO_STORY_GOOD: IntroScene[] = [
  * a nie w komponencie wydruku, bo Alan dopisał przy każdej stronie „to też
  * edytowalne w panelu" — inaczej pierwsza poprawka wymagałaby wdrożenia.
  */
+/**
+ * Skrócona instrukcja — jedna kartka na gracza.
+ *
+ * Wybrane jest to, o co dzieci pytają przy stole w trakcie gry, nie to, co
+ * trzeba wiedzieć przed pierwszą partią (od tego jest instrukcja główna).
+ * Stąd kolejność: najpierw ruch, który wykonuje się co turę, potem rzeczy
+ * rzadsze, na końcu warunek zwycięstwa.
+ */
+export const INTRO_HANDBOOK: IntroScene[] = [
+  {
+    icon: 'clipboard',
+    heading: 'Twoja tura',
+    body:
+      'Dołóż jedną kartę do ścianki problemu — musi mieć ten sam kolor. Nie masz czym? Spasuj albo wymień karty. Potem gra następna osoba.',
+  },
+  {
+    icon: 'palette',
+    heading: 'Kolory i znaki',
+    body:
+      'Czerwony ● koło, zielony ▲ trójkąt, niebieski ■ kwadrat, żółty ★ gwiazda. Znak jest na górze karty — po nim poznasz kolor, nawet gdy trudno go odróżnić.',
+  },
+  {
+    icon: 'spark',
+    heading: 'Karty specjalne',
+    body:
+      'ETER11 pasuje do każdej ścianki — to ratunek, gdy nikt nie ma odpowiedniego koloru. Czarny Łabędź zmienia zasady w trakcie misji.',
+  },
+  {
+    icon: 'people',
+    heading: 'Po misji',
+    body:
+      'Weź jedną kartę na swoją postać — użyjesz jej później, raz na misję. Możesz też oddać ją koledze zamiast brać dla siebie.',
+  },
+  {
+    icon: 'trophy',
+    heading: 'Jak wygrywacie',
+    body:
+      'Razem albo wcale. Wygrywacie, gdy rozwiążecie więcej problemów, niż zostawicie bez odpowiedzi.',
+  },
+];
+
 export const INTRO_BOX: IntroScene[] = [
   {
     icon: 'earth',
@@ -353,5 +403,6 @@ export const DEFAULT_INTRO: IntroContent = {
   adults: INTRO_FOR_ADULTS,
   box: INTRO_BOX,
   faq: INTRO_FAQ,
+  handbook: INTRO_HANDBOOK,
   storyGood: INTRO_STORY_GOOD,
 };

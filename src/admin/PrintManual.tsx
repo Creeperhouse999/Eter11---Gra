@@ -7,6 +7,7 @@ import {
   INTRO_FOR_ADULTS,
   INTRO_BOX,
   INTRO_FAQ,
+  INTRO_HANDBOOK,
   NARRATIVE_LABELS,
   type NarrativeVariant,
 } from '../data/intro';
@@ -160,6 +161,9 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
   // o „możliwość edycji każdej strony", więc idą z treści jak reszta.
   const box = content.intro?.box?.length ? content.intro.box : INTRO_BOX;
   const faq = content.intro?.faq?.length ? content.intro.faq : INTRO_FAQ;
+  const handbook = content.intro?.handbook?.length
+    ? content.intro.handbook
+    : INTRO_HANDBOOK;
 
   // Podsumowanie techniczne — Adam poprosił o stronę z liczbami: ile jest
   // problemów, postaci, kart specjalnych i kart z każdej kategorii. Liczone
@@ -478,6 +482,34 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
             i mentorów są w talii w dwóch egzemplarzach; karty specjalne
             tyle razy, ile mówi zasada „Kart ETER11 i Łabędzi w talii"
             w panelu. Poniżej pokazany jest każdy różny projekt karty.
+          </p>
+        </Strona>
+
+        {/* Skrócona instrukcja — Adam: „krótka instrukcja, którą będzie miał
+            każdy gracz przy sobie". Drukuje się ją tyle razy, ilu jest graczy,
+            więc stoi na końcu: łatwiej wtedy wydrukować samą tę stronę. */}
+        <Strona
+          numer={7}
+          tytul="Skrócona instrukcja — dla każdego gracza"
+          onEdit={onEdit && (() => onEdit('handbook'))}
+        >
+          <p className="text-sm leading-snug">
+            Wydrukuj po jednej kartce dla każdego gracza. To ściąga na czas gry —
+            pełne zasady są na stronach 1–5.
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {handbook.map((wpis, i) => (
+              <div key={i} className="break-inside-avoid-page rounded border border-black/40 p-2">
+                <h3 className="font-display text-xs font-bold uppercase">{wpis.heading}</h3>
+                <p className="mt-1 text-[11px] leading-snug">{wpis.body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Linia do przecięcia: kartka ma iść do ręki, nie zostać w segregatorze. */}
+          <p className="mt-4 border-t border-dashed border-black/40 pt-2 text-center text-[9px] text-black/50">
+            Przetnij wzdłuż linii — jedna kartka na gracza
           </p>
         </Strona>
       </div>

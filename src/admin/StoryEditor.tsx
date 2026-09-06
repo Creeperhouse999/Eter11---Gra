@@ -9,6 +9,7 @@ import { IconPicker } from './IconPicker';
 export type StoryPart =
   | 'story'
   | 'storyGood'
+  | 'handbook'
   | 'box'
   | 'rules'
   | 'adults'
@@ -36,6 +37,7 @@ type CzescScen = Exclude<StoryPart, 'tutorial'>;
 const PART_IDS: Part[] = [
   'story',
   'storyGood',
+  'handbook',
   'box',
   'adults',
   'rules',
@@ -64,6 +66,12 @@ const PARTS: Array<{ id: Part; label: string; hint: string }> = [
     id: 'rules',
     label: 'Zasady',
     hint: 'Wstęp techniczny — tłumaczy, jak się gra.',
+  },
+  {
+    id: 'handbook',
+    label: 'Skrócona instrukcja',
+    hint:
+      'Kartka, którą każdy gracz trzyma przy sobie w trakcie gry — skrót tego, o co dzieci pytają przy stole. Osobna strona wydruku.',
   },
   {
     id: 'box',
@@ -121,6 +129,7 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
     storyGood: scenesOf('storyGood'),
     rules: scenesOf('rules'),
     adults: scenesOf('adults'),
+    handbook: scenesOf('handbook'),
     box: scenesOf('box'),
     faq: scenesOf('faq'),
   };
