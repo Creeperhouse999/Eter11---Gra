@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildActivity } from './activityFeed';
+import { buildActivity, buildAwaitingReview, buildDiscussionQueue } from './activityFeed';
 import type { Report } from '../firebase/reports';
+import type { Discussion } from '../firebase/discussions';
 
 /**
  * Zakładka „Aktywność" — co się teraz dzieje.
@@ -147,5 +148,102 @@ describe('zgłoszenie odesłane do poprawki (reopened) po tym, jak było „Zrob
     ]);
 
     expect(lista).toEqual([]);
+  });
+
+  it('status „fixed" znika z listy, nawet gdy `progress` nie zdążył się jeszcze zresetować', () => {
+    // `status` i `progress` bywają ustawiane OSOBNYMI wywołaniami (trailer
+    // `Report-Fixed` w Actions rusza tylko `status`) — zgłoszenie potrafi więc
+    // mieć `status: 'fixed'` przy `progress` wciąż na „working" czy w ogóle
+    // bez wartości. Bez tego wisiałoby jednocześnie tutaj I w „Do sprawdzenia".
+    const lista = buildActivity([
+      zgloszenie({ id: 'a', status: 'fixed', progress: 'working' }),
+      zgloszenie({ id: 'b', status: 'fixed' }),
+    ]);
+
+    expect(lista).toEqual([]);
+  });
+});
+
+/**
+ * „Do sprawdzenia" — Adam poprosił o tę kategorię wprost: zadania zrobione
+ * przeze mnie, czekające na potwierdzenie zgłaszającego albo admina.
+ * `buildActivity` te same zgłoszenia świadomie wyrzuca (to już nie AKTYWNA
+ * praca z mojej strony) — ta funkcja pokazuje dokładnie odwrotną stronę tej
+ * samej monety.
+ */
+describe('do sprawdzenia', () => {
+  it('bierze zgłoszenia oznaczone jako naprawione, nic więcej', () => {
+    const lista = buildAwaitingReview([
+      zgloszenie({ id: 'zrobione', status: 'fixed' }),
+      zgloszenie({ id: 'nowe', status: 'new' }),
+      zgloszenie({ id: 'zamkniete', status: 'done' }),
+    ]);
+
+    expect(lista.map((w) => w.id)).toEqual(['zrobione']);
+  });
+
+  it('najstarsze zrobione jest pierwsze', () => {
+    const lista = buildAwaitingReview([
+      zgloszenie({ id: 'nowsze', status: 'fixed', createdAt: '2026-09-05T10:00:00.000Z' }),
+      zgloszenie({ id: 'starsze', status: 'fixed', createdAt: '2026-09-01T10:00:00.000Z' }),
+    ]);
+
+    expect(lista.map((w) => w.id)).toEqual(['starsze', 'nowsze']);
+  });
+});
+
+/**
+ * Kolejka z dyskusji — Adam: „w kolejce niech będą wszystkie zadania
+ * zgłoszone w dyskusji". `stanWatku` już wie, po czyjej stronie jest piłka;
+ * tu tylko wybieramy wątki, gdzie to moja.
+ */
+describe('kolejka z dyskusji', () => {
+  const watek = (patch: Partial<Discussion>): Discussion => ({
+    id: 'w1',
+    title: 'Wątek',
+    description: 'Pytanie',
+    author: 'Adam',
+    createdAt: '2026-09-04T10:00:00.000Z',
+    messages: [],
+    ...patch,
+  });
+
+  it('wątek bez odpowiedzi czeka na mnie — autor to nie ja', () => {
+    const lista = buildDiscussionQueue([watek({ id: 'w1' })], 'Claude');
+    expect(lista.map((w) => w.id)).toEqual(['w1']);
+  });
+
+  it('wątek, w którym ostatnie słowo należy do mnie, nie jest w kolejce', () => {
+    const lista = buildDiscussionQueue(
+      [
+        watek({
+          id: 'w1',
+          messages: [{ author: 'Claude', text: 'Odpowiedziałem.', at: '2026-09-04T12:00:00.000Z' }],
+        }),
+      ],
+      'Claude',
+    );
+    expect(lista).toEqual([]);
+  });
+
+  it('wątek ustalony (closed) nie wchodzi do kolejki mimo braku mojej odpowiedzi', () => {
+    const lista = buildDiscussionQueue([watek({ id: 'w1', closed: true })], 'Claude');
+    expect(lista).toEqual([]);
+  });
+
+  it('link prowadzi do zakładki dyskusji, nie zgłoszeń', () => {
+    const lista = buildDiscussionQueue([watek({ id: 'w9' })], 'Claude');
+    expect(lista[0].link).toBe('/admin/discussions?open=w9');
+  });
+
+  it('pilniejszy wątek idzie pierwszy, tak jak zgłoszenia', () => {
+    const lista = buildDiscussionQueue(
+      [
+        watek({ id: 'zwykly', priority: 'low' }),
+        watek({ id: 'pilny', priority: 'ultra' }),
+      ],
+      'Claude',
+    );
+    expect(lista.map((w) => w.id)).toEqual(['pilny', 'zwykly']);
   });
 });

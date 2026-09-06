@@ -5,10 +5,19 @@ import {
   type Report,
   type ReportProgress,
 } from '../firebase/reports';
-import { buildActivity } from './activityFeed';
+import { watchDiscussions, type Discussion } from '../firebase/discussions';
+import { buildActivity, buildAwaitingReview, buildDiscussionQueue } from './activityFeed';
 import { wgRecznejKolejnosci, poPrzesunieciu } from './reorderQueue';
 import { formatDate } from './formatDate';
 import { Icon } from '../ui/icons/Icon';
+
+/**
+ * Podpis, którym `discuss.mjs` odpowiada w wątkach — to jego „ja" przy
+ * rozstrzyganiu, po czyjej stronie jest piłka (`stanWatku`). Ten sam literał
+ * co `AUTHOR` w skrypcie: gdyby się rozjechały, wątki, na które czekam
+ * z odpowiedzią, wyglądałyby tak, jakby to ja czekał na zespół.
+ */
+const AUTHOR = 'Claude';
 
 interface ActivityPanelProps {
   /** Skok do zgłoszenia — ten sam mechanizm, co przy powiadomieniach. */
@@ -36,21 +45,34 @@ const KOLOR: Record<ReportProgress | 'brak', string> = {
  */
 export function ActivityPanel({ onOpen }: ActivityPanelProps) {
   const [reports, setReports] = useState<Report[]>([]);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [blad, setBlad] = useState<string | null>(null);
 
   useEffect(() => watchReports(setReports, setBlad), []);
+  useEffect(() => watchDiscussions(setDiscussions, setBlad), []);
 
   const lista = buildActivity(reports);
   const teraz = lista.filter((w) => w.progress === 'working' || w.progress === 'testing');
 
-  // Adam poprosił o rozdzielenie kolejki na dwie: to, co wprost oznaczyłem
-  // jako „W kolejce" (bo już wiem, że to biorę), i resztę — zgłoszenia,
-  // których jeszcze nie tknąłem. Wcześniej leżały razem i nie dało się
-  // odróżnić „zaplanowane" od „nieprzejrzane".
-  const wKolejce = wgRecznejKolejnosci(
-    lista.filter((w) => w.progress === 'queued'),
+  // Adam uprościł: jedna wspólna „W kolejce", nie osobno „oznaczone" i
+  // „nietknięte" — to, co wcześniej stało w dwóch listach (`queued` i brak
+  // etapu), teraz stoi w jednej, w tej samej automatycznej kolejności
+  // (etap → pilność → wiek), a ręczne przesunięcia dalej działają na
+  // zgłoszeniach (`queueRank`). Dyskusje, na które czekam z odpowiedzią,
+  // dochodzą na końcu — Adam: „w kolejce niech będą wszystkie zadania
+  // zgłoszone w dyskusji, w zadaniach, we »wróciły«". Strzałek dla nich nie
+  // ma: `queueRank` żyje na dokumencie zgłoszenia, więc próba zapisania go
+  // pod identyfikatorem wątku trafiłaby w nieistniejący dokument.
+  const zgloszeniaWKolejce = wgRecznejKolejnosci(
+    lista.filter((w) => w.progress === 'queued' || !w.progress),
   );
-  const kolejne = wgRecznejKolejnosci(lista.filter((w) => !w.progress));
+  const watkiWKolejce = buildDiscussionQueue(discussions, AUTHOR);
+  const wKolejce = [...zgloszeniaWKolejce, ...watkiWKolejce];
+
+  // Zrobione przeze mnie, czeka na sprawdzenie — osobna kategoria, o którą
+  // Adam poprosił wprost: „aby tam też widniały zadania zrobione przez
+  // Ciebie i sprawdzenia przez admina".
+  const doSprawdzenia = buildAwaitingReview(reports);
 
   /** Przesunięcie pozycji o jedno miejsce w obrębie swojej listy. */
   const przesun = async (
@@ -162,24 +184,32 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
       <h3 className="mt-5 font-display text-sm font-bold">
         W kolejce {wKolejce.length > 0 && <span className="text-ink-dim">({wKolejce.length})</span>}
       </h3>
+      <p className="mt-1 text-xs text-ink-dim">
+        Zgłoszenia (nowe, wróciły do poprawy) i dyskusje, na które czekam
+        z odpowiedzią. Strzałkami ustawisz kolejność zgłoszeń.
+      </p>
       {wKolejce.length === 0 ? (
         <p className="mt-1 text-sm text-ink-dim">Nic nie stoi w kolejce.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">{wKolejce.map((w) => wiersz(w, wKolejce))}</ul>
+        <ul className="mt-2 space-y-1.5">
+          {zgloszeniaWKolejce.map((w) => wiersz(w, zgloszeniaWKolejce))}
+          {watkiWKolejce.map((w) => wiersz(w))}
+        </ul>
       )}
 
       <h3 className="mt-5 font-display text-sm font-bold">
-        Lista kolejnych zadań{' '}
-        {kolejne.length > 0 && <span className="text-ink-dim">({kolejne.length})</span>}
+        Do sprawdzenia{' '}
+        {doSprawdzenia.length > 0 && (
+          <span className="text-ink-dim">({doSprawdzenia.length})</span>
+        )}
       </h3>
       <p className="mt-1 text-xs text-ink-dim">
-        Zgłoszenia, których jeszcze nie zacząłem. Strzałkami ustawisz, co ma iść
-        pierwsze.
+        Zrobione z mojej strony — czeka na Wasze potwierdzenie.
       </p>
-      {kolejne.length === 0 ? (
-        <p className="mt-1 text-sm text-ink-dim">Nic nie czeka.</p>
+      {doSprawdzenia.length === 0 ? (
+        <p className="mt-1 text-sm text-ink-dim">Nic nie czeka na sprawdzenie.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">{kolejne.map((w) => wiersz(w, kolejne))}</ul>
+        <ul className="mt-2 space-y-1.5">{doSprawdzenia.map((w) => wiersz(w))}</ul>
       )}
     </section>
   );
