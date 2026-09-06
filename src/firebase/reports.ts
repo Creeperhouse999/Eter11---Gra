@@ -143,6 +143,14 @@ export function pokazacPostep(report: {
   // w zakładce „Wróciły". Wcześniejsze kroki („robi się", „w kolejce") zostają —
   // one mówią prawdę o tym, że ktoś już wrócił do tematu.
   if (report.status === 'reopened' && report.progress === 'finished') return false;
+  // Zgłoszenie naprawione już MÓWI o sobie etykietą statusu („Do sprawdzenia",
+  // „Ponownie zrobione — sprawdź"), więc plakietka „Zrobione" powtarzałaby to
+  // samo innymi słowami. Adam zobaczył oba napisy obok siebie: „w zakładce
+  // »do sprawdzenia« są na ramkach dwa statusy (…) popraw, aby był zawsze
+  // jeden aktualny status". Wcześniejsze etapy zostają — „robi się" przy
+  // naprawionym zgłoszeniu nie powtarza statusu, tylko dokłada, że ktoś
+  // właśnie do tematu wrócił.
+  if (report.status === 'fixed' && report.progress === 'finished') return false;
   return true;
 }
 

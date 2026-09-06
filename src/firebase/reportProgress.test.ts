@@ -112,9 +112,10 @@ describe('postęp a zamknięte zgłoszenie', () => {
   it('zgłoszenie w robocie postęp pokazuje — po to jest', () => {
     expect(pokazacPostep({ status: 'new', progress: 'working' })).toBe(true);
     expect(pokazacPostep({ status: 'reopened', progress: 'queued' })).toBe(true);
-    // `fixed` czeka na sprawdzenie przez zgłaszającego — „Zrobione" jest tu
-    // sensowną informacją, bo mówi, że praca po naszej stronie się skończyła.
-    expect(pokazacPostep({ status: 'fixed', progress: 'finished' })).toBe(true);
+    // `fixed` + „Zrobione" to już NIE jest para do pokazania razem — patrz
+    // `jedenStatus.test.ts`. Etykieta statusu mówi dokładnie to samo
+    // („Do sprawdzenia"), więc plakietka byłaby drugim napisem o tym samym.
+    expect(pokazacPostep({ status: 'fixed', progress: 'working' })).toBe(true);
   });
 
   it('brak postępu to brak plakietki, niezależnie od statusu', () => {
@@ -135,9 +136,18 @@ describe('postęp po odesłaniu do poprawki', () => {
     expect(pokazacPostep({ status: 'reopened', progress: 'queued' })).toBe(true);
   });
 
-  it('„Zrobione" zostaje przy zgłoszeniu czekającym na sprawdzenie', () => {
-    // Tu jest na miejscu: mówi zgłaszającemu, że jest co sprawdzać.
-    expect(pokazacPostep({ status: 'fixed', progress: 'finished' })).toBe(true);
+  /**
+   * Zmiana zasady, nie regresja. Wcześniej „Zrobione" stało przy zgłoszeniu
+   * czekającym na sprawdzenie, bo mówiło zgłaszającemu, że jest co sprawdzać.
+   * Adam zobaczył jednak efekt na ekranie: „w zakładce »do sprawdzenia« są na
+   * ramkach dwa statusy. Np. Zrobione oraz Ponownie zrobione sprawdź. Popraw,
+   * aby był zawsze jeden aktualny status".
+   *
+   * Informację niesie teraz sama etykieta statusu — plakietka postępu przy
+   * `fixed` byłaby jej powtórzeniem innymi słowami.
+   */
+  it('„Zrobione" NIE dubluje etykiety statusu przy zgłoszeniu do sprawdzenia', () => {
+    expect(pokazacPostep({ status: 'fixed', progress: 'finished' })).toBe(false);
   });
 });
 

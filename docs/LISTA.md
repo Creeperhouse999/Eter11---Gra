@@ -83,6 +83,10 @@ w kolejce.
 
 ## Zasady, o których Alan przypominał
 
+- **Dopisywać do zakładki Pamięć w panelu.** Alan przypomniał wprost: to
+  wspólny notatnik zespołu, a nie moja prywatna pamięć — trwałe ustalenia
+  o produkcie i o tym, kto za co odpowiada, mają tam trafiać na bieżąco,
+  bez proszenia.
 - Odpisywać na dyskusje W KAŻDEJ turze, krótko.
 - Nie oznaczać zrobionym czegoś, czego nie skończyłem ani nie sprawdziłem.
 - Brać ściśle wg pilności, od góry listy.
