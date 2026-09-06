@@ -68,11 +68,6 @@
   --eter-font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --eter-font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --eter-font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
-  /*
-   * Krój do liczb w wyglądzie „Kolorowy" — pod Klasycznym zostaje mono, żeby
-   * zmienna miała bezpieczną wartość, zanim skórka ją nadpisze niżej.
-   */
-  --eter-font-pixel: var(--eter-font-mono);
 }
 
 /* Delikatna siatka w tle — sugeruje panel operacyjny, nie przeszkadza w czytaniu */
@@ -292,171 +287,142 @@
 }
 
 /* ============================================================
-   Wygląd „Kolorowy" — mozaika świecących kafli.
+   Wygląd „Kolorowy" — mozaika z drobnych kwadracików.
 
-   Adam odesłał pierwszą wersję ze słowami: „nie chodzi o kolorki różnych
-   elementów, ale o to, abyś wykorzystał ideę kolorowych kwadracików
-   i stworzył z nich całkowicie inną wizualizację panelu gracza". Grafiki,
-   które przysłał, to siatka świecących, półprzezroczystych klocków na
-   ciemnym tle — więc tutaj każdy element gry dostaje ten charakter:
-   poświatę, kwadratowy kształt i nasycony kolor.
+   Trzy podejścia odpadły, zanim trafiłem w to, co Adam pokazał na zdjęciach.
+   Dwa pierwsze dokładały poświatę do tego samego ciemnego ekranu („nie różni
+   się wiele od klasycznego"), trzecie poszło w wielkie kolorowe bloki
+   z grubym obrysem — a na jego grafikach są DROBNE, gęste kwadraciki
+   ułożone w siatkę, jak pixel-art albo mozaika z małych klocków.
 
-   Wszystko wisi pod `[data-skin='colorful']`, więc klasyczny wygląd to po
-   prostu brak tych reguł — jedno miejsce prawdy zamiast dwóch zestawów.
-   Celujemy w klasy, których komponenty już używają (`bg-raised`, `bg-surface`,
-   `rounded-lg`), żeby nie utrzymywać drugiej wersji każdego ekranu.
+   Stąd zasada tego wyglądu: kolor nie jest płaską plamą, tylko GĘSTĄ SIATKĄ
+   drobnych kwadracików. Tło niesie ją półprzezroczyście przez cały ekran,
+   a karty i panele mają tę samą fakturę, tylko mocniej nasyconą — dzięki
+   temu wszystko wygląda na zbudowane z jednego materiału.
 
-   Panel administracyjny zostaje nietknięty: Adam napisał wprost, że „panel
-   admina jest ok, jest czytelny" — dlatego reguły wykluczają `.eter-admin`.
+   Panel administracyjny zostaje nietknięty — Adam: „panel admina jest ok,
+   jest czytelny". Stąd `:not(.eter-admin *)` przy regułach.
    ============================================================ */
 
-[data-skin='colorful'] body {
-  /*
-   * Tło jak z grafik: mozaika drobnych, świecących kwadracików w tęczowym
-   * przejściu barw, nie płaska czerń. Adam (4. runda zgłoszenia): sama
-   * poświata w rogu ekranu to wciąż „ten sam interfejs" — siatka kwadratów
-   * ma być widoczna OD RAZU, w tle, a nie tylko na kartach.
-   */
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgb(0 0 0 / 0.22) 0,
-      rgb(0 0 0 / 0.22) 1px,
-      transparent 1px,
-      transparent 64px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgb(0 0 0 / 0.22) 0,
-      rgb(0 0 0 / 0.22) 1px,
-      transparent 1px,
-      transparent 64px
-    ),
-    linear-gradient(
-      120deg,
-      rgb(255 95 210 / 0.16),
-      rgb(120 130 255 / 0.16) 22%,
-      rgb(90 220 200 / 0.14) 44%,
-      rgb(255 214 90 / 0.14) 66%,
-      rgb(255 110 90 / 0.16) 100%
-    ),
-    radial-gradient(circle at 20% 20%, rgb(var(--eter-accent-rgb) / 0.1), transparent 45%),
-    radial-gradient(circle at 80% 70%, rgb(255 95 210 / 0.08), transparent 45%),
-    var(--eter-bg);
-  background-attachment: fixed;
-}
-
-/* Karty, ścianki i panele stają się świecącymi kaflami. */
-[data-skin='colorful'] :not(.eter-admin) > .bg-raised,
-[data-skin='colorful'] :not(.eter-admin) > * > .bg-raised,
-[data-skin='colorful'] .bg-surface:not(.eter-admin *) {
-  /* Kwadratowy kafel zamiast miękkiego panelu — jak klocki z grafik. */
-  border-radius: 0.35rem;
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.06),
-    0 0 14px -4px rgb(var(--eter-accent-rgb) / 0.35);
-}
-
-/*
- * Karta gracza: mocna poświata w kolorze swojej rodziny.
- *
- * Kolor niesie zasadę gry (karta pasuje do ścianki tylko przy zgodnej
- * rodzinie), więc w tym wyglądzie ma świecić, a nie tylko obrysowywać —
- * dokładnie jak kafle na grafikach Adama.
- *
- * Adam po drugiej wersji: „nie różni się wiele od klasycznego". Przyczyna:
- * ta poświata liczyła się z `currentColor`, a żaden kafel nigdie nie ustawiał
- * `color` na samym sobie — więc `currentColor` brał zwykły kolor tekstu
- * (biel/liliowy), nie kolor rodziny karty. Efekt: każda karta świeciła tym
- * samym bladym kolorem zamiast własną barwą, więc plansza wyglądała prawie
- * jak w Klasycznym. `CardView` i `ProblemCard` ustawiają teraz zmienną
- * `--eter-tile-accent` na kolor rodziny/kategorii KARTY — to ona, nie
- * `currentColor`, steruje poświatą i szklaną poświatą tła poniżej. Zmienna,
- * nie `color`: dzieci kafla, które nie mają własnego koloru (np. pusta
- * etykieta ścianki), mają zostać w zwykłym kolorze tekstu, nie zafarbować się
- * przy okazji.
- *
- * Poświata w rogu (nie na całej powierzchni): pełne wypełnienie kafla barwą
- * rodziny zabrałoby kontrast tekstowi, który tej samej barwy używa na napisy
- * (nazwa karty, etykieta) — bezpieczne dla czytelności jest jaśniejsze,
- * szklane podświetlenie w rogu, gasnące do zwykłego tła tam, gdzie leży tekst.
- */
-/*
- * Kształt kafla: dwa rogi ucięte w duży łuk, dwa proste — sylwetka
- * „szklanego klocka", nie zwykły zaokrąglony prostokąt Klasycznego. Sam
- * `border-radius` (bez `overflow: hidden`) niczego nie przycina — zawartość
- * karty stoi normalnie w prostokątnym pudełku, zmienia się tylko rysunek tła
- * i cienia pod spodem, więc żaden napis ani ikona w rogu nie znika.
- */
-[data-skin='colorful'] .eter-tile {
-  position: relative;
-  border-radius: 0.2rem 0.6rem 0.2rem 0.6rem;
-  background:
-    radial-gradient(
-      85% 75% at 14% 10%,
-      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 70%, white 20%) 0%,
-      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 45%, transparent) 34%,
-      transparent 68%
-    ),
-    var(--eter-raised);
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in srgb, white 30%, transparent),
-    inset 0 0 14px -6px var(--eter-tile-accent, currentColor),
-    0 0 16px -6px var(--eter-tile-accent, currentColor);
-  transition:
-    box-shadow var(--eter-normal) var(--eter-ease),
-    background var(--eter-normal) var(--eter-ease);
-}
-
-[data-skin='colorful'] .eter-tile:hover {
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in srgb, white 45%, transparent),
-    inset 0 0 16px -4px var(--eter-tile-accent, currentColor),
-    0 0 22px -4px var(--eter-tile-accent, currentColor);
-}
-
-/*
- * Odblask szkła w rogu — osobna warstwa NAD kaflem (`::after`), nie tło
- * samego kafla. Dzięki temu może mieć własny, ostro ucięty trójkątny kształt
- * (`clip-path`) bez ryzyka, że przytnie tekst albo ikonę karty — przycina
- * tylko siebie, pusty i niereagujący na kliknięcia (`pointer-events: none`).
- */
-[data-skin='colorful'] .eter-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, color-mix(in srgb, white 55%, transparent) 0%, transparent 22%);
-  clip-path: polygon(0 0, 46% 0, 0 46%);
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-/* Podpisy i etykiety: rozstrzelone wersaliki, jak na panelach z grafik. */
-[data-skin='colorful'] .eter-label {
-  letter-spacing: 0.14em;
-  text-shadow: 0 0 10px rgb(var(--eter-accent-rgb) / 0.5);
-}
-
-/*
- * Liczniki (runda, zamknięte ścianki) w kroju pikselowym — jedno z
- * najbardziej widocznych miejsc, gdzie Klasyczny i Kolorowy dotąd wyglądały
- * identycznie, bo `.eter-bump` niosło tylko animację, nie krój. Tylko cyfry
- * i „/" (`.eter-bump` nie owija dłuższego tekstu), więc bez polskich znaków
- * — stąd wystarczy zaimportowany subset `latin`.
- */
-[data-skin='colorful'] .eter-bump {
-  font-family: var(--eter-font-pixel);
-}
 [data-skin='colorful'] {
-  --eter-font-pixel: 'Press Start 2P', var(--eter-font-mono);
+  /* Bok kwadracika. Drobny — ma być fakturą, nie kaflem: przy 8 px na karcie
+     szerokości 120 px mieści się ich piętnaście w rzędzie. */
+  --kwadracik: 8px;
+  /* Siła siatki na tle i na elementach. Tło ledwie widoczne, żeby nie
+     zjadało tekstu; karta wyraźniejsza, bo tam faktura ma być widać. */
+  --siatka-tlo: 0.055;
+  --siatka-karta: 0.14;
+}
+
+[data-skin='colorful']:not([data-theme='dark']) {
+  --eter-bg: #fbf7ef;
+  --eter-surface: #ffffff;
+  --eter-raised: #ffffff;
+  --eter-ink: #221b2e;
+  --eter-ink-dim: #6a6178;
+  --eter-edge: #ded5e8;
+}
+
+[data-skin='colorful'][data-theme='dark'] {
+  --eter-bg: #14101f;
+  --eter-surface: #1d1730;
+  --eter-raised: #241d3b;
+  --eter-ink: #f4f0ff;
+  --eter-ink-dim: #b0a5c9;
+  --eter-edge: #342a4f;
 }
 
 /*
- * Nagłówki świecą jak podpisy na ekranie z pierwszej grafiki.
- * Tylko w grze — w panelu administracyjnym poświata utrudniałaby czytanie
- * długich list, a Adam prosił, żeby panelu nie ruszać.
+ * Tło: półprzezroczysta siatka drobnych kwadracików przez cały ekran.
+ *
+ * Rysowana dwoma gradientami zamiast obrazkiem — nie waży nic, jest ostra
+ * na każdym ekranie i nie czeka na sieć.
  */
+[data-skin='colorful'] body {
+  background-color: var(--eter-bg);
+  background-image:
+    linear-gradient(rgb(90 60 140 / var(--siatka-tlo)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(90 60 140 / var(--siatka-tlo)) 1px, transparent 1px);
+  background-size: var(--kwadracik) var(--kwadracik);
+}
+
+[data-skin='colorful'][data-theme='dark'] body {
+  background-image:
+    linear-gradient(rgb(190 160 255 / var(--siatka-tlo)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(190 160 255 / var(--siatka-tlo)) 1px, transparent 1px);
+}
+
+/*
+ * Karty, ścianki i panele: ta sama siatka, mocniejsza, w kolorze elementu.
+ *
+ * `--eter-tile-accent` ustawiają `CardView` i `ProblemCard` na kolor rodziny
+ * tej konkretnej karty — kolor niesie zasadę gry (karta pasuje do ścianki
+ * tylko przy zgodnej rodzinie), więc musi być widać, czyj jest.
+ *
+ * Kolejność warstw: siatka NA WIERZCHU delikatnego wypełnienia barwą, żeby
+ * kwadraciki było widać także tam, gdzie karta jest najmocniej nasycona.
+ */
+[data-skin='colorful'] .eter-tile:not(.eter-admin *),
+[data-skin='colorful'] .bg-raised:not(.eter-admin *),
+[data-skin='colorful'] .bg-surface:not(.eter-admin *) {
+  border-radius: 0.3rem;
+  border: 1px solid var(--eter-edge);
+  background-color: var(--eter-surface);
+  background-image:
+    linear-gradient(
+        color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent) 1px,
+        transparent 1px
+      ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: var(--kwadracik) var(--kwadracik);
+  transition:
+    background-size var(--eter-fast) var(--eter-ease),
+    box-shadow var(--eter-fast) var(--eter-ease);
+}
+
+/*
+ * Karta w kolorze rodziny: delikatna plama barwy POD siatką, żeby czerwona
+ * karta była czerwona z drugiego końca stołu, a nie tylko przy czytaniu.
+ */
+[data-skin='colorful'] .eter-tile:not(.eter-admin *) {
+  background-color: color-mix(
+    in srgb,
+    var(--eter-tile-accent, var(--eter-accent)) 12%,
+    var(--eter-surface)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--eter-tile-accent, var(--eter-accent)) 45%,
+    var(--eter-edge)
+  );
+}
+
+[data-skin='colorful'][data-theme='dark'] .eter-tile:not(.eter-admin *) {
+  background-color: color-mix(
+    in srgb,
+    var(--eter-tile-accent, var(--eter-accent)) 20%,
+    var(--eter-surface)
+  );
+}
+
+/*
+ * Dotknięcie karty zagęszcza mozaikę — kwadraciki robią się drobniejsze,
+ * jakby obraz się doostrzył. Ruch materiału zamiast poświaty, bo to samo
+ * odróżnia ten wygląd od Klasycznego.
+ */
+[data-skin='colorful'] .eter-tile:not(.eter-admin *):hover {
+  background-size: calc(var(--kwadracik) - 2px) calc(var(--kwadracik) - 2px);
+  box-shadow: 0 2px 0 0
+    color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent);
+}
+
+/* Napisy bez poświaty: na jasnym tle świecący tekst przestaje być czytelny,
+   a dziecko ma tu przede wszystkim czytać. */
+[data-skin='colorful'] .eter-label:not(.eter-admin *),
 [data-skin='colorful'] .font-display:not(.eter-admin *) {
-  text-shadow: 0 0 12px rgb(var(--eter-accent-rgb) / 0.35);
+  text-shadow: none;
 }

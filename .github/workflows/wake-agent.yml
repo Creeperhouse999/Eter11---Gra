@@ -7,11 +7,22 @@ name: Budzenie agenta przy nowym zgłoszeniu
 # Czemu tędy: Firestore sam nikogo nie zawoła (zrobiłyby to Cloud Functions,
 # których w tym projekcie nie używamy), a panel w przeglądarce nie może nosić
 # tokena do konta Claude. Actions ma sekrety bezpiecznie.
+# WYŁĄCZONE (2026-09-06). Sekret `CLAUDE_CODE_TOKEN` wygasł i każdy przebieg
+# kończył się `401 authentication_error` — co pięć minut, dzień i noc, czyli
+# lista biegów w Actions składała się prawie wyłącznie z czerwonych porażek
+# i nie dało się w niej zauważyć prawdziwej awarii deployu.
+#
+# Alan zdecydował: agent w chmurze chodzi z zegara raz na dobę (2:00 czasu
+# polskiego, ustawione po stronie routine), a nie na zawołanie. Ten workflow
+# zostaje w repo, bo sam skrypt działa poprawnie — widzi nowe zgłoszenia
+# i wątki. Brakuje tylko ważnego tokenu.
+#
+# Żeby wrócić do budzenia „od razu, gdy jest zgłoszenie": wgraj świeży token
+# w Settings → Secrets and variables → Actions → CLAUDE_CODE_TOKEN, a potem
+# odkomentuj `schedule` poniżej.
 on:
-  schedule:
-    # Co 5 minut — najkrótszy sensowny odstęp w Actions. GitHub bywa
-    # niepunktualny przy obciążeniu, więc realnie bywa 5–15 min.
-    - cron: '*/5 * * * *'
+  # schedule:
+  #   - cron: '*/5 * * * *'
   workflow_dispatch:
 
 # Jedno wykonanie naraz: dwa równoległe przeczytałyby ten sam stan i obudziły
