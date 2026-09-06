@@ -41,7 +41,7 @@ w kolejce.
       i „Drukuj karty”; w „Kartach” też próbnik zamiast czterech kolorów.
 - [x] **Edycja strony instrukcji przez kliknięcie** w zakładce „Drukuj
       instrukcję".
-- [ ] **Przekazanie karty** gdy odbiorca wziął już własną — Adam mówi, że
+- [x] **Przekazanie karty** gdy odbiorca wziął już własną — Adam mówi, że
       dalej nie działa.
 - [x] **Karty z karty postaci w każdym ruchu** — Adam doprecyzował o 20:44,
       nietknięte.
