@@ -143,7 +143,16 @@ function Scianka({ slot, theme }: { slot: ProblemSlot; theme: FamilyTheme }) {
       className={`${UKLAD_SCIANEK[slot.key] ?? ''} rounded border-2 p-1 text-center`}
       style={{ borderColor: kolor, color: kolor }}
     >
-      <p className="text-[8px] font-bold uppercase leading-tight">
+      {/* Symbol rodziny na ściance — ten sam znaczek, co na karcie, którą
+          trzeba tu dołożyć. Adam po pierwszej wersji: „dodaj do wizualizacji
+          kart problemów w »drukuj karty«, aby tam, gdzie są karty potrzebne
+          do wygrania z problemem, też były te symbole". Bez tego gracz
+          niewidzący kolorów rozpoznaje kartę, ale nie ściankę, do której
+          ma ją dołożyć — czyli połowę zasady. */}
+      <p className="flex items-center justify-center gap-0.5 text-[8px] font-bold uppercase leading-tight">
+        <span aria-hidden="true">
+          <Icon name={familySymbol(slot.family) as IconName} size={8} />
+        </span>
         {categoryLabel(slot.key)}
       </p>
       <p className="text-[8px] font-bold leading-tight">

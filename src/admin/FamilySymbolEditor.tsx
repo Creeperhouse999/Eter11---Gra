@@ -31,7 +31,7 @@ export function FamilySymbolEditor({ symbols, onChange }: FamilySymbolEditorProp
   };
 
   return (
-    <section className="mt-8 border-t border-edge pt-6">
+    <section className="mt-4 rounded-xl border border-accent/40 bg-surface p-4">
       <h3 className="font-display text-lg font-bold">Symbole kolorów</h3>
       <p className="mt-1 max-w-prose text-sm text-ink-dim">
         Znaczek na górnej krawędzi każdej karty, ten sam we wszystkich

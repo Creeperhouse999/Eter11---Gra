@@ -64,6 +64,16 @@ export function FamilyEditor({
         zmienia się w sekcji „Kolory” — tu ustawiasz nazwę, symbol i opis.
       </p>
 
+      {/* Symbole kolorów NA GÓRZE zakładki, nie na dole. Adam po pierwszej
+          wersji: „nie widzę w zakładce Rodziny możliwości edycji symbolu" —
+          sekcja była, ale pod dwudziestoma wierszami rodzin, gdzie nikt nie
+          przewija. Osobno od ikon rodzin niżej, bo to inna rzecz: tamte
+          opowiadają, czym rodzina jest, ten mówi „to jest czerwona" komuś,
+          kto czerwieni nie widzi. */}
+      {onSymbolsChange && (
+        <FamilySymbolEditor symbols={symbols} onChange={onSymbolsChange} />
+      )}
+
       {/* Puste pole to stan normalny, nie błąd — wtedy gra pokazuje sam kolor.
           Warto o tym powiedzieć wprost, bo inaczej wygląda, jakby nazwa
           „nie weszła". */}
@@ -139,13 +149,6 @@ export function FamilyEditor({
           </div>
         ))}
       </div>
-
-      {/* Symbole kolorów — osobno od ikon rodzin wyżej, bo to inna rzecz:
-          tamte opowiadają, czym rodzina jest, ten mówi „to jest czerwona"
-          komuś, kto czerwieni nie widzi. */}
-      {onSymbolsChange && (
-        <FamilySymbolEditor symbols={symbols} onChange={onSymbolsChange} />
-      )}
     </section>
   );
 }

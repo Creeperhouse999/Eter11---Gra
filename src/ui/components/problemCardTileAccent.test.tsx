@@ -45,3 +45,34 @@ describe('ProblemCard — zmienna koloru kafla dla wyglądu Kolorowy', () => {
     expect(slot!.style.getPropertyValue('--eter-tile-accent')).toBe('var(--eter-family-red)');
   });
 });
+
+/**
+ * Symbol rodziny na ściance W GRZE — nie tylko na wydruku.
+ *
+ * Adam zgłosił symbole dla graczy, którzy nie rozróżniają kolorów, i po
+ * pierwszej wersji dopytał o ścianki na wydruku. Ale gra toczy się też na
+ * ekranie: kropka koloru przy nazwie ścianki mówiła „to czerwona" tylko
+ * komuś, kto czerwień widzi. Znaczek (koło / trójkąt / kwadrat / gwiazda)
+ * mówi to każdemu — i jest ten sam, co na karcie, którą trzeba tu dołożyć.
+ */
+describe('ProblemCard — symbol rodziny na ściance', () => {
+  it('ścianka pokazuje kształt rodziny, nie samą kropkę koloru', () => {
+    const mission = missionWithProblem();
+    const problem = mission.problems[0];
+
+    const { container } = render(
+      <ProblemCard
+        mission={mission}
+        problem={problem}
+        selectedCard={null}
+        onSlotClick={() => {}}
+        canPlayInSlot={() => false}
+      />,
+    );
+
+    const slot = container.querySelector<HTMLElement>('[data-slot="a:psychological"]')!;
+    // Ikona kategorii + symbol rodziny = co najmniej dwa kształty SVG.
+    // Sama kropka była `<span>` bez SVG, więc miała jeden (ikonę kategorii).
+    expect(slot.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
+  });
+});

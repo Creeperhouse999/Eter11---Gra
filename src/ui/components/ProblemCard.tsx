@@ -10,6 +10,7 @@ import {
   slotIcon,
   slotLabel,
   familyLabel,
+  familySymbol,
 } from './categoryStyles';
 
 interface ProblemCardProps {
@@ -154,14 +155,19 @@ export function ProblemCard({
             >
               {slotLabel(key)}
             </span>
+            {/* Symbol rodziny zamiast samej kropki koloru. Kropka mówiła
+                „ta ścianka jest czerwona" tylko komuś, kto czerwień widzi;
+                znaczek (koło / trójkąt / kwadrat / gwiazda) mówi to każdemu.
+                Ten sam symbol stoi na karcie, którą trzeba tu dołożyć —
+                dziecko dopasowuje kształt do kształtu, tak jak dotąd kolor
+                do koloru. */}
             <span
               aria-hidden="true"
-              className="ml-auto h-3 w-3 shrink-0 rounded-full border"
-              style={{
-                background: familyColor,
-                borderColor: 'var(--eter-bg)',
-              }}
-            />
+              className="ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded"
+              style={{ background: familyColor, color: 'var(--eter-bg)' }}
+            >
+              <Icon name={familySymbol(slot.family) as IconName} size={10} />
+            </span>
           </div>
 
           {filled ? (
