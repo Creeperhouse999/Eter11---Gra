@@ -956,17 +956,25 @@ function endMissionSummary(state: GameState): ReducerResult {
   // Wyrównanie rąk do rozmiaru startowego — zasada "dobierają, żeby wrócić
   // do początkowego układu". Działa w obie strony: brakujące karty są
   // dobierane, nadmiarowe (np. po Czarnym Łabędziu) trafiają na odrzucone.
+  //
+  // Docelowy rozmiar rośnie o karty już zebrane na matę (`player.mat`) —
+  // Adam zgłosił: gracz z jedną kartą doświadczenia z misji 1 miał w misji 2
+  // znowu równo pięć kart w ręku, jakby postać nic nie miała. Karta na macie
+  // zostaje SWOIM osobnym slotem do zagrania (limit jednej nowej na misję,
+  // `TAKE_CARD_TO_MAT`) — to uzupełnianie tylko liczy ją do docelowego
+  // rozmiaru ręki, nie przenosi jej z powrotem do zwykłych kart.
   let pile = state.drawPile;
   let discard = [...state.discardPile, ...discarded];
   let seed = state.rng;
   players = players.map((player) => {
-    const difference = state.config.handSize - player.hand.length;
+    const docelowyRozmiar = state.config.handSize + player.mat.length;
+    const difference = docelowyRozmiar - player.hand.length;
 
     if (difference === 0) return player;
 
     if (difference < 0) {
-      const kept = player.hand.slice(0, state.config.handSize);
-      discard = [...discard, ...player.hand.slice(state.config.handSize)];
+      const kept = player.hand.slice(0, docelowyRozmiar);
+      discard = [...discard, ...player.hand.slice(docelowyRozmiar)];
       return { ...player, hand: kept };
     }
 

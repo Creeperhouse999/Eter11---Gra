@@ -215,6 +215,29 @@ describe('END_MISSION_SUMMARY', () => {
     const player = result.state.players.find((p) => p.id === play.playerId)!;
     expect(player.mat.map((c) => c.id)).toContain(play.card.id);
   });
+
+  it('ręka rośnie o karty już zebrane na matę z wcześniejszych misji', () => {
+    // Adam: gracz z jedną kartą na karcie postaci z misji 1 powinien w misji 2
+    // mieć w ręku 5 (z talii) + 1 (z postaci) = 6 kart, nie z powrotem 5.
+    // Karty na macie zostają grywalne ze swojego miejsca (limit jednej na
+    // misję) — to uzupełnianie ręki ignorowało ich liczbę, więc kolejna misja
+    // zawsze wyrównywała rękę do stałych pięciu, jakby postać nic nie miała.
+    let state = solvedMission();
+    const gracz = state.players[0].id;
+    const zMisji1 = makeCard('mat-z-misji-1', 'talent');
+    state = {
+      ...state,
+      players: state.players.map((p) => (p.id === gracz ? { ...p, mat: [zMisji1] } : p)),
+    };
+
+    const result = reduce(state, { type: 'END_MISSION_SUMMARY' });
+    const player = result.state.players.find((p) => p.id === gracz)!;
+
+    expect(player.hand).toHaveLength(state.config.handSize + 1);
+    // Karta na macie zostaje tam — to dodatkowy slot do gry, nie coś, co
+    // wraca do zwykłej ręki i miesza się ze zwykłymi kartami.
+    expect(player.mat.map((c) => c.id)).toEqual([zMisji1.id]);
+  });
 });
 
 describe('luki w przekazywaniu i zabieraniu kart', () => {
