@@ -151,4 +151,60 @@ describe('commitMove — bezpiecznik tury', () => {
     expect(lastResult?.lastAction).toEqual(move);
     expect(lastResult?.state?.missionNumber).toBe(42);
   });
+
+  /**
+   * Regresja zgłoszona CZWARTY raz: „gracz 1 może grać, nie czekając na
+   * drugiego" / „gracz 1 nie może dodać karty, choć pasuje". `dispatchTurnGate
+   * .test.ts` i `turnLock.test.tsx` już pilnują, że EKRAN liczy turę ze
+   * `state.players` (silnik) — ale `commitMove`, jedyne miejsce, które
+   * NAPRAWDĘ zapisuje ruch do bazy, dalej liczyło ją z `playersInOrder(room)`
+   * (kolejność CZŁONKÓW POKOJU wg czasu dołączenia). Te dwie listy są
+   * NIEZALEŻNE: gdy ktoś opuszcza pokój w trakcie partii (`kickPlayer` kasuje
+   * jego węzeł), `room.players` się kurczy, a `state.players` — stały skład
+   * ustalony raz, na starcie — nie. Ekran poprawnie odblokowywał kartę
+   * aktywnemu graczowi (liczył ze `state.players`), a `commitMove` i tak
+   * odrzucał zapis (liczył z krótszej `playersInOrder`) — dokładnie ciąg
+   * zdarzeń z czterech rund tego zgłoszenia.
+   */
+  it('gracz aktywny wg silnika zapisuje ruch, mimo że ktoś wcześniej opuścił pokój', async () => {
+    // Trójka graczy przy starcie (a, b, c); aktywny na indeksie 2 to „c".
+    let state = setupGame(
+      [
+        { id: 'a', name: 'Ala', characterId: 'ch-odkrywca' },
+        { id: 'b', name: 'Bo', characterId: 'ch-odkrywca' },
+        { id: 'c', name: 'Cela', characterId: 'ch-odkrywca' },
+      ],
+      7,
+    );
+    state = reduce(state, { type: 'START_MISSION' }).state;
+    state = { ...state, activePlayerIndex: 2 };
+
+    // „a" opuścił pokój — `room.players` ma już tylko dwoje, `state.players`
+    // (silnik) wciąż pamięta trójkę.
+    currentRoom = {
+      code: 'ABCD',
+      phase: 'playing',
+      hostUid: 'b',
+      players: {
+        b: { uid: 'b', name: 'Bo', characterId: 'ch-odkrywca', online: true, ready: true, joinedAt: 2 },
+        c: { uid: 'c', name: 'Cela', characterId: 'ch-odkrywca', online: true, ready: true, joinedAt: 3 },
+      },
+      state,
+      lastAction: null,
+      turnStartedAt: 0,
+      reactions: [],
+      offer: null,
+      createdAt: 0,
+    };
+
+    const ruchC = { type: 'PASS', playerId: 'c' } as const;
+    await commitMove('ABCD', 'c', tagged(state), ruchC);
+
+    // Bez fixu: playersInOrder(room) = [b, c] (dwa elementy), więc order[2]
+    // nie istnieje — ruch prawdziwego aktywnego gracza „c" jest odrzucany na
+    // stałe, partia stoi. Z fixem: `state.players[2].id === 'c'`, niezależnie
+    // od tego, kto jeszcze siedzi w pokoju.
+    expect(lastResult?.lastAction).toEqual(ruchC);
+    expect(lastResult?.state?.missionNumber).toBe(42);
+  });
 });

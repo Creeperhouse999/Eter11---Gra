@@ -155,4 +155,52 @@ describe('commitMoveAsHost — skip rozłączonego', () => {
     expect(lastResult?.lastAction).toEqual({ type: 'PASS', playerId: 'p2' });
     expect(lastResult?.state?.activePlayerIndex).not.toBe(1);
   });
+
+  /**
+   * Ten sam rozjazd co w `commitMove.test.ts`: skip liczył kolejność
+   * z `playersInOrder(room)` (członkowie POKOJU), nie ze `state.players`
+   * (skład SILNIKA). Gdy ktoś opuszcza pokój w trakcie gry, `room.players`
+   * się kurczy, a `state.players` — nie. Skip trafiał wtedy w złego gracza
+   * (albo w nikogo) właśnie wtedy, gdy jest jedyną drogą ruszenia tury
+   * rozłączonego — partia wisiała bez wyjścia.
+   */
+  it('spasowuje rozłączonego, mimo że ktoś wcześniej opuścił pokój', async () => {
+    // Trójka przy starcie (a, b, c); aktywny na indeksie 2 to „c", offline.
+    let state = setupGame(
+      [
+        { id: 'a', name: 'Ala', characterId: 'ch-odkrywca' },
+        { id: 'b', name: 'Bo', characterId: 'ch-odkrywca' },
+        { id: 'c', name: 'Cela', characterId: 'ch-odkrywca' },
+      ],
+      7,
+    );
+    state = reduce(state, { type: 'START_MISSION' }).state;
+    state = { ...state, activePlayerIndex: 2 };
+
+    // „b" opuścił pokój — `room.players` ma już tylko a i c.
+    currentRoom = {
+      code: 'ABCD',
+      phase: 'playing',
+      hostUid: 'a',
+      players: {
+        a: { uid: 'a', name: 'Ala', characterId: 'ch-odkrywca', online: true, ready: true, joinedAt: 1 },
+        c: { uid: 'c', name: 'Cela', characterId: 'ch-odkrywca', online: false, ready: true, joinedAt: 3 },
+      },
+      state,
+      lastAction: null,
+      turnStartedAt: 0,
+      reactions: [],
+      offer: null,
+      createdAt: 0,
+    };
+
+    await commitMoveAsHost('ABCD', 'a', 'c', { type: 'PASS', playerId: 'c' });
+
+    // Bez fixu: playersInOrder(room) = [a, c] (dwa elementy), order[2] nie
+    // istnieje ≠ 'c' → skip odrzucony, gra wisi na zawsze. Z fixem:
+    // `state.players[2].id === 'c'`, niezależnie od tego, kto jeszcze
+    // siedzi w pokoju.
+    expect(lastResult?.lastAction).toEqual({ type: 'PASS', playerId: 'c' });
+    expect(lastResult?.state?.activePlayerIndex).not.toBe(2);
+  });
 });

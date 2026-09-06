@@ -467,13 +467,23 @@ export async function commitMove(
     if (!room || room.phase !== 'playing' || !room.state) return room;
 
     // Tylko gracz, którego jest kolej, może zapisać ruch. Kolejność liczymy
-    // z ODSIANEGO od widm `room` (patrz hydrate.ts) — transakcja dostaje
-    // SUROWĄ wartość z bazy, nie tę, co przeszła przez `watchRoom`. Widmo
-    // (wpis bez `uid`, patrz `realPlayers`) zajmowałoby slot w kolejności,
-    // więc indeks aktywnego gracza wskazywałby na nie zamiast na
-    // prawdziwego gracza — jego ruch byłby odrzucany na stałe.
-    const order = playersInOrder(hydrateRoom(room));
-    const current = order[room.state.activePlayerIndex]?.uid;
+    // ze SKŁADU SILNIKA (`room.state.players`) — TEGO SAMEGO źródła, co
+    // ekran (`turnOwner.czyMojaTura`) i sam reduktor (`isActivePlayer`).
+    //
+    // Zgłoszenie wracało CZTERY razy: „gracz 1 może grać, nie czekając na
+    // drugiego", potem „gracz 1 nie może dodać karty, choć pasuje". Ta druga
+    // wersja to był właśnie ten kod — liczył turę z `playersInOrder(room)`,
+    // czyli z listy CZŁONKÓW POKOJU wg czasu dołączenia. Ta lista i
+    // `state.players` to DWA NIEZALEŻNE byty: `state.players` to stały skład
+    // ustalony RAZ na starcie partii, a `room.players` kurczy się, gdy ktoś
+    // wychodzi albo zostaje wyrzucony w trakcie gry. Po takim wyjściu ekran
+    // (licząc ze `state.players`) poprawnie odblokowywał kartę aktywnemu
+    // graczowi, a ten kod (licząc z krótszej `playersInOrder`) i tak odrzucał
+    // zapis — bo pod indeksem aktywnego gracza w POKOJOWEJ liście nikogo już
+    // nie było, albo siedział tam ktoś inny. Naprawiona wcześniej „widmowa"
+    // odmiana tego samego problemu (wpis bez `uid` po nieudanym `kickPlayer`)
+    // była łatką na objaw w TEJ SAMEJ złej liście, nie na przyczynę.
+    const current = room.state.players[room.state.activePlayerIndex]?.id;
     if (current !== uid) return room;
 
     room.state = next;
@@ -596,11 +606,14 @@ export async function commitMoveAsHost(
     // gracza i wciąż jest offline. Inaczej jego własny ruch (albo cudzy) już
     // ruszył grę dalej i nadpisanie go spasowaniem byłoby cofnięciem.
     //
-    // `hydrateRoom` odsiewa widma (patrz `commitMove` wyżej) — bez tego
-    // widmo mogłoby zająć slot pominiętego gracza w kolejności i skip
-    // nigdy by się nie zgadzał.
-    const order = playersInOrder(hydrateRoom(room));
-    if (order[room.state.activePlayerIndex]?.uid !== skippedUid) return room;
+    // Kolejność ze SKŁADU SILNIKA (`room.state.players`), nie z
+    // `playersInOrder(room)` — ten sam rozjazd co w `commitMove` wyżej:
+    // `room.players` kurczy się, gdy ktoś wychodzi w trakcie gry, a
+    // `state.players` (stały skład ustalony na starcie) nie. Licząc z
+    // krótszej listy pokoju, skip trafiałby w złego gracza (albo w nikogo)
+    // dokładnie wtedy, gdy pominięty już opuścił pokój — a to jedyny
+    // moment, w którym w ogóle jest potrzebny.
+    if (room.state.players[room.state.activePlayerIndex]?.id !== skippedUid) return room;
     if (room.players?.[skippedUid]?.online) return room;
 
     // Stan z RTDB bywa okrojony (puste tablice wycięte) — dopełniamy przed
