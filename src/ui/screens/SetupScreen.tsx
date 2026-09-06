@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EterUnlock } from '../components/EterUnlock';
 import { ALL_CHARACTERS } from '../../data/characters';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import type { Character } from '../../engine/types';
@@ -363,6 +364,11 @@ export function SetupScreen({
       <p className="relative mt-6 max-w-prose text-xs leading-relaxed text-ink-dim">
         {text.gameIntro}
       </p>
+
+      {/* Bramka na kod do funkcji ETER. Cicha z rozmysłem: kto nie wie, że tu
+          coś jest, nie zauważy — a funkcja nie włącza się przypadkiem
+          u dziecka, które dostało sam link do gry. */}
+      <EterUnlock />
     </main>
   );
 }

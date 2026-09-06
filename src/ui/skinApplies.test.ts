@@ -21,34 +21,44 @@ beforeEach(() => {
 });
 
 describe('skórka Kolorowy przemalowuje grę', () => {
-  it('kafle dostają poświatę, nie tylko inny kolor obramowania', () => {
-    // Sedno grafik Adama: klocki ŚWIECĄ. Bez cienia to zwykłe prostokąty.
-    expect(sekcja).toMatch(/\.eter-tile[\s\S]*box-shadow/);
+  /**
+   * Alan po trzech podejściach: „to są małe, drobne kwadraciki w siatce,
+   * a nie wielkie kwadraty kolorowe — to inny direction w ogóle", oraz
+   * „tło to siatka półprzezroczysta w tle, karty mają być trochę podobne".
+   *
+   * Stąd sedno tego wyglądu: FAKTURA z drobnych kwadracików, ta sama na tle
+   * i na kartach. Poprzednie wersje dokładały poświatę do tego samego ekranu
+   * i Adam odsyłał je ze słowami „nie różni się wiele od klasycznego".
+   */
+  it('kafle mają fakturę z kwadracików, nie samo tło', () => {
+    expect(sekcja).toMatch(/\.eter-tile[\s\S]*?background-image/);
   });
 
-  it('kafel jest kwadratowy, nie zaokrąglony jak panel', () => {
-    expect(sekcja).toMatch(/\.eter-tile[\s\S]*border-radius/);
+  it('siatka jest DROBNA — kwadracik liczony w pojedynczych pikselach', () => {
+    const match = sekcja.match(/--kwadracik:\s*(\d+)px/);
+    expect(match, 'brak zmiennej --kwadracik').toBeTruthy();
+    const bok = Number(match![1]);
+    // Powyżej ~16 px to już nie faktura, tylko kafle — czyli dokładnie to,
+    // co Alan odrzucił.
+    expect(bok, `bok kwadracika: ${bok}px`).toBeLessThanOrEqual(16);
+    expect(bok).toBeGreaterThan(0);
   });
 
-  it('kafel ma ucięty kształt, nie zwykły prostokąt jak w Klasycznym', () => {
-    // Adam po czwartej turze: samo świecenie w rogu to wciąż „ten sam
-    // interfejs". `.eter-tile` musi mieć NIERÓWNY promień rogów (kształt
-    // różny od jednej wspólnej wartości), inaczej sylwetka karty jest
-    // identyczna z Klasycznym i różni je tylko poświata.
-    const match = sekcja.match(/\.eter-tile\s*\{[\s\S]*?border-radius:\s*([^;]+);/);
-    expect(match, 'brak border-radius w regule .eter-tile').toBeTruthy();
-    const wartosci = match![1].trim().split(/\s+/);
-    expect(new Set(wartosci).size, `promienie rogów: ${match![1]}`).toBeGreaterThan(1);
+  it('tło całego ekranu niesie tę samą siatkę', () => {
+    expect(sekcja).toMatch(/body[\s\S]*?background-image[\s\S]*?linear-gradient/);
   });
 
-  it('liczniki (runda, ścianki) dostają inny krój niż w Klasycznym', () => {
-    // Round counter i licznik ścianek to jedne z pierwszych rzeczy, na które
-    // patrzy gracz — a dotąd wyglądały identycznie w obu wyglądach.
-    expect(sekcja).toMatch(/\.eter-bump[\s\S]*?font-family/);
+  it('siatka na tle jest słabsza niż na kartach — inaczej zjada tekst', () => {
+    const tlo = sekcja.match(/--siatka-tlo:\s*([\d.]+)/);
+    const karta = sekcja.match(/--siatka-karta:\s*([\d.]+)/);
+    expect(tlo && karta, 'brak zmiennych siły siatki').toBeTruthy();
+    expect(Number(tlo![1])).toBeLessThan(Number(karta![1]));
   });
 
-  it('tło gry dostaje głębię, nie płaską czerń', () => {
-    expect(sekcja).toMatch(/body[\s\S]*radial-gradient/);
+  it('kolor karty niesie rodzinę, nie jeden wspólny akcent', () => {
+    // Kolor karty NIESIE ZASADĘ GRY (pasuje do ścianki w swojej rodzinie),
+    // więc w tym wyglądzie musi wynikać z karty, nie z ogólnego akcentu.
+    expect(sekcja).toMatch(/--eter-tile-accent/);
   });
 
   it('panel administracyjny zostaje nietknięty', () => {

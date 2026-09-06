@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ALL_CHARACTERS } from '../../data/characters';
+import { EterPanel } from '../components/EterPanel';
 import { DEFAULT_UI_TEXT, type UiText } from '../../data/uiText';
 import { roundsForPlayers } from '../../engine/reducer';
 import { cardFitsSlot, isSlotFilled, firstOpenSlotFor } from '../../engine/rules';
@@ -632,6 +633,11 @@ export function MissionScreen({
           </ul>
         </section>
       )}
+
+      {/* Okno ETER — narrator i pomoc w zasadach. Adam poprosił o nie „przed
+          rozpoczęciem gry i w trakcie gry"; tu jest ta druga część. Zwinięte
+          zajmuje pasek na dole, więc nie zabiera miejsca planszy. */}
+      <EterPanel state={state} viewerId={activePlayer.id} />
     </main>
   );
 }
