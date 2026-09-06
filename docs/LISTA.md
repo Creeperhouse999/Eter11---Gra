@@ -21,18 +21,18 @@ w kolejce.
 - [x] **Typy i pilność w dyskusjach** — to samo, co w zgłoszeniach. Prosił
       1 września, obiecałem „robię teraz", nie zrobiłem. Typ „Pytanie"
       w zgłoszeniach: ZROBIONE. Zostają dyskusje.
-- [ ] **Presety nazw** — Normalne / Dziecięce / Super dziecięce jako presety.
+- [x] **Presety nazw** — Normalne / Dziecięce / Super dziecięce jako presety.
 - [x] **README.**
-- [ ] **Przeciąganie zgłoszeń** — zmiana kolejności przez admina/co-admina.
+- [x] **Przeciąganie zgłoszeń** — zmiana kolejności przez admina/co-admina.
 - [ ] **Styl Kolorowy od zera** — osobna wizualizacja panelu gracza z
       pikselowych kwadracików wg załączników Adama, NIE przemalowanie
       obecnego wyglądu. Adam odesłał to dwa razy — realny, subiektywny
       projekt graficzny, nie punktowa poprawka. Nie zgaduję trzeci raz bez
       rundy z konkretną makietą albo feedbackiem od Adama.
 - [ ] **Aktywność: czasy** — kiedy zacząłem daną rzecz i kiedy planuję kolejną.
-- [ ] **Plakietki wątków** — „Czeka na odpowiedź od AI" (nie samo „czeka”),
+- [x] **Plakietki wątków** — „Czeka na odpowiedź od AI" (nie samo „czeka”),
       „Nowa odpowiedź — sprawdź”.
-- [ ] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
+- [x] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
       Sprawdziłem `RoomLobby.tsx`, `setCharacter` i reguły RTDB — kod i reguły
       wyglądają poprawnie, przycisk powinien działać. Nie potrafię tego
       odtworzyć bez żywej sesji dwuosobowej — potrzebuję więcej szczegółu od

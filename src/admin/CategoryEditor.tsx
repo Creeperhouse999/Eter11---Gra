@@ -3,6 +3,11 @@ import {
   DEFAULT_CATEGORIES,
   type CategoryMap,
 } from '../data/categories';
+import {
+  CATEGORY_PRESETS,
+  ktoryPreset,
+  zastosujPreset,
+} from '../data/categoryPresets';
 import type { CardCategory } from '../engine/types';
 import { categoryColorVar } from '../ui/components/categoryStyles';
 import { TextField } from '../ui/controls/Field';
@@ -93,6 +98,43 @@ export function CategoryEditor({ categories, onChange }: CategoryEditorProps) {
         Nazwy i ikony, które widzi gracz — na kartach, ściankach i karcie
         postaci. Kolory ustawisz w zakładce „Kolory”.
       </p>
+
+      {/* Gotowe zestawy nazw. Alan: „dodaj presety — te co są dziecięce,
+          super dziecięce i normalne". Gra idzie i do ośmiolatków, i do
+          nauczycieli mówiących językiem podstawy programowej; zamiast
+          przepisywać siedem pól, zespół przełącza zestaw. */}
+      <div className="mt-4 rounded-xl border border-edge bg-surface p-3">
+        <span className="eter-label text-[10px]">Gotowe zestawy nazw</span>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {CATEGORY_PRESETS.map((preset) => {
+            const wybrany = ktoryPreset(current)?.id === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={wybrany}
+                onClick={() => onChange(zastosujPreset(current, preset))}
+                className={[
+                  'max-w-xs rounded-lg border p-2.5 text-left transition',
+                  wybrany
+                    ? 'border-accent bg-raised'
+                    : 'border-edge hover:border-ink-dim',
+                ].join(' ')}
+              >
+                <span className="block font-display text-sm font-bold">{preset.name}</span>
+                <span className="mt-0.5 block text-xs text-ink-dim">{preset.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Bez tego zdania wygląda, jakby żaden zestaw nie działał — a to
+            znaczy tylko, że ktoś dopisał własną nazwę. */}
+        {!ktoryPreset(current) && (
+          <p className="mt-2 text-xs text-ink-dim">
+            Nazwy są teraz Wasze własne. Kliknięcie zestawu je zastąpi.
+          </p>
+        )}
+      </div>
 
       <div className="eter-stagger mt-4 space-y-2">{CATEGORY_ORDER.map(row)}</div>
 
