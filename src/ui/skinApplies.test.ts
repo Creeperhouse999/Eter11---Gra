@@ -22,37 +22,61 @@ beforeEach(() => {
 
 describe('skórka Kolorowy przemalowuje grę', () => {
   /**
-   * Alan po trzech podejściach: „to są małe, drobne kwadraciki w siatce,
-   * a nie wielkie kwadraty kolorowe — to inny direction w ogóle", oraz
-   * „tło to siatka półprzezroczysta w tle, karty mają być trochę podobne".
+   * Alan: „to są małe, drobne kwadraciki w siatce, a nie wielkie kwadraty
+   * kolorowe" oraz „tło to siatka półprzezroczysta w tle, karty mają być
+   * trochę podobne". Pomiar załączników Adama dodał resztę: kwadraciki są
+   * WYPEŁNIONE kolorem, z przerwami — mozaika, nie kratka z linii.
    *
-   * Stąd sedno tego wyglądu: FAKTURA z drobnych kwadracików, ta sama na tle
-   * i na kartach. Poprzednie wersje dokładały poświatę do tego samego ekranu
-   * i Adam odsyłał je ze słowami „nie różni się wiele od klasycznego".
+   * Sedno, którego pilnują te testy: mozaika musi być NAPRAWDĘ widoczna.
+   * Trzy wcześniejsze wersje nadpisywały `--eter-bg` w CSS, a `applyTheme`
+   * wpisuje tę zmienną inline na `<html>` — inline wygrywa, więc kolory nigdy
+   * nie działały i Adam słusznie pisał „nie różni się wiele od klasycznego".
    */
-  it('kafle mają fakturę z kwadracików, nie samo tło', () => {
-    expect(sekcja).toMatch(/\.eter-tile[\s\S]*?background-image/);
+  it('NIE nadpisuje zmiennych motywu — inline z applyTheme i tak by wygrał', () => {
+    for (const zmienna of ['--eter-bg', '--eter-surface', '--eter-raised', '--eter-ink']) {
+      expect(sekcja, `${zmienna} ustawiane w CSS to martwa reguła`).not.toMatch(
+        new RegExp(`${zmienna}\\s*:`),
+      );
+    }
   });
 
-  it('siatka jest DROBNA — kwadracik liczony w pojedynczych pikselach', () => {
-    const match = sekcja.match(/--kwadracik:\s*(\d+)px/);
-    expect(match, 'brak zmiennej --kwadracik').toBeTruthy();
-    const bok = Number(match![1]);
-    // Powyżej ~16 px to już nie faktura, tylko kafle — czyli dokładnie to,
-    // co Alan odrzucił.
-    expect(bok, `bok kwadracika: ${bok}px`).toBeLessThanOrEqual(16);
-    expect(bok).toBeGreaterThan(0);
+  it('tło niesie mozaikę z wypełnionych kwadracików (SVG), nie siatkę linii', () => {
+    expect(sekcja).toMatch(/body::before[\s\S]*?background-image:\s*url\("data:image\/svg\+xml/);
+    expect(sekcja).not.toMatch(/body[\s\S]*?linear-gradient/);
   });
 
-  it('tło całego ekranu niesie tę samą siatkę', () => {
-    expect(sekcja).toMatch(/body[\s\S]*?background-image[\s\S]*?linear-gradient/);
+  it('karta ma mozaikę w kolorze rodziny — pod treścią', () => {
+    // Maska z SVG wycina kwadraciki, kolor daje `--eter-tile-accent`,
+    // a `z-index: -1` chowa warstwę pod napisy.
+    const przed = sekcja.match(/\.eter-tile[^{]*::before\s*\{([\s\S]*?)\}/);
+    expect(przed, 'brak ::before na kafelku').toBeTruthy();
+    const regula = przed![1];
+    expect(regula).toMatch(/mask-image:\s*url\("data:image\/svg\+xml/);
+    expect(regula).toMatch(/background-color:\s*var\(--eter-tile-accent/);
+    expect(regula).toMatch(/z-index:\s*-1/);
   });
 
-  it('siatka na tle jest słabsza niż na kartach — inaczej zjada tekst', () => {
-    const tlo = sekcja.match(/--siatka-tlo:\s*([\d.]+)/);
-    const karta = sekcja.match(/--siatka-karta:\s*([\d.]+)/);
-    expect(tlo && karta, 'brak zmiennych siły siatki').toBeTruthy();
-    expect(Number(tlo![1])).toBeLessThan(Number(karta![1]));
+  it('kwadraciki są DROBNE — bok w pojedynczych pikselach', () => {
+    const tlo = sekcja.match(/--mozaika-bok:\s*(\d+)px/);
+    const karta = sekcja.match(/--mozaika-karta-bok:\s*(\d+)px/);
+    expect(tlo && karta, 'brak zmiennych boku').toBeTruthy();
+    // Powyżej ~20 px to już kafle, nie faktura — to Alan odrzucił.
+    expect(Number(tlo![1])).toBeLessThanOrEqual(20);
+    expect(Number(karta![1])).toBeLessThanOrEqual(Number(tlo![1]));
+    expect(Number(karta![1])).toBeGreaterThan(0);
+  });
+
+  it('mozaika na tle jest słabsza niż na karcie — w OBU trybach', () => {
+    const tla = [...sekcja.matchAll(/--mozaika-tlo-sila:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    const karty = [...sekcja.matchAll(/--mozaika-karta-sila:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    expect(tla.length, 'siła tła dla obu trybów').toBe(2);
+    expect(karty.length, 'siła karty dla obu trybów').toBe(2);
+    // Porównanie W OBRĘBIE trybu: ciemny ma mocniejsze tło niż jasny ma
+    // kartę, i to jest w porządku — liczy się, że w każdym trybie tło
+    // ustępuje karcie.
+    for (const [i, tlo] of tla.entries()) {
+      expect(tlo, `tryb #${i}: tło ${tlo} vs karta ${karty[i]}`).toBeLessThan(karty[i]);
+    }
   });
 
   it('kolor karty niesie rodzinę, nie jeden wspólny akcent', () => {

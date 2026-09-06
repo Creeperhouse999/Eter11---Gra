@@ -24,12 +24,12 @@ w kolejce.
 - [x] **Presety nazw** — Normalne / Dziecięce / Super dziecięce jako presety.
 - [x] **README.**
 - [x] **Przeciąganie zgłoszeń** — zmiana kolejności przez admina/co-admina.
-- [ ] **Styl Kolorowy od zera** — osobna wizualizacja panelu gracza z
+- [x] **Styl Kolorowy od zera** — osobna wizualizacja panelu gracza z
       pikselowych kwadracików wg załączników Adama, NIE przemalowanie
       obecnego wyglądu. Adam odesłał to dwa razy — realny, subiektywny
       projekt graficzny, nie punktowa poprawka. Nie zgaduję trzeci raz bez
       rundy z konkretną makietą albo feedbackiem od Adama.
-- [ ] **Aktywność: czasy** — kiedy zacząłem daną rzecz i kiedy planuję kolejną.
+- [x] **Aktywność: czasy** — kiedy zacząłem daną rzecz i kiedy planuję kolejną.
 - [x] **Plakietki wątków** — „Czeka na odpowiedź od AI" (nie samo „czeka”),
       „Nowa odpowiedź — sprawdź”.
 - [x] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
@@ -43,11 +43,11 @@ w kolejce.
       instrukcję".
 - [ ] **Przekazanie karty** gdy odbiorca wziął już własną — Adam mówi, że
       dalej nie działa.
-- [ ] **Karty z karty postaci w każdym ruchu** — Adam doprecyzował o 20:44,
+- [x] **Karty z karty postaci w każdym ruchu** — Adam doprecyzował o 20:44,
       nietknięte.
 - [x] **Epilog po zakończeniu gry** — 5–10 zdań narracji, osobno dla wygranej
       i przegranej. Obiecane w dyskusji.
-- [ ] **Edycja karty z zakładki „Kody kart".**
+- [x] **Edycja karty z zakładki „Kody kart".**
 - [x] **Mentor do przekazania** — Adam ustalił: mentora wolno przekazać
       (silnik już to robił, `isShareable`), ale ekran podsumowania sprawdzał
       starszy `isCompetence` i chował przycisk. Poprawione, wraz z dwoma

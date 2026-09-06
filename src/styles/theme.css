@@ -195,232 +195,125 @@
   animation-delay: var(--eter-delay, 0ms);
 }
 
-/* Wejście listy: każdy element wchodzi chwilę po poprzednim. */
-.eter-stagger > * {
-  animation: eter-rise var(--eter-normal) var(--eter-ease) both;
-}
-.eter-stagger > *:nth-child(1) { animation-delay: 0ms; }
-.eter-stagger > *:nth-child(2) { animation-delay: 40ms; }
-.eter-stagger > *:nth-child(3) { animation-delay: 80ms; }
-.eter-stagger > *:nth-child(4) { animation-delay: 120ms; }
-.eter-stagger > *:nth-child(5) { animation-delay: 160ms; }
-.eter-stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
-
-/* Pulsowanie dla elementu wymagającego uwagi — np. ostatnia runda. */
-@keyframes eter-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-.eter-pulse { animation: eter-pulse 1.6s ease-in-out infinite; }
-
-/*
- * Reakcja na dotknięcie.
- *
- * Przycisk, który nic nie robi między kliknięciem a odpowiedzią, na wolnym
- * telefonie czyta się jak niedziałający — dziecko klika drugi raz. Wciśnięcie
- * musi być widać natychmiast, niezależnie od tego, jak długo zajmie skutek.
- */
-.eter-press {
-  transition: transform var(--eter-fast) var(--eter-ease);
-}
-.eter-press:active:not(:disabled) {
-  transform: scale(0.96);
-}
-
-/*
- * Karta odkładana na stół.
- *
- * Zagrana karta pojawiała się w ściance natychmiast, jakby tam była od
- * początku. Krótkie opadnięcie łączy gest gracza ze skutkiem — dziecko widzi,
- * że to JEGO karta tam wylądowała.
- */
-@keyframes eter-land {
-  from { opacity: 0; transform: translateY(-12px) scale(1.08); }
-  to { opacity: 1; transform: none; }
-}
-.eter-land {
-  animation: eter-land var(--eter-normal) var(--eter-ease) both;
-}
-
-/*
- * Liczba, która się zmieniła.
- *
- * W panelu statystyk i na licznikach rund nowa wartość podmienia się
- * bezszelestnie. Podbicie mówi, że to nie ta sama liczba co przed chwilą.
- */
-@keyframes eter-bump {
-  0% { transform: none; }
-  35% { transform: translateY(-3px) scale(1.08); }
-  100% { transform: none; }
-}
-.eter-bump {
-  animation: eter-bump var(--eter-normal) var(--eter-ease) both;
-}
-
-/*
- * Karta odlatująca z talii do ręki.
- *
- * Rewers unosi się, lekko obraca i gaśnie — dziecko widzi, że dobranie coś
- * z talii zabrało, zamiast patrzeć na statyczny stos i zmieniającą się cyfrę.
- */
-@keyframes eter-deck-fly {
-  0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
-  100% {
-    opacity: 0;
-    transform: translate(14px, -40px) scale(0.7) rotate(12deg);
-  }
-}
-.eter-deck-fly {
-  animation: eter-deck-fly 460ms var(--eter-ease) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    animation-delay: 0ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 /* ============================================================
    Wygląd „Kolorowy" — mozaika z drobnych kwadracików.
 
-   Trzy podejścia odpadły, zanim trafiłem w to, co Adam pokazał na zdjęciach.
-   Dwa pierwsze dokładały poświatę do tego samego ciemnego ekranu („nie różni
-   się wiele od klasycznego"), trzecie poszło w wielkie kolorowe bloki
-   z grubym obrysem — a na jego grafikach są DROBNE, gęste kwadraciki
-   ułożone w siatkę, jak pixel-art albo mozaika z małych klocków.
+   Cztery podejścia. Pierwsze dwa dokładały poświatę do tego samego ekranu
+   („nie różni się wiele od klasycznego"). Trzecie dało wielkie bloki z grubym
+   obrysem — Alan: „to są małe, drobne kwadraciki w siatce, a nie wielkie
+   kwadraty kolorowe". Czwarte rysowało siatkę LINII, czyli papier w kratkę.
 
-   Stąd zasada tego wyglądu: kolor nie jest płaską plamą, tylko GĘSTĄ SIATKĄ
-   drobnych kwadracików. Tło niesie ją półprzezroczyście przez cały ekran,
-   a karty i panele mają tę samą fakturę, tylko mocniej nasyconą — dzięki
-   temu wszystko wygląda na zbudowane z jednego materiału.
+   Dopiero pomiar załączników Adama (nie oglądanie — limit obrazów w rozmowie,
+   tylko liczby z pikseli) powiedział, co tam naprawdę jest: WYPEŁNIONE
+   kolorowe kwadraciki z ciemnymi przerwami, mocno nasycone (0,77), na
+   granatowym tle, w siatce ~5% szerokości ekranu. Mozaika, nie kratka.
 
-   Panel administracyjny zostaje nietknięty — Adam: „panel admina jest ok,
-   jest czytelny". Stąd `:not(.eter-admin *)` przy regułach.
+   Dwie decyzje, które wynikają z tego, co zawiodło wcześniej:
+
+   1. NIE nadpisujemy zmiennych motywu (tła, paneli, tekstu). `applyTheme`
+      wpisuje je inline na `<html>`, a inline wygrywa z każdym selektorem —
+      więc poprzednie ustawianie ich pod selektorem skórki nigdy nie działało
+      i stąd brał się „ten sam wygląd". Mozaika to półprzezroczyste WARSTWY
+      nad tłem motywu: działa w obu trybach i z każdym presetem z panelu.
+
+   2. Mozaika na karcie to `::before` z maską SVG pod treścią, w kolorze
+      rodziny (`--eter-tile-accent`, ustawiane przez CardView i ProblemCard).
+      Kolor niesie zasadę gry — karta pasuje do ścianki tylko przy zgodnej
+      rodzinie — więc ma być widoczny z drugiego końca stołu.
+
+   Panel administracyjny nietknięty: Adam — „panel admina jest ok, jest
+   czytelny". Stąd `:not(.eter-admin *)`.
    ============================================================ */
 
 [data-skin='colorful'] {
-  /* Bok kwadracika. Drobny — ma być fakturą, nie kaflem: przy 8 px na karcie
-     szerokości 120 px mieści się ich piętnaście w rzędzie. */
-  --kwadracik: 8px;
-  /* Siła siatki na tle i na elementach. Tło ledwie widoczne, żeby nie
-     zjadało tekstu; karta wyraźniejsza, bo tam faktura ma być widać. */
-  --siatka-tlo: 0.055;
-  --siatka-karta: 0.14;
+  /* Bok kwadracika. Adam mierzony: ~5% szerokości ekranu w mockupie, ale Alan
+     prosił o „drobne" — 16 px na tle mieści ~24 w rzędzie na telefonie,
+     wciąż czytelne jako pojedyncze klocki. Karty drobniej: to faktura. */
+  --mozaika-bok: 16px;
+  --mozaika-karta-bok: 12px;
 }
 
-[data-skin='colorful']:not([data-theme='dark']) {
-  --eter-bg: #fbf7ef;
-  --eter-surface: #ffffff;
-  --eter-raised: #ffffff;
-  --eter-ink: #221b2e;
-  --eter-ink-dim: #6a6178;
-  --eter-edge: #ded5e8;
+/* Siła warstw — osobno dla obu trybów, bo ta sama krycie na kremowym tle
+   ledwo widać, a na granacie już świeci. Tło zawsze słabsze niż karta:
+   tło ma być kontekstem, karta — rzeczą. */
+[data-skin='colorful']:not([data-theme='light']) {
+  --mozaika-tlo-sila: 0.34;
+  --mozaika-karta-sila: 0.42;
+  --mozaika-karta-sila-hover: 0.62;
 }
 
-[data-skin='colorful'][data-theme='dark'] {
-  --eter-bg: #14101f;
-  --eter-surface: #1d1730;
-  --eter-raised: #241d3b;
-  --eter-ink: #f4f0ff;
-  --eter-ink-dim: #b0a5c9;
-  --eter-edge: #342a4f;
+[data-skin='colorful'][data-theme='light'] {
+  --mozaika-tlo-sila: 0.22;
+  --mozaika-karta-sila: 0.3;
+  --mozaika-karta-sila-hover: 0.48;
 }
 
 /*
- * Tło: półprzezroczysta siatka drobnych kwadracików przez cały ekran.
+ * Tło: tęczowa mozaika przez cały ekran, półprzezroczysta.
  *
- * Rysowana dwoma gradientami zamiast obrazkiem — nie waży nic, jest ostra
- * na każdym ekranie i nie czeka na sieć.
+ * SVG w data-URI, nie obrazek z sieci — waży 1 KB, jest ostry na każdym
+ * ekranie i nie czeka na sieć. Kolory to paleta rodzin gry, więc tło
+ * i karty są z jednego pudełka. `opacity` przez pseudo-element, bo
+ * `background-image` nie ma własnej krycia, a chcemy inną siłę w każdym
+ * trybie bez dwóch osobnych plików SVG.
  */
 [data-skin='colorful'] body {
-  background-color: var(--eter-bg);
-  background-image:
-    linear-gradient(rgb(90 60 140 / var(--siatka-tlo)) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(90 60 140 / var(--siatka-tlo)) 1px, transparent 1px);
-  background-size: var(--kwadracik) var(--kwadracik);
+  position: relative;
+  isolation: isolate;
 }
 
-[data-skin='colorful'][data-theme='dark'] body {
-  background-image:
-    linear-gradient(rgb(190 160 255 / var(--siatka-tlo)) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(190 160 255 / var(--siatka-tlo)) 1px, transparent 1px);
-}
-
-/*
- * Karty, ścianki i panele: ta sama siatka, mocniejsza, w kolorze elementu.
- *
- * `--eter-tile-accent` ustawiają `CardView` i `ProblemCard` na kolor rodziny
- * tej konkretnej karty — kolor niesie zasadę gry (karta pasuje do ścianki
- * tylko przy zgodnej rodzinie), więc musi być widać, czyj jest.
- *
- * Kolejność warstw: siatka NA WIERZCHU delikatnego wypełnienia barwą, żeby
- * kwadraciki było widać także tam, gdzie karta jest najmocniej nasycona.
- */
-[data-skin='colorful'] .eter-tile:not(.eter-admin *),
-[data-skin='colorful'] .bg-raised:not(.eter-admin *),
-[data-skin='colorful'] .bg-surface:not(.eter-admin *) {
-  border-radius: 0.3rem;
-  border: 1px solid var(--eter-edge);
-  background-color: var(--eter-surface);
-  background-image:
-    linear-gradient(
-        color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent) 1px,
-        transparent 1px
-      ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: var(--kwadracik) var(--kwadracik);
-  transition:
-    background-size var(--eter-fast) var(--eter-ease),
-    box-shadow var(--eter-fast) var(--eter-ease);
+[data-skin='colorful'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--mozaika-tlo-sila);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='1' y='1' width='14' height='14' rx='1.5' fill='%23ff6b6b' fill-opacity='1.0'/%3E%3Crect x='17' y='1' width='14' height='14' rx='1.5' fill='%235b9dff' fill-opacity='0.55'/%3E%3Crect x='33' y='1' width='14' height='14' rx='1.5' fill='%23ffd23f' fill-opacity='0.8'/%3E%3Crect x='49' y='1' width='14' height='14' rx='1.5' fill='%23a78bfa' fill-opacity='0.45'/%3E%3Crect x='1' y='17' width='14' height='14' rx='1.5' fill='%2322d3ff' fill-opacity='0.6'/%3E%3Crect x='17' y='17' width='14' height='14' rx='1.5' fill='%23ffa63d' fill-opacity='0.9'/%3E%3Crect x='33' y='17' width='14' height='14' rx='1.5' fill='%23ff5fd2' fill-opacity='0.5'/%3E%3Crect x='49' y='17' width='14' height='14' rx='1.5' fill='%235ce08f' fill-opacity='0.75'/%3E%3Crect x='1' y='33' width='14' height='14' rx='1.5' fill='%23ffd23f' fill-opacity='0.45'/%3E%3Crect x='17' y='33' width='14' height='14' rx='1.5' fill='%23a78bfa' fill-opacity='0.7'/%3E%3Crect x='33' y='33' width='14' height='14' rx='1.5' fill='%23ff6b6b' fill-opacity='1.0'/%3E%3Crect x='49' y='33' width='14' height='14' rx='1.5' fill='%235b9dff' fill-opacity='0.55'/%3E%3Crect x='1' y='49' width='14' height='14' rx='1.5' fill='%23ff5fd2' fill-opacity='0.85'/%3E%3Crect x='17' y='49' width='14' height='14' rx='1.5' fill='%235ce08f' fill-opacity='0.5'/%3E%3Crect x='33' y='49' width='14' height='14' rx='1.5' fill='%2322d3ff' fill-opacity='0.65'/%3E%3Crect x='49' y='49' width='14' height='14' rx='1.5' fill='%23ffa63d' fill-opacity='0.9'/%3E%3C/svg%3E");
+  background-size: calc(var(--mozaika-bok) * 4) calc(var(--mozaika-bok) * 4);
 }
 
 /*
- * Karta w kolorze rodziny: delikatna plama barwy POD siatką, żeby czerwona
- * karta była czerwona z drugiego końca stołu, a nie tylko przy czytaniu.
+ * Karta i ścianka: mozaika w kolorze swojej rodziny, pod treścią.
+ *
+ * `isolation: isolate` + `z-index: -1` na `::before` kładzie mozaikę NAD tłem
+ * karty, ale POD wszystkim, co na niej napisane — bez tego kwadraciki
+ * zakrywałyby nazwę. Kolor z maski: SVG z czarnymi kwadracikami o różnym
+ * kryciu wycina kształt i cieniowanie, a `background-color` daje barwę.
+ * Dzięki temu jeden plik maski obsługuje wszystkie rodziny.
  */
 [data-skin='colorful'] .eter-tile:not(.eter-admin *) {
-  background-color: color-mix(
-    in srgb,
-    var(--eter-tile-accent, var(--eter-accent)) 12%,
-    var(--eter-surface)
-  );
+  position: relative;
+  isolation: isolate;
   border-color: color-mix(
     in srgb,
-    var(--eter-tile-accent, var(--eter-accent)) 45%,
-    var(--eter-edge)
+    var(--eter-tile-accent, var(--eter-accent)) 55%,
+    transparent
   );
 }
 
-[data-skin='colorful'][data-theme='dark'] .eter-tile:not(.eter-admin *) {
-  background-color: color-mix(
-    in srgb,
-    var(--eter-tile-accent, var(--eter-accent)) 20%,
-    var(--eter-surface)
-  );
+[data-skin='colorful'] .eter-tile:not(.eter-admin *)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--eter-tile-accent, var(--eter-accent));
+  opacity: var(--mozaika-karta-sila);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='1' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='1.0'/%3E%3Crect x='17' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.55'/%3E%3Crect x='33' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.8'/%3E%3Crect x='49' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.45'/%3E%3Crect x='1' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.6'/%3E%3Crect x='17' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.9'/%3E%3Crect x='33' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.5'/%3E%3Crect x='49' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.75'/%3E%3Crect x='1' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.45'/%3E%3Crect x='17' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.7'/%3E%3Crect x='33' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='1.0'/%3E%3Crect x='49' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.55'/%3E%3Crect x='1' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.85'/%3E%3Crect x='17' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.5'/%3E%3Crect x='33' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.65'/%3E%3Crect x='49' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.9'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='1' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='1.0'/%3E%3Crect x='17' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.55'/%3E%3Crect x='33' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.8'/%3E%3Crect x='49' y='1' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.45'/%3E%3Crect x='1' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.6'/%3E%3Crect x='17' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.9'/%3E%3Crect x='33' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.5'/%3E%3Crect x='49' y='17' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.75'/%3E%3Crect x='1' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.45'/%3E%3Crect x='17' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.7'/%3E%3Crect x='33' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='1.0'/%3E%3Crect x='49' y='33' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.55'/%3E%3Crect x='1' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.85'/%3E%3Crect x='17' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.5'/%3E%3Crect x='33' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.65'/%3E%3Crect x='49' y='49' width='14' height='14' rx='1.5' fill='%23000' fill-opacity='0.9'/%3E%3C/svg%3E");
+  -webkit-mask-size: calc(var(--mozaika-karta-bok) * 4) calc(var(--mozaika-karta-bok) * 4);
+  mask-size: calc(var(--mozaika-karta-bok) * 4) calc(var(--mozaika-karta-bok) * 4);
+  transition: opacity var(--eter-fast) var(--eter-ease);
 }
 
-/*
- * Dotknięcie karty zagęszcza mozaikę — kwadraciki robią się drobniejsze,
- * jakby obraz się doostrzył. Ruch materiału zamiast poświaty, bo to samo
- * odróżnia ten wygląd od Klasycznego.
- */
-[data-skin='colorful'] .eter-tile:not(.eter-admin *):hover {
-  background-size: calc(var(--kwadracik) - 2px) calc(var(--kwadracik) - 2px);
-  box-shadow: 0 2px 0 0
-    color-mix(in srgb, var(--eter-tile-accent, var(--eter-accent)) 55%, transparent);
+/* Dotknięcie karty rozświetla jej mozaikę — jak podniesiony klocek łapie
+   światło. Ruch materiału, nie poświata wokół. */
+[data-skin='colorful'] .eter-tile:not(.eter-admin *):hover::before {
+  opacity: var(--mozaika-karta-sila-hover);
 }
 
-/* Napisy bez poświaty: na jasnym tle świecący tekst przestaje być czytelny,
+/* Napisy bez poświaty: na mozaice świecący tekst przestaje być czytelny,
    a dziecko ma tu przede wszystkim czytać. */
 [data-skin='colorful'] .eter-label:not(.eter-admin *),
 [data-skin='colorful'] .font-display:not(.eter-admin *) {
