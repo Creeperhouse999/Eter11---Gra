@@ -73,6 +73,22 @@ describe('instrukcja do wydruku', () => {
     expect(pytania.length).toBeGreaterThanOrEqual(5);
   });
 
+  it('podsumowanie techniczne pokazuje tyle obrazków, ile mówi liczba przy nazwie', () => {
+    // Adam zgłosił: strona pisała „16 talentów", a pokazywała tylko 8
+    // obrazków. Liczba i galeria muszą się zgadzać, bo to jest cała wartość
+    // tej strony dla kogoś, kto liczy fizyczne karty w pudełku.
+    render(<PrintManual content={BUILTIN_CONTENT} />);
+
+    const naglowek = screen.getByText(
+      (_, element) => element?.tagName === 'P' && !!element.textContent?.startsWith('Talenty —'),
+    );
+    const liczbaWTalii = Number(naglowek.querySelector('span')?.textContent);
+    expect(liczbaWTalii).toBeGreaterThan(0);
+
+    const galeria = naglowek.parentElement!.querySelector('.grid');
+    expect(galeria!.querySelectorAll('article')).toHaveLength(liczbaWTalii);
+  });
+
   it('próg wygranej bierze z zasad, a nie z liczby wpisanej na sztywno', () => {
     // Redaktor zmienia próg w zakładce Zasady — instrukcja musi za tym pójść,
     // inaczej wydrukowana kartka kłamie o tym, jak się wygrywa.

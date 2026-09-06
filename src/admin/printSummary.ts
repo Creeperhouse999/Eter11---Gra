@@ -22,13 +22,21 @@ import type { Card, CardCategory, Problem, Character, RulesConfig } from '../eng
  * i Łabędzi w talii" w panelu (domyślnie po 4). Liczymy więc z tej samej
  * talii, którą buduje „Drukuj karty" (`buildDeck`), żeby obie zakładki
  * zgadzały się ze sobą i z fizycznym pudełkiem.
+ *
+ * Zgłoszenie wróciło drugi raz: liczba przy nazwie kategorii („16 talentów")
+ * nie zgadzała się z liczbą wyświetlonych obrazków (8) — bo `ile` liczyło
+ * sztuki w talii (z dwoma egzemplarzami na kartę), a `karty` do wizualizacji
+ * brało różne PROJEKTY, po jednym obrazku na kartę. Adam prosił wprost
+ * o wygląd „jak w »drukuj karty«" — a ta zakładka drukuje właśnie całą talię,
+ * czyli oba egzemplarze każdej karty. Więc obrazki też biorą się z talii —
+ * liczba przy nazwie zawsze równa liczbie pokazanych kart.
  */
 export interface PozycjaZestawu {
   klucz: string;
   nazwa: string;
   /** Ile sztuk tej kategorii trafia do fizycznej talii — tyle ma być w pudełku. */
   ile: number;
-  /** Wszystkie różne karty tej kategorii — Adam poprosił o pełną wizualizację, nie jeden przykład. */
+  /** Każda sztuka z talii tej kategorii — tyle obrazków, ile mówi `ile`. */
   karty: Card[];
 }
 
@@ -74,12 +82,10 @@ export function podsumujZestaw(content: {
   const talia = buildDeck(karty, { specialCopies: content.rules?.specialCardCopies });
 
   const policz = (lista: Array<{ klucz: CardCategory; nazwa: string }>): PozycjaZestawu[] =>
-    lista.map(({ klucz, nazwa }) => ({
-      klucz,
-      nazwa,
-      ile: talia.filter((c) => c.category === klucz).length,
-      karty: karty.filter((c) => c.category === klucz),
-    }));
+    lista.map(({ klucz, nazwa }) => {
+      const zTalii = talia.filter((c) => c.category === klucz);
+      return { klucz, nazwa, ile: zTalii.length, karty: zTalii };
+    });
 
   const specjalne = policz(SPECJALNE);
 

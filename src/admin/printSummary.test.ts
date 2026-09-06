@@ -56,8 +56,9 @@ describe('podsumowanie techniczne zestawu', () => {
     expect(ile('digital')).toBe(2);
     expect(ile('social')).toBe(2);
 
-    // Ale różnych PROJEKTÓW karty — do wizualizacji — dalej jest tyle, ile w treści.
-    expect(wynik.kategorie.find((k) => k.klucz === 'talent')?.karty).toHaveLength(2);
+    // Obrazków do wizualizacji jest tyle samo, ile mówi liczba przy nazwie —
+    // Adam zgłosił drugi raz, że „16 talentów" pokazywało tylko 8 obrazków.
+    expect(wynik.kategorie.find((k) => k.klucz === 'talent')?.karty).toHaveLength(4);
   });
 
   it('nie liczy wersji roboczych — te nie trafiają do pudełka', () => {
@@ -97,9 +98,8 @@ describe('podsumowanie techniczne zestawu', () => {
     expect(wynik.specjalne.find((s) => s.klucz === 'blackswan')?.ile).toBe(4);
     expect(wynik.specjalneRazem).toBe(8);
 
-    // Różnych projektów w tej kategorii dalej jest tyle, ile faktycznie
-    // istnieje — do pełnej wizualizacji każdej karty.
-    expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.karty).toHaveLength(2);
+    // Obrazków tyle samo, ile sztuk w talii — nie tyle, ile różnych wariantów.
+    expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.karty).toHaveLength(4);
   });
 
   it('bez podanej zasady karty specjalne nie dublują się (zgodnie z buildDeck)', () => {
@@ -117,7 +117,7 @@ describe('podsumowanie techniczne zestawu', () => {
     expect(wynik.specjalne.find((s) => s.klucz === 'eter11')?.ile).toBe(2);
   });
 
-  it('pokazuje wszystkie różne karty kategorii, nie jeden przykład', () => {
+  it('pokazuje oba projekty kategorii, nie jeden przykład — po dwa egzemplarze każdego', () => {
     const wynik = podsumujZestaw({
       cards: [
         karta({ id: 'bez', category: 'mentor' }),
@@ -127,8 +127,18 @@ describe('podsumowanie techniczne zestawu', () => {
       characters: [],
     });
 
-    const identyfikatory = wynik.kategorie.find((k) => k.klucz === 'mentor')?.karty.map((c) => c.id);
-    expect(identyfikatory).toEqual(['bez', 'zGrafika']);
+    const pozycja = wynik.kategorie.find((k) => k.klucz === 'mentor');
+    // Obrazków tyle, ile mówi `ile` (dwa projekty × dwa egzemplarze).
+    expect(pozycja?.karty).toHaveLength(pozycja?.ile ?? -1);
+    const projekty = new Set(pozycja?.karty.map((c) => c.id.replace(/-b$/, '')));
+    expect(projekty).toEqual(new Set(['bez', 'zGrafika']));
+  });
+
+  it('liczba przy nazwie zawsze zgadza się z liczbą pokazanych obrazków', () => {
+    const wynik = podsumujZestaw(BUILTIN_CONTENT);
+    for (const pozycja of [...wynik.kategorie, ...wynik.specjalne]) {
+      expect(pozycja.karty, `${pozycja.nazwa}: liczba obrazków`).toHaveLength(pozycja.ile);
+    }
   });
 
   it('policzone postacie zgadzają się z listą', () => {
