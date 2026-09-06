@@ -150,3 +150,27 @@ Nie zostawiaj commitów lokalnie.
   `customIcons`/`cardImages` przez `Array.isArray`, `theme`/`themeLight`
   przez `checkTheme`) — sam fakt, że pole nie jest `undefined`, niczego nie
   gwarantuje.
+
+- **Skórka (`[data-skin]`) NIE MOŻE nadpisywać `--eter-*` w CSS.**
+  `applyTheme` (theme.ts) wpisuje zmienne motywu inline na `<html>`, a inline
+  wygrywa z każdym selektorem. Trzy wersje wyglądu „Kolorowy" ustawiały
+  `--eter-bg` pod `[data-skin='colorful']` — martwe reguły, stąd „nie różni
+  się wiele od klasycznego". Skórka to WARSTWY nad motywem (pseudo-elementy,
+  maski SVG, własne zmienne `--mozaika-*`). `skinApplies.test.ts` pilnuje,
+  żeby `--eter-*` nie wróciły do bloku skórki.
+
+- **Gdy nie możesz obejrzeć obrazu — zmierz go, nie opisuj z pamięci.** Limit
+  obrazów w rozmowie blokuje `Read` zrzutów i załączników; zmyślony opis
+  niewidzianego obrazu kosztował turę i zaufanie Alana („nie widzisz zrzutu").
+  PIL + numpy: jasność, chroma (max−min kanałów, NIE względne nasycenie —
+  na ciemnych kolorach kłamie), dominujące kolory, okres siatki przez
+  autokorelację (najsilniejszy szczyt w 6–40 px, nie pierwszy — antyaliasing
+  tekstu daje fałszywy przy 3–4 px). Ten sam pomiar na własnym renderze
+  headless daje werdykt TAK/NIE zamiast wrażenia. Skrypty w scratchpadzie
+  sesji z 6 IX 2026 (`analyze_skin.py`), wzorzec w pamięci
+  `skin-css-vs-inline-theme`.
+
+- **Pamięć zespołu ma skrypt:** `node scripts/memory.mjs "<jedno zdanie>"`
+  i `--list` (odczyt wymaga logowania — bez tokenu REST zwraca pustą listę,
+  co wygląda jak „nikt nic nie zapisał"). Dopisuj ustalenia Adama na bieżąco,
+  nie na koniec.

@@ -3,7 +3,7 @@ import {
   COMPETENCE_CATEGORIES,
   SLOT_ORDER,
 } from '../ui/components/categoryStyles';
-import type { Family, FamilyMap } from '../data/families';
+import { FAMILY_IDS, type Family, type FamilyMap } from '../data/families';
 import type { FamilySymbols } from '../data/familySymbols';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
@@ -540,6 +540,27 @@ export function validateContent(content: unknown): ValidationResult {
           add(`Wstęp (${part}), scena #${i + 1}: brak ikony.`);
         }
       });
+    }
+  }
+
+  if (data.familySymbols !== undefined) {
+    // Symbole kolorów: mapa rodzina → nazwa ikony albo `url:…`. Ręczna edycja
+    // dokumentu w konsoli Firestore potrafi zostawić tu tekst albo listę —
+    // `symbolRodziny` by tego nie wywróciło (indeksowanie tekstu daje
+    // `undefined` i spada do domyślnego), ale wartość nie-tekstowa pod
+    // poprawnym kluczem trafiłaby prosto do `<Icon name=…>` i karta straciłaby
+    // znaczek po cichu. To znaczek dla graczy niewidzących kolorów, więc jego
+    // cichy brak to nie kosmetyka.
+    if (!isObject(data.familySymbols)) {
+      add('Symbole kolorów: nie są mapą kolor → symbol.');
+    } else {
+      for (const [family, symbol] of Object.entries(data.familySymbols)) {
+        if (!(FAMILY_IDS as readonly string[]).includes(family)) {
+          add(`Symbole kolorów: nieznany kolor „${family}".`);
+        } else if (!isText(symbol) || !symbol.trim()) {
+          add(`Symbole kolorów: symbol dla „${family}" nie jest nazwą ikony.`);
+        }
+      }
     }
   }
 
