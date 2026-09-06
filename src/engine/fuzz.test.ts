@@ -118,10 +118,17 @@ function checkInvariants(state: GameState, totalCards: number): string | null {
     if (bad) return `karta specjalna na macie: ${bad.category}`;
   }
 
-  // 4. Ręka nie rośnie ponad rozdanie.
+  // 4. Ręka nie rośnie ponad rozdanie PLUS karty z karty postaci.
+  //
+  // Adam ustalił: karty zebrane na postaci z wcześniejszych misji dochodzą do
+  // ręki — „5 kart z talii + 4 z postaci — łącznie 9". Dawny próg
+  // `handSize + 2` przechodził wyłącznie dlatego, że losowe partie rzadko
+  // zbierają trzy karty na matę; był to test czekający na pechowy seed.
+  // Dwie karty zapasu zostają na efekty Czarnego Łabędzia.
   for (const p of state.players) {
-    if (p.hand.length > state.config.handSize + 2) {
-      return `ręka gracza ${p.id} ma ${p.hand.length} kart`;
+    const limit = state.config.handSize + p.mat.length + 2;
+    if (p.hand.length > limit) {
+      return `ręka gracza ${p.id} ma ${p.hand.length} kart przy limicie ${limit}`;
     }
   }
 
