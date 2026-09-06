@@ -2,7 +2,7 @@ import { useState, type PointerEventHandler } from 'react';
 import { useLongPress } from './useLongPress';
 import type { Card } from '../../engine/types';
 import { Icon, type IconName } from '../icons/Icon';
-import { categoryColorVar, categoryLabel } from './categoryStyles';
+import { categoryColorVar, categoryLabel, familySymbol } from './categoryStyles';
 
 /**
  * Uchwyt rozpoczynający przeciąganie. Dalsze śledzenie gestu odbywa się
@@ -199,6 +199,26 @@ export function CardView({
             className="absolute inset-x-0 top-0 h-1.5"
             style={{ background: accent }}
           />
+
+          {/* Symbol rodziny na środku górnej krawędzi.
+              Adam: „aby osoby, które nie widzą kolorów, mogły rozpoznać po
+              symbolu ten kolor". Kolor rodziny niesie zasadę gry (karta pasuje
+              do ścianki tylko przy zgodnej rodzinie), więc bez tego znaczka
+              dziecko mylące czerwień z zielenią nie zagra samodzielnie.
+              `aria-hidden`, bo czytnik ekranu i tak przeczyta nazwę rodziny
+              z etykiety karty — kształt jest dla oczu, nie dla uszu. */}
+          {card.family && (
+            <span
+              aria-hidden="true"
+              className="absolute top-0 left-1/2 flex -translate-x-1/2 items-center justify-center rounded-b px-1"
+              style={{ background: accent, color: 'var(--eter-bg)' }}
+            >
+              <Icon
+                name={familySymbol(card.family) as IconName}
+                size={compact ? 9 : 11}
+              />
+            </span>
+          )}
 
           {/* Kategoria nad nazwą — mówi, do której ścianki karta w ogóle należy */}
           <span

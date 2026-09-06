@@ -1,5 +1,7 @@
 import { FAMILY_LABELS, type FamilyMap } from '../data/families';
 import type { Card, CardCategory } from '../engine/types';
+import type { FamilySymbols } from '../data/familySymbols';
+import { FamilySymbolEditor } from './FamilySymbolEditor';
 import { categoryLabel } from '../ui/components/categoryStyles';
 import { TextField } from '../ui/controls/Field';
 import { Icon } from '../ui/icons/Icon';
@@ -9,6 +11,9 @@ interface FamilyEditorProps {
   families: FamilyMap;
   cards: Card[];
   onChange: (families: FamilyMap) => void;
+  /** Symbole kolorów — dla graczy, którzy nie rozróżniają barw. */
+  symbols?: Partial<FamilySymbols>;
+  onSymbolsChange?: (symbols: Partial<FamilySymbols>) => void;
 }
 
 /** Kategorie mające rodziny — karty specjalne są poza tym podziałem. */
@@ -28,7 +33,13 @@ const CATEGORIES: CardCategory[] = [
  * samo wśród kompetencji i wśród talentów — więc zmienia się je w sekcji
  * „Kolory”. Tutaj ustawia się nazwę, symbol i opis dla danej kategorii.
  */
-export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
+export function FamilyEditor({
+  families,
+  cards,
+  onChange,
+  symbols,
+  onSymbolsChange,
+}: FamilyEditorProps) {
   const update = (
     category: CardCategory,
     familyId: string,
@@ -128,6 +139,13 @@ export function FamilyEditor({ families, cards, onChange }: FamilyEditorProps) {
           </div>
         ))}
       </div>
+
+      {/* Symbole kolorów — osobno od ikon rodzin wyżej, bo to inna rzecz:
+          tamte opowiadają, czym rodzina jest, ten mówi „to jest czerwona"
+          komuś, kto czerwieni nie widzi. */}
+      {onSymbolsChange && (
+        <FamilySymbolEditor symbols={symbols} onChange={onSymbolsChange} />
+      )}
     </section>
   );
 }

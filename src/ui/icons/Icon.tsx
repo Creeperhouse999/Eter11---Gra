@@ -48,6 +48,7 @@ export type IconName =
   // Strzałki i kierunki
   | 'arrowUp' | 'arrowDown' | 'arrowRight' | 'refresh' | 'back' | 'forward' | 'swap'
   | 'sortAsc' | 'sortDesc' | 'expand' | 'collapse' | 'triangleUp' | 'triangleDown'
+  | 'circleShape' | 'squareShape'
   // Przyroda
   | 'tree' | 'leaf' | 'flower' | 'cloud' | 'rain' | 'snow' | 'wind' | 'frog' | 'cat' | 'dog'
   | 'bird' | 'fish' | 'butterfly' | 'paw' | 'mushroom' | 'seedling'
@@ -250,6 +251,12 @@ const PATHS: Record<IconName, string> = {
   collapse: 'M4 9h5V4M9 9 3 3m17 6h-5V4m0 5 6-6M4 15h5v5m-5 0 6-6m10 6h-5v-5m5 5-6-6',
   triangleUp: 'M12 6 4 17h16L12 6Z',
   triangleDown: 'M12 18 4 7h16l-8 11Z',
+  // Symbole rodzin dla graczy, którzy nie rozróżniają kolorów (Adam:
+  // „aby osoby, które nie widzą kolorów, mogły rozpoznać po symbolu ten
+  // kolor"). Kształty muszą różnić się SYLWETKĄ, nie detalem — koło, trójkąt,
+  // kwadrat i gwiazda są rozpoznawalne nawet w rozmiarze znaczka na karcie.
+  circleShape: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z',
+  squareShape: 'M5 5h14v14H5V5Z',
 
   // --- Przyroda ---
   tree: 'M12 3 6 11h12L12 3Zm0 5-4 6h8l-4-6Zm0 6v7M8 21h8',

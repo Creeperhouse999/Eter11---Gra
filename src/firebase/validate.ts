@@ -4,6 +4,7 @@ import {
   SLOT_ORDER,
 } from '../ui/components/categoryStyles';
 import type { Family, FamilyMap } from '../data/families';
+import type { FamilySymbols } from '../data/familySymbols';
 import { DEFAULT_THEME, type ThemeColors } from '../data/theme';
 import type { UiText } from '../data/uiText';
 
@@ -27,6 +28,13 @@ export interface GameContent {
    */
   themeLight?: ThemeColors;
   families: FamilyMap;
+  /**
+   * Symbole rodzin dla graczy, którzy nie rozróżniają kolorów.
+   *
+   * Opcjonalne: treść zapisana przed tą zmianą ich nie ma, a wtedy karty biorą
+   * domyślne (koło, trójkąt, kwadrat, gwiazda — patrz `familySymbols.ts`).
+   */
+  familySymbols?: Partial<FamilySymbols>;
   /**
    * Wstęp przed grą i kwestie ETER11 w samouczku.
    *

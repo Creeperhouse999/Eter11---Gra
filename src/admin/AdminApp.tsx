@@ -25,6 +25,7 @@ import { CardCodes } from './CardCodes';
 import { CharacterEditor } from './CharacterEditor';
 import { DeckOverview } from './DeckOverview';
 import { FamilyEditor } from './FamilyEditor';
+import { setFamilyNames, setFamilySymbols } from '../ui/components/categoryStyles';
 import { LoginForm } from './LoginForm';
 import { PrintCards } from './PrintCards';
 import { PrintManual } from './PrintManual';
@@ -218,6 +219,15 @@ export function AdminApp() {
   useEffect(() => {
     if (auth.roleReady && !tabAllowed) setTab('overview');
   }, [tabAllowed, auth.roleReady]);
+
+  // Nazwy i symbole rodzin do wspólnego rejestru — z niego czytają je karty
+  // w podglądzie wydruku i w trybie testowym. Bez tego panel pokazywał
+  // domyślne wartości i redaktor nie widział własnych zmian tam, gdzie
+  // najbardziej ich potrzebuje: na tym, co idzie na papier.
+  useEffect(() => {
+    setFamilyNames(content.families);
+    setFamilySymbols(content.familySymbols);
+  }, [content.families, content.familySymbols]);
 
   // Nowa zakładka zaczyna się od góry. Bez tego przejście z długiej listy
   // (karty) na krótszą (konto) zostawiało widok przewinięty w połowie, na
@@ -807,6 +817,8 @@ export function AdminApp() {
             families={content.families}
             cards={content.cards}
             onChange={(families) => update({ families })}
+            symbols={content.familySymbols}
+            onSymbolsChange={(familySymbols) => update({ familySymbols })}
           />
         )}
         {tab === 'characters' && (

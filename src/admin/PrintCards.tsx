@@ -4,7 +4,7 @@ import { themeFamilyColor } from '../data/families';
 import type { ThemeColors } from '../data/theme';
 import type { GameContent } from '../firebase/validate';
 import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
-import { categoryLabel, familyLabel } from '../ui/components/categoryStyles';
+import { categoryLabel, familyLabel, familySymbol } from '../ui/components/categoryStyles';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
 
@@ -97,7 +97,19 @@ export function KartaKompetencji({
         onEdit ? 'cursor-pointer transition hover:opacity-80 print:cursor-auto' : '',
       ].join(' ')}
     >
-      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: kolor }}>
+      {/* Symbol rodziny — ten sam znaczek, co na karcie w grze. Adam prosił
+          o niego „w każdej karcie, która ma dany kolor", a na wydruku liczy się
+          najbardziej: papier bywa czarno-biały, a wtedy kolor rodziny znika
+          zupełnie i nie da się zagrać. */}
+      <p
+        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
+        style={{ color: kolor }}
+      >
+        {card.family && (
+          <span aria-hidden="true">
+            <Icon name={familySymbol(card.family) as IconName} size={10} />
+          </span>
+        )}
         {categoryLabel(card.category)}
         {label ? ` · ${label}` : ''}
       </p>

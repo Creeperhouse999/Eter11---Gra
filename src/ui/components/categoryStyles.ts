@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { DEFAULT_CATEGORIES, type CategoryMap } from '../../data/categories';
 import type { CardCategory, FamilyId, ProblemType, SlotKey } from '../../engine/types';
 import { FAMILY_LABELS, type FamilyMap } from '../../data/families';
+import { symbolRodziny, type FamilySymbols } from '../../data/familySymbols';
 
 /**
  * Nazwy i ikony kategorii, ustawiane raz po wczytaniu zawartości.
@@ -83,6 +84,24 @@ let families: FamilyMap = {} as FamilyMap;
 
 export function setFamilyNames(next?: FamilyMap): void {
   families = next ?? ({} as FamilyMap);
+}
+
+/**
+ * Symbole rodzin — dla graczy, którzy nie rozróżniają kolorów.
+ *
+ * Ten sam rejestr modułowy, co nazwy rodzin, i z tego samego powodu: symbol
+ * czyta karta w grze, karta na wydruku i podgląd w panelu, a część z nich nie
+ * ma dostępu do treści przez Reacta.
+ */
+let symbolePar: Partial<FamilySymbols> | undefined;
+
+export function setFamilySymbols(next?: Partial<FamilySymbols>): void {
+  symbolePar = next;
+}
+
+/** Symbol danej rodziny — z treści gry, a przy jej braku domyślny. */
+export function familySymbol(family: FamilyId): string {
+  return symbolRodziny(family, symbolePar);
 }
 
 /**
