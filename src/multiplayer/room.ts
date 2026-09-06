@@ -327,21 +327,38 @@ export async function setCharacter(
   uid: string,
   characterId: string,
 ): Promise<boolean> {
-  const roomRef = ref(rtdb, `${ROOMS}/${code}`);
-  let taken = false;
-  await runTransaction(roomRef, (room: Room | null) => {
-    if (!room?.players) return room;
-    const clash = Object.values(room.players).some(
-      (p) => p.uid !== uid && p.characterId === characterId,
-    );
-    if (clash) {
-      taken = true;
-      return room; // Bez zmiany — postać zajęta.
-    }
-    if (room.players[uid]) room.players[uid].characterId = characterId;
-    return room;
-  });
-  return !taken;
+  // Świeży odczyt zamiast transakcji na całym pokoju.
+  //
+  // Adam zgłaszał trzykrotnie, że zmiana postaci w poczekalni „nie działa":
+  // klika i nic się nie dzieje, bez żadnego komunikatu. Przyczyną była ta sama
+  // pułapka, która wcześniej psuła dołączanie do pokoju (patrz `joinRoom`):
+  // `runTransaction` przy PIERWSZYM dotknięciu ścieżki dostaje `null`, bo
+  // lokalny cache jest pusty — choć pokój istnieje na serwerze. Kod trafiał
+  // wtedy na `if (!room?.players) return room`, czyli kończył transakcję bez
+  // zapisu i BEZ BŁĘDU. Poprzednia poprawka dodała komunikat o błędzie, ale
+  // błędu tu nie było, więc nie mogła pomóc.
+  //
+  // Reguły RTDB pozwalają graczowi zapisać własny węzeł (`$uid === auth.uid`),
+  // więc piszemy wprost w `players/<uid>/characterId`. Wyścig o tę samą postać
+  // (dwoje klika w tej samej chwili) rozstrzyga sprawdzenie po zapisie —
+  // tak samo jak przy dołączaniu do pełnego pokoju.
+  const snapshot = await get(ref(rtdb, `${ROOMS}/${code}`));
+  if (!snapshot.exists()) return false;
+
+  const room = snapshot.val() as Room;
+  const gracze = room.players ?? {};
+
+  // Gracza, którego nie ma w pokoju, nie dopisujemy — wpis bez reszty pól
+  // (imię, `joinedAt`) rozjechałby kolejność tur i listę w poczekalni.
+  if (!gracze[uid]) return false;
+
+  const zajeta = Object.values(gracze).some(
+    (p) => p?.uid !== uid && p?.characterId === characterId,
+  );
+  if (zajeta) return false;
+
+  await set(ref(rtdb, `${ROOMS}/${code}/players/${uid}/characterId`), characterId);
+  return true;
 }
 
 /** Host wyrzuca gracza — trafia na listę `kicked` i nie wróci. */
