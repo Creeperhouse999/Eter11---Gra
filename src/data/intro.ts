@@ -336,6 +336,16 @@ export const INTRO_RULES: IntroScene[] = [
       'W swojej turze robisz jedną rzecz: kładziesz kartę na ściankę albo wymieniasz karty, których nie chcesz.\n\nWymiana też jest ruchem. Zamieniasz tyle kart, ile zaznaczysz, i dostajesz tyle samo nowych.',
   },
   {
+    // Adam: „gdy gracz ma kartę, którą chce wyłożyć, powinien opowiedzieć
+    // w stylu: (…) podaj dwa przykłady zdań i wyjaśnij, że nie jest to
+    // obowiązkowy element gry, ale zachęcasz, bo dzięki temu gra jest
+    // ciekawsza, tłumaczymy sobie ciekawostki gry oraz uczymy się".
+    icon: 'message',
+    heading: 'Jak się komunikować podczas gry',
+    body:
+      'Nie musicie tego robić — gra działa też w ciszy. Ale jest ciekawsza, gdy zamiast po prostu położyć kartę, opowiecie, co i dlaczego robicie. Dzięki temu tłumaczycie sobie nawzajem ciekawostki gry i uczycie się od siebie.\n\nNa przykład: „Żeby rozwiązać problem »Atak hejtu«, potrzebujemy umiejętności cyfrowej bezpieczeństwa — kogoś, kto znajdzie źródło hejtu i zgłosi obraźliwe treści. Mam kartę »Detektyw Danych« — analizuje informacje z całego świata i znajduje ukryte źródło.”\n\nAlbo krócej: „Ta ścianka potrzebuje kogoś, kto stanie w obronie zamiast stać z boku — moja karta »Obrońca Przyjaciół« robi dokładnie to.”\n\nZachęcamy do tego, ale nikogo nie zmuszamy.',
+  },
+  {
     // Adam poprosił o ten akapit razem z kartami rund: „gracze ustalają, ile
     // rund chcą mieć na rozwiązanie problemu (…) po każdej rundzie odwracają
     // kolejną kartę z cyfrą, aby wiedzieć, ile im rund zostało".

@@ -113,6 +113,33 @@ describe('wstęp dla dorosłych mówi prawdę', () => {
     expect(scena!.body).not.toMatch(/działają wyłącznie wtedy/i);
   });
 
+  it('przykłady w „Jak się komunikować podczas gry" wskazują na prawdziwe karty i ściankę', () => {
+    // Adam poprosił o dwa konkretne przykłady zdań, jakimi gracz może
+    // opisać swój ruch. Wymyślony przykład, który podaje kartę o nazwie,
+    // koloru albo kategorii, jakiej naprawdę nie ma, uczyłby dziecko złego
+    // wzorca — sprawdzamy więc, że oba przykłady odpowiadają realnej treści
+    // gry, nie tylko brzmią wiarygodnie.
+    const scena = INTRO_RULES.find((s) => s.heading === 'Jak się komunikować podczas gry');
+    expect(scena, 'scena „Jak się komunikować podczas gry" istnieje').toBeDefined();
+
+    const atakHejtu = ALL_PROBLEMS.find((p) => p.name === 'Atak hejtu')!;
+    expect(atakHejtu, 'problem „Atak hejtu" istnieje').toBeDefined();
+    const scianka = atakHejtu.slots.find((s) => s.key === 'digital')!;
+
+    const detektyw = ALL_CARDS.find((c) => c.name === 'Detektyw Danych')!;
+    expect(detektyw, 'karta „Detektyw Danych" istnieje').toBeDefined();
+    expect(detektyw.category).toBe('digital');
+    expect(detektyw.family).toBe(scianka.family);
+    expect(scena!.body).toContain(detektyw.name);
+
+    const obronca = ALL_CARDS.find((c) => c.name === 'Obrońca Przyjaciół')!;
+    expect(obronca, 'karta „Obrońca Przyjaciół" istnieje').toBeDefined();
+    const sciankaSpoleczna = atakHejtu.slots.find((s) => s.key === 'social')!;
+    expect(obronca.category).toBe('social');
+    expect(obronca.family).toBe(sciankaSpoleczna.family);
+    expect(scena!.body).toContain(obronca.name);
+  });
+
   it('to, co obiecuje zamiast tego, jest prawdą: karta na postać mimo przegranej', () => {
     const scena = INTRO_FOR_ADULTS.find((s) => s.heading === 'Porażka bez kary')!;
     expect(scena.body).toMatch(/zabiera jedną na swoją postać/i);
