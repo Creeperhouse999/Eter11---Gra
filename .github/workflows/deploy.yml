@@ -77,23 +77,40 @@ jobs:
         env:
           BOT_EMAIL: ${{ secrets.BOT_EMAIL }}
           BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$BOT_PASSWORD" ]; then
             echo "Brak BOT_PASSWORD w sekretach — pomijam oznaczanie."
             exit 0
           fi
 
-          # WSZYSTKIE commity z tego pusha, nie tylko ostatni. Agent w chmurze
-          # naprawia po kilka zgłoszeń w jednym biegu i pushuje je razem —
-          # `git log -1` oznaczał wtedy jedno, a reszta zostawała otwarta mimo
-          # wdrożonej naprawy. `before` bywa samymi zerami (pierwszy push na
-          # gałąź, push po force) — wtedy spadamy do ostatniego commita.
+          # WSZYSTKIE commity od ostatniego UDANEGO przebiegu tego workflow,
+          # nie tylko od bezpośredniego poprzednika (`before`). Commit, którego
+          # WŁASNY przebieg CI padnie z powodu niepowiązanego z nim (np. inny
+          # test akurat czerwony w trakcie przeróbki gdzie indziej), i tak
+          # trafia na produkcję następnym udanym pushem — ale jego trailer
+          # `Report-Fixed` ginął na zawsze: kolejny push liczył zakres tylko
+          # od SWOJEGO `before`, czyli od commita z padniętym CI, z wyłączeniem
+          # jego samego (git log A..B nie obejmuje A). Zgłoszenie zostawało
+          # „wróciło do poprawki" mimo wdrożonej naprawy (dokładnie to spotkało
+          # „wybiera sie ta sama postać" — naprawa w e7898a0, oznaczenie zgubione,
+          # bo TEN push padł na zupełnie innym teście skórki).
+          #
+          # `--json headSha` bierze więc SHA ostatniego SUKCESU tego workflow na
+          # master sprzed tego biegu (ten właśnie się liczy i nie jest jeszcze
+          # zapisany jako sukces, więc się nie złapie sam). Gdy go nie ma (pierwszy
+          # przebieg w historii repo) albo `gh` zawiedzie — spadamy na `before`,
+          # a gdy i tego brak (pierwszy push na gałąź, push po force) — na ostatni
+          # commit, jak dotychczas.
+          OSTATNI_OK=$(gh run list --workflow=deploy.yml --branch=master --status=success --limit=1 --json headSha --jq '.[0].headSha // empty' 2>/dev/null || true)
           BEFORE="${{ github.event.before }}"
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            ZAKRES="-1"
-          else
+          if [ -n "$OSTATNI_OK" ] && git cat-file -e "$OSTATNI_OK^{commit}" 2>/dev/null; then
+            ZAKRES="$OSTATNI_OK..${{ github.sha }}"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             ZAKRES="$BEFORE..${{ github.sha }}"
+          else
+            ZAKRES="-1"
           fi
 
           TRAILERY=$(git log $ZAKRES --pretty=%B | grep -iE '^Report-Fixed:' || true)

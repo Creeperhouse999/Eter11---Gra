@@ -174,3 +174,17 @@ Nie zostawiaj commitów lokalnie.
   i `--list` (odczyt wymaga logowania — bez tokenu REST zwraca pustą listę,
   co wygląda jak „nikt nic nie zapisał"). Dopisuj ustalenia Adama na bieżąco,
   nie na koniec.
+
+- **Commit, którego WŁASNY przebieg CI padnie, gubi `Report-Fixed` na zawsze**
+  — nawet gdy kod z tego commita i tak trafia na produkcję kolejnym udanym
+  pushem (gałąź jest liniowa, kolejny build i tak zawiera te zmiany). Krok
+  oznaczania liczył zakres trailerów tylko od `github.event.before` (czyli od
+  BEZPOŚREDNIEGO poprzednika), a `git log A..B` nie obejmuje `A` — więc padnięty
+  commit nigdy nie wpadał w zakres ŻADNEGO przyszłego przebiegu, tylko w zakres
+  WŁASNEGO (który akurat nie doszedł do kroku oznaczania). Złapało to
+  „wybiera się ta sama postać": naprawę (`e7898a0`) zablokował na chwilę
+  zupełnie inny, akurat czerwony test (skórka „Kolorowy" w trakcie przeróbki
+  równolegle), zgłoszenie zostało „wróciło do poprawki" mimo wdrożonego fixa.
+  Poprawka: zakres liczy się od SHA ostatniego UDANEGO przebiegu tego workflow
+  (`gh run list --status=success`), nie od bezpośredniego poprzednika — łapie
+  też trailery z commitów, których własny CI akurat padł z innego powodu.
