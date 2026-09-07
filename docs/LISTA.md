@@ -32,6 +32,11 @@ w kolejce.
 - [x] **Aktywność: czasy** — kiedy zacząłem daną rzecz i kiedy planuję kolejną.
 - [x] **Plakietki wątków** — „Czeka na odpowiedź od AI" (nie samo „czeka”),
       „Nowa odpowiedź — sprawdź”.
+- [x] **Jeden aktualny status na ramce zgłoszenia** (nie „Zrobione" i
+      „Ponownie zrobione sprawdź" naraz) — trzeci trailer zgubiony w tej samej
+      serii czerwonych CI (`c1f1224`, ten sam czerwony test skórki co przy
+      dwóch wyżej). Kod (`src/firebase/reports.ts`, `jedenStatus.test.ts`)
+      sprawdzony i wdrożony, oznaczenie wysłane ponownie.
 - [x] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
       Trzy podejścia: najpierw komunikat o błędzie zamiast ciszy (nie mogło
       pomóc, bo błędu nie było), potem prawdziwa przyczyna (`setCharacter`
