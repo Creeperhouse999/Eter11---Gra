@@ -33,10 +33,18 @@ w kolejce.
 - [x] **Plakietki wątków** — „Czeka na odpowiedź od AI" (nie samo „czeka”),
       „Nowa odpowiedź — sprawdź”.
 - [x] **Zmiana postaci w poczekalni** — ręcznie, na dowolną niezajętą.
-      Sprawdziłem `RoomLobby.tsx`, `setCharacter` i reguły RTDB — kod i reguły
-      wyglądają poprawnie, przycisk powinien działać. Nie potrafię tego
-      odtworzyć bez żywej sesji dwuosobowej — potrzebuję więcej szczegółu od
-      Adama (co dokładnie się dzieje po kliknięciu: nic, błąd, zła postać?).
+      Trzy podejścia: najpierw komunikat o błędzie zamiast ciszy (nie mogło
+      pomóc, bo błędu nie było), potem prawdziwa przyczyna (`setCharacter`
+      transakcją na całym pokoju — zimny cache RTDB dostawał `null` i kończył
+      się bez zapisu i bez błędu; naprawione zapisem wprost do
+      `players/<uid>/characterId`). Zgłoszenie zostało mimo to „wróciło do
+      poprawki": WŁASNY przebieg CI tej naprawy padł na niepowiązanym teście
+      (skórka „Kolorowy" w przeróbce równolegle), więc krok oznaczania się nie
+      wykonał, choć kod wylądował na produkcji kolejnym udanym pushem 16 minut
+      później. Doszedł jeszcze komunikat potwierdzający udaną zmianę (samo
+      przesunięcie ramki było za subtelne, żeby odróżnić sukces od ciszy po
+      awarii). Mechanizm gubienia trailera przy czerwonym CI poprawiony
+      w workflow — patrz `docs/PETLA.md`.
 - [x] **Kolor karty z „Kodów kart"** ma się przenosić na zakładkę „Karty”
       i „Drukuj karty”; w „Kartach” też próbnik zamiast czterech kolorów.
 - [x] **Edycja strony instrukcji przez kliknięcie** w zakładce „Drukuj
@@ -71,15 +79,6 @@ w kolejce.
       nikt tego nie potwierdził). Jeśli dyskusje mają dostawać odpowiedzi
       też z chmury, potrzebny jest krok w Actions analogiczny do
       oznaczania zgłoszeń (sekrety `BOT_*` już tam są).
-- [ ] **„Opis techniczny do instrukcji" (ultra) — trailer zgubiony przez
-      czerwone CI.** Naprawiłem to zgłoszenie, ale ten sam push zawierał
-      niezwiązaną, już wcześniej zepsutą atrapę testu (`discussionsPanel.
-      test.tsx`), więc `npx vitest run` w Actions padło PRZED krokiem
-      oznaczania — trailer `Report-Fixed` z tamtego commita przepadł (kolejny
-      push czyta tylko commity swojego zakresu, nie cofa się po zgubione).
-      Naprawiłem tamtą atrapę osobnym commitem i wysyłam trailer ponownie w
-      tym pushu — ale gdyby zdarzyło się to znowu bez łatwego drugiego
-      commita, zgłoszenie trzeba oznaczyć ręcznie w panelu.
 
 ## Zasady, o których Alan przypominał
 
