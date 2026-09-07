@@ -114,3 +114,24 @@ describe('RoomLobby — zmiana postaci pokazuje błąd, gdy zapis się nie uda',
     expect(await screen.findByText(/Nie udało się zmienić postaci/i)).toBeTruthy();
   });
 });
+
+/**
+ * Adam (trzeci raz): zmiana postaci ostatecznie ZAPISYWAŁA SIĘ, ale jedyną
+ * oznaką był subtelny przesuw ramki wokół ikony — na telefonie, w biegu,
+ * nie do odróżnienia od prawdziwej awarii, którą ten sam raport zgłaszał
+ * wcześniej. Udany zapis potrzebuje własnego potwierdzenia, nie tylko brak
+ * komunikatu o błędzie.
+ */
+describe('RoomLobby — udana zmiana postaci potwierdza się komunikatem', () => {
+  it('udany zapis pokazuje, JAKĄ postać wybrano', async () => {
+    renderLobby([player('h', 'ch-odkrywca', 1), player('g', 'ch-badacz', 2)]);
+
+    const wolna = screen
+      .getAllByRole('radio')
+      .find((el) => !(el as HTMLButtonElement).disabled && el.getAttribute('aria-checked') === 'false');
+    expect(wolna, 'brak wolnej, niezaznaczonej postaci do kliknięcia').toBeTruthy();
+    fireEvent.click(wolna!);
+
+    expect(await screen.findByText(/^Wybrano: /i)).toBeTruthy();
+  });
+});

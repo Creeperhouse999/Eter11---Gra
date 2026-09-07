@@ -156,7 +156,12 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
                     // wywaliło" — obie kończyły się ciszą.
                     void setCharacter(room.code, uid, character.id)
                       .then((ok) => {
-                        if (!ok) toast('Ktoś właśnie wziął tę postać.', 'danger');
+                        // Bez tego potwierdzenia jedyną oznaką udanej zmiany była
+                        // cicho przesuwająca się ramka wokół ikony — na telefonie,
+                        // w biegu, dokładnie tak samo niezauważalna jak prawdziwa
+                        // cisza po awarii, którą ten sam raport zgłaszał wcześniej.
+                        if (ok) toast(`Wybrano: ${character.name}.`, 'success');
+                        else toast('Ktoś właśnie wziął tę postać.', 'danger');
                       })
                       .catch(() => {
                         toast('Nie udało się zmienić postaci. Spróbuj jeszcze raz.', 'danger');
