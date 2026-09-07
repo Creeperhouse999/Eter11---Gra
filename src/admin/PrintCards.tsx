@@ -1,6 +1,7 @@
 import { buildDeck, playableCards } from '../data/cards';
 import { kolorPostaci } from '../data/characters';
 import { themeFamilyColor } from '../data/families';
+import { ZDANIE_O_POTRZEBNYCH_KARTACH } from '../data/problems';
 import type { ThemeColors } from '../data/theme';
 import type { GameContent } from '../firebase/validate';
 import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
@@ -222,6 +223,11 @@ function KartaProblemu({
       <p className="text-[10px] leading-snug">
         <strong>Jeśli nie rozwiążecie:</strong> {problem.consequence}
       </p>
+      {problem.reward?.trim() && (
+        <p className="text-[10px] leading-snug">
+          <strong>Jeśli się uda:</strong> {problem.reward} {ZDANIE_O_POTRZEBNYCH_KARTACH}
+        </p>
+      )}
 
       {/* Ścianki w układzie jak na stole: trzy kolumny, trzy wiersze,
           a w środku zostaje miejsce na odkładane karty. */}

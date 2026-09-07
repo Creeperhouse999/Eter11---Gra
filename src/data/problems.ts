@@ -1,6 +1,20 @@
 import type { Problem } from '../engine/types';
 
 /**
+ * Zdanie na końcu opisu nagrody, jednakowe na każdej karcie problemu.
+ *
+ * Adam: „Zaproponuj do każdej karty opis co się zadzieje, jeśli pokonamy
+ * problem (…) i dodaj zdanie na koniec: W związku z tym potrzebujemy jako
+ * zespół… (przeczytajcie opisy każdej z potrzebnych kart)". Samo `reward`
+ * mówi, co drużyna WYGRYWA — to zdanie kieruje uwagę z powrotem na ścianki:
+ * to w ich podpowiedziach (`slot.hint`) jest napisane, KOGO i CZEGO trzeba,
+ * żeby tę nagrodę zdobyć. Stałe, nie osobno na każdym problemie — treść
+ * ścianek jest już unikalna dla każdej karty, to zdanie tylko do niej kieruje.
+ */
+export const ZDANIE_O_POTRZEBNYCH_KARTACH =
+  'W związku z tym potrzebujemy jako zespół: przeczytajcie opisy każdej z potrzebnych kart.';
+
+/**
  * Karty problemów z instrukcji gry.
  *
  * Problemy 9, 11, 12 i 13 miały w instrukcji niekompletne wymagania mechaniczne.
@@ -18,6 +32,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'W parku pojawiła się dziwna substancja. Zwierzęta znikają, a ludzie zaczynają chorować. Firma Szybki Zysk zaprzecza wszystkiemu.',
     antagonist: 'Firma Szybki Zysk',
     consequence: 'Park zostanie zamknięty na zawsze.',
+    reward: 'Park znów tętni życiem — zwierzęta wracają, a ludzie mogą bezpiecznie odpoczywać. Firma Szybki Zysk musi w końcu odpowiedzieć za to, co zrobiła.',
     goal: 'Znaleźć antidotum, uratować zwierzęta i park.',
     slots: [
       { key: 'psychological', family: 'green', hint: 'Ktoś, kto skoordynuje drużynę i nie zgubi celu' },
@@ -35,6 +50,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Internet zalewają fałszywe informacje. Ludzie się kłócą i nie wiedzą, co jest prawdą. Nikt nie wie, kto za tym stoi — państwo, korporacja, a może kosmici?',
     antagonist: 'Generator Chaosu',
     consequence: 'Ludzie przestaną sobie ufać.',
+    reward: 'Ludzie znów potrafią odróżnić prawdę od fałszu i rozmawiają ze sobą bez kłótni. Generator Chaosu traci moc, bo nikt już nie wierzy w byle co.',
     goal: 'Wykryć źródło i uodpornić ludzkość na fałszywe informacje.',
     slots: [
       { key: 'psychological', family: 'blue', hint: 'Ktoś, kto zachowa spokój i odróżni prawdę od kłamstwa' },
@@ -52,6 +68,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Robot pomagał w szkole, ale zaczął dawać dzieciom absurdalne zadania i karać za kreatywność. Nie da się odpiąć go od prądu.',
     antagonist: 'Źle zaprogramowany algorytm',
     consequence: 'Dzieci przestaną myśleć samodzielnie.',
+    reward: 'Robot znów pomaga, zamiast karać — dzieci wracają do własnych pomysłów bez strachu przed zadaniami bez sensu.',
     goal: 'Zrobić robotowi aktualizację.',
     slots: [
       { key: 'psychological', family: 'red', hint: 'Ktoś, kto nie podda się mimo zakazów robota' },
@@ -69,6 +86,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Klasa buduje wynalazek na konkurs przyszłości, ale każdy chce robić po swojemu. Maszyna zaraz się rozsypie.',
     antagonist: 'Brak słuchania i współpracy',
     consequence: 'Drużyna przegra, mimo że miała świetny pomysł.',
+    reward: 'Maszyna rusza z hukiem na konkursie, a drużyna odkrywa, że razem zbudowali coś lepszego, niż każdy z nich zrobiłby sam.',
     goal: 'Nauczyć się współpracy, zanim maszyna się rozpadnie.',
     slots: [
       { key: 'psychological', family: 'yellow', hint: 'Ktoś, kto naprawdę wysłucha innych' },
@@ -86,6 +104,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'W całym mieście znika prąd. Nie działają telefony, sklepy, szkoła ani transport. Ludzie zaczynają panikować.',
     antagonist: 'Awaria sieci energetycznej',
     consequence: 'Miasto stanie się bezradne.',
+    reward: 'Prąd wraca, a miasto uczy się, że w kryzysie liczy się spokój i współpraca bardziej niż jakakolwiek elektronika.',
     goal: 'Przywrócić prąd, ale najpierw nie dopuścić do paniki.',
     slots: [
       { key: 'psychological', family: 'blue', hint: 'Ktoś, kto uspokoi emocje tłumu' },
@@ -103,6 +122,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Nowa aplikacja jest tak wciągająca, że ludzie zapominają o śnie, rozmowie i ruchu.',
     antagonist: 'Projektant Uzależniających Kliknięć',
     consequence: 'Ludzie przestaną decydować o swoim czasie.',
+    reward: 'Ludzie odzyskują swój czas — więcej snu, rozmów i ruchu. Projektant Uzależniających Kliknięć traci użytkowników jednego po drugim.',
     goal: 'Wyzwolić się od aplikacji i stworzyć zdrowszą alternatywę.',
     slots: [
       { key: 'psychological', family: 'green', hint: 'Ktoś, kto wie, co w życiu naprawdę ważne' },
@@ -120,6 +140,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Ludzie mają tysiące znajomych online, ale coraz mniej prawdziwych rozmów. ETER11 pokazuje przyszłość, w której każdy siedzi sam w swoim pokoju.',
     antagonist: 'Samotność w sieci',
     consequence: 'Ludzie zapomną, jak budować bliskość.',
+    reward: 'Dochodzi do prawdziwego spotkania — ludzie odkrywają, że rozmowa twarzą w twarz daje więcej, niż tysiąc znajomych online.',
     goal: 'Doprowadzić do prawdziwego spotkania i znaleźć powód, żeby się spotykać.',
     slots: [
       { key: 'psychological', family: 'yellow', hint: 'Ktoś, kto wysłucha i pomoże otworzyć się na innych' },
@@ -137,6 +158,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'System AI zarządzający miastem zaczyna podejmować decyzje bez ludzi — zamyka szkoły, zmienia trasy, blokuje dostęp do miejsc.',
     antagonist: 'Autonomiczna AI',
     consequence: 'Ludzie stracą wpływ na swoje życie.',
+    reward: 'Ludzie odzyskują kontrolę nad miastem, a system dostaje zabezpieczenia, które pilnują, żeby to zawsze człowiek miał ostatnie słowo.',
     goal: 'Odzyskać kontrolę nad systemem, nie doprowadzając do paraliżu miasta.',
     slots: [
       { key: 'psychological', family: 'red', hint: 'Zimna krew i odpowiedzialność, gdy system wymyka się spod kontroli' },
@@ -155,6 +177,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Każdy widzi tylko treści, które potwierdzają jego zdanie. Ludzie przestają się rozumieć, bo każdy żyje w innym internecie.',
     antagonist: 'Algorytmy personalizacji',
     consequence: 'Ludzie przestaną ze sobą rozmawiać.',
+    reward: 'Bańki pękają — ludzie zaczynają rozmawiać z tymi, z którymi się nie zgadzają, i odkrywają, że różne zdania mogą istnieć obok siebie.',
     goal: 'Przebić bańki i pokazać ludziom, że istnieje więcej niż jeden punkt widzenia.',
     slots: [
       { key: 'psychological', family: 'yellow', hint: 'Otwartość na to, że ktoś inny może mieć rację' },
@@ -172,6 +195,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Grupa dzieci zostaje zaatakowana w internecie. Pojawiają się obraźliwe komentarze, memy i fałszywe oskarżenia. Część osób się śmieje, część milczy, a dzieci zaczynają bać się chodzić do szkoły.',
     antagonist: 'Anonimowy Hejter i tłum, który udostępnia krzywdzące treści',
     consequence: 'Dzieci poczują się samotne i stracą zaufanie do innych.',
+    reward: 'Hejt milknie, a skrzywdzona osoba odzyskuje spokój. Klasa uczy się, że milczenie wobec krzywdy to też wybór — i że można wybrać inaczej.',
     goal: 'Powstrzymać hejt, wesprzeć skrzywdzoną osobę i pokazać, że w internecie można pomagać.',
     slots: [
       { key: 'psychological', family: 'yellow', hint: 'Ktoś, kto pomoże skrzywdzonej osobie odzyskać spokój' },
@@ -190,6 +214,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'W odległej części świata od tygodni nie spadł deszcz. Pola wyschły, w domach brakuje jedzenia. Tymczasem w innych krajach codziennie wyrzuca się tony żywności.',
     antagonist: 'Król Marnowania',
     consequence: 'Dzieci nie będą miały siły się uczyć, bawić ani marzyć.',
+    reward: 'Jedzenie dociera tam, gdzie było najbardziej potrzebne, a Król Marnowania traci poddanych — coraz więcej ludzi zaczyna dzielić się zamiast wyrzucać.',
     goal: 'Dostarczyć jedzenie tam, gdzie najbardziej potrzebne, i ograniczyć marnowanie.',
     slots: [
       { key: 'psychological', family: 'green', hint: 'Dowódca, który poprowadzi drużynę do celu' },
@@ -208,6 +233,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'Mieszkańcy wyspy obudzili się i zobaczyli, że plaża zniknęła pod górą śmieci. Żółwie nie mogą dotrzeć do swoich jaj, ryby zaplątały się w plastik.',
     antagonist: 'Plastikowy Potwór — rośnie z każdym wyrzuconym śmieciem',
     consequence: 'Morze stanie się domem dla plastiku zamiast dla zwierząt.',
+    reward: 'Plaża wraca do żółwi i ptaków, a Plastikowy Potwór przestaje rosnąć, bo ludzie, firmy i miasta wreszcie działają razem.',
     goal: 'Pokonać Plastikowego Potwora i przywrócić zwierzętom bezpieczny dom.',
     slots: [
       { key: 'psychological', family: 'green', hint: 'Ktoś, kto pokaże, że małe codzienne decyzje mają znaczenie' },
@@ -226,6 +252,7 @@ export const ALL_PROBLEMS: Problem[] = [
     story: 'W różnych częściach świata ludzie zaczynają chorować. Lekarze pracują dzień i noc, ale wirus ciągle się zmienia. W internecie mnożą się plotki — jedni panikują, inni nie wierzą w zagrożenie.',
     antagonist: 'Wirus Chaosu — rozprzestrzenia chorobę, strach i fałszywe informacje',
     consequence: 'Ludzie przestaną sobie ufać, a naukowcom będzie coraz trudniej znaleźć rozwiązanie.',
+    reward: 'Naukowcy znajdują rozwiązanie, a ludzie wracają do codziennego życia. Wirus Chaosu traci swoją drugą broń — plotki i strach — bo prawda dotarła szybciej.',
     goal: 'Powstrzymać wirusa i pomóc ludziom bezpiecznie wrócić do codziennego życia.',
     slots: [
       { key: 'psychological', family: 'blue', hint: 'Ktoś, kto pomoże zachować spokój mimo strachu' },

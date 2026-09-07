@@ -86,7 +86,7 @@ export function searchContent(content: GameContent, query: string): SearchHit[] 
       'problems',
       'Problemy',
       problem.name,
-      `${problem.name} ${problem.story ?? ''} ${problem.consequence ?? ''} ${problem.goal ?? ''} ${problem.antagonist ?? ''}`,
+      `${problem.name} ${problem.story ?? ''} ${problem.consequence ?? ''} ${problem.reward ?? ''} ${problem.goal ?? ''} ${problem.antagonist ?? ''}`,
     );
     for (const slot of problem.slots) {
       // Ścianka wyszukiwana też po nazwie kategorii i rodziny, których

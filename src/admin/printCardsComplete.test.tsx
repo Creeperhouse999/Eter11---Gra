@@ -46,6 +46,28 @@ describe('wydruk zawiera wszystko, z czego składa się gra', () => {
     }
   });
 
+  it('karta problemu drukuje nagrodę za rozwiązanie, nie tylko karę za porażkę', () => {
+    // Adam: opis co się zadzieje, jeśli pokonamy problem — obok „Jeśli nie
+    // rozwiążecie" drużyna czytała na wydruku tylko połowę stawki.
+    render(<PrintCards content={BUILTIN_CONTENT} />);
+
+    const problem = BUILTIN_CONTENT.problems[0];
+    expect(problem.reward?.trim(), 'fixture bez reward — test niczego nie sprawdza').toBeTruthy();
+    const karta = screen.getAllByText(problem.name)[0].closest('article');
+    expect(karta).not.toBeNull();
+
+    expect(
+      within(karta as HTMLElement).getAllByText(
+        (_t, el) => (el?.textContent ?? '').includes(problem.reward as string),
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(karta as HTMLElement).getAllByText(
+        (_t, el) => (el?.textContent ?? '').includes('przeczytajcie opisy każdej z potrzebnych kart'),
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('karta problemu rozkłada wymagania tak, jak prosił Adam', () => {
     // Psychologiczna po lewej, cyfrowa po prawej, społeczna na dole,
     // talent w lewym górnym rogu, mentor w prawym górnym. Ten układ ma

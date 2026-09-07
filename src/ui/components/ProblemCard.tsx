@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cardsInSlot, requiredCountForSlot } from '../../engine/rules';
 import type { Card, MissionState, Problem, ProblemSlot, SlotKey } from '../../engine/types';
+import { ZDANIE_O_POTRZEBNYCH_KARTACH } from '../../data/problems';
 import { Tooltip } from '../controls/Tooltip';
 import { Icon, type IconName } from '../icons/Icon';
 import { CardView } from './CardView';
@@ -317,6 +318,18 @@ export function ProblemCard({
               <dt className="eter-label">Jeśli się nie uda</dt>
               <dd className="text-danger" style={{ overflowWrap: 'anywhere' }}>
                 {problem.consequence}
+              </dd>
+            </div>
+          )}
+          {/* Adam: „opis co się zadzieje, jeśli pokonamy problem" — obok
+              „Jeśli się nie uda" (na czerwono) drużyna widziała tylko połowę
+              stawki. Zdanie na końcu kieruje z powrotem na ścianki: to w ich
+              podpowiedziach jest napisane, KOGO trzeba, żeby tę nagrodę zdobyć. */}
+          {problem.reward?.trim() && (
+            <div>
+              <dt className="eter-label">Jeśli się uda</dt>
+              <dd className="text-success" style={{ overflowWrap: 'anywhere' }}>
+                {problem.reward} {ZDANIE_O_POTRZEBNYCH_KARTACH}
               </dd>
             </div>
           )}

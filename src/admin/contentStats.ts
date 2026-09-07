@@ -69,7 +69,7 @@ export function contentStats(content: GameContent): StatGroup[] {
 
   const cardWords = cards.reduce((sum, c) => sum + words(c.description), 0);
   const storyWords = problems.reduce(
-    (sum, p) => sum + words(p.story) + words(p.consequence) + words(p.goal),
+    (sum, p) => sum + words(p.story) + words(p.consequence) + words(p.reward) + words(p.goal),
     0,
   );
   const introWords = content.intro

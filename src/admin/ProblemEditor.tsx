@@ -41,6 +41,7 @@ function emptyProblem(): Problem {
     story: '',
     antagonist: '',
     consequence: '',
+    reward: '',
     goal: '',
     type: 'action',
     icon: 'earth',
@@ -192,7 +193,7 @@ export function ProblemEditor({ problems, onChange, openId: openIdProp, onOpenCh
                     onChange={(urls) => update(problem.id, { image: urls[0] })}
                   />
 
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <TextField
                       label="Przeciwnik"
                       value={problem.antagonist}
@@ -207,6 +208,17 @@ export function ProblemEditor({ problems, onChange, openId: openIdProp, onOpenCh
                       label="Jeśli się nie uda"
                       value={problem.consequence}
                       onChange={(e) => update(problem.id, { consequence: e.target.value })}
+                    />
+                    {/* Adam poprosił o opis symetryczny do „Jeśli się nie uda" —
+                        obok kary drużyna ma widzieć, co konkretnie zyskuje. Na
+                        końcu wydruku i ekranu gry dochodzi do niego jedno stałe
+                        zdanie kierujące na podpowiedzi ścianek (patrz
+                        `ZDANIE_O_POTRZEBNYCH_KARTACH`), więc tu wpisuje się
+                        tylko samą nagrodę, bez powtarzania tego zdania. */}
+                    <TextField
+                      label="Jeśli się uda"
+                      value={problem.reward ?? ''}
+                      onChange={(e) => update(problem.id, { reward: e.target.value })}
                     />
                   </div>
 

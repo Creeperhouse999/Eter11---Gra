@@ -139,6 +139,15 @@ export function buildBoredomQueue(input: {
         link: `/admin/problems?open=${problem.id}`,
       });
     }
+    if (!problem.reward?.trim()) {
+      items.push({
+        id: `empty-reward-${problem.id}`,
+        kind: 'empty',
+        title: `Brak nagrody: ${problem.name}`,
+        body: 'Co się zmieni, jeśli drużyna wygra? Pokazuje się na karcie problemu obok skutku porażki.',
+        link: `/admin/problems?open=${problem.id}`,
+      });
+    }
   }
   for (const [category, families] of Object.entries(input.content.families ?? {})) {
     for (const family of families ?? []) {

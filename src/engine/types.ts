@@ -83,6 +83,8 @@ export interface Problem {
   antagonist: string;
   /** Co się stanie, jeśli gracze nie rozwiążą. */
   consequence: string;
+  /** Co się zmieni, jeśli drużyna rozwiąże problem. */
+  reward?: string;
   /** Cel misji. */
   goal: string;
   type: ProblemType;
