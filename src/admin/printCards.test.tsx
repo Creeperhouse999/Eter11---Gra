@@ -138,4 +138,23 @@ describe('PrintCards', () => {
 
     expect(onEdit).toHaveBeenCalledWith(jakasKarta.name);
   });
+
+  /**
+   * Adam: „dodaj do wizualizacji kart postaci info nt kart doświadczenia,
+   * które gracz musi uzbierać". Bez tego dziecko przy stole nie wie, ile
+   * kart którego rodzaju zbiera — musi dopytać dorosłego.
+   */
+  it('karta postaci pokazuje w ramce przerywanej info o kartach doświadczenia', () => {
+    const c = content();
+    render(<PrintCards content={c} />);
+
+    const ramki = screen.getAllByText('3 doświadczenia za rozwiązanie problemu');
+    expect(ramki).toHaveLength(c.characters.length);
+    expect(
+      screen.getAllByText('2 doświadczenia za uczenie innych'),
+    ).toHaveLength(c.characters.length);
+    expect(
+      screen.getAllByText('1 doświadczenie za 5 kart postaci (talent, mentor i 3 kompetencje)'),
+    ).toHaveLength(c.characters.length);
+  });
 });

@@ -375,6 +375,20 @@ export function PrintCards({
                 karta postaci
               </div>
             </div>
+
+            {/* Adam: „dodaj info nt kart doświadczenia, które gracz musi
+                uzbierać" — dziecko przy stole ma wiedzieć wprost z karty
+                postaci, za co dostaje którą kartę doświadczenia, bez
+                dopytywania dorosłego. */}
+            <div
+              className="mt-1 rounded border border-dashed p-1 text-[7px] leading-tight text-black/70"
+              style={{ borderColor: `${kolorPostaci(postac, content.characters)}80` }}
+            >
+              <p className="font-bold uppercase tracking-wide text-black/50">Doświadczenie</p>
+              <p>3 doświadczenia za rozwiązanie problemu</p>
+              <p>2 doświadczenia za uczenie innych</p>
+              <p>1 doświadczenie za 5 kart postaci (talent, mentor i 3 kompetencje)</p>
+            </div>
           </article>
         ))}
 
