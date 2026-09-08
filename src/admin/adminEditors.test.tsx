@@ -61,7 +61,7 @@ describe('RulesEditor', () => {
 describe('CharacterEditor', () => {
   it('dodaje nową postać', () => {
     const onChange = vi.fn();
-    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    render(<CharacterEditor characters={ALL_CHARACTERS} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj postać' }));
     expect(onChange.mock.calls[0][0]).toHaveLength(ALL_CHARACTERS.length + 1);
   });
@@ -70,7 +70,7 @@ describe('CharacterEditor', () => {
     // Regresja: id z Date.now() dawało duplikat przy dwóch dodaniach w tej
     // samej milisekundzie, przez co dwie postacie zlewały się w jedną.
     const onChange = vi.fn();
-    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    render(<CharacterEditor characters={ALL_CHARACTERS} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj postać' }));
     const next = onChange.mock.calls[0][0];
     const ids = next.map((c: { id: string }) => c.id);
@@ -79,7 +79,7 @@ describe('CharacterEditor', () => {
 
   it('blokuje usunięcie, gdy zostałaby mniej niż jedna para postaci', async () => {
     const onChange = vi.fn();
-    render(<CharacterEditor characters={ALL_CHARACTERS.slice(0, 2)} onChange={onChange} />);
+    render(<CharacterEditor characters={ALL_CHARACTERS.slice(0, 2)} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
     expect(await screen.findByText(/co najmniej dwie postacie/)).toBeDefined();
     expect(onChange).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe('CharacterEditor', () => {
 
   it('usuwa postać po potwierdzeniu w oknie', async () => {
     const onChange = vi.fn();
-    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    render(<CharacterEditor characters={ALL_CHARACTERS} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
 
     const dialog = await screen.findByRole('dialog', { name: 'Usunąć postać?' });
@@ -100,7 +100,7 @@ describe('CharacterEditor', () => {
 
   it('anulowanie w oknie nie usuwa postaci', async () => {
     const onChange = vi.fn();
-    render(<CharacterEditor characters={ALL_CHARACTERS} onChange={onChange} />);
+    render(<CharacterEditor characters={ALL_CHARACTERS} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Usuń' })[0]);
 
     const dialog = await screen.findByRole('dialog', { name: 'Usunąć postać?' });
@@ -113,11 +113,49 @@ describe('CharacterEditor', () => {
   it('zmienia nazwę postaci', () => {
     const onChange = vi.fn();
     const characters = structuredClone(ALL_CHARACTERS);
-    render(<CharacterEditor characters={characters} onChange={onChange} />);
+    render(<CharacterEditor characters={characters} cards={ALL_CARDS} onChange={onChange} />);
     fireEvent.change(screen.getByLabelText(`Nazwa postaci ${characters[0].name}`), {
       target: { value: 'Zmieniona' },
     });
     expect(onChange.mock.calls[0][0][0].name).toBe('Zmieniona');
+  });
+
+  /**
+   * Adam: „dodaj ramkę z listą aktualnych talentów, które będę mógł wybrać
+   * do danej postaci" — zasada gry się zmienia, gracz ma talent od początku
+   * rozgrywki, opisany na karcie postaci.
+   */
+  it('pokazuje ramkę z listą aktualnych talentów (bez roboczych)', () => {
+    const onChange = vi.fn();
+    render(<CharacterEditor characters={ALL_CHARACTERS} cards={ALL_CARDS} onChange={onChange} />);
+
+    const talenty = ALL_CARDS.filter((c) => c.category === 'talent');
+    const gotowe = talenty.filter((c) => !c.draft);
+    const robocze = talenty.filter((c) => c.draft);
+    expect(gotowe.length, 'fixture ma zawierać gotowe talenty').toBeGreaterThan(0);
+    expect(robocze.length, 'fixture ma zawierać roboczy talent').toBeGreaterThan(0);
+
+    for (const karta of gotowe) {
+      expect(screen.getByText(karta.name)).toBeTruthy();
+    }
+    // Karta robocza nie trafia do gry — nie ma sensu proponować jej jako
+    // talentu do wyboru.
+    for (const karta of robocze) {
+      expect(screen.queryByText(karta.name)).toBeNull();
+    }
+  });
+
+  it('wybór talentu dla postaci woła onChange z id wybranej karty', () => {
+    const onChange = vi.fn();
+    const characters = structuredClone(ALL_CHARACTERS);
+    render(<CharacterEditor characters={characters} cards={ALL_CARDS} onChange={onChange} />);
+
+    const talent = ALL_CARDS.find((c) => c.category === 'talent' && !c.draft)!;
+    fireEvent.click(screen.getByRole('button', { name: `Talent postaci ${characters[0].name}` }));
+    const list = screen.getByRole('listbox', { name: `Talent postaci ${characters[0].name}` });
+    fireEvent.click(within(list).getByRole('option', { name: talent.name }));
+
+    expect(onChange.mock.calls[0][0][0].talent).toBe(talent.id);
   });
 });
 

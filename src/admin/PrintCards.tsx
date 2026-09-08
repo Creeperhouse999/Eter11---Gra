@@ -4,7 +4,7 @@ import { themeFamilyColor } from '../data/families';
 import { ZDANIE_O_POTRZEBNYCH_KARTACH } from '../data/problems';
 import type { ThemeColors } from '../data/theme';
 import type { GameContent } from '../firebase/validate';
-import type { Card, Problem, ProblemSlot, SlotKey } from '../engine/types';
+import type { Card, Character, Problem, ProblemSlot, SlotKey } from '../engine/types';
 import { categoryLabel, familyLabel, familySymbol } from '../ui/components/categoryStyles';
 import {
   kartyDoswiadczen,
@@ -64,6 +64,19 @@ const KOLOR_LABEDZ = '#000000';
 function kolorKarty(card: Card, theme: FamilyTheme): string {
   if (card.family) return themeFamilyColor(theme, card.family);
   return card.category === 'eter11' ? KOLOR_ETER : KOLOR_LABEDZ;
+}
+
+/**
+ * Nazwa talentu przypisanego postaci (z edytora „Postacie"), do pokazania
+ * na wydruku obok etykiety ścianki „Talent".
+ *
+ * Zwraca `undefined`, gdy talent nie jest wybrany albo wskazuje kartę, która
+ * zniknęła z treści (usunięta w edytorze kart) — wtedy wydruk wraca do samej
+ * etykiety kategorii, zamiast pokazać pustkę albo id.
+ */
+function nazwaTalentu(postac: Character, cards: Card[]): string | undefined {
+  if (!postac.talent) return undefined;
+  return cards.find((c) => c.id === postac.talent)?.name;
 }
 
 /**
@@ -369,6 +382,15 @@ export function PrintCards({
                   <p className="text-[8px] font-bold uppercase leading-tight">
                     {categoryLabel(klucz)}
                   </p>
+                  {/* Adam: „w »drukuj karty« wprowadź w miejscu »talent«
+                      nazwę danego talentu" — gracz ma go od początku gry,
+                      więc na wydruku musi być widać KTÓRY, nie tylko że to
+                      slot na talent. */}
+                  {klucz === 'talent' && nazwaTalentu(postac, content.cards) && (
+                    <p className="text-[7px] font-bold leading-tight">
+                      {nazwaTalentu(postac, content.cards)}
+                    </p>
+                  )}
                 </div>
               ))}
               <div className="col-start-2 row-start-2 flex items-center justify-center rounded border border-dashed border-black/30 p-1 text-center text-[7px] leading-tight text-black/50">

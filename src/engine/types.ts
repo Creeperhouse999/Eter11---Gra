@@ -114,6 +114,17 @@ export interface Character {
    * Brak pola (treść sprzed tej zmiany) znaczy „weź domyślny z listy".
    */
   color?: string;
+  /**
+   * Id karty talentu przypisanej tej postaci (z listy kart kategorii
+   * `talent`), pokazywanej po nazwie na wydruku karty postaci.
+   *
+   * Adam: gracz wybierający postać ma od początku gry talent opisany na
+   * jej karcie. Id, nie nazwa wprost — zmiana nazwy talentu w edytorze kart
+   * ma się od razu odzwierciedlić tutaj, bez osobnej edycji każdej postaci.
+   * Brak pola (albo id karty, która zniknęła) znaczy „talent nie wybrany" —
+   * wydruk wraca do samej etykiety kategorii.
+   */
+  talent?: string;
 }
 
 /** Karta doświadczenia. Typ ma znaczenie dla warunku spełnienia. */

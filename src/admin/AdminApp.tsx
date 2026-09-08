@@ -842,6 +842,7 @@ export function AdminApp() {
         {tab === 'characters' && (
           <CharacterEditor
             characters={content.characters}
+            cards={content.cards}
             onChange={(characters) => update({ characters })}
           />
         )}

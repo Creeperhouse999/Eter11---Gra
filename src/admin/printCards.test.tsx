@@ -1,7 +1,7 @@
 import { liczbaKartRund } from '../data/roundCards';
 import { kartyDoswiadczen, liczbaKartDoswiadczen } from '../data/experienceCards';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ALL_CARDS, buildDeck, playableCards } from '../data/cards';
 import { ALL_CHARACTERS } from '../data/characters';
 import { ALL_PROBLEMS } from '../data/problems';
@@ -156,5 +156,29 @@ describe('PrintCards', () => {
     expect(
       screen.getAllByText('1 doświadczenie za 5 kart postaci (talent, mentor i 3 kompetencje)'),
     ).toHaveLength(c.characters.length);
+  });
+
+  /**
+   * Adam: „w »drukuj karty« wprowadź w miejscu »talent« nazwę danego
+   * talentu" — gracz ma talent od początku gry, opisany na karcie postaci,
+   * więc wydruk musi pokazać KTÓRY, nie tylko etykietę kategorii.
+   */
+  it('karta postaci pokazuje nazwę przypisanego talentu na ściance', () => {
+    const c = content();
+    const talent = c.cards.find((card) => card.category === 'talent' && !card.draft)!;
+    c.characters[0] = { ...c.characters[0], talent: talent.id };
+    render(<PrintCards content={c} />);
+
+    // Postać z talentem jest pierwsza na liście — jej ścianka jest też pierwsza.
+    const scianka = screen.getAllByTestId('mat-talent')[0];
+    expect(within(scianka).getByText(talent.name)).toBeTruthy();
+  });
+
+  it('bez przypisanego talentu ścianka pokazuje samą etykietę kategorii', () => {
+    const c = content();
+    render(<PrintCards content={c} />);
+
+    const scianka = screen.getAllByTestId('mat-talent')[0];
+    expect(within(scianka).getByText('Talent')).toBeTruthy();
   });
 });

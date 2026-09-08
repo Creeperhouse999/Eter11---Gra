@@ -1,4 +1,4 @@
-import type { Character } from '../engine/types';
+import type { Card, Character } from '../engine/types';
 import { Button } from '../ui/controls/Button';
 import { TextField } from '../ui/controls/Field';
 import { Select } from '../ui/controls/Select';
@@ -10,8 +10,13 @@ import { newId } from './newId';
 
 interface CharacterEditorProps {
   characters: Character[];
+  /** Do listy talentów, które można przypisać postaci. */
+  cards: Card[];
   onChange: (characters: Character[]) => void;
 }
+
+/** Bez robocze — wersja robocza nie trafia do gry, nie ma jej sensu proponować. */
+const BRAK_TALENTU = '';
 
 const KINDS: Array<[Character['kind'], string]> = [
   ['child', 'Dziecko'],
@@ -19,9 +24,10 @@ const KINDS: Array<[Character['kind'], string]> = [
   ['teacher', 'Nauczyciel'],
 ];
 
-export function CharacterEditor({ characters, onChange }: CharacterEditorProps) {
+export function CharacterEditor({ characters, cards, onChange }: CharacterEditorProps) {
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
+  const talenty = cards.filter((c) => c.category === 'talent' && !c.draft);
 
   const update = (id: string, patch: Partial<Character>) => {
     onChange(characters.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -78,6 +84,26 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
         Gracz wybiera jedną postać na całą rozgrywkę.
       </p>
 
+      {/* Adam: „dodaj ramkę z listą aktualnych talentów, które będę mógł
+          wybrać do danej postaci" — zasada gry się zmienia, gracz ma talent
+          od początku rozgrywki, więc trzeba wiedzieć, z czego jest wybór,
+          zanim przypisze się go niżej każdej postaci z osobna. */}
+      <div className="mt-3 rounded-lg border border-dashed border-edge bg-surface p-3 text-sm">
+        <p className="font-bold">Aktualne talenty ({talenty.length})</p>
+        {talenty.length === 0 ? (
+          <p className="mt-1 text-ink-dim">
+            Brak — dodaj kartę kategorii „talent" w zakładce „Karty", żeby było
+            co przypisywać postaciom.
+          </p>
+        ) : (
+          <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-ink-dim">
+            {talenty.map((karta) => (
+              <li key={karta.id}>{karta.name}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <ul className="mt-4 space-y-2">
         {characters.map((character) => (
           <li key={character.id} className="eter-rise rounded-lg border border-edge bg-surface p-3">
@@ -128,6 +154,19 @@ export function CharacterEditor({ characters, onChange }: CharacterEditorProps) 
               placeholder="Cechy postaci — jedno zdanie widoczne przy wyborze"
               aria-label={`Cechy postaci ${character.name}`}
               className="mt-2"
+            />
+
+            {/* Talent tej postaci — pokazywany po nazwie na wydruku karty
+                postaci (Adam: gracz ma go od początku gry). */}
+            <Select
+              value={character.talent ?? BRAK_TALENTU}
+              ariaLabel={`Talent postaci ${character.name}`}
+              options={[
+                { value: BRAK_TALENTU, label: '— talent nie wybrany —' },
+                ...talenty.map((karta) => ({ value: karta.id, label: karta.name })),
+              ]}
+              onChange={(id) => update(character.id, { talent: id || undefined })}
+              className="mt-2 sm:max-w-xs"
             />
           </li>
         ))}
