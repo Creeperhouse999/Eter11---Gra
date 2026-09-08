@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { BUILTIN_CONTENT } from '../data/builtinContent';
 import { PrintManual } from './PrintManual';
 
@@ -62,6 +62,26 @@ describe('instrukcja do wydruku', () => {
 
     expect(screen.getAllByText(/ETER11/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Czarny Łabędź/i).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * Adam: „dodaj do instrukcji wizualizację karty postaci — zaprezentuj
+   * finałową wersję, do której gracz dąży. Nazwij to »Jak rozłożyć kartę
+   * postaci«". Karta problemu wyżej pokazywała, gdzie odkładać karty
+   * w trakcie gry — brakowało tego, jak wygląda gotowy komplet.
+   */
+  it('pokazuje wizualizację „Jak rozłożyć kartę postaci"', () => {
+    render(<PrintManual content={BUILTIN_CONTENT} />);
+
+    expect(screen.getByText('Jak rozłożyć kartę postaci')).toBeTruthy();
+    // Dwie karty talentu, po jednej mentora i każdej kompetencji.
+    const uklad = screen.getByTestId('postac-docelowo');
+    expect(within(uklad).getAllByText('Talent')).toHaveLength(2);
+    expect(screen.getByText('3 doświadczenia za rozwiązanie problemu')).toBeTruthy();
+    expect(screen.getByText('2 doświadczenia za uczenie innych')).toBeTruthy();
+    expect(
+      screen.getByText('1 doświadczenie za 6 kart postaci (2 talenty, mentor i 3 kompetencje)'),
+    ).toBeTruthy();
   });
 
   it('FAQ ma pytania i odpowiedzi, nie same nagłówki', () => {

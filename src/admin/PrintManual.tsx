@@ -18,6 +18,7 @@ import { themeFamilyColor } from '../data/families';
 import { Button } from '../ui/controls/Button';
 import { Icon, type IconName } from '../ui/icons/Icon';
 import { KartaKompetencji, type FamilyTheme } from './PrintCards';
+import { kolorPostaci } from '../data/characters';
 
 interface PrintManualProps {
   content: GameContent;
@@ -178,6 +179,7 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
   const eter = grywalne.find((c) => c.category === 'eter11');
   const labedz = grywalne.find((c) => c.category === 'blackswan');
   const problem = content.problems[0];
+  const postac = content.characters[0];
   const zasady = content.rules;
 
   return (
@@ -399,6 +401,68 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
                 {categoryLabel('digital')} po prawej, {categoryLabel('social')} na
                 dole.
               </p>
+            </>
+          )}
+
+          {/* Adam: „dodaj do instrukcji wizualizację karty postaci —
+              zaprezentuj finałową wersję, do której gracz dąży". Karta
+              problemu wyżej pokazuje, GDZIE odkładać karty w trakcie gry;
+              tu chodzi o CEL — jak wygląda komplet, gdy postać jest gotowa. */}
+          {postac && (
+            <>
+              <h3 className="mt-4 font-display text-sm font-bold">
+                Jak rozłożyć kartę postaci
+              </h3>
+              <p className="mt-1 text-sm leading-snug">
+                Kartę postaci trzymacie przed sobą przez całą grę. Tak wygląda
+                komplet, do którego dążycie:
+              </p>
+              <div
+                data-testid="postac-docelowo"
+                className="mt-2 flex max-w-md flex-wrap items-center gap-1"
+              >
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded border-2 border-dashed p-1 text-center text-[8px] leading-tight"
+                  style={{
+                    borderColor: kolorPostaci(postac, content.characters),
+                    color: kolorPostaci(postac, content.characters),
+                  }}
+                >
+                  karta postaci
+                </div>
+                {[
+                  'Talent',
+                  'Talent',
+                  categoryLabel('mentor'),
+                  categoryLabel('psychological'),
+                  categoryLabel('social'),
+                  categoryLabel('digital'),
+                ].map((etykieta, i) => (
+                  <div
+                    key={i}
+                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded border-2 p-1 text-center text-[8px] font-bold uppercase leading-tight"
+                    style={{
+                      borderColor: kolorPostaci(postac, content.characters),
+                      color: kolorPostaci(postac, content.characters),
+                    }}
+                  >
+                    {etykieta}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1 text-sm leading-snug">
+                Dwie karty talentu, karta mentora i po jednej karcie każdej
+                kompetencji — sześć kart obok karty postaci.
+              </p>
+
+              <h4 className="mt-3 font-display text-xs font-bold uppercase tracking-wide">
+                Ile kart doświadczenia zbieracie
+              </h4>
+              <ul className="mt-1 list-disc pl-4 text-sm leading-snug">
+                <li>3 doświadczenia za rozwiązanie problemu</li>
+                <li>2 doświadczenia za uczenie innych</li>
+                <li>1 doświadczenie za 6 kart postaci (2 talenty, mentor i 3 kompetencje)</li>
+              </ul>
             </>
           )}
 
