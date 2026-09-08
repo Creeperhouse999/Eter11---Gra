@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { StoryEditor } from './StoryEditor';
 import { DEFAULT_INTRO, type IntroContent } from '../data/intro';
 
@@ -33,5 +33,36 @@ describe('StoryEditor — częściowy wstęp', () => {
     } as unknown as IntroContent;
 
     expect(() => render(<StoryEditor intro={corrupt} onChange={vi.fn()} />)).not.toThrow();
+  });
+});
+
+/**
+ * Adam: „zaktualizuj instrukcję do druku i upewnij się, że każdy element
+ * tekstowy mogę edytować" — „Czym są karty" i „Jak rozłożyć kartę postaci"
+ * (strona „Jak grać" wydruku) były wpisane wprost w komponencie wydruku;
+ * teraz mają tu własne zakładki, jak reszta wstępu.
+ */
+describe('StoryEditor — nowe zakładki wydruku', () => {
+  it('pokazuje zakładki „Czym są karty" i „Jak rozłożyć kartę postaci" z treścią wbudowaną', () => {
+    render(<StoryEditor intro={DEFAULT_INTRO} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('Czym są karty'));
+    expect(screen.getByDisplayValue(DEFAULT_INTRO.cardTypes![0].heading)).toBeDefined();
+
+    fireEvent.click(screen.getByText('Jak rozłożyć kartę postaci'));
+    expect(screen.getByDisplayValue(DEFAULT_INTRO.characterLayout![0].heading)).toBeDefined();
+  });
+
+  it('edycja treści w zakładce „Czym są karty" woła onChange z nową wartością', () => {
+    const onChange = vi.fn();
+    render(<StoryEditor intro={DEFAULT_INTRO} onChange={onChange} />);
+    fireEvent.click(screen.getByText('Czym są karty'));
+
+    const pierwszyNaglowek = screen.getByDisplayValue(DEFAULT_INTRO.cardTypes![0].heading);
+    fireEvent.change(pierwszyNaglowek, { target: { value: 'Karta mocy' } });
+
+    expect(onChange.mock.calls[0][0].intro.cardTypes[0].heading).toBe('Karta mocy');
+    // Reszta wstępu (np. `story`) ma zostać nietknięta.
+    expect(onChange.mock.calls[0][0].intro.story).toEqual(DEFAULT_INTRO.story);
   });
 });

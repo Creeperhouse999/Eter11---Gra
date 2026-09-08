@@ -48,6 +48,27 @@ describe('instrukcja do wydruku', () => {
     expect(screen.getByText(/Zupełnie nowa historia o kotach/)).toBeTruthy();
   });
 
+  /**
+   * Adam: „zaktualizuj instrukcję do druku i upewnij się, że każdy element
+   * tekstowy mogę edytować" — „Czym są karty" i „Jak rozłożyć kartę postaci"
+   * były wpisane wprost w tym komponencie, więc poprawka słowa wymagała
+   * wdrożenia, tak jak `story` przed migracją do treści edytowalnej.
+   */
+  it('„Czym są karty" i „Jak rozłożyć kartę postaci" biorą tekst z treści edytowalnej', () => {
+    const zmieniona = structuredClone(BUILTIN_CONTENT);
+    zmieniona.intro!.cardTypes = [
+      { icon: 'star', heading: 'Karta mocy', body: 'Zupełnie nowy opis karty mocy.' },
+    ];
+    zmieniona.intro!.characterLayout = [
+      { icon: 'compass', heading: 'Cel', body: 'Zupełnie nowy opis celu gracza.' },
+    ];
+
+    render(<PrintManual content={zmieniona} />);
+
+    expect(screen.getByText(/Zupełnie nowy opis karty mocy/)).toBeTruthy();
+    expect(screen.getByText(/Zupełnie nowy opis celu gracza/)).toBeTruthy();
+  });
+
   it('instrukcja pokazuje karty, na których tłumaczy zasady', () => {
     // Adam: „w instrukcji użyj graficznych wizualizacji kart, aby w oparciu
     // o nie tłumaczyć, czym jest gra". Sam tekst by nie wystarczył.

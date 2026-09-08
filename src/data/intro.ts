@@ -69,6 +69,24 @@ export interface IntroContent {
    * poprawka słowa wymagała wdrożenia.
    */
   storyGood?: IntroScene[];
+  /**
+   * Wyjaśnienie trzech rodzajów kart — sekcja „Czym są karty" na stronie
+   * „Jak grać". Adam: „zaktualizuj instrukcję do druku i upewnij się, że
+   * każdy element tekstowy mogę edytować" — te trzy zdania (kompetencja,
+   * ETER11, Czarny Łabędź) były wpisane wprost w komponencie wydruku, więc
+   * poprawka słowa wymagała wdrożenia, tak jak reszta wstępu przed migracją.
+   */
+  cardTypes?: IntroScene[];
+  /**
+   * „Jak rozłożyć kartę postaci" — cel, do którego dąży gracz: karta postaci
+   * otoczona kompletem zebranych kart. Z tego samego powodu co `cardTypes`:
+   * dwa zdania wpisane wprost w komponencie wydruku, teraz edytowalne.
+   *
+   * Same liczby (ile talentów, ile kart doświadczenia) zostają policzone
+   * w komponencie, nie tutaj — to fakty o zasadach gry, nie treść do
+   * swobodnej redakcji; zmiana zasady wymaga zmiany kodu, nie tylko słowa.
+   */
+  characterLayout?: IntroScene[];
 }
 
 export const INTRO_STORY: IntroScene[] = [
@@ -426,6 +444,46 @@ export const INTRO_FOR_ADULTS: IntroScene[] = [
   },
 ];
 
+/**
+ * Wyjaśnienie trzech rodzajów kart — pod przykładami na stronie „Jak grać".
+ * Nagłówek to nazwa karty, treść to zdanie, które ją tłumaczy dziecku.
+ */
+export const INTRO_CARD_TYPES: IntroScene[] = [
+  {
+    icon: 'star',
+    heading: 'Karta kompetencji',
+    body: 'Ma kategorię (np. Supermoc Umysłu) i kolor rodziny. Pasuje tylko tam, gdzie zgadza się jedno i drugie — sam kolor nie wystarczy.',
+  },
+  {
+    icon: 'spark',
+    heading: 'ETER11',
+    body: 'To karta-dżoker: pasuje do każdego wymagania, więc trzymajcie ją na ciężki moment.',
+  },
+  {
+    icon: 'swan',
+    heading: 'Czarny Łabędź',
+    body: 'To niespodzianka — zdarzenie, którego nikt nie planował. Wchodzi na stół i zmienia sytuację.',
+  },
+];
+
+/**
+ * „Jak rozłożyć kartę postaci" — dwa zdania wokół wizualizacji docelowego
+ * kompletu kart. Same liczby i nazwy kategorii dorysowuje komponent wydruku
+ * z zasad gry, nie stąd.
+ */
+export const INTRO_CHARACTER_LAYOUT: IntroScene[] = [
+  {
+    icon: 'compass',
+    heading: 'Cel',
+    body: 'Kartę postaci trzymacie przed sobą przez całą grę. Tak wygląda komplet, do którego dążycie:',
+  },
+  {
+    icon: 'checklist',
+    heading: 'Skład',
+    body: 'Dwie karty talentu, karta mentora i po jednej karcie każdej kompetencji — sześć kart obok karty postaci.',
+  },
+];
+
 /** Komplet wstępu zaszyty w kodzie — punkt wyjścia dla panelu. */
 export const DEFAULT_INTRO: IntroContent = {
   story: INTRO_STORY,
@@ -435,4 +493,6 @@ export const DEFAULT_INTRO: IntroContent = {
   faq: INTRO_FAQ,
   handbook: INTRO_HANDBOOK,
   storyGood: INTRO_STORY_GOOD,
+  cardTypes: INTRO_CARD_TYPES,
+  characterLayout: INTRO_CHARACTER_LAYOUT,
 };

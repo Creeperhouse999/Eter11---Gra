@@ -14,6 +14,8 @@ export type StoryPart =
   | 'rules'
   | 'adults'
   | 'faq'
+  | 'cardTypes'
+  | 'characterLayout'
   | 'tutorial';
 
 interface StoryEditorProps {
@@ -41,6 +43,8 @@ const PART_IDS: Part[] = [
   'box',
   'adults',
   'rules',
+  'cardTypes',
+  'characterLayout',
   'faq',
   'tutorial',
 ];
@@ -82,6 +86,16 @@ const PARTS: Array<{ id: Part; label: string; hint: string }> = [
     id: 'adults',
     label: 'Dla dorosłych',
     hint: 'Dla rodziców i nauczycieli: po co ta gra powstała.',
+  },
+  {
+    id: 'cardTypes',
+    label: 'Czym są karty',
+    hint: 'Trzy zdania pod przykładami kart na stronie „Jak grać" — kompetencja, ETER11, Czarny Łabędź.',
+  },
+  {
+    id: 'characterLayout',
+    label: 'Jak rozłożyć kartę postaci',
+    hint: 'Dwa zdania wokół wizualizacji docelowego kompletu kart na stronie „Jak grać".',
   },
   {
     id: 'faq',
@@ -132,6 +146,8 @@ export function StoryEditor({ intro, tutorial, onChange, part: partProp, onPartC
     handbook: scenesOf('handbook'),
     box: scenesOf('box'),
     faq: scenesOf('faq'),
+    cardTypes: scenesOf('cardTypes'),
+    characterLayout: scenesOf('characterLayout'),
   };
   const steps = tutorial?.length ? tutorial : TUTORIAL_STEPS;
 

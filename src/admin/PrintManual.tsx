@@ -8,6 +8,8 @@ import {
   INTRO_BOX,
   INTRO_FAQ,
   INTRO_HANDBOOK,
+  INTRO_CARD_TYPES,
+  INTRO_CHARACTER_LAYOUT,
   NARRATIVE_LABELS,
   type NarrativeVariant,
 } from '../data/intro';
@@ -165,6 +167,15 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
   const handbook = content.intro?.handbook?.length
     ? content.intro.handbook
     : INTRO_HANDBOOK;
+  // Adam: „zaktualizuj instrukcję do druku i upewnij się, że każdy element
+  // tekstowy mogę edytować" — te dwa akapity strony „Jak grać" były wpisane
+  // wprost w tym komponencie, tak jak `box`/`faq` przed migracją do treści.
+  const cardTypes = content.intro?.cardTypes?.length
+    ? content.intro.cardTypes
+    : INTRO_CARD_TYPES;
+  const characterLayout = content.intro?.characterLayout?.length
+    ? content.intro.characterLayout
+    : INTRO_CHARACTER_LAYOUT;
 
   // Podsumowanie techniczne — Adam poprosił o stronę z liczbami: ile jest
   // problemów, postaci, kart specjalnych i kart z każdej kategorii. Liczone
@@ -345,20 +356,11 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
             )}
           </div>
 
-          <p className="mt-2 text-sm leading-snug">
-            <strong>Karta kompetencji</strong> ma kategorię (np.{' '}
-            {categoryLabel('psychological')}) i kolor rodziny. Pasuje tylko
-            tam, gdzie zgadza się jedno i drugie —{' '}
-            <strong>sam kolor nie wystarczy</strong>.
-          </p>
-          <p className="mt-1 text-sm leading-snug">
-            <strong>ETER11</strong> to karta-dżoker: pasuje do każdego
-            wymagania, więc trzymajcie ją na ciężki moment.
-          </p>
-          <p className="mt-1 text-sm leading-snug">
-            <strong>Czarny Łabędź</strong> to niespodzianka — zdarzenie, którego
-            nikt nie planował. Wchodzi na stół i zmienia sytuację.
-          </p>
+          {cardTypes.map((scena, i) => (
+            <p key={i} className={i === 0 ? 'mt-2 text-sm leading-snug' : 'mt-1 text-sm leading-snug'}>
+              <strong>{scena.heading}</strong> {scena.body}
+            </p>
+          ))}
 
           {problem && (
             <>
@@ -413,10 +415,9 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
               <h3 className="mt-4 font-display text-sm font-bold">
                 Jak rozłożyć kartę postaci
               </h3>
-              <p className="mt-1 text-sm leading-snug">
-                Kartę postaci trzymacie przed sobą przez całą grę. Tak wygląda
-                komplet, do którego dążycie:
-              </p>
+              {characterLayout[0] && (
+                <p className="mt-1 text-sm leading-snug">{characterLayout[0].body}</p>
+              )}
               <div
                 data-testid="postac-docelowo"
                 className="mt-2 flex max-w-md flex-wrap items-center gap-1"
@@ -450,10 +451,9 @@ export function PrintManual({ content, onEdit }: PrintManualProps) {
                   </div>
                 ))}
               </div>
-              <p className="mt-1 text-sm leading-snug">
-                Dwie karty talentu, karta mentora i po jednej karcie każdej
-                kompetencji — sześć kart obok karty postaci.
-              </p>
+              {characterLayout[1] && (
+                <p className="mt-1 text-sm leading-snug">{characterLayout[1].body}</p>
+              )}
 
               <h4 className="mt-3 font-display text-xs font-bold uppercase tracking-wide">
                 Ile kart doświadczenia zbieracie
