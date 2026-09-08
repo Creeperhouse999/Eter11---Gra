@@ -1,11 +1,56 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ChangeEvent, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { Icon } from '../icons/Icon';
+import { useDictation } from './useDictation';
 
 interface CommonProps {
   label?: string;
   hint?: string;
   error?: string;
   className?: string;
+}
+
+/** Dopisuje wypowiedziany tekst do tego, co już jest w polu. */
+function dopisz(obecny: string, transcript: string): string {
+  if (!obecny) return transcript;
+  return /\s$/.test(obecny) ? `${obecny}${transcript}` : `${obecny} ${transcript}`;
+}
+
+/**
+ * Przycisk dyktowania — wspólny dla `TextField` i `TextArea`.
+ *
+ * Adam: „wprowadź opcję audio dyktowania tekstu — abym nie musiał pisać, ale
+ * mówię, a ty spisujesz". Niewidoczny, gdy przeglądarka nie ma Web Speech
+ * API (Firefox, starsze Safari) — lepiej brak przycisku niż martwy klik.
+ */
+function DictationButton({
+  onText,
+  label,
+  align = 'center',
+}: {
+  onText: (transcript: string) => void;
+  label?: string;
+  /** `center` dla jednolinijkowego pola, `top` dla rosnącego pola wielolinijkowego. */
+  align?: 'center' | 'top';
+}) {
+  const { supported, listening, toggle } = useDictation(onText);
+  if (!supported) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={listening ? 'Zatrzymaj dyktowanie' : `Dyktuj${label ? ` — ${label}` : ''}`}
+      aria-pressed={listening}
+      className={[
+        'absolute right-2 rounded-full p-1 transition',
+        align === 'center' ? 'top-1/2 -translate-y-1/2' : 'top-2',
+        listening ? 'animate-pulse text-danger' : 'text-ink-dim hover:text-ink',
+      ].join(' ')}
+    >
+      <Icon name="mic" size={16} />
+    </button>
+  );
 }
 
 type TextFieldProps = CommonProps &
@@ -23,19 +68,35 @@ const base =
  * musi mieć czym nazwać pole.
  */
 export function TextField({ label, hint, error, className, ...rest }: TextFieldProps) {
+  // Dyktowanie tylko na zwykłym tekście. Hasło nie ma się dać wypowiedzieć —
+  // to samo w sobie zaprzecza sensowi pola — a e-mail i liczba nie zyskują
+  // nic na rozpoznawaniu mowy, za to komplikują pole, którego nikt nie dyktuje.
+  const dyktowalne = !rest.type || rest.type === 'text';
+
+  const dyktuj = (transcript: string) => {
+    const obecny = typeof rest.value === 'string' ? rest.value : '';
+    rest.onChange?.({
+      target: { value: dopisz(obecny, transcript) },
+    } as ChangeEvent<HTMLInputElement>);
+  };
+
   return (
     <label className={`block ${className ?? ''}`}>
       {label && <span className="block text-sm text-ink-dim">{label}</span>}
-      <input
-        aria-label={label}
-        {...rest}
-        aria-invalid={error ? true : undefined}
-        className={[
-          base,
-          label ? 'mt-1' : '',
-          error ? 'border-danger' : 'border-edge focus:border-accent',
-        ].join(' ')}
-      />
+      <div className="relative">
+        <input
+          aria-label={label}
+          {...rest}
+          aria-invalid={error ? true : undefined}
+          className={[
+            base,
+            dyktowalne ? 'pr-8' : '',
+            label ? 'mt-1' : '',
+            error ? 'border-danger' : 'border-edge focus:border-accent',
+          ].join(' ')}
+        />
+        {dyktowalne && !rest.disabled && <DictationButton onText={dyktuj} label={label} />}
+      </div>
       {error ? (
         <span className="mt-1 block text-xs text-danger">{error}</span>
       ) : (
@@ -74,28 +135,39 @@ export function TextArea({ label, hint, error, className, rows = 3, ...rest }: T
   // pokazać w pełnej wysokości, bez przeskoku po renderze.
   useLayoutEffect(fit, [fit, rest.value]);
 
+  const dyktuj = (transcript: string) => {
+    const obecny = typeof rest.value === 'string' ? rest.value : '';
+    rest.onChange?.({
+      target: { value: dopisz(obecny, transcript) },
+    } as ChangeEvent<HTMLTextAreaElement>);
+  };
+
   return (
     <label className={`block ${className ?? ''}`}>
       {label && <span className="block text-sm text-ink-dim">{label}</span>}
-      <textarea
-        ref={ref}
-        aria-label={label}
-        {...rest}
-        onInput={(event) => {
-          fit();
-          rest.onInput?.(event);
-        }}
-        rows={rows}
-        aria-invalid={error ? true : undefined}
-        className={[
-          base,
-          // `overflow-hidden` usuwa pasek przewijania, który przy własnym
-          // dopasowaniu wysokości i tak nie ma czego przewijać.
-          'resize-none overflow-hidden',
-          label ? 'mt-1' : '',
-          error ? 'border-danger' : 'border-edge focus:border-accent',
-        ].join(' ')}
-      />
+      <div className="relative">
+        <textarea
+          ref={ref}
+          aria-label={label}
+          {...rest}
+          onInput={(event) => {
+            fit();
+            rest.onInput?.(event);
+          }}
+          rows={rows}
+          aria-invalid={error ? true : undefined}
+          className={[
+            base,
+            'pr-8',
+            // `overflow-hidden` usuwa pasek przewijania, który przy własnym
+            // dopasowaniu wysokości i tak nie ma czego przewijać.
+            'resize-none overflow-hidden',
+            label ? 'mt-1' : '',
+            error ? 'border-danger' : 'border-edge focus:border-accent',
+          ].join(' ')}
+        />
+        {!rest.disabled && <DictationButton onText={dyktuj} label={label} align="top" />}
+      </div>
       {error ? (
         <span className="mt-1 block text-xs text-danger">{error}</span>
       ) : (

@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { useState } from 'react';
 import { Alert } from './Alert';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { ColorPicker } from './ColorPicker';
-import { NumberField, TextField } from './Field';
+import { NumberField, TextField, TextArea } from './Field';
 import { Modal } from './Modal';
 import { Select } from './Select';
 import { ToastProvider, useToast } from './Toast';
@@ -470,6 +470,95 @@ describe('TextField', () => {
     expect(screen.getByText('Pole wymagane')).toBeDefined();
     expect(screen.queryByText('Podpowiedź')).toBeNull();
     expect(screen.getByLabelText('Imię').getAttribute('aria-invalid')).toBe('true');
+  });
+});
+
+/**
+ * Dyktowanie głosowe. Adam: „wprowadź opcję audio dyktowania tekstu — abym
+ * nie musiał pisać, ale mówię, a ty spisujesz".
+ *
+ * jsdom nie ma Web Speech API — udajemy je minimalnym „nagrywaczem", który
+ * zapamiętuje ostatnią zbudowaną instancję, żeby test mógł ręcznie odpalić
+ * `onresult`, tak jak zrobiłaby to prawdziwa przeglądarka po rozpoznaniu
+ * wypowiedzi.
+ */
+describe('Dyktowanie (TextField/TextArea)', () => {
+  class FakeRecognizer {
+    static ostatnia: FakeRecognizer | undefined;
+    lang = '';
+    interimResults = false;
+    continuous = false;
+    onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    onend: (() => void) | null = null;
+    start = vi.fn();
+    stop = vi.fn();
+    constructor() {
+      FakeRecognizer.ostatnia = this;
+    }
+  }
+
+  afterEach(() => {
+    delete (window as { SpeechRecognition?: unknown }).SpeechRecognition;
+    FakeRecognizer.ostatnia = undefined;
+  });
+
+  it('bez Web Speech API przycisk dyktowania się nie pojawia', () => {
+    render(<TextField label="Imię" value="" onChange={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Dyktuj/ })).toBeNull();
+  });
+
+  /**
+   * Regresja: pierwsza wersja pokazywała mikrofon na KAŻDYM `TextField`,
+   * hasło w panelu logowania (`type="password"`) włącznie — dyktowanie
+   * hasła zaprzecza sensowi pola. `type="number"` też nie ma po co go mieć.
+   */
+  it('pole hasła i pole liczbowe nie dostają przycisku dyktowania', () => {
+    (window as unknown as { SpeechRecognition: typeof FakeRecognizer }).SpeechRecognition =
+      FakeRecognizer;
+    render(
+      <>
+        <TextField label="Hasło" type="password" value="" onChange={vi.fn()} />
+        <TextField label="Ile sztuk" type="number" value="1" onChange={vi.fn()} />
+      </>,
+    );
+    expect(screen.queryByRole('button', { name: /Dyktuj/ })).toBeNull();
+  });
+
+  it('kliknięcie w mikrofon nagrywa i dopisuje wypowiedziany tekst', () => {
+    (window as unknown as { SpeechRecognition: typeof FakeRecognizer }).SpeechRecognition =
+      FakeRecognizer;
+    const onChange = vi.fn();
+    render(<TextField label="Opis" value="Cześć" onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Dyktuj — Opis/ }));
+    expect(FakeRecognizer.ostatnia?.start).toHaveBeenCalled();
+
+    act(() => {
+      FakeRecognizer.ostatnia!.onresult!({ results: { 0: { 0: { transcript: 'świecie' } } } });
+    });
+
+    // Istniejący tekst zostaje, wypowiedź dochodzi po spacji — dyktowanie
+    // dopisuje, nie kasuje tego, co już było napisane.
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ target: expect.objectContaining({ value: 'Cześć świecie' }) }),
+    );
+  });
+
+  it('działa tak samo w polu wielolinijkowym (TextArea)', () => {
+    (window as unknown as { SpeechRecognition: typeof FakeRecognizer }).SpeechRecognition =
+      FakeRecognizer;
+    const onChange = vi.fn();
+    render(<TextArea label="Notatka" value="" onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Dyktuj/ }));
+    act(() => {
+      FakeRecognizer.ostatnia!.onresult!({ results: { 0: { 0: { transcript: 'Pierwsza notatka' } } } });
+    });
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ target: expect.objectContaining({ value: 'Pierwsza notatka' }) }),
+    );
   });
 });
 
