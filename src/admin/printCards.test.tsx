@@ -154,7 +154,7 @@ describe('PrintCards', () => {
       screen.getAllByText('2 doświadczenia za uczenie innych'),
     ).toHaveLength(c.characters.length);
     expect(
-      screen.getAllByText('1 doświadczenie za 5 kart postaci (talent, mentor i 3 kompetencje)'),
+      screen.getAllByText('1 doświadczenie za 6 kart postaci (2 talenty, mentor i 3 kompetencje)'),
     ).toHaveLength(c.characters.length);
   });
 

@@ -409,7 +409,7 @@ export function PrintCards({
               <p className="font-bold uppercase tracking-wide text-black/50">Doświadczenie</p>
               <p>3 doświadczenia za rozwiązanie problemu</p>
               <p>2 doświadczenia za uczenie innych</p>
-              <p>1 doświadczenie za 5 kart postaci (talent, mentor i 3 kompetencje)</p>
+              <p>1 doświadczenie za 6 kart postaci (2 talenty, mentor i 3 kompetencje)</p>
             </div>
           </article>
         ))}
