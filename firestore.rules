@@ -609,6 +609,13 @@ service cloud.firestore {
                     && request.resource.data.title.size() <= 200
                     && request.resource.data.kind in
                          ['report-dismissed', 'report-fixed', 'discussion-reply', 'announcement']
+                    // `announcement` ma wyglądać jak oficjalna wiadomość od
+                    // admina (AnnouncementsPanel pokazuje ją bez sprawdzania
+                    // nadawcy) — więc tworzyć ją może tylko ten, kto może
+                    // tworzyć samo ogłoszenie (`announcements` wymaga
+                    // `jestAdmin()`). Inaczej dowolny coworker/editor omija
+                    // panel i podszywa się pod admina w cudzym dzwonku.
+                    && (request.resource.data.kind != 'announcement' || jestAdmin())
                     // Pola opcjonalne też mają granice: bez nich wpis
                     // z ogromnym tekstem rozwalał cudzy dzwonek, a `link` idzie
                     // wprost do kliknięcia, więc musi być ścieżką w panelu —
