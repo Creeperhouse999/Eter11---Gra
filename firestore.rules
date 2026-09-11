@@ -60,6 +60,25 @@ service cloud.firestore {
         && (rolaKonta() == 'admin' || rolaKonta() == 'programmer');
     }
 
+    /**
+     * WYŁĄCZNIE właściciel projektu (`admin`) — nie bot (`programmer`).
+     *
+     * `jestAdmin()` traktuje `programmer` (rola konta bota, dane logowania
+     * w sekretach GitHub Actions) jak admina wszędzie — uzasadnione tam,
+     * gdzie bot rzeczywiście musi działać jak admin (np. przycinanie
+     * `contentHistory` przy każdym zapisie treści). Ale komentarze przy
+     * `roles` i `accountRemovals` mówią wprost „wyłącznie admin" i opisują
+     * dokładnie ten scenariusz, przed którym miały chronić: „inaczej ktoś
+     * podniósłby się do admina". Z `jestAdmin()` bot mógł zrobić dokładnie
+     * to — nadpisać `roles/<swoje-uid>` na `role: 'admin'` i zlecić
+     * `accountRemovals` (trwałe skasowanie DOWOLNEGO konta, wykonywane
+     * bezwarunkowo przez Admin SDK w Actions) — mimo że żaden skrypt bota
+     * tych dwóch operacji nie potrzebuje (bot tylko CZYTA `roles`).
+     */
+    function jestPrawdziwymAdminem() {
+      return zalogowany() && rolaKonta() == 'admin';
+    }
+
     /** Admin i co-admin: moderują zgłoszenia, ale usuwa tylko admin. */
     function jestModeratorem() {
       return zalogowany()
@@ -191,7 +210,7 @@ service cloud.firestore {
       // bo `displayName` konta może zmienić wyłącznie jego właściciel, więc
       // podpisy tej samej osoby rozjeżdżały się i nie dało się ich uporządkować
       // z panelu. Nadaje je admin, jak rolę i kolor.
-      allow create, update: if jestAdmin()
+      allow create, update: if jestPrawdziwymAdminem()
                    && request.resource.data.keys().hasOnly(['email', 'role', 'color', 'name'])
                    && (!('name' in request.resource.data)
                        || (request.resource.data.name is string
@@ -205,8 +224,8 @@ service cloud.firestore {
 
       // Usunięcie wpisu osobno: przy delete nie ma `request.resource.data`,
       // więc walidacja kształtu (jak wyżej) zawsze by je odrzuciła — dlatego
-      // ta operacja ma własny warunek, samo `jestAdmin()`.
-      allow delete: if jestAdmin();
+      // ta operacja ma własny warunek, samo `jestPrawdziwymAdminem()`.
+      allow delete: if jestPrawdziwymAdminem();
     }
 
     /**
@@ -544,9 +563,9 @@ service cloud.firestore {
      * działa z pominięciem reguł.
      */
     match /accountRemovals/{item} {
-      allow read: if jestAdmin();
+      allow read: if jestPrawdziwymAdminem();
 
-      allow create: if jestAdmin()
+      allow create: if jestPrawdziwymAdminem()
                     && request.resource.data.keys()
                          .hasOnly(['uid', 'email', 'requestedBy', 'requestedAt'])
                     && request.resource.data.uid is string
