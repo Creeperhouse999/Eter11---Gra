@@ -919,7 +919,7 @@ export function AdminApp() {
             onEditProblem={(problemId) => route.navigate('problems', null, { open: problemId })}
           />
         )}
-        {tab === 'activity' && <ActivityPanel onOpen={goToLink} />}
+        {tab === 'activity' && <ActivityPanel onOpen={goToLink} role={auth.role} />}
         {tab === 'manual' && (
           <PrintManual
             content={content}

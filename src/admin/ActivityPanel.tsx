@@ -6,6 +6,7 @@ import {
   type ReportProgress,
 } from '../firebase/reports';
 import { watchDiscussions, type Discussion } from '../firebase/discussions';
+import { canModerate, type Role } from '../firebase/roles';
 import { buildActivity, buildAwaitingReview, buildDiscussionQueue } from './activityFeed';
 import { wgRecznejKolejnosci, poPrzesunieciu, poPrzeciagnieciu } from './reorderQueue';
 import { formatDate } from './formatDate';
@@ -22,6 +23,15 @@ const AUTHOR = 'Claude';
 interface ActivityPanelProps {
   /** Skok do zgłoszenia — ten sam mechanizm, co przy powiadomieniach. */
   onOpen: (link: string) => void;
+  /**
+   * Rola zalogowanego — reguła Firestore pozwala zmieniać `queueRank`
+   * (kolejność ręczną) wyłącznie moderatorowi (`canModerate`). Bez tego
+   * sprawdzenia coworker/editor widział te same uchwyty do przeciągania
+   * i strzałki co admin, a każda próba zapisu kończyła się cichym
+   * „Nie udało się zapisać kolejności" — reguła odrzucała zapis, którego
+   * panel nigdy nie powinien był zaproponować.
+   */
+  role: Role;
 }
 
 /** Kolor plakietki etapu — ten sam, co na liście zgłoszeń. */
@@ -43,7 +53,8 @@ const KOLOR: Record<ReportProgress | 'brak', string> = {
  * Lista jest na żywo (`watchReports`), więc zmiana etapu pojawia się tu bez
  * odświeżania strony — o to właśnie chodziło w słowie „live".
  */
-export function ActivityPanel({ onOpen }: ActivityPanelProps) {
+export function ActivityPanel({ onOpen, role }: ActivityPanelProps) {
+  const mozePorzadkowac = canModerate(role);
   const [reports, setReports] = useState<Report[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [blad, setBlad] = useState<string | null>(null);
@@ -244,14 +255,17 @@ export function ActivityPanel({ onOpen }: ActivityPanelProps) {
       </h3>
       <p className="mt-1 text-xs text-ink-dim">
         Zgłoszenia (nowe, wróciły do poprawy) i dyskusje, na które czekam
-        z odpowiedzią. Kolejność ustawisz, przeciągając wpisy myszą — albo
-        strzałkami, gdy wygodniej.
+        z odpowiedzią.
+        {mozePorzadkowac &&
+          ' Kolejność ustawisz, przeciągając wpisy myszą — albo strzałkami, gdy wygodniej.'}
       </p>
       {wKolejce.length === 0 ? (
         <p className="mt-1 text-sm text-ink-dim">Nic nie stoi w kolejce.</p>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {zgloszeniaWKolejce.map((w) => wiersz(w, zgloszeniaWKolejce))}
+          {zgloszeniaWKolejce.map((w) =>
+            wiersz(w, mozePorzadkowac ? zgloszeniaWKolejce : undefined),
+          )}
           {watkiWKolejce.map((w) => wiersz(w))}
         </ul>
       )}
