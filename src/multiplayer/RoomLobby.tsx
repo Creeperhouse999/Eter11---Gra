@@ -222,9 +222,18 @@ export function RoomLobby({ room, uid, isHost, onKick, onStart, onLeave }: RoomL
               </Tooltip>
             );
           })()
-        ) : (
+        ) : players.some((p) => p.uid === room.hostUid) ? (
           <p className="rounded-lg border border-edge bg-surface p-3 text-center text-sm text-ink-dim">
             Czekamy, aż gospodarz zacznie grę.
+          </p>
+        ) : (
+          // `hostUid` jest nadawany raz przy tworzeniu pokoju i reguły bazy
+          // nie pozwalają go potem zmienić — gdy gospodarz wyjdzie, ten wpis
+          // wskazuje na kogoś, kogo już nie ma. Nikt inny nie dostanie prawa
+          // do startu, więc bez tego komunikatu reszta czekałaby bez końca,
+          // nie wiedząc, że ten pokój już nigdy nie ruszy.
+          <p className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-center text-sm text-danger">
+            Gospodarz opuścił ten pokój — nikt już w nim nie zacznie gry. Wyjdźcie i załóżcie nowy.
           </p>
         )}
 

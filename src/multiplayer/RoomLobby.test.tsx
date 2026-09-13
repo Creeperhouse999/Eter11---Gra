@@ -64,6 +64,21 @@ const startButton = () =>
     name: /Zaczynamy|różne postacie|Czekamy na graczy/i,
   }) as HTMLButtonElement;
 
+const renderAsGuest = (players: RoomPlayer[], uid: string) => {
+  render(
+    <ToastProvider>
+      <RoomLobby
+        room={roomWith(players)}
+        uid={uid}
+        isHost={false}
+        onKick={vi.fn(async () => {})}
+        onStart={vi.fn()}
+        onLeave={vi.fn()}
+      />
+    </ToastProvider>,
+  );
+};
+
 describe('RoomLobby — start dopiero przy różnych postaciach', () => {
   it('blokuje start, gdy dwaj gracze mają tę samą postać', () => {
     renderLobby([
@@ -133,5 +148,36 @@ describe('RoomLobby — udana zmiana postaci potwierdza się komunikatem', () =>
     fireEvent.click(wolna!);
 
     expect(await screen.findByText(/^Wybrano: /i)).toBeTruthy();
+  });
+});
+
+/**
+ * `hostUid` jest nadawany raz przy tworzeniu pokoju i nigdy się nie zmienia
+ * (reguły bazy pozwalają go zapisać tylko wtedy, gdy jeszcze nie istnieje).
+ * Gdy gospodarz wyjdzie z poczekalni, zostaje po nim wpis w `hostUid`
+ * wskazujący na kogoś, kogo już nie ma wśród graczy — i nikt nigdy nie
+ * przyciśnie „Zaczynamy" (przycisk widzi tylko `isHost`, a `isHost` nie jest
+ * prawdziwe dla nikogo). Reszta drużyny widziała bez końca „Czekamy, aż
+ * gospodarz zacznie grę", bez żadnej wskazówki, że ten pokój już nigdy nie
+ * ruszy — jedynym wyjściem jest opuszczenie go i założenie nowego.
+ */
+describe('RoomLobby — gospodarz opuścił poczekalnię', () => {
+  it('pokazuje, że pokój jest martwy, zamiast bezterminowego „czekamy"', () => {
+    // hostUid w roomWith to zawsze 'h' — pomijamy go z listy graczy, tak jak
+    // wygląda pokój po tym, jak gospodarz go opuścił.
+    renderAsGuest([player('g', 'ch-badacz', 2)], 'g');
+
+    expect(screen.getByText(/gospodarz opuścił/i)).toBeTruthy();
+    expect(screen.queryByText(/Czekamy, aż gospodarz zacznie grę/i)).toBeNull();
+  });
+
+  it('gdy gospodarz jest obecny, reszta widzi zwykłe „czekamy"', () => {
+    renderAsGuest(
+      [player('h', 'ch-odkrywca', 1), player('g', 'ch-badacz', 2)],
+      'g',
+    );
+
+    expect(screen.getByText(/Czekamy, aż gospodarz zacznie grę/i)).toBeTruthy();
+    expect(screen.queryByText(/gospodarz opuścił/i)).toBeNull();
   });
 });
