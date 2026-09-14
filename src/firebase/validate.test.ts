@@ -298,6 +298,27 @@ describe('validateContent', () => {
     expect(validateContent(content).ok).toBe(true);
   });
 
+  // `migrate()` (content.ts) domyka `text` po KLUCZU tak samo jak `theme` —
+  // uzupełnia tylko BRAKUJĄCE pole. Pole obecne, ale złego typu (np. `null`
+  // po ręcznej edycji dokumentu w konsoli Firestore), przechodziło bez
+  // zmian, bo walidacja w ogóle nie sprawdzała sekcji `text`. FinaleScreen
+  // woła `text.finaleJobExamples.split(',')` bez żadnego zabezpieczenia, więc
+  // taki dokument ładował się poprawnie i wywracał grę dopiero na ekranie
+  // końcowym, w prawdziwej rozgrywce — nie w panelu, gdzie błąd byłby widoczny.
+  it('odrzuca tekst interfejsu złego typu zamiast wpuścić go do gry', () => {
+    const content = validContent();
+    content.text = {
+      ...content.text,
+      finaleJobExamples: null,
+    } as unknown as GameContent['text'];
+    let result!: ReturnType<typeof validateContent>;
+    expect(() => {
+      result = validateContent(content);
+    }).not.toThrow();
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('finaleJobExamples');
+  });
+
   // `themeLight` (kolory trybu jasnego) ma ten sam kształt co `theme` i tak
   // samo trafia do zmiennych CSS (App.tsx / AdminApp.tsx → setThemeOverrides →
   // applyTheme). Był jednak walidowany tylko motyw ciemny — uszkodzony

@@ -481,6 +481,27 @@ export function validateContent(content: unknown): ValidationResult {
   checkTheme('Motyw', themed.theme);
   checkTheme('Motyw jasny', themed.themeLight);
 
+  // --- Teksty interfejsu ---
+  // `migrate()` (content.ts) domyka `text` po KLUCZU tak samo jak `families`/
+  // `categories` niżej — uzupełnia tylko pole, którego W OGÓLE brakuje. Pole
+  // obecne, ale złego typu (np. `null` po ręcznej edycji dokumentu w konsoli
+  // Firestore — dokładnie to, co zostawiała ta sama luka przy `families`),
+  // przechodziło bez zmian, bo ta sekcja w ogóle nie miała kontroli kształtu.
+  // FinaleScreen woła `text.finaleJobExamples.split(',')` bez żadnego
+  // zabezpieczenia, więc uszkodzony zapis ładował się poprawnie i wywracał
+  // grę dopiero na ekranie końcowym prawdziwej rozgrywki, nie w panelu.
+  if (themed.text !== undefined) {
+    if (!isObject(themed.text)) {
+      add('Teksty interfejsu nie są obiektem.');
+    } else {
+      for (const [key, value] of Object.entries(themed.text)) {
+        if (!isText(value)) {
+          add(`Teksty interfejsu, pole ${key}: wartość musi być tekstem.`);
+        }
+      }
+    }
+  }
+
   // --- Rodziny i kategorie ---
   // `migrate()` (content.ts) domyka mapę tylko po BRAKUJĄCYM kluczu kategorii
   // (płytki spread) — wartość obecną, ale złego kształtu (obiekt/tekst
