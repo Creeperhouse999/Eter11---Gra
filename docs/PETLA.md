@@ -107,6 +107,14 @@ Nie zostawiaj commitów lokalnie.
   tryb urządzenia i MIERZY, czy strona wychodzi poza ekran).
 - Cloud agent nie ma sekretów: nie wdraża i nie oznacza zgłoszeń sam (robi to
   Actions), nie odpala Monitora ani nie planuje kolejnych biegów.
+  **Dotyczy to też `discuss.mjs` i `memory.mjs`** — oba wymagają
+  `BOT_EMAIL`/`BOT_PASSWORD`, których w środowisku cloud routine NIE MA (brak
+  `.env`, brak w `process.env` — sprawdzone 2026-09-14). Dla zgłoszeń jest
+  obejście (trailer `Report-Fixed:` w commicie, Actions oznacza kontem bota),
+  ale dla dyskusji i Pamięci takiego mostka NIE MA — odpowiedź na pytanie
+  w dyskusji z chmury da się co najwyżej przygotować, nie wysłać. Jeśli ma
+  to działać z chmury, trzeba dodać `BOT_EMAIL`/`BOT_PASSWORD` do sekretów
+  środowiska routine (albo zbudować krok w Actions jak dla zgłoszeń).
 - `line-clamp` **nie działa obok `sm:block`** (ani `md:`/`lg:`). Obie klasy mają
   równą specyficzność, a responsywna wypada w zbudowanym CSS później i nadpisuje
   `display:-webkit-box`, którego `line-clamp` potrzebuje. Tekst ucina się wtedy
