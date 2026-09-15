@@ -22,6 +22,7 @@ import {
 } from '../firebase/reports';
 import {
   canDelete,
+  canEdit,
   canModerate,
   canSetProgress,
   canReport,
@@ -646,7 +647,13 @@ export function ReportsPanel({
         report.status === 'fixed' ||
         report.status === 'done');
     const canEditReport = isModerator;
-    const hasActions = hasStatusActions || canDelete(role) || canEditReport;
+    // Dopisanie notatki nie wymaga moderacji — reguły Firestore (mozeEdytowac())
+    // wpuszczają tu każdego poza `viewer`, żeby zgłaszający coworker/editor mógł
+    // odpowiedzieć na WŁASNE zgłoszenie. Bez tej gałęzi `hasActions` był fałszywy
+    // dla nich zawsze, więc cały pasek — a z nim „Dopisz uwagę" — nigdy się nie
+    // pokazywał.
+    const canAddNote = canEdit(role) && mozeDopisacUwage(report.status);
+    const hasActions = hasStatusActions || canDelete(role) || canEditReport || canAddNote;
 
     return (
           <div>
