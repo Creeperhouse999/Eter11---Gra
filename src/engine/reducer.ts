@@ -739,14 +739,19 @@ function takeCardToMat(
   if (!mission || state.phase !== 'missionSummary') {
     return reject(state, 'Karty można zabrać dopiero po zakończeniu misji.');
   }
-  if (mission.takenToMat.includes(action.playerId)) {
-    return reject(state, 'W tej misji zabrałeś już kartę.');
-  }
 
   const play = mission.played.find(
     (p) => p.card.id === action.cardId && p.playerId === action.playerId,
   );
   if (!play) return reject(state, 'To nie jest karta zagrana przez Ciebie.');
+
+  // Karta pożyczona z WŁASNEJ karty postaci to nie nowa zdobycz — i tak
+  // wróci sama w podsumowaniu (patrz koniec `endMissionSummary`). Licząc ją
+  // do limitu "jedna karta na misję", ręczne "Zabieram" na nią blokowało
+  // graczowi odbiór faktycznie nowej karty zdobytej tej samej misji.
+  if (!play.fromMat && mission.takenToMat.includes(action.playerId)) {
+    return reject(state, 'W tej misji zabrałeś już kartę.');
+  }
 
   // ETER11 jest jokerem do zagrania, nie kompetencją do zebrania: karta
   // postaci ma pięć miejsc na kategorie i żadne z nich do niego nie pasuje.
@@ -776,7 +781,9 @@ function takeCardToMat(
         // spis kart widziałby ją dwa razy przez całe podsumowanie. Tak samo
         // robi `shareCard`, gdy karta odchodzi do innego gracza.
         played: mission.played.filter((p) => p.card.id !== action.cardId),
-        takenToMat: [...mission.takenToMat, action.playerId],
+        takenToMat: play.fromMat
+          ? mission.takenToMat
+          : [...mission.takenToMat, action.playerId],
       },
     },
   };
@@ -946,6 +953,25 @@ function endMissionSummary(state: GameState): ReducerResult {
       ],
     }));
   }
+
+  // Karty zagrane Z WŁASNEJ karty postaci (fromMat) wracają do właściciela
+  // ZAWSZE, niezależnie od limitu TAKE_CARD_TO_MAT — to pożyczka, nie nowa
+  // zdobycz, i reduktor (odrzucenie SHARE_CARD) oraz SummaryScreen już
+  // obiecują graczowi, że tak się stanie. Wcześniej wracała tylko po ręcznym
+  // "Zabieram na postać", a to ten sam jednorazowy-na-misję limit co odbiór
+  // nowo zdobytej karty — gracz, który w tej samej misji pożyczył kartę
+  // z maty I zdobył nową, mógł zabrać tylko jedną: druga (czasem właśnie ta
+  // pożyczona, już wcześniej jego) trwale szła na stos odrzuconych.
+  players = players.map((player) => {
+    const returning = mission.played.filter(
+      (p) =>
+        p.fromMat &&
+        p.playerId === player.id &&
+        !player.mat.some((c) => c.id === p.card.id),
+    );
+    if (returning.length === 0) return player;
+    return { ...player, mat: [...player.mat, ...returning.map((p) => p.card)] };
+  });
 
   // Karty niezabrane i nieprzekazane idą na stos odrzuconych.
   const keptCardIds = new Set(players.flatMap((p) => p.mat.map((c) => c.id)));
